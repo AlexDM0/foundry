@@ -1,9 +1,7 @@
 /**
- * The notice and warning sentences. What matters: a default's cause is worded, an unknown cause, also one named like an object property,
- * reading as itself; an incident default reads as its warning words it and every other kind as the notice line does, a kind this program
- * does not know reading as itself and a missing instruction file naming its job and path; and the warnings name a failed restart and an
- * Assistant that cannot come up, each by its own kind, and nothing else; passes abandoned in a row name their count and their reason. A notice
- * that asks for an action names a neutral action, never a command line, since User runs no command.
+ * The notice and warning sentences: each cause, kind and warning is worded, and an unknown one reads as itself, also one named like an
+ * object property; passes abandoned in a row name their count and reason; and a notice that asks for an action names a neutral action,
+ * never a command line, since User runs no command.
  */
 import { describe, expect, test } from 'bun:test';
 

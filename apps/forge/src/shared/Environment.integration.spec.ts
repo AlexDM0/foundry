@@ -1,8 +1,7 @@
 /**
- * What `AGENT_PROGRESS_ROOT`, `SHELL`, an agent variable by its name and the test settings mean at each value they come with, and where a
- * prepended `PATH` folder lands.
- * The value cases run in a child process so that the one assignment below stays the only in-process write to the environment a spec
- * makes, and that assignment is what shows the getter reads afresh rather than capturing at import.
+ * What `AGENT_PROGRESS_ROOT`, `SHELL`, an agent variable by its name and the test settings mean at each value, and where a prepended `PATH`
+ * folder lands. The value cases run in a child process, so the one assignment below stays the only in-process write to the environment a
+ * spec makes; that assignment shows the getter reads afresh rather than capturing at import.
  */
 import { join }         from 'node:path';
 import { expect, test } from 'bun:test';

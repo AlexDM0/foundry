@@ -1,8 +1,7 @@
 /**
- * The open decisions and their escalations. What matters: an agent's questions come first, before the code-opened kinds, each in the
- * board's order, for any decision shape, and an escalated one is marked; only an `incident-escalated` record with a decision id
- * escalates, so another kind naming a decision or an escalation without one adds nothing; and the incident that escalated a decision is
- * the newest record's, or none.
+ * The open decisions and their escalations: an agent's questions come first, before the code-opened kinds, each in board order, and an
+ * escalated one is marked; only an `incident-escalated` record with a decision id escalates; and the incident that escalated a decision
+ * is the newest record's, or none.
  */
 import { describe, expect, test } from 'bun:test';
 

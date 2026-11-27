@@ -1,8 +1,7 @@
 /**
- * The one module that reads `process.env`; nothing else may.
- * Every read is a getter rather than a value captured at import, and nothing is memoised, so a spec
- * can redirect a variable in-process. The product's own variables are named from its environment prefix, so a build linked beside the
- * released program never reads the released program's root.
+ * The one module that reads `process.env`; nothing else may. Every read is a getter, never memoised, so a spec can redirect a variable
+ * in-process. The product's own variables are named from its environment prefix, so a build linked beside the released program never reads
+ * the released program's root.
  */
 import { delimiter } from 'node:path';
 
@@ -44,7 +43,7 @@ export function fakeAgentReports(): boolean {
 
 export const FAKE_AGENT_NETWORK_OUTAGE_VARIABLE = `${PRODUCT_NAMES.ENVIRONMENT_PREFIX}FAKE_AGENT_NETWORK_OUTAGE`;
 
-/** Under the fake-agent switch, each fake session ends its first turn on a network outage, its retries spent, as P23 recorded. */
+/** Under the fake-agent switch, each fake session ends its first turn on a network outage, its retries spent, as the recorded outage shows. */
 export function fakeAgentEndsOnNetworkOutage(): boolean {
   return switchIsOn(FAKE_AGENT_NETWORK_OUTAGE_VARIABLE);
 }

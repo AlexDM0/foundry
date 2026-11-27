@@ -1,8 +1,7 @@
 /**
- * What waits on User, pure, from the facts already on the board: open decisions (the ones an Assistant escalated apart), draft tickets
- * but one whose spec or plan an agent is writing, filing drafts waiting on an answer, tickets ready for review and tickets waiting for
- * User's merge accept. The board document's attention and the monitor snapshot's `attention` are this one list. It orders by the stamp
- * strings, which one writer wrote, so no clock decides the order; ages are only shown.
+ * What waits on User, pure, from the board's facts: open decisions, draft tickets but one an agent is writing, filing drafts waiting on an
+ * answer, and tickets ready for review or for User's merge accept. The board document and the monitor snapshot share this one list. It
+ * orders by the stamp strings, which one writer wrote, so no clock decides the order; ages are only shown.
  */
 import type { DraftState }                          from '../../lib/tracker-model/@types/Draft.ts';
 import type { MonitorAttentionEntry }               from './@types/MonitorSnapshot.ts';

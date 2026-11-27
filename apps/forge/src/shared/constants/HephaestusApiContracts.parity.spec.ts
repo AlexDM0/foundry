@@ -1,8 +1,7 @@
 /**
- * The contract's list of every kind a client may send against forge's own pins. What matters: the list is exactly the union of
- * `CONTROL_CONTRACT_KINDS` and `BOARD_COMMAND_CONTRACT_KINDS`, each kind once, so forge and its clients read one list; and every listed kind
- * is a kind of forge's `ControlCommand`, which the typecheck holds. That the command route ingests each listed kind, and refuses no
- * listed kind as one forge takes only by hand, is `cli/hephaestus/routes/CommandRoute.clientKinds.spec.ts`'s, beside the route.
+ * The contract's list of every kind a client may send is the union of `CONTROL_CONTRACT_KINDS` and `BOARD_COMMAND_CONTRACT_KINDS`, each
+ * kind once, and every listed kind is a kind of forge's `ControlCommand`, which the typecheck holds. That the command route ingests each
+ * listed kind is `cli/hephaestus/routes/CommandRoute.clientKinds.spec.ts`'s.
  */
 import { describe, expect, test } from 'bun:test';
 

@@ -1,9 +1,7 @@
 /**
- * The counting contract `agent-progress rework` is judged by, against constructed diff text. The cases that
- * matter are the ones a reviewer could dodge a threshold through or be charged wrongly by: a trailing comment
- * that is really code, a comment a hunk begins inside, a removed line that looks like a file header, the two
- * sides of a hunk that must not share their comment state, an unknown file type, and the interdiff that must
- * find nothing when a rebase changed nothing.
+ * The counting contract `agent-progress rework` is judged by, against constructed diff text: the cases a reviewer could dodge a
+ * threshold through or be charged wrongly by, such as a trailing comment that is really code, a hunk that begins inside a comment,
+ * the two sides of a hunk, a removed line that looks like a file header, and an interdiff after a rebase that changed nothing.
  */
 import { describe, expect, test } from 'bun:test';
 

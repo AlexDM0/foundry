@@ -1,8 +1,7 @@
 /**
- * The names a board gives its branches, and when it may take a namespace. What matters: a board without a namespace names its branches
- * exactly as before namespaces, and claims no other board's; two namespaced boards never name the same branch, ticket 1 of each above
- * all; and a namespace is refused where git has no room for it, where another board's branches already sit, and while the board's own
- * branches are left under its current names.
+ * The names a board gives its branches, and when it may take a namespace. What matters: a board without a namespace names its branches as
+ * before namespaces and claims no other board's; two namespaced boards never name the same branch, their first tickets above all; and a
+ * namespace is refused where git has no room for it, where another board's branches sit, and while the board's own branches keep old names.
  */
 import { describe, expect, test } from 'bun:test';
 

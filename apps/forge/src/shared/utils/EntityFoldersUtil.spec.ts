@@ -1,8 +1,7 @@
 /**
- * The util's contract: an entity's folders read from the repository's root. What matters: a folder leading with `/` is kept as it is,
- * any other is under the first home however that home is written, a step or gate with no folder runs in the home itself, and a gate
- * keeps everything else it holds. An entity's constitution is the file it names, else `CONSTITUTION.md` in its first home, the root's at the
- * repository's root.
+ * An entity's folders read from the repository's root: a folder leading with `/` is kept as it is, any other is under the first home, a
+ * step or gate with no folder runs in the home itself, and a gate keeps everything else it holds. An entity's constitution is the file it
+ * names, else `CONSTITUTION.md` in its first home.
  */
 import { describe, expect, test } from 'bun:test';
 

@@ -1,5 +1,5 @@
 /**
- * The sentences of Hephaestus's open notices and of the header's warnings (owner answer Q34): a failed restart with its step and error,
+ * The sentences of Hephaestus's open notices and of the header's warnings: a failed restart with its step and error,
  * an Assistant that cannot come up, and a board file of forge's own that cannot be read. The board document and the monitor snapshot carry
  * them, so both read the same words, which name a neutral action and never a command line: User runs no command.
  */

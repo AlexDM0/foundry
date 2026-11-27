@@ -1,8 +1,7 @@
 /**
- * What the control service takes from its caller besides the command and the hold: the wording of the messages a User setup move sends to
- * the pipeline agent, since no `src/` layer words a message and the words live in `cli/`, the reading of main's `CONSTITUTION.md`,
- * which Hephaestus's instruction files own, the live Hephaestus of a board, which only the caller's process can judge, and the effect
- * readings only a live Hephaestus runs.
+ * What the control service takes from its caller besides the command and the hold: the message wording, which lives in `cli/`, the reading
+ * of main's `CONSTITUTION.md`, which Hephaestus's instruction files own, and the live Hephaestus of a board with the effect readings only it
+ * runs, which only the caller's process can judge.
  */
 import type {
   ConstitutionSources,
