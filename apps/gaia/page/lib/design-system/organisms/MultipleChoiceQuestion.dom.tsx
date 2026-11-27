@@ -1,12 +1,7 @@
 /**
- * The question card, in a happy-dom document. What matters: it is a fieldset named by its legend, eyebrow and question, asking while no
- * answer was given, described by its context line while it asks; its options, given as children, are radios of one group, each named by
- * its letter and label, the recommended ones marked by the word in
- * `.design-system-choice-mark`; a multiple question draws checkboxes that show every chosen letter and hand on the letter toggled; choosing
- * an option hands its letter on, and choosing Other moves the focus into Other's text field; Answer waits for a choice, and for words when
- * Other is chosen; `columns` sets `data-layout`; once answered the green confirmation takes the place of the options and the answer button,
- * and the card says it is answered; disabled disables every control; an option outside a question refuses to render; and the words are
- * text, never markup.
+ * The question card: a fieldset named by legend, eyebrow and question, described by its context while it asks; options are radios of one group,
+ * or checkboxes in a multiple question, each named by letter and label; choosing hands the letter on, and Other moves the focus to its field;
+ * Answer waits for a choice and Other's words; once answered the confirmation replaces the options.
  */
 import {
   act,

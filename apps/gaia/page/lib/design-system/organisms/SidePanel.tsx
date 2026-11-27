@@ -1,8 +1,7 @@
 /**
- * A non-modal panel over the page's right edge, docked under whatever `dockBelow` returns, sliding in from the right and out again. Its
- * parts are its children: a `SidePanelHead` with the × close and an optional title, a `SidePanelBody` with its own scroll, and an optional
- * `SidePanelFoot`. A new content key on the body only cross-fades the contents and starts them at the top. A host reaches the panel's
- * element through `panelRef` and the body's scrolling element through `scrollRef`, never through their classes.
+ * A non-modal panel over the page's right edge, docked under whatever `dockBelow` returns, sliding in and out from the right. Its children are a
+ * `SidePanelHead` with × and an optional title, a scrolling `SidePanelBody` and an optional `SidePanelFoot`. A host reaches the panel and its
+ * scrolling body through `panelRef` and `scrollRef`, never through their classes.
  */
 import {
   createContext,

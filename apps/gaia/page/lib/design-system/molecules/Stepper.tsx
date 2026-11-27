@@ -1,8 +1,7 @@
 /**
- * The steps of a process in order, in a row or a column: each a circle (its number, or a check once done), its label and an optional
- * detail. The current step is `aria-current="step"`. A done or recheck step with an `href` links back to itself: through its label, or,
- * with an `actionLabel`, through an action at the row's end. A compact stepper draws no circles: a done step a check, the current step a
- * dot, every other step its label alone.
+ * The steps of a process in order, in a row or a column: each a circle with its number or, once done, a check, its label and an optional detail.
+ * A done or recheck step with an `href` links back through its label or an `actionLabel` action at the row's end. A compact stepper draws no
+ * circles: a check for done, a dot for current, and the label alone for the rest.
  */
 import { useId, type ReactNode } from 'react';
 

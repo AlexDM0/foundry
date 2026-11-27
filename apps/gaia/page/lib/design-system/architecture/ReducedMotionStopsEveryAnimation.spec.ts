@@ -1,9 +1,7 @@
 /**
- * Reduced motion stops every animation in the package's stylesheets: each rule that sets an `animation` (or `animation-name`)
- * other than `none` outside `@media (prefers-reduced-motion: no-preference)` is matched, for each selector of its list, by a rule inside
- * `@media (prefers-reduced-motion: reduce)` that sets an animation on the same subject and wins the cascade: a higher specificity,
- * or the same one later in the same stylesheet. A reduce rule of lower specificity loses to the rule it means to stop, which is
- * the case this test was written for. The scan proves it found a floor of animated rules, and each form is planted in memory.
+ * Reduced motion stops every animation: each rule setting an animation other than `none` outside `no-preference` is matched, per selector, by a
+ * `prefers-reduced-motion: reduce` rule on the same subject that wins the cascade, as a weaker reduce rule loses to the rule it means to stop.
+ * The scan proves it found a floor of animated rules, and each form is planted in memory.
  */
 import { describe, expect, test } from 'bun:test';
 

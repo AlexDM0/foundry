@@ -1,8 +1,7 @@
 /**
- * The popover, in a happy-dom document. What matters: closed, it renders nothing; open, it is a dialog named by its label; Esc and a
- * pointer down outside call `onDismiss` with the reason, while a pointer down on its anchor does not; its width and placement set their
- * attributes; closing with a leaving animation, it stays marked out and inert until that animation's time has passed; and the words are
- * text, never markup.
+ * The popover: closed it renders nothing, open it is a dialog named by its label; Esc and a pointer down outside call `onDismiss` with the
+ * reason, but not one on its anchor; width and placement set attributes; while its leaving animation runs it stays marked out and inert; and the
+ * words are text, never markup.
  */
 import {
   act,

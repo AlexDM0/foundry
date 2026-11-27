@@ -1,8 +1,7 @@
 /**
- * An action confirmed in place: the question and its consequence, the choices when there are any, then the confirming control and Cancel.
- * The neutral strip runs inline as one line of text, its Cancel compact, or with choices stacks the question, the choices side by side and
- * the actions; the danger strip is a card in the error colours, its Cancel full size. The confirming control arrives whole, as the
- * caller's command, in the same size, and the choices arrive whole too.
+ * An action confirmed in place: the question and its consequence, any choices, then the confirming control and Cancel. The neutral strip runs
+ * inline as one line, its Cancel compact, or stacks when it has choices; the danger strip is a card in the error colours with a full-size Cancel.
+ * The confirming control and the choices arrive whole from the caller.
  */
 import type { ReactNode } from 'react';
 

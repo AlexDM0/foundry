@@ -1,9 +1,7 @@
 /**
- * A number changed only in steps: its read-only value between a lower and a raise button, with ArrowDown and ArrowUp on the group doing
- * the same. Each change is clamped to the minimum and to the maximum when there is one, and a button that cannot step is disabled; a step
- * that disables the button holding the focus hands the focus to the other one, so the group keeps it. A disabled stepper steps on nothing.
- * A changed value rises in when it grew and drops in when it shrank. The standard stepper is one box with the value in a field; a compact
- * one is two small buttons around the value as text, which a leading text such as "4 /" may precede.
+ * A number changed only in steps, by a lower and a raise button or ArrowDown and ArrowUp, clamped to its bounds; a button that cannot step is
+ * disabled and hands the focus to the other, so the group keeps it. The standard stepper is one box with the value in a field; a compact one is
+ * two small buttons around the value as text, perhaps after a leading text such as "4 /".
  */
 import { useLayoutEffect, useRef, type KeyboardEvent } from 'react';
 

@@ -1,8 +1,7 @@
 /**
- * The keyed line list, in a happy-dom document. What matters: it is a list named by its label, its key column set as an attribute; one
- * line per entry, in the order given, even when two lines share a key, such as two calls of one tool; each line's key leads it with its
- * full form as its title; the marks `current` and `alert` set `data-mark`, and an unmarked line has none; and the key and the label are
- * text, never markup.
+ * The keyed line list: a list named by its label with its key column as an attribute; one line per entry in order, even when two share a key,
+ * such as two calls of one tool; each key leads its line with its full form as title; `current` and `alert` set `data-mark`; and the key and the
+ * label are text, never markup.
  */
 import { cleanup, render, screen } from '@testing-library/react';
 import {

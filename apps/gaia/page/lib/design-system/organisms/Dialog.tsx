@@ -1,8 +1,7 @@
 /**
- * A modal over the whole page: a native `<dialog>` shown with `showModal()`, which makes the page behind it inert. Esc, × and a click on
- * the backdrop ask the caller to dismiss it, with the reason; the caller closes it through `isOpen`. On open the focus moves to the element
- * the caller names, else to the first field (× when there is none), and Tab cycles inside; on close it slides out and the focus returns to
- * the element that held it before.
+ * A modal over the whole page: a native `<dialog>` shown with `showModal()`, so the page behind is inert. Esc, × and a backdrop click ask the
+ * caller to dismiss it with a reason; the caller closes it through `isOpen`. Opening focuses the named element, else the first field or ×, and
+ * Tab cycles inside; closing slides it out and returns the focus to the opener.
  */
 import {
   useId,

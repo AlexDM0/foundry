@@ -1,10 +1,7 @@
 /**
- * The style contract of the package, held both ways. Each class has one owner: the component of the lowest layer that emits it. Every
- * class a component emits is styled in its owner's stylesheet beside it (`atoms/Button.css` beside `atoms/Button.tsx`). Every rule of a
- * component's stylesheet names a class of that component, and every other class it names is owned by a component of a lower layer: a part
- * that the component holds. The stylesheets in `styles/` name no class, every class and keyframe is named `design-system-…`, and
- * `styles/design-system.css` imports every stylesheet once, in layer order. Classes are read from the syntax tree as `className` literals;
- * a `className` the scan cannot read fails. The scan first proves it found a floor of each, and each form is planted in memory.
+ * The package's style contract, both ways: each class is owned by the lowest-layer component emitting it and styled in that owner's stylesheet; a
+ * component's stylesheet names its own classes and only lower-layer parts beside them; every class and keyframe is named `design-system-…`;
+ * `styles/design-system.css` imports every stylesheet once, in layer order. A `className` the scan cannot read as a literal fails.
  */
 import { describe, expect, test } from 'bun:test';
 import ts                         from 'typescript';

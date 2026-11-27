@@ -1,11 +1,7 @@
 /**
- * The reorderable list, in a happy-dom document. What matters: from the keyboard, Space or Enter grabs a row, the arrows move it in the
- * page with the focus kept on its grip, and Space or Enter drops it, calling `onReorder` once with the old and the new index; Esc puts it
- * back, calls nothing and goes no further up the page; a row never leaves its band, by key or by pointer; a pointer sequence over injected
- * row boxes slides the passed rows, draws the drop line and calls `onReorder` on release, and Esc cancels it; each move is spoken in the
- * caller's words by a polite live region; a faded item sets `data-faded` on its row; a drag ends unapplied when the rows change under it
- * or a key lands on another grip, since its indices no longer name the grabbed row. happy-dom lays nothing out, so the pointer cases
- * inject the row boxes.
+ * The reorderable list; happy-dom lays nothing out, so pointer cases inject row boxes. Keys grab, move, drop and put back a row, focus on its grip;
+ * a pointer drag slides passed rows and draws the drop line; a row never leaves its band; `onReorder` fires once per moved drop; and a drag ends
+ * unapplied when the rows change or a key lands on another grip, since its indices no longer name the grabbed row.
  */
 import {
   act,

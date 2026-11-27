@@ -1,8 +1,7 @@
 /**
- * A list whose rows the user reorders by the grip at each row's start, by pointer or keyboard; a row moves only inside its band. With the
- * keyboard, Space or Enter on a grip grabs its row, the up and down arrows move it, Space or Enter drops it and Esc puts it back. With a
- * pointer, the grabbed row follows it, the rows it passes slide aside and a line marks where it lands; Esc cancels. A polite live region
- * speaks each move in the caller's words; the list calls `onReorder` once, on a drop that moved the row.
+ * A list whose rows the user reorders by the grip at each row's start, only inside its band. Space or Enter grabs and drops a row, the up and
+ * down arrows move it and Esc puts it back; a pointer drag slides the passed rows aside and marks the landing with a line. A polite live region
+ * speaks each move, and `onReorder` fires once on a drop that moved the row.
  */
 import {
   useEffect,

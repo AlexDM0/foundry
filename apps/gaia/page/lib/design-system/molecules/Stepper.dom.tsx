@@ -1,9 +1,7 @@
 /**
- * The stepper, in a happy-dom document. What matters: each step carries its status in `data-status` and only the current one is
- * `aria-current="step"`; a done step shows a check and every other step its number; a done or recheck step with an `href` links back,
- * through its label or, with an `actionLabel`, through an action described by the label, while a current or upcoming step never links;
- * every step but the last draws a line in its own status; the orientation reaches `data-orientation`; and a compact stepper draws no
- * number: a check before a done step, an empty marker for the dot before the current one, and nothing before the others.
+ * The stepper: each step carries `data-status`, only the current one `aria-current="step"`; a done step shows a check and others their number; a
+ * done or recheck step with an `href` links back through its label or a described action, never a current or upcoming one; lines follow each
+ * step's status; and a compact stepper draws only a check or a dot.
  */
 import { cleanup, render, screen } from '@testing-library/react';
 import {

@@ -1,8 +1,7 @@
 /**
- * The number stepper, in a happy-dom document. What matters: the buttons and ArrowUp and ArrowDown on the group step the value by `step`;
- * a change is clamped at the minimum and the maximum, and a button that cannot step is disabled, a step that disables the focused button
- * handing the focus to the other one; a disabled stepper steps on nothing; the group is named, and the value is read with its unit and its
- * leading text; compact sets `data-compact`; a changed value says which way it went, so it rises or drops in.
+ * The number stepper: the buttons and ArrowUp and ArrowDown step by `step`, clamped at the bounds, a button that cannot step disabled and handing
+ * the focus to the other; a disabled stepper steps on nothing; the group is named and its value read with unit and leading text; compact sets
+ * `data-compact`; and a changed value says which way it went.
  */
 import {
   cleanup,

@@ -1,9 +1,7 @@
 /**
- * A small tinted chip of text: a status, a warning, a quiet fact. Its tone picks its colours (neutral, a state tone's, warn or error),
- * dashed draws its edge dashed, and it leads with a state dot or a glyph, both hidden from the accessibility tree; while busy a turning ring
- * takes the glyph's place. A change colours it as changed, new or removed (removed struck through), and `pops` lets it pop in. With `href`
- * it is a link, with `onPress` a button, and otherwise plain text. `chip` draws it as a 24px chip on the surface with a hairline edge rather
- * than a pill, such as an item's link.
+ * A small tinted chip of text: a status, a warning, a quiet fact. Its tone picks its colours, it may lead with a state dot or a glyph (a turning
+ * ring while busy), a change colours it as changed, new or removed, and `pops` pops it in. With `href` it is a link, with `onPress` a button,
+ * otherwise text; `chip` draws it as a 24px hairline-edged chip.
  */
 import type { StateDotShape, StateTone } from '../@types/StateTone.ts';
 

@@ -1,9 +1,7 @@
 /**
- * A choice of one among a few, drawn as joined segments: the chosen segment is pressed, each may show a count after its label, and a click hands the
- * segment's value on; an accented count is drawn in the accent colours. The group is named by the label element `labelledBy` points at, or by
- * `accessibleName` where no label shows. A size sets its height; `fill` makes it as wide as its holder, its segments in equal columns; `mono` sets the
- * labels in the mono face; `separated` draws each segment as a button of its own, out of the tray; `trailing` sits as the tray's last segment, such as a
- * menu of the choices that do not fit. It keeps no margin: its holder spaces it.
+ * A choice of one among a few, drawn as joined segments: the chosen one pressed, each with an optional count after its label, a click handing its
+ * value on. The group is named by `labelledBy`'s element or by `accessibleName`. `fill`, `mono`, `separated` and a size shape it, `trailing` sits
+ * as the tray's last segment, and it keeps no margin: its holder spaces it.
  */
 import type { CSSProperties, ReactNode } from 'react';
 

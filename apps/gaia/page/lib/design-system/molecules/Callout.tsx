@@ -1,8 +1,7 @@
 /**
- * A card that stands out from the text around it: `state` is tinted in a state tone's colours, such as the card of an item's state; `warn` is
- * a surface with a warn rule down its left edge, such as a quoted reason, or with `tinted` the warn tint with a 4px left edge, such as a
- * held item; `error` is the failure tint with a 4px left edge; `neutral` is a plain surface, `dashed` for what is only incomplete. Its title,
- * when given, heads it, as an `h3` unless the screen picks another element; its actions, when given, sit at the end of its line.
+ * A card that stands out from the text around it: `state` in a state tone's colours; `warn` a surface with a warn rule down its left, or with
+ * `tinted` the warn tint with a 4px edge; `error` the failure tint with a 4px edge; `neutral` a plain surface, `dashed` for what is only
+ * incomplete. Its optional title heads it, as an `h3` unless picked otherwise.
  */
 import type { ReactNode } from 'react';
 

@@ -1,9 +1,7 @@
 /**
- * The composition rule of the package: a component imports only the components of a lower layer. An atom imports no component, a
- * molecule imports atoms, and an organism imports atoms and molecules. Any of them may import `utils/` and `@types/`, which import no
- * component, and every component sits in one of the three layer folders. A story or a spec may import any component, and nothing that
- * ships imports a story. The interface file names every component for the code outside the library, so it alone stands outside the layers
- * and imports them all. The scan first proves it read each layer and found its imports, and each form is planted in memory.
+ * A component imports only components of a lower layer: atoms none, molecules atoms, organisms atoms and molecules, and any of them `utils/` and
+ * `@types/`. Stories and specs may import any component, nothing that ships imports a story, and the interface file alone imports them all. The
+ * scan proves it read each layer, and each form is planted in memory.
  */
 import { describe, expect, test } from 'bun:test';
 

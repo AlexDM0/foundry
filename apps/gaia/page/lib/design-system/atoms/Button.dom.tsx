@@ -1,8 +1,7 @@
 /**
- * The button, in a happy-dom document. What matters: a quiet button calls `onPress` and a disabled one does not; each emphasis, the
- * attention ring, the link tint and the compact and dense heights is a `data-*` attribute on the one class; with an `href` the button is a
- * link and no button; a toggle and a disclosure carry their aria state; the leading glyph comes before the label and the trailing glyph
- * after it, each in its box, on a button and on a link; a `Tooltip` around either describes it; and a label is text, never markup.
+ * The button: a quiet one calls `onPress` and a disabled one does not; emphasis, ring, tint and heights are `data-*` attributes on the one class;
+ * with an `href` it is a link; toggles and disclosures carry their aria state; leading and trailing glyphs sit in order in their boxes; a
+ * `Tooltip` describes it; and a label is text, never markup.
  */
 import {
   cleanup,

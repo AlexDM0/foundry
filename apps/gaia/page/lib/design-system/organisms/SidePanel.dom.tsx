@@ -1,11 +1,7 @@
 /**
- * The side panel, in a happy-dom document. What matters: its top docks under the bottom of what `dockBelow` returns and follows it on a
- * scroll and on a change of the page's or the dock's size, as a banner coming above the dock makes, which fires no scroll; it mounts out
- * of view and enters after a frame; closing slides it out and reports it gone once the slide ends, at once without motion; the head's
- * close button is named by `closeLabel` and calls `onClose`; it takes the focus on the first showing only, and only when asked; a new
- * content key on the body cross-fades the contents; the head, body and foot sit in that order, the head's title and children before ×, and
- * a head of × alone says so; the width sets `data-width`, `detail` by default; `panelRef` and `scrollRef` give a host the panel and its
- * scrolling body; and the words are text, never markup.
+ * The side panel: its top docks under `dockBelow` and follows it on scroll and on resize, as a banner coming above the dock fires no scroll; it
+ * enters after a frame and reports itself gone once its slide out ends, at once without motion; its × is named by `closeLabel` and calls
+ * `onClose`; it takes the focus once, when asked; a new content key cross-fades the body; and `panelRef` and `scrollRef` reach a host.
  */
 import {
   act,

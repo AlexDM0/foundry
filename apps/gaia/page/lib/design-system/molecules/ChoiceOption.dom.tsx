@@ -1,12 +1,7 @@
 /**
- * The choice option, in a happy-dom document. What matters: with a `ChoiceInput` it is a label whose input carries the accessible name,
- * the group and the checked state, and a click anywhere on it calls `onChange`; without one it is a list item with no input; chosen sets
- * `data-chosen`; the description, marks and facts show only when given; the variant sets `data-variant`, the tone `data-tone`, a size
- * other than the standard one `data-size`, mono `data-mono` and the edged chosen look `data-chosen-look`; an option with no letter shows
- * none; the Other option's text field takes the focus when the option is chosen and keeps out of it when the option is unchosen, so an
- * uncheck is never chosen again, chooses the option once when it takes the focus itself, and hands each typed value on; a disabled input
- * and text field take no click and no typing; a text field without an input does not compile; the recommended mark is a word in its own
- * class; and the words are text, never markup.
+ * The choice option: with a `ChoiceInput` a label whose input carries name, group and checked state, clicked anywhere, else a plain list item;
+ * chosen, variant, tone, size, mono and look set their `data-*`; the Other option's field takes the focus when chosen but not when unchosen, so
+ * an uncheck is never chosen again, chooses once when focused and hands each value on; disabled parts take no input; words are text, never markup.
  */
 import {
   cleanup,

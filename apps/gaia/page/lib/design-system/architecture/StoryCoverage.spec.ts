@@ -1,8 +1,7 @@
 /**
- * Every component that the interface file exports has a story beside it (`atoms/Button.stories.tsx` beside `atoms/Button.tsx`), and every
- * story shows an exported component: it sits beside one, and its meta is titled `<Layer>/<Component>`, so Storybook's tree mirrors the
- * layers. The title is read from the syntax tree, from the object literal that names a `component`. The scan first proves it read the
- * interface file and the stories, and each form is planted in memory.
+ * Every component the interface file exports has a story beside it, and every story sits beside an exported component with its meta titled
+ * `<Layer>/<Component>`, read from the syntax tree, so Storybook's tree mirrors the layers. The scan first proves it read the interface file and
+ * the stories, and each form is planted in memory.
  */
 import { describe, expect, test } from 'bun:test';
 import ts                         from 'typescript';

@@ -1,8 +1,7 @@
 /**
- * The section head, in a happy-dom document. What matters: its title is an `h2` unless the screen picks another element; the count shows
- * only when given, a number or a count written as text; what the caller adds follows; inline sets `data-inline` and compact `data-compact`;
- * the title carries the id it is given; the heading look sets the title in the title role and holds what the caller adds in the head's
- * end; and the title is text, never markup.
+ * The section head: its title is an `h2` unless picked otherwise and carries its id; the count, a number or text, shows only when given; what the
+ * caller adds follows; inline and compact set their `data-*`; the heading look sets the title in the title role with the additions at the end;
+ * and the title is text, never markup.
  */
 import { cleanup, render, screen } from '@testing-library/react';
 import {

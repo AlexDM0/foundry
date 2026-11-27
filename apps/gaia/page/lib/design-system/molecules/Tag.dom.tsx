@@ -1,10 +1,7 @@
 /**
- * The tag, in a happy-dom document. What matters: each tone sets `data-tone`, and the state tone shows only with the `state` tone, since the
- * other tones have colours of their own; dashed and chip set their attributes; a dot leads the text in the state tone's fill and its shape, and the
- * warning glyph leads it as an icon, both hidden from the accessibility tree so the tag reads as its text alone; each glyph draws its own
- * icon; a busy tag shows a turning ring in the glyph's place; a change sets `data-change` and `pops` sets `data-pops`; `href` makes a
- * link, `onPress` a button that calls it, and neither a span; a glyph and busy, a dot without a state tone, the `state` tone without
- * one, and `href` with `onPress` do not compile; and the text is text, never markup.
+ * The tag: each tone sets `data-tone`, the state tone only with `state`; dashed, chip, change and `pops` set their attributes; a dot or glyph
+ * leads the text, hidden from the accessibility tree, and busy turns a ring in its place; `href` makes a link and `onPress` a button; conflicting
+ * props do not compile; and the text is text, never markup.
  */
 import {
   cleanup,

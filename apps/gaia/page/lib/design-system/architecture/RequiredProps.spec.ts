@@ -1,9 +1,7 @@
 /**
- * The props rule of `CONSTITUTION.md`: a component that takes more than eight required props passes a reviewer first. The TypeScript
- * checker reads each exported component's props type, so props from `extends`, an intersection and the most demanding member of a union
- * all count, and an optional prop never does. The spec only makes each such component visible: the list of reviewed components, each with
- * the use case the reviewer accepted, is exact both ways. The scan first proves it found the components of every layer, and each form is
- * planted in memory.
+ * The props rule of `CONSTITUTION.md`: a component taking more than eight required props, counted by the TypeScript checker through `extends`,
+ * intersections and a union's most demanding member, passes a reviewer first; the list of reviewed components and their accepted use cases is
+ * exact both ways. The scan proves it found every layer's components, and each form is planted.
  */
 import { describe, expect, test } from 'bun:test';
 import ts                         from 'typescript';

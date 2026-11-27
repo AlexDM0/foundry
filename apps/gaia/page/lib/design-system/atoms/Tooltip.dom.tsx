@@ -1,8 +1,7 @@
 /**
- * The tooltip, in a happy-dom document. What matters: its text is a `tooltip` whose id the trigger names in `aria-describedby`, so hover
- * and focus, which show it by CSS on its holder, show the text of the element they reach; the title leads in bold only when given; the
- * placement is a `data-*` attribute; Esc hides it once and is then left to whatever holds it, and leaving with the pointer or the focus
- * brings it back; the text is text, never markup.
+ * The tooltip: its text is a `tooltip` the trigger names in `aria-describedby`, so CSS hover and focus show the right text; the title leads in
+ * bold only when given; placement is a `data-*` attribute; Esc hides it once, and leaving with pointer or focus brings it back; and the text is
+ * text, never markup.
  */
 import {
   cleanup,

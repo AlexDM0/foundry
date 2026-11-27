@@ -1,8 +1,7 @@
 /**
- * The architecture test that keeps `design-system/` a package that can move to its own repository unchanged: no import leaves the folder,
- * no stylesheet `@import` or `url()` leaves it, nothing that ships imports a `bun:` or `node:` module or a package other than React, a
- * spec imports only its listed test packages, a story only React and Storybook, and no file, the constitution and the README among them,
- * names a word of the host from `HOST_WORDS`. The scan first proves it read the package, and each form is planted.
+ * Keeps `design-system/` a package that can move to its own repository unchanged: no import, `@import` or `url()` leaves the folder, what ships
+ * imports only React, specs and stories only their listed packages, and no file names a word of `HOST_WORDS`. The scan first proves it read the
+ * package, and each form is planted.
  */
 import { describe, expect, test } from 'bun:test';
 

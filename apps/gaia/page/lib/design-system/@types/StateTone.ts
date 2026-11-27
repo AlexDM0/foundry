@@ -1,8 +1,7 @@
 /**
- * The rows of the state palette, each named for how it looks: an element with `data-state-tone` set to one of them reads `--s-fill`,
- * `--s-tint`, `--s-ink`, `--s-edge` and, on the grey and faded rows, `--s-head` from `styles/tokens.css`. `neutral` is grey; `accent` is
- * orange and `info` teal, each on its own tint; an `-outline` tone keeps the plain surface as its ground; `info-deep` is teal on a deeper
- * tint; `success` is green; `error` is the failure crimson on its tint; `ink` is the text colour on the wash; `muted` is faded ink.
+ * The rows of the state palette, each named for how it looks: an element with `data-state-tone` set to one reads `--s-fill`, `--s-tint`,
+ * `--s-ink`, `--s-edge` and, on the grey and faded rows, `--s-head` from `styles/tokens.css`. `accent` is orange, `info` teal (`info-deep` on a
+ * deeper tint), `error` the failure crimson, `ink` the text colour on the wash and `muted` faded ink; an `-outline` tone keeps the plain surface.
  */
 export type StateTone =
   | 'neutral'

@@ -1,9 +1,7 @@
 /**
- * A narrow column of rows to choose one from: a filter field, an optional attention line, the leading rows, then the rows in their
- * labelled groups, a line when the filter matches nothing and an optional note at the foot. Each row is a button with an optional mark,
- * its title, an optional muted subtitle and what it holds at its end. The rows take one tab stop, the selected row's or else the first;
- * the arrow keys, Home and End move between them and wrap. The selected row has a filled neutral ground and a 1 px border. As the current
- * page the column is a navigation and the selected row is `aria-current="page"`; as a filter the selected row is pressed.
+ * A narrow column of rows to choose one from: a filter field, an optional attention line, the leading rows, the grouped rows, a no-match line and
+ * an optional note. The rows take one tab stop, the selected row's or the first, and the arrow keys, Home and End move between them with
+ * wrapping. As the current page it is a navigation; as a filter its selected row is pressed.
  */
 import { useId, type KeyboardEvent, type ReactNode } from 'react';
 

@@ -1,8 +1,7 @@
 /**
- * The model and effort meter, in a happy-dom document. What matters: it is one image named by its accessible name, with five bars unless
- * told otherwise, of which exactly the level's count are filled, for every level from 1 to 5; the size is an attribute; a meter without a
- * derived note takes no focus and has no tooltip, while a derived one is marked, takes the focus and is described by its tooltip; the words
- * are text, never markup.
+ * The model and effort meter: one named image of five bars unless told otherwise, exactly the level's count filled for every level from 1 to 5;
+ * the size is an attribute; a derived meter is marked, focusable and described by its tooltip while any other takes no focus; and the words are
+ * text, never markup.
  */
 import { cleanup, render, screen } from '@testing-library/react';
 import {

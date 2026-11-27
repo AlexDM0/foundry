@@ -1,10 +1,7 @@
 /**
- * The tokens in `styles/tokens.css`: each larger-view and theme colour token exists in both themes (a literal value is set for light and
- * again for dark, an alias of a themed token follows both), each alias is one `var()` line that no theme block repeats, a colour the same
- * in both themes is set once and is listed here, a state tone's literal colour is set again in its dark row, the type scale and corners
- * hold the handoff's sizes, and every token that is a time is zeroed under reduced motion and before the first paint. The toast's duration
- * is the time to read it, so it stays. The scan first proves it found the theme blocks, and a missing dark value, an unlisted literal, a
- * missing zero, an alias a theme repeats, a literal alias and a tone row with no dark value are each planted in memory.
+ * The tokens of `styles/tokens.css`: every theme colour has a light and a dark value, each alias is one `var()` line no theme repeats, a colour
+ * equal in both themes is set once and listed here, a state tone row's literal colour is set again in its dark row, the type scale and corners
+ * hold the handoff's sizes, and every time token but the toast's reading time is zeroed under reduced motion and before the first paint.
  */
 import { describe, expect, test } from 'bun:test';
 

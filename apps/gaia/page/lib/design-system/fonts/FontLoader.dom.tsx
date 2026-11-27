@@ -1,8 +1,7 @@
 /**
- * The font loader, over a fake FontFace set and a factory that records each face, as happy-dom has no FontFace API. What matters: Inter
- * and Newsreader are each registered once per unicode range, latin and latin-ext, with the weight range of their variable axis and display
- * swap, as the `@font-face` rules they replace; each source names one of the four woff2 files beside the loader, in the woff2 format; and a
- * second set gets the same faces, so a host and Storybook each register their own.
+ * The font loader, over a fake FontFace set since happy-dom has none: Inter and Newsreader are registered once per latin and latin-ext range with
+ * their variable weight range and display swap, each from one of the four woff2 files beside the loader, and a second set gets the same faces, so
+ * a host and Storybook each register their own.
  */
 import { describe, expect, test } from 'bun:test';
 

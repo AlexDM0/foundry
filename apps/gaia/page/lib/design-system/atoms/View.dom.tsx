@@ -1,8 +1,6 @@
 /**
- * The layout primitive, in a happy-dom document. What matters: it is a column unless `row` is set; the alignment flags map to the main and
- * the cross axis by direction (`centerX` is the main axis of a row and the cross axis of a column); the spacing props arrive inline as
- * the spacing tokens of their steps; `divider` puts one hidden hairline between each two children and none for a missing child; and the flags that
- * pull one axis two ways do not compile together.
+ * The layout primitive: a column unless `row`; alignment flags map to the main or cross axis by direction; spacing props arrive inline as spacing
+ * tokens; `divider` puts one hidden hairline between each two present children; and flags pulling one axis two ways do not compile together.
  */
 import { cleanup, render } from '@testing-library/react';
 import {

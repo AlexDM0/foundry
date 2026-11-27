@@ -1,8 +1,7 @@
 /**
- * A short notice that leaves by itself: a title, a line of text, an optional check that draws itself, and a bar that runs down while it
- * shows. `onExpired` comes when the bar's animation ends; under reduced motion nothing moves and it comes from `expiryTimer` after the
- * same `--toast-duration`. A pointer over the toast or the focus in it pauses the bar; under reduced motion a pause starts the timer again
- * on its end, so a reader never loses the notice while reading it.
+ * A short notice that leaves by itself: a title, a line of text, an optional self-drawing check and a bar that runs down while it shows.
+ * `onExpired` comes when the bar's animation ends, or under reduced motion from `expiryTimer` after `--toast-duration`. A pointer over it or
+ * focus in it pauses it, so a reader never loses the notice while reading it.
  */
 import {
   useEffect,

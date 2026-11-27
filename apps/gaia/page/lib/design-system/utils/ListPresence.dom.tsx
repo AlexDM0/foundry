@@ -1,8 +1,7 @@
 /**
- * `useListPresence` in a happy-dom document. What matters: the mounted list arrives as a whole, so nothing in it is marked; an item gained
- * later is marked arriving and stays so across renders; a lost item stays in its place, marked leaving, through its leaving animation, and
- * with none it goes at once; and a list that comes with a new baseline key is that data's state: nothing in it arrives and nothing before
- * it leaves.
+ * `useListPresence`: the mounted list arrives whole, unmarked; an item gained later is marked arriving across renders; a lost item stays in place
+ * marked leaving through its leaving animation, or goes at once without one; and a list with a new baseline key is that data's state, with
+ * nothing arriving or leaving.
  */
 import {
   act,

@@ -1,10 +1,7 @@
 /**
- * A preconfigured View: the card ground, border, radius and padding as defaults that every View prop a caller passes overrides. The
- * ground flags `quiet`, `step` and `decision` exclude each other in the props type; `dashed`, `interactive`, `selected` and `highlighted`
- * combine with any of them, and `grow` lets the card take the room its holder leaves. `radius` picks the section or the step corner,
- * `clipped` cuts what runs edge to edge at the corners, and `washes` washes the card in the tint of the tone around it once. A `title`
- * is drawn in the title role at the card's head, spaced from the children as they are from each other, and carries `titleId` so a
- * region can be named by it; with no title nothing is drawn, and the children may hold a title of their own.
+ * A preconfigured View: card ground, border, radius and padding as defaults any View prop overrides. The ground flags `quiet`, `step` and
+ * `decision` exclude each other; `dashed`, `interactive`, `selected`, `highlighted`, `grow`, `radius`, `clipped` and `washes` combine with any. A
+ * `title` heads the card in the title role, carrying `titleId` so a region can be named by it.
  */
 import { Text, type TextElement } from '../atoms/Text.tsx';
 import { View, type ViewProps }   from '../atoms/View.tsx';

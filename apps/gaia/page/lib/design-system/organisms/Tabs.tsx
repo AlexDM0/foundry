@@ -1,9 +1,7 @@
 /**
- * A row of tabs with one selected. As links, each tab is a link and the selected one the current page; as a switch, the row is a tablist
- * whose selected tab alone takes the tab stop, or the first tab when no tab is the selected one. The arrow keys, Home and End move to a
- * tab and select it, as a click would; a tab may show a count badge after its label, and then its accessible name says what the count
- * means. A link tab may name which of its places it opens in a muted sub-label, and offer its other places in a menu beside it: the menu
- * opens while a mouse rests on the tab, and from its caret button for the keyboard and touch, where it stays open until dismissed.
+ * A row of tabs with one selected: as links, each a link and the selected one the current page; as a switch, a tablist whose selected tab, or
+ * else the first, takes the tab stop. Arrows, Home and End select as a click would; a count badge's meaning is in the accessible name. A link tab
+ * may offer its other places in a menu, opened while a mouse rests on it, or by its caret for the keyboard and touch.
  */
 import {
   useRef,

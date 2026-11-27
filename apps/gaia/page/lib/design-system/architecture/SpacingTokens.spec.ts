@@ -1,10 +1,7 @@
 /**
- * A space in a stylesheet of the package (a component's or one of `styles/`) is a token of the spacing scale, never a pixel literal. What
- * matters: a margin, padding or gap (and their longhands) names no `<n>px`, so every space reads the one scale the spacing props read; an
- * offset that keeps a floating box apart from its anchor, `calc(100% + <n>px)`, is a space too. Two forms stay literal on purpose: a
- * hairline pull, `margin-<side>: -1px` in a rule that also draws a border on that side, is a border width; and a plain offset
- * (`top: 38px`) places a part by its geometry. Any other `-1px` is a space. Sizes, borders and radii are no spaces. The scan first proves
- * it read the stylesheets and their spaces, and each form is planted in memory.
+ * A margin, padding, gap or floating offset (`calc(100% + <n>px)`) in the package's stylesheets is a spacing-scale token, never a pixel literal,
+ * so every space reads the scale the spacing props read. A `-1px` hairline pull beside a border on that side and a plain geometric offset (`top:
+ * 38px`) stay literal. The scan proves it read the stylesheets, and each form is planted.
  */
 import { describe, expect, test } from 'bun:test';
 

@@ -1,8 +1,7 @@
 /**
- * What the package's stylesheets read and where a part that appears starts from. What matters: every custom property a stylesheet reads
- * through `var()` is one the package defines, in a stylesheet or by name in a component's inline style, so no stylesheet leans on a host's
- * token; and a `@starting-style` rule starts only from colours, opacity or a filter, never from a size or a place. The scan first proves it
- * read the stylesheets, the package's tokens and its starting styles, and each form is planted in memory.
+ * Every custom property the package's stylesheets read through `var()` is one the package defines, so none leans on a host's token, and a
+ * `@starting-style` rule starts only from colours, opacity or a filter, never a size or a place. The scan first proves it read the stylesheets,
+ * tokens and starting styles, and each form is planted in memory.
  */
 import { describe, expect, test } from 'bun:test';
 

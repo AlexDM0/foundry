@@ -1,8 +1,7 @@
 /**
- * The reorder index arithmetic, against its own contract. What matters: a move gives the order the list shows and the indices `onReorder`
- * names; the pointer lands the dragged row by the other rows' middles, never by its own; a move never leaves the row's band, whose ends are
- * where the band name changes; only the rows a move passes slide, toward the dragged row's old place, by its height and the gap after it;
- * and the drop line sits at the edge of the landing row the dragged row passes, with no line for a row that goes back to its place.
+ * The reorder index arithmetic: a move gives the shown order and the indices `onReorder` names; the pointer lands a row by the other rows'
+ * middles; a move never leaves the row's band; only passed rows slide, toward the old place, by its height and gap; and the drop line sits at the
+ * passed landing row's edge, with none for a row back in its place.
  */
 import { describe, expect, test } from 'bun:test';
 

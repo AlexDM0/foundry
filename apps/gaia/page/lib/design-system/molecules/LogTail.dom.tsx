@@ -1,8 +1,7 @@
 /**
- * The log tail, in a happy-dom document, which lays nothing out: a spec gives the list its scroll and client heights, and reads the
- * scroll position once `rerender` returns, as its act runs the layout effect. What matters: the lines read as given with their kind, in
- * a named list that is not a live region; while live it follows new lines to the bottom; once the reader scrolled up it stays where the
- * reader is, and follows again from the bottom; and a tail that is not live never scrolls.
+ * The log tail; happy-dom lays nothing out, so a spec sets the scroll and client heights and reads the scroll position after `rerender`. The
+ * lines read as given in a named list that is no live region; while live it follows new lines to the bottom, stops following once the reader
+ * scrolls up until they return, and a tail that is not live never scrolls.
  */
 import {
   cleanup,

@@ -1,8 +1,7 @@
 /**
- * The data table, in a happy-dom document. What matters: it is a table named by its label; the head row holds the column headers and each
- * row its cells in column order, every row on the same grid tracks; only the selected row is current; an expanded row is marked in the
- * muted tone and is not current; content under a row spans every column; an end-aligned column, a hidden head label and an interactive row
- * are marked; and the row height, column gap and inset are the table's, with the regular ones left unmarked.
+ * The data table: a table named by its label, the head row and every row on the same grid tracks in column order; only the selected row is
+ * current, an expanded one muted and not current; content under a row spans every column; end-aligned columns, hidden head labels and interactive
+ * rows are marked; and only non-regular heights, gaps and insets are marked.
  */
 import {
   cleanup,

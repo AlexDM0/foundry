@@ -1,8 +1,7 @@
 /**
- * The card, in a happy-dom document. What matters: the ground flags and the combinable flags are data attributes on the frame; the
- * caller's padding and margin override the stylesheet's defaults inline on the frame, while the layout props reach the View inside; a
- * title is drawn in the title role in the element asked for, spaced by the card's gap, carrying its id when given, so a region can be
- * named by it, and with no title nothing is drawn; and two ground flags, or a title id without a title, do not compile.
+ * The card: ground and combinable flags are data attributes on the frame; the caller's padding and margin override the defaults inline while
+ * layout props reach the inner View; a title is drawn in the title role and element asked, spaced by the gap and carrying its id, and absent
+ * without one; and two ground flags, or a title id without a title, do not compile.
  */
 import { cleanup, render, screen } from '@testing-library/react';
 import {

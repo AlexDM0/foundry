@@ -1,8 +1,7 @@
 /**
- * The spacing scale is one list. What matters: each step of `SPACING` is the `--space-<size>` custom property of `styles/tokens.css`, which
- * exists; each `--space-…` token is a step, so the stylesheets hold no space the props cannot reach; each token's value is the size its
- * name says, in pixels; and each short name `--sp-…` is an alias of a `--space-…` token, never a value of its own. The scan first proves it
- * read the tokens, and each form is planted in memory.
+ * The spacing scale is one list: each step of `SPACING` is an existing `--space-<size>` token of `styles/tokens.css` and each such token a step,
+ * its value the pixels its name says, and each short `--sp-…` name an alias of one, never a value of its own. The scan first proves it read the
+ * tokens, and each form is planted in memory.
  */
 import { describe, expect, test } from 'bun:test';
 

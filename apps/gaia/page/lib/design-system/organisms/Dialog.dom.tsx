@@ -1,10 +1,7 @@
 /**
- * The modal dialog, in a happy-dom document. What matters: closed, it renders nothing; open, it is a modal `<dialog>` shown through
- * `showModal()`, named by its title and described by its description; opening focuses the element the caller names, else the first
- * field, or × when there is none; Esc, × and a click on the backdrop call `onDismiss` with their reason, while a click inside the panel,
- * a press that began inside it and an Esc a layer above already took do not; Tab and Shift+Tab cycle inside it; on close the focus
- * returns to the opener; and the words are text, never markup. happy-dom's `showModal()` only sets `open` and fires no `cancel`, so the
- * cases send the events themselves.
+ * The modal dialog; happy-dom's `showModal()` only sets `open`, so the cases send the events. It is a modal `<dialog>` named by its title,
+ * focusing the named element, else the first field or ×; Esc, × and a backdrop click call `onDismiss` with their reason, but not a click inside,
+ * a press that began inside or an Esc already taken; Tab cycles inside; and on close the focus returns.
  */
 import {
   act,

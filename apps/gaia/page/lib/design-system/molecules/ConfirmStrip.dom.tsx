@@ -1,8 +1,7 @@
 /**
- * The confirm strip, in a happy-dom document. What matters: it is a group named by its label; the question comes first, then the
- * consequence only when given, then the choices only when given, then the confirming control and Cancel; Cancel calls `onCancel`; the tone
- * sets `data-tone`; the strip's small muted type stays on its own line, so a choice reads as it does outside the strip; and the words are
- * text, never markup.
+ * The confirm strip: a group named by its label holding the question, then the consequence and choices only when given, then the confirming
+ * control and Cancel, which calls `onCancel`; the tone sets `data-tone`; the strip's small type stays on its own line, so a choice reads as it
+ * does outside; and the words are text, never markup.
  */
 import { readFileSync } from 'node:fs';
 

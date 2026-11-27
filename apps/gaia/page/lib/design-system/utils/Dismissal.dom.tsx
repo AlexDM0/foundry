@@ -1,8 +1,7 @@
 /**
- * The dismissal hook, in a happy-dom document. What matters: Esc dismisses with `escape` and marks the event default-prevented, so the side
- * panel and the embedded page leave it; a pointer down or focus outside dismisses with `outside`; inside, nothing happens; a closed popover
- * listens to nothing; an Esc another layer already took dismisses nothing; and in the capture phase the Esc arrives before a document
- * listener that waits for it to bubble.
+ * The dismissal hook: Esc dismisses with `escape` and is default-prevented, so the side panel and embedded page leave it; a pointer down or focus
+ * outside dismisses with `outside`, inside nothing does; a closed popover listens to nothing; an Esc already taken dismisses nothing; and in the
+ * capture phase Esc arrives before a bubbling document listener.
  */
 import {
   cleanup,

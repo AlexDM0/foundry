@@ -1,8 +1,7 @@
 /**
- * The head of a section: a small-capitals title, an optional count apart at its end, then whatever the caller adds. The title's element is
- * the screen's choice, an `h2` by default. An inline head reads as one line of text: its parts on one baseline, the count right after
- * the title. The `heading` look sets the title in the title size, its count in a quiet pill right after it, and what the caller adds at
- * the head's end. A compact head is only as tall as its parts.
+ * The head of a section: a small-capitals title (an `h2` unless the screen picks another element), an optional count at its end, then what the
+ * caller adds. An inline head reads as one line of text; the `heading` look sets the title in the title size with its count in a quiet pill after
+ * it; a compact head is only as tall as its parts.
  */
 import type { ReactNode } from 'react';
 

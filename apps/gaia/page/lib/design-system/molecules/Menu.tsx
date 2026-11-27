@@ -1,9 +1,7 @@
 /**
- * A menu: a trigger button that opens a small popover of items under itself. It closes as any popover does, its Esc caught before a side
- * panel's own and the focus back on the trigger, and an item closes it by its `closing`. The insert trigger is a round plus on a line,
- * named by `triggerName`, that pulses while closed and opens its popover beside itself. The segment trigger sits as the last segment of a
- * `SegmentedControl` tray, pressed while the tray's choice is one of its items. The caret trigger is a small chevron beside what it opens
- * alternatives to, such as a tab, named by `triggerName`. The popover drops in on open and leaves the same way, inert while it goes.
+ * A menu: a trigger that opens a small popover of items under itself, closing as any popover does, its Esc caught before a side panel's own, and
+ * an item closing it by its `closing`. The insert trigger is a pulsing round plus on a line, the segment trigger the last segment of a
+ * `SegmentedControl` tray, and the caret trigger a chevron beside what it offers alternatives to.
  */
 import {
   useId,

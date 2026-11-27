@@ -1,9 +1,7 @@
 /**
- * Hover and press move nothing in the package's stylesheets: a rule whose selector holds `:hover` or `:active` (also inside
- * `:is()`, `:where()`, `:has()` or a selector list, and inside `@media` and `@container`) changes only colour, outline, a shadow, a filter,
- * opacity, visibility or the cursor. A movement allowed because it moves nothing else is an entry of `MOVEMENTS_ALLOWED`, held exact both
- * ways; `transform: none` only cancels a movement and always passes. The scan first proves it found a floor of hover and active rules, and
- * each form is planted in memory.
+ * Hover and press move nothing: a rule whose selector holds `:hover` or `:active`, nested in `:is()`, `:where()`, `:has()`, a list, `@media` or
+ * `@container` too, changes only colour, outline, shadow, filter, opacity, visibility or cursor, and `transform: none` only cancels a movement. A
+ * movement that moves nothing else is an entry of `MOVEMENTS_ALLOWED`, exact both ways. The scan proves it found a floor of rules.
  */
 import { describe, expect, test } from 'bun:test';
 

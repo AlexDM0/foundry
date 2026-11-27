@@ -1,11 +1,7 @@
 /**
- * The segmented control, in a happy-dom document. What matters: the selected segment alone is pressed, and none while no segment is the choice; a click
- * hands its value on; a count shows in its own mark after the label, an accented one marked `data-accented`; an accessible name names its button; each
- * button is handed to `optionRef`; the group is named by its label element; a size sets `data-size`; `mono` sets `data-mono`; `separated` sets
- * `data-separated`; `fill` sets `data-fill` and hands the segment count to the stylesheet's equal columns as `--segment-count`; a disabled segment cannot
- * be clicked; a name of its own names the group where no label shows, and a group named both ways does not compile; a trailing part sits last in the tray
- * and sets `data-trailing`, its buttons no segments, and separated segments take none by type; a segment of a set height keeps its label on one line, and
- * a disabled one fades to the disabled ink every control shares; and a label is text, never markup.
+ * The segmented control: the selected segment alone is pressed and a click hands its value on; counts, accents, sizes, `mono`, `separated`,
+ * `fill` (with `--segment-count`) and a trailing part set their marks and attributes; the group is named by its label or its own name, never
+ * both; a disabled segment takes no click and fades; and a label is text, never markup.
  */
 import { readFileSync } from 'node:fs';
 

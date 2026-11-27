@@ -1,9 +1,7 @@
 /**
- * The toast, in a happy-dom document, which runs no CSS animation: a spec ends one by dispatching `animationend`, or fires the injected
- * timer. What matters: the toast is a status region with its title and text, and its check glyph only when asked; `onExpired` comes on the
- * end of the timer bar's own animation and not on one that bubbles from inside; with motion the injected timer is never started; the toast
- * takes the focus, and a pointer over it or the focus in it pauses it, and leaving resumes it; under reduced motion `onExpired` comes from
- * the injected timer after the toast's duration, and a pause cancels that timer and the resume starts it again.
+ * The toast; happy-dom runs no CSS animation, so a spec dispatches `animationend` or fires the injected timer. It is a status region that takes
+ * the focus; `onExpired` comes on the timer bar's own animation end, never a bubbled one, or under reduced motion from the injected timer; hover
+ * or focus pauses it and leaving resumes it, restarting that timer.
  */
 import {
   act,

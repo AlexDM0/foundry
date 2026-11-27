@@ -1,9 +1,7 @@
 /**
- * The selection rail in a happy-dom document. What matters: the leading rows come first and the other rows follow in their labelled
- * groups, each a real button named by its accessible name; the selected row has the selection look and the one tab stop, or the first
- * row has it when none is selected; a press gives the row's key; the arrow keys, Home and End move the focus and wrap, and choose nothing;
- * the filter field reports its text; the attention line, the no-match line and the note show only when given; as the current page the
- * column is a navigation with the selected row current, and as a filter the selected row is pressed.
+ * The selection rail: the leading rows, then the grouped rows, each a named button; the selected row, or else the first, has the one tab stop; a
+ * press gives its key; arrows, Home and End move the focus with wrapping and choose nothing; the filter reports its text; optional lines show
+ * only when given; as a page it is a navigation, as a filter its row is pressed.
  */
 import {
   cleanup,

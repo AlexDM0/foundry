@@ -1,8 +1,6 @@
 /**
- * The pane, in a happy-dom document. What matters: it is named by its label; the title heads it (an `h2` unless the screen picks another
- * element), and the mark, subtitle and count each show
- * only when given; what the head adds sits in the head; the body says whether it is padded or flush; the foot shows only when given; it can
- * be an aside; and the words are text, never markup.
+ * The pane: named by its label, its title an `h2` unless picked otherwise, and the mark, subtitle, count and foot shown only when given; the head
+ * holds what it adds; the body says whether it is padded or flush; it can be an aside; and the words are text, never markup.
  */
 import { cleanup, render, screen } from '@testing-library/react';
 import {

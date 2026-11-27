@@ -1,8 +1,7 @@
 /**
- * The callout, in a happy-dom document. What matters: a title heads it as a heading only when one is given, so an untitled quote adds no
- * empty heading to the outline, an `h3` unless the screen picks another element; each tone sets `data-tone`, and only a `state` callout
- * takes a state tone, since every other tone has colours of its own; only a warn callout can be tinted and only a neutral one dashed; its
- * contents follow the title, and its actions follow its contents in a part of their own; and the title is text, never markup.
+ * The callout: a title heads it (an `h3` unless picked otherwise) only when given, so an untitled quote adds no empty heading; each tone sets
+ * `data-tone`, only `state` takes a state tone, only warn can be tinted and only neutral dashed; contents follow the title and actions follow in
+ * their own part; and the title is text, never markup.
  */
 import { cleanup, render, screen } from '@testing-library/react';
 import {

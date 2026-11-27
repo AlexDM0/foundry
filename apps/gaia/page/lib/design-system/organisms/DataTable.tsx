@@ -1,10 +1,7 @@
 /**
- * A table drawn as one CSS grid per row inside a bordered card: a micro-caps head row, then rows of 40px, 36px when compact or 58px when
- * tall, each with its hairline. A row may be the selected one, may be interactive (ringed on hover, a box a stretched link can fill), may
- * be expanded, opened to show what lies under it on the wash with a faded edge, never the selection's orange, and may carry content under
- * its cells, such as a confirmation or a failure, spanning every column. A head label may be hidden, read by a
- * screen reader only, over a column whose cells name themselves. A table with many narrow columns may set them closer together, and one
- * may sit its cells further in from the card's edges.
+ * A table drawn as one CSS grid per row inside a bordered card: a micro-caps head row, then rows of 40px, 36px compact or 58px tall. A row may be
+ * selected, interactive, expanded onto the wash (never the selection's orange) or carry content spanning every column, such as a confirmation. A
+ * head label may be screen-reader only, and columns may sit closer or further in.
  */
 import type { ReactNode } from 'react';
 

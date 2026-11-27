@@ -1,8 +1,7 @@
 /**
- * The state badge, in a happy-dom document. What matters: the tone sets `data-state-tone`, which picks its row of colours in `tokens.css`;
- * the quiet palette sets `data-palette`; each shape flag sets its own attribute and the standard look sets none; compact sets `data-size`;
- * fitted and shrinkable set their own; the badge shows its label, never the tone, as text; and its dot and a checked badge's check are
- * hidden from the accessibility tree.
+ * The state badge: the tone sets `data-state-tone`, picking its colour row in `tokens.css`; the quiet palette, each shape flag, compact, fitted
+ * and shrinkable set their own attributes, the standard look none; it shows its label, never the tone, as text; and its dot and check are hidden
+ * from the accessibility tree.
  */
 import { cleanup, render } from '@testing-library/react';
 import {

@@ -1,11 +1,7 @@
 /**
- * One lettered option of a question: its letter, its label with an optional description under it, then the caller's marks and facts. With
- * a `ChoiceInput` it is a label the radio or checkbox leads, so a click anywhere on it chooses; without, a read-only list item. A chosen
- * option reads bold; the card variant draws it as a bordered card, and the question tone in the question colours, a chosen card tinted
- * with its edge, or with the `edged` look the edge alone. A size other than the
- * standard one sets the option as a compact row, a large option or a roomy card; `mono` sets its label as machine text, and an option with
- * no letter shows none. With a `ChoiceFreeText` it is the Other option: a text field under its label, which takes the focus when the option
- * is chosen and chooses the option when it takes the focus. A disabled input or text field fades the option and ignores a click on it.
+ * One lettered option of a question: its letter, its label and optional description, then the caller's marks and facts. With a `ChoiceInput` it
+ * is a label the radio or checkbox leads, so a click anywhere chooses; without, a read-only list item. With a `ChoiceFreeText` it is the Other
+ * option, whose text field takes the focus when chosen and chooses the option when focused.
  */
 import {
   createContext,

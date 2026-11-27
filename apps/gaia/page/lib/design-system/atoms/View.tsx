@@ -1,8 +1,7 @@
 /**
- * The layout primitive: a flex box, a column unless `row` is set, aligned by adjective flags and spaced by steps of the spacing scale. The
- * flags that pull one axis two ways exclude each other in the props type: `centered` stands alone, and `between` spreads the main axis,
- * so it takes centring only across it (`centerX` in a column, `centerY` in a row). `divider` draws a hairline between the children, and
- * `grow` makes the view take the room its own row or column leaves.
+ * The layout primitive: a flex box, a column unless `row` is set, aligned by adjective flags and spaced by steps of the spacing scale. Flags
+ * pulling one axis two ways exclude each other in the props type: `centered` stands alone, and `between` takes centring only across the main
+ * axis. `divider` draws hairlines between children; `grow` takes the room left.
  */
 import { Children, type ReactNode } from 'react';
 

@@ -1,8 +1,7 @@
 /**
- * The stylesheets of the package close every brace they open: each `{` has its `}` and no `}` comes before its `{`. A lost brace nests
- * every rule after it in the block above, such as a `@media` query, and the browser reports nothing. Braces inside comments and quoted
- * strings are text and are left out. The scan first proves it found a floor of stylesheets and of blocks, and each form is planted in
- * memory.
+ * The package's stylesheets close every brace they open, in order: a lost brace nests every later rule in the block above and the browser reports
+ * nothing. Braces inside comments and quoted strings are text. The scan first proves it found a floor of stylesheets and blocks, and each form is
+ * planted in memory.
  */
 import { describe, expect, test } from 'bun:test';
 

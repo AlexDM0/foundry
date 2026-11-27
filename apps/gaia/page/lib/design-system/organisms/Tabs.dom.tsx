@@ -1,10 +1,7 @@
 /**
- * The tabs, in a happy-dom document. What matters: as links, the selected tab is the current page and each leads to its href; the arrow
- * keys, Home and End call `onSelect` with the tab they reach and move the focus there, wrapping; as a switch, the row is a tablist whose
- * selected tab alone takes the tab stop, the first tab taking it when the selected key is among no tab, and a click selects; a count
- * shows as a count badge under the tab's accessible name; a link tab's sub-label follows its label, and its menu opens while a mouse rests on
- * the tab and closes as it leaves, or from its caret, where it stays open until dismissed, a touch opening nothing; a links tab without
- * an `href` and a switch tab with one do not compile; and a label is text, never markup.
+ * The tabs: as links the selected tab is the current page; as a switch the row is a tablist whose selected tab, or else the first, takes the tab
+ * stop; arrows, Home and End select with wrapping; a count sits under the accessible name; a link tab's menu opens on mouse rest or its caret,
+ * never on touch; mismatched `href` props do not compile; and a label is text.
  */
 import {
   cleanup,

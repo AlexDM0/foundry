@@ -1,12 +1,7 @@
 /**
- * The menu in a happy-dom document. What matters: the trigger opens and closes it and says so in `aria-expanded`; Esc closes it and hands the focus back
- * to the trigger, caught before a side panel's own Esc, which finds it handled; a pointer down or focus outside closes it; a caller may hold whether it
- * is open, told each open and close instead; an item closes it by its `closing`, handing the focus back or leaving it, while a `stays-open` item, a
- * toggle, leaves it open; a trigger named apart from its glyph keeps that name; an item shows its hint, a checked item says so and shows its check, a
- * pressed one only says so; a wide menu marks its popover; an item's description shows under its label and describes it, leaving its name to the label
- * and hint; a separator is a separator; a button trigger is drawn as a button; the insert trigger draws its own plus under its name, says whether it is
- * open in `aria-expanded`, carries its style, and its open menu leads with its heading; the caret trigger draws its own chevron under its name; the
- * segment trigger says whether it is pressed, and no other trigger does; and the words are text, never markup.
+ * The menu: the trigger toggles it in `aria-expanded`; Esc (caught before a side panel's), a pointer down or focus outside, and an item by its
+ * `closing` close it, but a `stays-open` toggle does not; a caller may hold whether it is open; items show hints, checks, descriptions and
+ * separators; and each kind of trigger draws and names itself as its kind does.
  */
 import {
   cleanup,
