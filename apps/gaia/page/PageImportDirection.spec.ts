@@ -248,15 +248,7 @@ function boardImportReportOf(modules: readonly ScannedModule[], allowances: read
 }
 
 /** Today's breaks of the board's isolation, each list named for the change that ends it; an allowance nothing breaks fails the spec. */
-const ALLOWED_BOARD_BREAKS: Readonly<Record<string, readonly string[]>> = {
-  'waits on the design-system package, which replaces ItemPresence': [
-    'page/board/conversation/ChatThread.tsx imports page/board/shell/ItemPresence.ts (only Board.tsx and board/testing/ import the shell)',
-    'page/board/conversation/DecisionCard.tsx imports page/board/shell/ItemPresence.ts (only Board.tsx and board/testing/ import the shell)',
-    'page/board/conversation/TranscriptLog.tsx imports page/board/shell/ItemPresence.ts (only Board.tsx and board/testing/ import the shell)',
-    'page/board/views/assistant/AssistantView.tsx imports page/board/shell/ItemPresence.ts (only Board.tsx and board/testing/ import the shell)',
-    'page/board/views/questions/QuestionsView.tsx imports page/board/shell/ItemPresence.ts (only Board.tsx and board/testing/ import the shell)',
-  ],
-};
+const ALLOWED_BOARD_BREAKS: Readonly<Record<string, readonly string[]>> = {};
 
 const ALLOWED_BOARD_BREAK_LINES = Object.values(ALLOWED_BOARD_BREAKS).flat();
 describe('the page\'s import direction', () => {
@@ -374,11 +366,16 @@ describe('the board\'s isolation', () => {
     expect(boardImportReportOf(scannedModules, ALLOWED_BOARD_BREAK_LINES)).toEqual({ breaks: [], unusedAllowances: [] });
   });
 
-  test('removing an allowance leaves its break named, and an allowance nothing breaks is named', () => {
-    const removedAllowance = ALLOWED_BOARD_BREAK_LINES[0] ?? '';
-    const plantedAllowance = 'page/board/views/agents/Planted.tsx imports page/board/views/kanban/KanbanView.tsx (a view imports another view)';
-    expect(boardImportReportOf(scannedModules, ALLOWED_BOARD_BREAK_LINES.slice(1))).toEqual({ breaks: [removedAllowance], unusedAllowances: [] });
-    expect(boardImportReportOf(scannedModules, [...ALLOWED_BOARD_BREAK_LINES, plantedAllowance])).toEqual({ breaks: [], unusedAllowances: [plantedAllowance] });
+  test('an allowance keeps its break from being named, a break with none is named, and an allowance nothing breaks is named', () => {
+    const plantedModule = {
+      path:   join(PAGE_FOLDER, 'board', 'views', 'agents', 'Planted.tsx'),
+      source: 'import { KanbanView } from \'../kanban/KanbanView.tsx\';\n',
+    };
+    const plantedBreak = 'page/board/views/agents/Planted.tsx imports page/board/views/kanban/KanbanView.tsx (a view imports another view)';
+    const withPlantedModule = [...scannedModules, plantedModule];
+    expect(boardImportReportOf(withPlantedModule, ALLOWED_BOARD_BREAK_LINES)).toEqual({ breaks: [plantedBreak], unusedAllowances: [] });
+    expect(boardImportReportOf(withPlantedModule, [...ALLOWED_BOARD_BREAK_LINES, plantedBreak])).toEqual({ breaks: [], unusedAllowances: [] });
+    expect(boardImportReportOf(scannedModules, [...ALLOWED_BOARD_BREAK_LINES, plantedBreak])).toEqual({ breaks: [], unusedAllowances: [plantedBreak] });
   });
 });
 
@@ -468,8 +465,8 @@ describe('the page\'s reach past its boundary', () => {
 describe('Gaia by its package name', () => {
   test('the guard names a page module that imports Gaia by its package name, and passes a relative import and a package of another name', () => {
     const plantedViewModule = join(PAGE_FOLDER, 'board', 'views', 'agents', 'Planted.tsx');
-    expect(selfReferencesOf(plantedViewModule, `import { presenceAttributeOf } from '${GAIA_PACKAGE_NAME}/page/board/shell/ItemPresence.ts';`))
-      .toEqual([`page/board/views/agents/Planted.tsx imports ${GAIA_PACKAGE_NAME}/page/board/shell/ItemPresence.ts, Gaia by its package name; use a relative path`]);
+    expect(selfReferencesOf(plantedViewModule, `import { useBoardClock } from '${GAIA_PACKAGE_NAME}/page/board/shared/BoardClock.ts';`))
+      .toEqual([`page/board/views/agents/Planted.tsx imports ${GAIA_PACKAGE_NAME}/page/board/shared/BoardClock.ts, Gaia by its package name; use a relative path`]);
     expect(selfReferencesOf(plantedViewModule, `export * from '${GAIA_PACKAGE_NAME}';`))
       .toEqual([`page/board/views/agents/Planted.tsx imports ${GAIA_PACKAGE_NAME}, Gaia by its package name; use a relative path`]);
     expect(selfReferencesOf(plantedViewModule, `export * as gaia from '${GAIA_PACKAGE_NAME}/page/board/shell/HeaderModel.ts';`))

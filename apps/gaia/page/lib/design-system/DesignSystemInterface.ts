@@ -141,6 +141,8 @@ export { SPACING } from './constants/Spacing.ts';
 export type { SpacingStep } from './constants/Spacing.ts';
 export { useDismissal } from './utils/Dismissal.ts';
 export type { DismissalOptions, DismissalReason } from './utils/Dismissal.ts';
+export { presenceAttributeOf, useListPresence } from './utils/ListPresence.ts';
+export type { ListItemPresence, PresentItem } from './utils/ListPresenceUtil.ts';
 export { ReorderIndexUtil } from './utils/ReorderIndexUtil.ts';
 export type { RowBox, RowShift } from './utils/ReorderIndexUtil.ts';
 export { RovingFocusUtil } from './utils/RovingFocusUtil.ts';
