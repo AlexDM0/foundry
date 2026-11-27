@@ -1,8 +1,6 @@
 /**
- * The hash router. What matters: every route of `docs/design/screens.md`, the shell reads to its view and back to the same fragment; a forge's board is
- * read and written in one form, `#forge/<trackerId>[/<place>[/<item segments>]]`, and the form with `#` before the place reads as the forge
- * with no tab; an old board link is redirected to its route's own fragment and no other fragment is; a place the server names reads as an
- * address does; a malformed escape reads as no segment; anything unknown or malformed is Attention, never a throw.
+ * The hash router: every route of `docs/design/screens.md` reads to its view and back to the same fragment, an old board link is
+ * redirected to its route's own fragment, and anything unknown or malformed is Attention, never a throw.
  */
 import { describe, expect, test } from 'bun:test';
 

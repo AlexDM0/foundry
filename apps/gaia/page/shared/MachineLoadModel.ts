@@ -16,7 +16,7 @@ export interface MachineLoadMeter {
 export interface MachineLoad {
   readonly agentsText:     string;
   readonly meter:          MachineLoadMeter;
-  /** What waits at the limit (B2), above the limit's line; `null` under the limit. */
+  /** What waits at the limit, above the limit's line; `null` under the limit. */
   readonly atTheLimitLine: string | null;
   readonly limitLine:      string;
   readonly isAtTheLimit:   boolean;
@@ -32,7 +32,7 @@ function atTheLimitLineOf(fleetDocument: FleetDocument): string {
 
 /**
  * The limit against the CPUs, then what the figure holds that Gaia cannot vouch for now: the agents of an unreachable forge as it last
- * reported them (B3), and the forges at a version Gaia cannot talk to, whose agents it leaves out.
+ * reported them, and the forges at a version Gaia cannot talk to, whose agents it leaves out.
  */
 function limitLineOf(fleetDocument: FleetDocument): string {
   const { machineLimit, agentsInFlight } = fleetDocument.figures;

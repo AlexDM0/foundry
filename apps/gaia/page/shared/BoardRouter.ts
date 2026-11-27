@@ -1,13 +1,7 @@
 /**
- * The board's routes: its menu in its order, the tabs a route can open, and a route as the tab and the item it opens. A route is written
- * into Gaia's address as `#forge/<trackerId>/<place>[/<item segments>]`, each segment encoded, so a link survives a reload and needs no
- * server route. The Progress views are places under `progress/` (`progress/kanban`, `progress/waves`, `progress/gantt`); a link written
- * before they were grouped (`kanban`, `waves`, `progress`) reads as the view it named, and `kanban/ticket/<id>` and `kanban/draft/<id>` as
- * the detail on Tickets, so an old link keeps working (`docs/design/board-menu.md`). A path naming no place falls back to the stored tab, then
- * the first; a tab the board does not show (Waves without a dependency, Epics without an epic, every tab but Pipeline on a board with no
- * readable pipeline) falls back to the first tab it shows. A route-only page, such as a ticket's documents, is reached only by its route with
- * an item, never from the menu or the stored tab. The router reads and writes no address bar: whoever mounts the board hands it the path
- * and the way to go.
+ * The board's routes: its menu, the tabs a route can open, and a route as `#forge/<trackerId>/<place>[/<item segments>]`, each segment
+ * encoded, so a link survives a reload. A link written before the Progress views were grouped keeps working (`docs/design/board-menu.md`).
+ * The router reads and writes no address bar: whoever mounts the board hands it the path and the way to go.
  */
 import type { BoardTargetDocument }                         from '../@types/board/BoardTargetDocument.ts';
 import type { BoardTargetSubject, BoardTicketDocumentKind } from '../@types/board/BoardVocabulary.ts';

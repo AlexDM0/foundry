@@ -1,10 +1,7 @@
 /**
- * The form that adds a repository and starts its forge, on B4 and in A4's dialog alike: the folder with "Choose a folder", the project name
- * with its hint, then under a hairline what "Add and start" does, or why it waits, beside it; a refusal of either under them; and, when no
- * forge program is known, the dashed line that says so with a way to choose one. `AddRepositoryFields` and `ForgeProgramMissingLine` take
- * no hooks; `useAddRepositoryForm` keeps the form and sends its commands: a folder chosen through `path-choose`, `forge-add`, and the
- * program's path chosen and kept through `settings-set`. Both choosers share `path-choose`, and other screens send `settings-set`, so the
- * form keeps the result of each send it made and shows a refusal of those subjects only beside the button whose send it was.
+ * The form that adds a repository and starts its forge, on the empty fleet and in the Forges view's dialog alike. `useAddRepositoryForm`
+ * keeps the form and sends its commands; both choosers share `path-choose` and other screens send `settings-set`, so the form keeps the
+ * result of each send it made and shows a refusal only beside the button whose send it was.
  */
 import { useEffect, useRef, useState } from 'react';
 

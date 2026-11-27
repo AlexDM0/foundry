@@ -1,8 +1,6 @@
 /**
  * Gaia's routes are hash fragments, so the page needs no server route and a link survives a server restart. A forge's board is
- * `#forge/<trackerId>[/<place>[/<item segments>]]`, each segment encoded; a path after the tracker id that names no board place opens the
- * forge at its default tab, and an old link's place is redirected to the route it names (`BoardRouter`). Any fragment Gaia does not know
- * is Attention.
+ * `#forge/<trackerId>[/<place>[/<item segments>]]`, its places read by `BoardRouter`; any fragment Gaia does not know is Attention.
  */
 import type { FleetDocumentBoardRoute } from '../@types/FleetDocument.ts';
 import { BoardRouter, type BoardRoute } from './BoardRouter.ts';

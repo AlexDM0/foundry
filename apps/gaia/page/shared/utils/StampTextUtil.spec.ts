@@ -1,5 +1,5 @@
 /**
- * How a forge's stamp prints. What matters: the ages of artboard A1 come out of the fixtures' stamps at the clock the artboard was drawn
+ * How a forge's stamp prints. What matters: the ages of the Attention artboard come out of the fixtures' stamps at the clock it was drawn
  * at; an age is minutes alone under an hour and two units above it; a stamp ahead of the clock or one that does not parse prints no wrong
  * time; a clock time carries its month and day only when it is from another day than the clock's, in the time zone handed in.
  */

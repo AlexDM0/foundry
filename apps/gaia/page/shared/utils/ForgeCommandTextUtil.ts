@@ -1,5 +1,5 @@
 /**
- * How the page words a command to one forge wherever it offers one: the refused command's own name in its refusal, B2's Stop question
+ * How the page words a command to one forge wherever it offers one: the refused command's own name in its refusal, the Stop question
  * with its two choices and what keeps waiting while the forge is stopped, and the restart an update left pending.
  */
 import type { CommandKind, ForgeCommandBody, ForgeStopAgents } from '../../@types/CommandDocument.ts';
@@ -13,7 +13,7 @@ export interface StopChoice {
   readonly consequence: string;
 }
 
-/** B2's Stop question; with no agent running it has no choices and stops Hephaestus only. */
+/** The Stop question; with no agent running it has no choices and stops Hephaestus only. */
 export interface StopQuestion {
   readonly label:       string;
   readonly question:    string;

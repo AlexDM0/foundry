@@ -1,8 +1,6 @@
 /**
- * How the page words a forge's version against the one this Gaia is built for, exactly as the Versions boards word it. What matters: each
- * verdict's word, callout, pair, subline, reading row, rail title, bar line and notice; a forge that states no version reads as older and
- * says so; a version number is its own part, so it can stand in mono; Gaia speaks of a forge in forge's terms and of itself by the forge
- * version it is built for; and no sentence offers to update Gaia, names a command or speaks of an oldest Gaia.
+ * How the page words a forge's version against the one this Gaia is built for, exactly as the Versions boards word it: each verdict's
+ * words, a version number as its own part so it can stand in mono, and no sentence that offers to update Gaia or names a command.
  */
 import { describe, expect, test } from 'bun:test';
 

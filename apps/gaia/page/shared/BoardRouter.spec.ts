@@ -1,13 +1,7 @@
 /**
- * A board route as Gaia's address writes and reads it (`docs/design/board-menu.md`). What matters: the tracker id and every item segment
- * are encoded each on its own, so an item of several segments keeps its separators and round-trips; a malformed escape stays as written
- * instead of throwing (a throw takes down the page on every reload of that link); the Progress views live under `progress/`, and an old
- * `kanban`, `waves` or `progress` link reads as the view it named, a ticket's or draft's detail on the Kanban as that detail on Tickets; a
- * path naming no place falls back to the stored tab, an old stored tab read the same way, then the first; the menu comes in its order with
- * Progress for its three views; Waves and Epics drop out on a board without dependencies or epics, Waves from the Progress views too; the
- * Progress entry opens the open view, else the remembered one while shown, else the Kanban; a board with no readable pipeline shows
- * Pipeline alone, so even a stored Kanban routes there; a route to a tab not shown falls back to the first shown tab; and a served target
- * opens the tab and item for its subject, a ticket and a draft on Tickets.
+ * A board route as Gaia's address writes and reads it (`docs/design/board-menu.md`): each segment encoded on its own, a malformed escape
+ * kept as written rather than thrown, old links read as the view they named, the menu in its order with tabs a board does not show dropped,
+ * and every route that names no shown place falling back to a tab the board shows.
  */
 import { describe, expect, test } from 'bun:test';
 

@@ -1,9 +1,7 @@
 /**
- * How the page words a forge's system version against the one forge version this Gaia is built for, wherever it shows it: the verdict's
- * word, the callout and its versions line, the versions pair, the Forges row's subline, quiet line and sentence, Attention's reading row,
- * the forge bar's line and notice, the title of a control Gaia cannot send, and the steps of Update forge. A forge is spoken of in forge's
- * own terms; Gaia's facts are its own version and the forge version it is built for. A version number stands apart as its own part, so a
- * view sets it in mono.
+ * How the page words a forge's system version against the one forge version this Gaia is built for, wherever it shows it. A forge is
+ * spoken of in forge's own terms; Gaia's facts are its own version and the forge version it is built for. A version number stands apart
+ * as its own part, so a view sets it in mono.
  */
 import type {
   FleetDocumentForge,

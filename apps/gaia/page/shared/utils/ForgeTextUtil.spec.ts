@@ -1,8 +1,6 @@
 /**
- * How the page words a forge's state. What matters: every condition has its word and a dot, a restarting forge drawing the ring of one on
- * its way; a forge older than this Gaia shows `outdated`, apart from a newer one the server reads as unreadable alike; the usage line is
- * worded as the Bridge words it; and the unreachable callout's machine line names only what the document holds, so a value the
- * forge never reported is absent, not blank.
+ * How the page words a forge's state: every condition has its word and a dot, a forge older than this Gaia shows `outdated`, the usage line
+ * is worded as the Bridge words it, and the unreachable callout names only what the document holds, so an unreported value is absent.
  */
 import { describe, expect, test } from 'bun:test';
 

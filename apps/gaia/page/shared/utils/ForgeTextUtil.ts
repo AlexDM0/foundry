@@ -1,6 +1,6 @@
 /**
  * How the page words a forge's own state wherever it shows one: the condition it shows, its word, in a row or leading a line in sentence
- * case, the dot that stands beside the word, the usage line as the Bridge words it, the callout of a Hephaestus that stopped answering (B3),
+ * case, the dot that stands beside the word, the usage line as the Bridge words it, the callout of a Hephaestus that stopped answering,
  * and its agents a network outage stopped.
  */
 import type {

@@ -1,8 +1,6 @@
 /**
- * This machine's agents against its limit, read from a fleet document. What matters: the figure, the meter and the limit's line come from
- * the document's own figures; an unreachable forge's agents are named as last reported; and the
- * forges at a version Gaia cannot talk to mark the figure `+` and are counted as not counted.
- * The rail and the Agents view's empty state show this one reading, so their specs hold its words in place.
+ * This machine's agents against its limit, read from a fleet document's own figures. The rail and the Agents view's empty state show
+ * this one reading, so their specs hold its words in place.
  */
 import { describe, expect, test } from 'bun:test';
 

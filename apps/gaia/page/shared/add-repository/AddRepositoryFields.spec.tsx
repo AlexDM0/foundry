@@ -1,10 +1,7 @@
 /**
- * The add-a-repository form shared by B4 and A4's dialog. What matters: a folder is chosen through `path-choose` and a cancelled choice is
- * none; a forge program chosen is kept through `settings-set` and a cancelled choice sends nothing more; "Add and start" sends `forge-add`
- * with the trimmed form and reports whether it went through, so a dialog closes only then, and only while it is still open; a refused
- * choice of the program shows under its line even once a program is known. Both choosers share `path-choose` and other screens send
- * `settings-set`, so a failure shows only beside the button whose own send failed. The command sender is the real one over Gaia's server
- * stood in for by authored answers.
+ * The add-a-repository form shared by the empty fleet and the Forges view's dialog: the folder and program choosers, "Add and start"
+ * reporting whether it went through, and a refusal shown only beside the button whose own send failed. The command sender is the real
+ * one over Gaia's server, stood in for by authored answers.
  */
 import { describe, expect, test } from 'bun:test';
 
