@@ -42,6 +42,11 @@ export function useDecisionAnswer(questions: readonly DecisionQuestionView[]): D
       setSelections(NOTHING_CHOSEN);
       setFreeTextIsChosen(!freeTextIsChosen);
     },
-    changeFreeText: setFreeText,
+    changeFreeText: (text) => {
+      setFreeText(text);
+      if (freeTextIsChosen) return;
+      setSelections(NOTHING_CHOSEN);
+      setFreeTextIsChosen(true);
+    },
   };
 }
