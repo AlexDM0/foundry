@@ -18,14 +18,8 @@ export const GAIA_SYSTEM_VERSION: SystemVersion = { major: 4, minor: 4 };
 export const MINIMUM_SUPPORTED_GAIA_VERSION: SystemVersion = { major: 4, minor: 0 };
 
 /**
- * Each route's version: v1, except where the route already had a breaking change. The fleet document and its stream: monitor contract 2's
- * warning kinds (2), a part since removed (3), a forge too old to talk to (4), board routes in place of the Bridge's fragments (5), a forge's
- * presence, crash and waiting work (6), the fleet's alert of the agents a network outage stopped (7), the running and newest Hephaestus and
- * Talos (8), no forge's embed contract (9), in Gaia 2.0, no Flint's brain on a forge or among its agents and activity (10), in Gaia 3.0,
- * a forge's serving process named Hephaestus in its keys (`hephaestusStartedAt`, `hephaestusRunning`, `hephaestusNewest`) (11), and, in
- * Gaia 4.0, a restarting forge's condition `restarting` and the look of a failed restart `restart-failed` (12). The
- * commands: Gaia's sentences for forge refusals (2), commands since removed (3), Unpause in place of Resume beside the resume of
- * interrupted work (4), no Open in new tab of a forge's own Bridge (5), and, in Gaia 2.0, no start or stop of Flint's brain (6).
+ * Each route's version: v1, except where the route had a breaking change since. The fleet and its stream reached 12 in Gaia 4.0 with a restarting
+ * forge's `restarting` condition and `restart-failed` look; the commands reached 6 in Gaia 2.0 with no start or stop of Flint's brain.
  */
 export const GAIA_ENDPOINT_VERSIONS = {
   health:               1,

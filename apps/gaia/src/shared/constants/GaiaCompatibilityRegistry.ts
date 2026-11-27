@@ -1,9 +1,7 @@
 /**
- * Gaia's compatibility registry toward its own clients, its page and its launcher: one entry per thing Gaia's server keeps for clients of
- * its versions, each route at its versioned path and each compatibility path that is no route (none today), with the Gaia version that
- * introduced it and the last Gaia version whose clients still need it. `bun run versions:raise-minimum <major.minor>` lists what a raise of
- * `MINIMUM_SUPPORTED_GAIA_VERSION` makes removable, and `GaiaCompatibilityRegistry.spec.ts` fails while an entry is kept below that
- * minimum. `GET /api/versions` is in no entry: it is never removed.
+ * Gaia's compatibility registry toward its page and launcher: one entry per route kept for clients of its versions, with the Gaia version that
+ * introduced it and the last whose clients need it. `bun run versions:raise-minimum <major.minor>` lists what a raise makes removable; `GET
+ * /api/versions` is in no entry, since it is never removed.
  */
 import type { CompatibilityEntry } from 'system-versions/CompatibilityEntry';
 import type { SystemVersion }      from 'system-versions/VersionsDocument';

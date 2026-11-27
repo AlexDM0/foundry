@@ -1,10 +1,7 @@
 /**
- * `docs/contracts.md` names every versioned contract with its one version (a whole number, or a stored format's major.minor), which
- * `CONTRACT_VERSIONS` holds for the forge's contracts and Gaia's stored files and `PAGE_CONTRACT_VERSIONS` for what Gaia serves its page,
- * no key in both; each of Gaia's routes at its endpoint version, which `GAIA_ENDPOINT_VERSIONS` holds; and the verdicts on a
- * forge, exactly those of `ForgeVersionsVerdict`. What matters: each table and its source agree both ways, a key or a version missing from
- * either side, a version that differs in its number or its form and a key listed twice each named. The reading first proves it found each
- * table, and each disagreement is planted to prove the comparison names it.
+ * `docs/contracts.md` and the version tables (`CONTRACT_VERSIONS`, `PAGE_CONTRACT_VERSIONS`, `GAIA_ENDPOINT_VERSIONS`, `ForgeVersionsVerdict`)
+ * agree both ways, each missing, differing or doubled key named. The reading first proves it found each table, and each disagreement is planted to
+ * prove the comparison names it.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';

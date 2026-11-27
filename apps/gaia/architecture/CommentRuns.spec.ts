@@ -592,17 +592,6 @@ const LONG_COMMENTS_AWAITING_THE_SWEEP: Readonly<Record<string, number>> = {
   'page/views/forges/GaiaPanelModel.spec.ts':                                     1,
   'page/views/forges/GaiaPanelModel.ts':                                          1,
   'page/views/forges/WhatNotifiesDialog.tsx':                                     1,
-  'src/shared/@types/CommandVerdict.ts':                                          2,
-  'src/shared/@types/ForgeReading.ts':                                            1,
-  'src/shared/@types/board/BoardPipeline.ts':                                     1,
-  'src/shared/constants/ContractVersions.reference.spec.ts':                      1,
-  'src/shared/constants/ContractVersions.ts':                                     1,
-  'src/shared/constants/GaiaCompatibilityRegistry.spec.ts':                       1,
-  'src/shared/constants/GaiaCompatibilityRegistry.ts':                            1,
-  'src/shared/constants/GaiaSystemVersions.ts':                                   1,
-  'src/shared/constants/PageContractVersions.ts':                                 1,
-  'src/shared/utils/ContractVersionUtil.spec.ts':                                 1,
-  'src/shared/utils/ForgeVersionsUtil.spec.ts':                                   1,
   'src/testing/BoundaryRecordings.spec.ts':                                       1,
   'src/testing/LeakCheck.spec.ts':                                                1,
   'src/testing/LeakCheck.ts':                                                     1,
@@ -734,8 +723,6 @@ const REFERENCES_AWAITING_THE_SWEEP: Readonly<Record<string, number>> = {
   'page/views/forges/GaiaPanelModel.ts':                            2,
   'page/views/forges/WhatNotifiesDialog.spec.tsx':                  1,
   'page/views/forges/WhatNotifiesDialog.tsx':                       2,
-  'src/shared/constants/GaiaSettingsDefaults.ts':                   1,
-  'src/shared/constants/Limits.ts':                                 1,
 };
 const ONLY_A_LINE_BREAK_BETWEEN = /^[ \t]*\r?\n[ \t]*$/;
 

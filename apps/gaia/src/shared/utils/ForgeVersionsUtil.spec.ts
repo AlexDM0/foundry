@@ -1,8 +1,6 @@
 /**
- * The verdict on a forge's system version against the one forge version a Gaia supports, against its own contract. What matters: each of
- * the four verdicts at its edges (a forge minimum just above the supported version is newer, even by a minor; a forge just below it is
- * older; a forge above it that still serves it is ahead; the supported version itself is current), that a forge serving no versions is
- * older, and that Gaia talks only to a current or an ahead forge.
+ * The verdict on a forge's system version against the one forge version a Gaia supports: each of the four verdicts at its edges, a forge serving no
+ * versions as older, and Gaia talking only to a current or an ahead forge.
  */
 import { describe, expect, test } from 'bun:test';
 

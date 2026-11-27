@@ -19,10 +19,8 @@ export interface ForgeContracts {
 }
 
 /**
- * How the forge's system version stands to the one forge version Gaia supports. `newer`: its minimum is above the supported version, so
- * they cannot talk and Gaia needs an update. `older`: it is below the supported version, or serves no `/api/versions` at all, so they
- * cannot talk and the forge needs an update. `ahead`: above the supported version and still serving it, read with what Gaia knows.
- * `current`: the supported version.
+ * How the forge's system version stands to the one Gaia supports. `newer`: its minimum is above it, so Gaia needs an update; `older`: below it or
+ * no `/api/versions` at all, so the forge does; `ahead`: above it and still serving it; `current`: exactly the supported version.
  */
 export type ForgeVersionsVerdict = 'newer' | 'older' | 'ahead' | 'current';
 

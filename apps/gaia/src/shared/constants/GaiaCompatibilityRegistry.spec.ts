@@ -1,9 +1,7 @@
 /**
- * Gaia's compatibility registry against Gaia's own versions. What matters: the guard holds today, with nothing kept below the minimum and
- * no entry contradicting itself; a client built for the current Gaia calls each route at the version `GAIA_ENDPOINT_VERSIONS` serves it at;
- * the registry holds routes only, each still needed, since Gaia 4.0 keeps nothing for a page or a launcher of Gaia 3; the fleet and its
- * stream are dated 4.0, so a client of Gaia 3 is served neither; and the guard names an entry kept below the
- * minimum, planted here, until it is removed.
+ * Gaia's compatibility registry against its own versions: the guard holds today, a current client calls each route at the version
+ * `GAIA_ENDPOINT_VERSIONS` serves, the registry holds only routes still needed, since Gaia 4.0 keeps nothing for Gaia 3, and the guard names a
+ * planted entry kept below the minimum.
  */
 import { describe, expect, test } from 'bun:test';
 

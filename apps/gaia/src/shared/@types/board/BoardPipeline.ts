@@ -1,8 +1,7 @@
 /**
- * A forge's pipeline facts as Gaia holds them: the stored pipeline as read with each entity's effective pipeline, the open setup record with
- * its entities draft, the entity refusals and the Apply refusal the forge serves, the flow a view draws, the gates' profile runs, cache
- * marks and step run times, the pipeline history, and the choices a step may take. Values only: the forge words only its refusals and the
- * label of a refusal's fix.
+ * A forge's pipeline facts as Gaia holds them: the stored and effective pipelines, the open setup record and its refusals, the flow a view draws,
+ * the gates' runs, cache marks and run times, the history, and a step's choices. Values only: the forge words only its refusals and a refusal fix's
+ * label.
  */
 import type {
   BoardAgentTool,

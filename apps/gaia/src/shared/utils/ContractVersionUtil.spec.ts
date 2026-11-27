@@ -1,8 +1,7 @@
 /**
- * The one reading rule of every versioned contract, against its own contract. What matters: the major is read from the key a contract has
- * always carried and a stored file's minor from its sibling, an absent minor reads as 0, a document read without a minor key passes over a
- * key of that name, a major or a minor that is no whole number is named, a document without the major is unversioned; a known major reads
- * at any minor, an older major only where it is listed, a newer one never. Each verdict is planted with an example document.
+ * The one reading rule of every versioned contract: the major from the key a contract always carried, a stored file's minor from its sibling or 0,
+ * malformed numbers named, a document without the major unversioned; a known major reads at any minor, an older one only where listed, a newer
+ * never. Each verdict is planted.
  */
 import { describe, expect, test } from 'bun:test';
 
