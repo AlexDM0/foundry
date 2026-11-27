@@ -1,7 +1,6 @@
 /**
- * The fixture must hold the example data of artboards A1 to A4, or every view spec built on it checks the wrong screen. What matters: A1's
- * rows in their order with their ages, A2's ten agents and their running times, A3's interleaved entries and its daily sums, A4's
- * limits, and the fleet-wide lists being copies of their forges' own entries.
+ * The fixture must hold the example data of the Attention, Agents, Activity and Forges artboards, or every view spec built on it checks
+ * the wrong screen: their rows, ages, running times, entries, sums and limits, and the fleet-wide lists as copies of their forges' own.
  */
 import { describe, expect, test } from 'bun:test';
 

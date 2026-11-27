@@ -1,8 +1,7 @@
 /**
- * Runs every DOM spec of the board, `page/board/**\/*.dom.tsx`, which `bun test` does not discover: in one isolated run under Gaia's test
- * preload, which moves `HOME` and `TMPDIR` into scratch and judges leaks, and the happy-dom preload, each file in a fresh global, so a DOM
- * never leaks into the main run or from one spec into the next. Finding no DOM spec is a failure, so a renamed folder cannot pass by running
- * nothing. `bun run verify` runs it after `bun test`.
+ * Runs every DOM spec of the board, `page/board/**\/*.dom.tsx`, which `bun test` does not discover, in one isolated run under Gaia's test
+ * preload and happy-dom, each file in a fresh global, so no DOM leaks between specs. Finding no DOM spec fails, so a renamed folder cannot
+ * pass by running nothing.
  */
 import {
   closeSync,

@@ -1,8 +1,7 @@
 /**
- * Test-only: unfolds what a hook-free component returns into its host elements, the tags and props React would hand the DOM, so a spec can
- * read the markup and call a handler without a document. Every component the design-system library exports stays folded, so a spec reads
- * the props Gaia hands a package part and never the markup the package draws. A component that uses a hook, or an element type it does not
- * know, fails loudly.
+ * Test-only: unfolds what a hook-free component returns into the host elements React would hand the DOM, so a spec reads markup and calls
+ * handlers without a document. Every design-system component stays folded, so a spec reads the props Gaia hands it, never its markup; a
+ * hooked component or an unknown element type fails loudly.
  */
 import { readFileSync }  from 'node:fs';
 import { createRequire } from 'node:module';

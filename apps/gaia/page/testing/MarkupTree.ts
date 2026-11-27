@@ -1,8 +1,6 @@
 /**
- * Test-only: reads the markup `react-dom/server` writes as a tree, so a spec finds a control by its role and name, a text by what it
- * reads, and a part of Gaia's by its own class, never by the tags, classes or nesting a package draws. A package part is claimed whole:
- * by the markup it draws for the props Gaia hands it, or by the attributes a variant prop adds to its root, both learned from the
- * package itself.
+ * Test-only: reads the markup `react-dom/server` writes as a tree, so a spec finds a control by its role and name, a text by what it reads,
+ * and a part of Gaia's by its own class, never by what a package draws. A package part is claimed whole, as learned from the package itself.
  */
 import type { ReactElement }    from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';

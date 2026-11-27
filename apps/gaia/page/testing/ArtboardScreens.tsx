@@ -1,8 +1,7 @@
 /**
- * Test-only: each artboard of the design that Gaia's page builds, as the page paints it from that artboard's fixture, and as a whole
- * document in either theme with Gaia's own stylesheets inlined, which a browser opens at the artboard's size for the visual pass. A state
- * the artboard shows mid-use, such as B2's Stop dialog, refusal and start on their way, is set in the view's own state, not drawn apart.
- * A state no artboard draws, which a later decision of the owner added, is painted over the artboard it changes, for the same pass.
+ * Test-only: each artboard Gaia's page builds, painted from its fixture as a whole document in either theme for the visual pass. A state
+ * an artboard shows mid-use, such as the Stop dialog, is set in the view's own state; a state no artboard draws, which a later decision of
+ * the owner added, is painted over the artboard it changes.
  */
 import { readFileSync }         from 'node:fs';
 import { join }                 from 'node:path';
@@ -86,11 +85,11 @@ export const SCREEN_THEMES: readonly ScreenTheme[] = ['light', 'dark'];
 /** Every artboard Gaia's page builds is drawn at this size. */
 export const ARTBOARD_SIZE_PIXELS = { width: 1440, height: 1016 } as const;
 
-/** The artboards of `docs/design/screens.md`, by their mark. C2 is a dialog painted over A4 below; C3, the splash, is a file page of its own. */
+/** The artboards of `docs/design/screens.md`, by their mark. The notifications dialog is painted over Forges; the splash is a page of its own. */
 export type PageArtboard = 'A1' | 'A2' | 'A3' | 'A4' | 'B1' | 'B2' | 'B3' | 'B4';
 
 /**
- * How the view of a screen is set: as the route shows it, with B2's controls in use, after an update that left a restart pending, or with
+ * How the view of a screen is set: as the route shows it, with Start and Stop in use, after an update that left a restart pending, or with
  * Example Billing's Update forge on its way, done with its restart pending, or refused (the Versions boards' `update` tweak).
  */
 type ScreenViewState = 'as-routed' | 'forge-controls-in-use' | 'restart-pending' | 'forge-update-pending' | 'forge-update-done' | 'forge-update-refused';
@@ -107,7 +106,7 @@ export interface ArtboardScreen {
 
 const TRACKER_IDS = FLEET_FIVE_FORGES_TRACKER_IDS;
 
-/** B1's forge in place: Example Storefront at its open question E2. */
+/** The forge in place: Example Storefront at its open question. */
 const STOREFRONT_IN_PLACE_FRAGMENT = HashRouter.fragmentOf({ view: 'forge', trackerId: TRACKER_IDS.exampleStorefront, boardRoute: { tab: 'questions', item: 'E2' } });
 
 const BRAND_STYLESHEET_PAGE_PATH = 'lib/brand/styles/brand.css';
@@ -218,7 +217,7 @@ export const RESTART_FAILED_SENTENCE = 'the restart to code 4c1d9e2 failed at pr
 /** The notice that Research Wiki's Assistant cannot come up, as the server words it in Gaia's words. */
 export const ASSISTANT_DOWN_SENTENCE = 'This forge\'s Assistant cannot come up, so its open incidents take their defaults.';
 
-/** Invoice Service warns that its restart failed, so A1 shows that look before the two the artboard draws. */
+/** Invoice Service warns that its restart failed, so Attention shows that look before the two the artboard draws. */
 const FLEET_RESTART_FAILED: FleetDocument = {
   ...FLEET_FIVE_FORGES,
   forges: FLEET_FIVE_FORGES.forges.map((forge) => (forge.trackerId === TRACKER_IDS.invoiceService
@@ -227,7 +226,7 @@ const FLEET_RESTART_FAILED: FleetDocument = {
   needsALook: [{ trackerId: TRACKER_IDS.invoiceService, kind: 'restart-failed' }, ...FLEET_FIVE_FORGES.needsALook],
 };
 
-/** Research Wiki's Assistant cannot come up: a notice under its row on A4. */
+/** Research Wiki's Assistant cannot come up: a notice under its row on Forges. */
 const FLEET_ASSISTANT_DOWN: FleetDocument = {
   ...FLEET_FIVE_FORGES,
   forges: FLEET_FIVE_FORGES.forges.map((forge) => (forge.trackerId === TRACKER_IDS.researchWiki
@@ -255,7 +254,7 @@ export const MONITOR_WARNING_SCREENS: readonly ArtboardScreen[] = [
   },
 ];
 
-/** Decision 35, which no artboard draws: the agents a network outage stopped, the alert heading A1 and each forge's count on A4. */
+/** An owner's decision no artboard draws: the agents a network outage stopped, the alert heading Attention and each forge's count on Forges. */
 export const OUTAGE_ENDINGS_SCREENS: readonly ArtboardScreen[] = [
   {
     artboard:      'A1',
@@ -275,7 +274,7 @@ export const OUTAGE_ENDINGS_SCREENS: readonly ArtboardScreen[] = [
   },
 ];
 
-/** Owner answer 5, which no artboard draws: B1 of a forge off after a crash, with its crash summary, then started again with its crash log open. */
+/** An owner's answer no artboard draws: a forge in place, off after a crash with its summary, then started again with its crash log open. */
 export const CRASHED_FORGE_SCREENS: readonly ArtboardScreen[] = [
   {
     artboard:      'B1',
@@ -295,7 +294,7 @@ export const CRASHED_FORGE_SCREENS: readonly ArtboardScreen[] = [
   },
 ];
 
-/** A4 draws a seventh forge, Old Prototype, hidden in Gaia: dormant since 3 November, its row folded under "Hidden in Gaia". */
+/** Forges draws a seventh forge, Old Prototype, hidden in Gaia: dormant since 3 November, its row folded under "Hidden in Gaia". */
 export const OLD_PROTOTYPE_TRACKER_ID = 'old-prototype-5a21';
 
 function oldPrototypeOf(fleetDocument: FleetDocument): FleetDocument['forges'][number] {
@@ -318,7 +317,7 @@ const FLEET_WITH_A_HIDDEN_FORGE: FleetDocument = {
   settings: { ...FLEET_FIVE_FORGES.settings, hiddenTrackerIds: [OLD_PROTOTYPE_TRACKER_ID] },
 };
 
-/** A4's hidden forge, which the five forges' fixture does not hold: its figure and its folded group, over the artboard that draws them. */
+/** The Forges artboard's hidden forge, which the five forges' fixture does not hold: its figure and folded group, over the artboard. */
 export const HIDDEN_FORGE_SCREENS: readonly ArtboardScreen[] = [
   {
     artboard:      'A4',
@@ -330,13 +329,13 @@ export const HIDDEN_FORGE_SCREENS: readonly ArtboardScreen[] = [
   },
 ];
 
-/** B4 with the forge program found where Gaia looks for it, the state the board's `forgeProgram` tweak calls `found`. */
+/** No forge yet, with the forge program found where Gaia looks for it, the state the board's `forgeProgram` tweak calls `found`. */
 const FLEET_EMPTY_FORGE_PROGRAM_FOUND: FleetDocument = {
   ...FLEET_EMPTY,
   gaia: { ...FLEET_EMPTY.gaia, forgeProgramInUse: `${FLEET_EMPTY.gaia.homeFolder}/.bun/bin/forge` },
 };
 
-/** B4's second state: the artboard paints the forge program missing, as `ARTBOARD_SCREENS` does, and found. */
+/** The "No forge yet" artboard's second state: it paints the forge program missing, as `ARTBOARD_SCREENS` does, and found. */
 export const FORGE_PROGRAM_FOUND_SCREENS: readonly ArtboardScreen[] = [
   {
     artboard:      'B4',
@@ -348,7 +347,7 @@ export const FORGE_PROGRAM_FOUND_SCREENS: readonly ArtboardScreen[] = [
   },
 ];
 
-/** The Versions boards' pages: U1 is A1, U2 is A4 and U3 is B1, over forges at each version this Gaia, built for forge 3.1, meets. */
+/** The Versions boards' pages, Attention, Forges and the forge in place, over forges at each version this Gaia, built for forge 3.1, meets. */
 export type VersionsBoard = 'U1' | 'U2' | 'U3';
 
 /** The step of Example Billing's Update forge a Versions screen shows, as the boards' `update` tweak names it. */
@@ -358,7 +357,7 @@ export interface VersionsScreen extends ArtboardScreen {
   readonly board:            VersionsBoard;
   /** The name of the board's render, without its theme: `U3-forge-older-pending`. */
   readonly renderName:       string;
-  /** The forge whose versions pair the Forges view shows open under its row (U2's `versionsOf` tweak); `null` for every pair closed. */
+  /** The forge whose versions pair the Forges view shows open under its row (the Forges board's `versionsOf` tweak); `null` for every pair closed. */
   readonly versionsShownFor: string | null;
   readonly updateStep:       ForgeUpdateStep;
 }
@@ -370,7 +369,7 @@ const VERSIONS_VIEW_STATES: Readonly<Record<ForgeUpdateStep, ScreenViewState>> =
   refused: 'forge-update-refused',
 };
 
-/** U2's `versionsOf` tweak: each forge at a version other than this Gaia's, its pair open, and every pair closed. */
+/** The Forges board's `versionsOf` tweak: each forge at a version other than this Gaia's, its pair open, and every pair closed. */
 const U2_VERSIONS_SHOWN_FOR: readonly (readonly [renderName: string, trackerId: string | null])[] = [
   ['U2-forges-example-billing', FLEET_VERSIONS_TRACKER_IDS.exampleBilling],
   ['U2-forges-analytics-sandbox', FLEET_VERSIONS_TRACKER_IDS.analyticsSandbox],
@@ -378,7 +377,7 @@ const U2_VERSIONS_SHOWN_FOR: readonly (readonly [renderName: string, trackerId: 
   ['U2-forges-none', null],
 ];
 
-/** U3's `case` and `update` tweaks as the boards render them: the newer and ahead forges idle, the older one at every step. */
+/** The in-place board's `case` and `update` tweaks as the boards render them: the newer and ahead forges idle, the older one at every step. */
 const U3_FORGES_IN_PLACE: readonly (readonly [renderName: string, trackerId: string, updateStep: ForgeUpdateStep])[] = [
   ['U3-forge-newer', FLEET_VERSIONS_TRACKER_IDS.analyticsSandbox, 'idle'],
   ['U3-forge-older', FLEET_VERSIONS_TRACKER_IDS.exampleBilling, 'idle'],
@@ -389,7 +388,7 @@ const U3_FORGES_IN_PLACE: readonly (readonly [renderName: string, trackerId: str
 ];
 
 /**
- * The Versions boards (`docs/design/versions.md`, U1 to U3), each over the artboard whose page it is, from the fleet-versions fixture: Attention with
+ * The Versions boards (`docs/design/versions.md`), each over the artboard whose page it is, from the fleet-versions fixture: Attention with
  * its two callouts, Forges with each pair open and none, and each forge in place at its version and Example Billing at each update step.
  */
 export const VERSIONS_SCREENS: readonly VersionsScreen[] = [
@@ -451,7 +450,7 @@ function exampleBillingUpdateStatesOf(updateStep: Exclude<ForgeUpdateStep, 'idle
   return { forges: new Map([[EXAMPLE_BILLING_TRACKER_ID, state]]), fleet: new Map(), fleetAnswers: new Map() };
 }
 
-/** B2's refusal: the forge's own code and sentence, as the artboard words them. */
+/** The Stop refusal: the forge's own code and sentence, as the artboard words them. */
 export const B2_STOP_REFUSAL: CommandAnswerDocument = {
   answerVersion: 3,
   outcome:       'refused',
@@ -460,7 +459,7 @@ export const B2_STOP_REFUSAL: CommandAnswerDocument = {
   forges:        [],
 };
 
-/** B2: Example Mobile App's Stop refused and kept until dismissed, Design System's `forge start` on its way. */
+/** Start and stop in use: Example Mobile App's Stop refused and kept until dismissed, Design System's `forge start` on its way. */
 const B2_COMMAND_STATES: CommandStates = {
   forges: new Map([
     [TRACKER_IDS.exampleMobileApp, { onItsWay: null, failure: { kind: 'forge-stop', result: { verdict: 'answered', answer: B2_STOP_REFUSAL } }, restartPending: false }],
@@ -541,7 +540,7 @@ function forgesLaidOut(fleetDocument: FleetDocument, {
   );
 }
 
-/** The view's own state for a screen whose root keeps more than the route says: B2's controls in use, or a row's versions shown. */
+/** The view's own state for a screen whose root keeps more than the route says: the start and stop controls in use, or a row's versions shown. */
 function viewContentOf(screen: ArtboardScreen, fleetDocument: FleetDocument) {
   if (screen.viewState === 'forge-controls-in-use') {
     return forgesLaidOut(fleetDocument, {
@@ -680,7 +679,7 @@ export interface WhatNotifiesScreen {
   readonly fleetDocument: FleetDocument;
 }
 
-/** C2's checklist as the page builds it: the "What notifies" dialog over the Forges view it opens from, its kinds as the fixture's settings set them. */
+/** The "What notifies" dialog as the page builds it, over the Forges view it opens from, its kinds as the fixture's settings set them. */
 export const WHAT_NOTIFIES_SCREENS: readonly WhatNotifiesScreen[] = [
   {
     artboard:      'C2',
@@ -718,7 +717,7 @@ function screenOfArtboard(artboard: PageArtboard): ArtboardScreen {
   return screen;
 }
 
-/** The two steps C3's `step` tweak draws: the server starting, and the window about to open on Gaia's page. */
+/** The two steps the splash's `step` tweak draws: the server starting, and the window about to open on Gaia's page. */
 export type SplashStepShown = 'starting' | 'opening';
 
 export interface SplashScreen {
@@ -727,13 +726,13 @@ export interface SplashScreen {
   readonly step:       SplashStepShown;
 }
 
-/** C3 is drawn at this size, smaller than the window the launcher opens. */
+/** The splash is drawn at this size, smaller than the window the launcher opens. */
 export const SPLASH_SIZE_PIXELS = { width: 900, height: 560 } as const;
 
 /** The mark's size on the splash (`docs/design/components.md` 3.1). */
 export const SPLASH_MARK_SIZE_PIXELS = 88;
 
-/** The address C3 draws on its `opening` step. */
+/** The address the splash draws on its `opening` step. */
 const SPLASH_SERVER_ADDRESS = '127.0.0.1:4790';
 
 export const SPLASH_PAGE_PATH = join(import.meta.dir, '..', '..', 'resources', 'page', 'loading.html');
@@ -745,7 +744,7 @@ export const SPLASH_SCREENS: readonly SplashScreen[] = [
 
 /**
  * The splash's own file at a step, as the launcher addresses it: Gaia's address and the theme in the query, the step in the fragment. A
- * browser opens it at C3's size; the splash is a file page and is shown as it is, never rebuilt.
+ * browser opens it at the splash artboard's size; the splash is a file page and is shown as it is, never rebuilt.
  */
 export function splashScreenAddressOf(screen: SplashScreen, theme: ScreenTheme): string {
   const splashAddress = pathToFileURL(SPLASH_PAGE_PATH);
@@ -797,7 +796,7 @@ const OUTCOME_COMMENT: CommentDraft = {
   anchor:        DocumentSelectionModel.anchorOfPreviewSelection(SPEC_BLOCKS, SPEC_LINE_COUNT, SPEC_HEAD_NUMBER, OUTCOME_SELECTION),
 };
 
-/** Artboard 4's A3, which the agent's edit for C2 replaces, as a press on C2's card in the chat jumps to it. */
+/** Artboard 4's acceptance line `**A3**`, which the agent's edit for a comment replaces, as a press on that comment's card jumps to it. */
 const CONTRAST_LINES = { from: lineOf(SPEC_MARKDOWN, '**A3**'), to: lineOf(SPEC_MARKDOWN, '**A3**') };
 
 /** The theme flow's mermaid block in the spec, fence to fence. */
@@ -811,7 +810,7 @@ const THEME_FLOW_COMMENT: CommentDraft = {
 
 const THEME_FLOW = DocumentSelectionModel.diagramAtLine(SPEC_BLOCKS, THEME_FLOW_LINES.from);
 
-/** Artboard 6's comment on the diagram's Saved choice node, C5 of its payloads. */
+/** Artboard 6's comment on the diagram's Saved choice node. */
 const SAVED_CHOICE_COMMENT: CommentDraft | null = THEME_FLOW === null ? null : {
   commentNumber: 3,
   anchor:        DocumentSelectionModel.anchorOfNode(SPEC_BLOCKS, SPEC_LINE_COUNT, SPEC_HEAD_NUMBER, THEME_FLOW, { nodeId: 'Stored', label: 'Saved choice' }),

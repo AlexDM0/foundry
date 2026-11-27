@@ -1,9 +1,7 @@
 /**
- * The element tree that the design-system specs read in place of a document. What matters: nested components and fragments unfold to the
- * host elements React itself renders, empty children leave nothing, a handler is called through `dispatch`, and an element type the tree
- * cannot unfold fails rather than passing as empty; a component of Gaia's that holds hooks fails; and every component the design-system
- * packages export, hooked or not, stays folded under its name with the props it was handed, its children and slots unfolded as Gaia's own,
- * so no spec reads the markup a package draws.
+ * The element tree the design-system specs read in place of a document: components unfold to the host elements React renders, a handler
+ * is called through `dispatch`, a hooked component of Gaia's or an unknown element type fails, and every design-system component stays
+ * folded with the props it was handed, so no spec reads the markup a package draws.
  */
 import {
   describe,

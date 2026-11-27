@@ -1,4 +1,4 @@
-/** The fixture must hold B2's example data: the machine at a lowered limit with tickets waiting by forge, one forge paused, one starting. */
+/** The fixture must hold the at-the-limit data: the machine at a lowered limit with tickets waiting by forge, one forge paused, one starting. */
 import { describe, expect, test } from 'bun:test';
 
 import { FLEET_AT_LIMIT } from './fleet-at-limit.ts';

@@ -1,6 +1,6 @@
 /**
  * The Versions parts sheet. What matters: it holds a pair at each verdict and one for the forge that states no version, every verdict's
- * label, and the versions line, in a document naming its theme, so the by-eye pass compares every shared part with U4.
+ * label, and the versions line, in a document naming its theme, so the by-eye pass compares every shared part with the parts board.
  */
 import { describe, expect, test } from 'bun:test';
 

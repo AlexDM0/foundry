@@ -1,8 +1,7 @@
 /**
- * The example data of the Versions boards (U1 to U4): this Gaia is version 1.4, built for forge 3.1. Example Storefront is forge 3.4 and
- * serves clients built for 3.0 and later (`ahead`); Invoice Service and Research Wiki are 3.1 (`current`); Example Billing is 1.8
- * (`older`); Analytics Sandbox is 4.1 and serves 4.0 and later (`newer`); Example Docs, only in U4's sheet, states no version (`older`).
- * A forge Gaia cannot talk to is read from the registry alone, as the server reads it: no code, no contract, nothing of its work.
+ * The example data of the Versions boards: this Gaia is 1.4, built for forge 3.1, beside forges `ahead`, `current`, `older` and `newer`,
+ * and Example Docs, only on the parts sheet, which states no version. A forge Gaia cannot talk to is read from the registry alone, as
+ * the server reads it: no code, no contract, nothing of its work.
  */
 import type {
   FleetDocument,
@@ -198,7 +197,7 @@ function attentionOf(forge: FleetDocumentForge, idText: string) {
   return { ...item, trackerId: forge.trackerId };
 }
 
-/** U1 to U3: the five forges, one at each verdict and two current; the totals leave out the two Gaia cannot talk to. */
+/** The Versions boards but the parts sheet: five forges, one at each verdict and two current; the totals leave out the two Gaia cannot talk to. */
 export const FLEET_VERSIONS: FleetDocument = {
   ...FLEET_FIVE_FORGES,
   forges:    [EXAMPLE_STOREFRONT, INVOICE_SERVICE, RESEARCH_WIKI, EXAMPLE_BILLING, ANALYTICS_SANDBOX],
@@ -251,7 +250,7 @@ export const FLEET_VERSIONS: FleetDocument = {
   gaia: { ...FLEET_FIVE_FORGES.gaia, versions: GAIA_VERSIONS },
 };
 
-/** U4's forge that states no version, Example Docs, in Example Billing's place: every released forge reads so today. */
+/** The parts sheet's forge that states no version, Example Docs, in Example Billing's place: every released forge reads so today. */
 export const FLEET_VERSIONS_STATING_NO_VERSION: FleetDocument = {
   ...FLEET_VERSIONS,
   forges:     FLEET_VERSIONS.forges.map((forge) => (forge.trackerId === TRACKER_IDS.exampleBilling ? EXAMPLE_DOCS : forge)),

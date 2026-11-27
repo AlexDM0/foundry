@@ -1,6 +1,6 @@
 /**
- * The example data of artboard B3: three kinds of forge Gaia cannot read in full. Invoice Service stopped answering at 13:14 and keeps its
- * last reading; Research Wiki predates the monitor contract and is read through its summary; Analytics Sandbox publishes a newer monitor
+ * The example data of the artboard of forges Gaia cannot fully read. Invoice Service stopped answering at 13:14 and keeps its last
+ * reading; Research Wiki predates the monitor contract and is read through its summary; Analytics Sandbox publishes a newer monitor
  * contract and is read not at all.
  */
 import type {

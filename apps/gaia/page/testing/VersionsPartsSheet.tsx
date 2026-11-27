@@ -1,7 +1,6 @@
 /**
- * Test-only: the shared parts of the Versions boards on one sheet, U4, as `docs/design/versions.md` lists them under "States and exact copy": the
- * versions pair at each verdict, the verdicts' marks and words, the condition words with their dots, and a callout's versions line. A
- * browser opens it at one column of U4's width, in either theme, for the by-eye pass against U4's render.
+ * Test-only: the shared parts of the Versions boards on one sheet, as `docs/design/versions.md` lists them under "States and exact copy".
+ * A browser opens it at one column of the parts board's width, in either theme, for the by-eye pass against that board's render.
  */
 import { renderToStaticMarkup } from 'react-dom/server';
 
@@ -14,7 +13,7 @@ import { ForgeVersionsTextUtil, type ForgeWithVersions } from '../shared/utils/F
 import { documentAround, type ScreenTheme }              from './ArtboardScreens.tsx';
 import { FLEET_VERSIONS, FLEET_VERSIONS_READINGS }       from './fixtures/fleet-versions.ts';
 
-/** One theme's column of U4, which draws light and dark side by side at 1440 px. */
+/** One theme's column of the parts board, which draws light and dark side by side at 1440 px. */
 export const VERSIONS_PARTS_SHEET_WIDTH_PIXELS = 720;
 
 export const VERSIONS_PARTS_SHEET_HEIGHT_PIXELS = 1000;
@@ -44,7 +43,7 @@ const ROW_STYLE = {
 
 const READINGS = FLEET_VERSIONS_READINGS;
 
-/** U4's pairs in its order, each under its sheet label. */
+/** The parts board's pairs in its order, each under its sheet label. */
 const PAIRS: readonly (readonly [label: string, forge: (typeof READINGS)[keyof typeof READINGS]])[] = [
   ['older · the A4 disclosure under Example Billing and the U3 notice', READINGS.exampleBilling],
   ['older · Example Docs states no version', READINGS.exampleDocs],

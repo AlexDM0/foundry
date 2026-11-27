@@ -1,8 +1,6 @@
 /**
- * The markup tree the visual harness reads server-rendered screens through. What matters: it reads what `react-dom/server` writes (void
- * elements, raw style text, character references) into elements that keep their own source; a role and an accessible name come from the
- * attributes and the tag as a browser would take them; a package's class is refused as a way to find anything; a variant is learned from
- * the package part itself; and markup it cannot read fails rather than passing as empty.
+ * The markup tree the visual harness reads server-rendered screens through: it reads what `react-dom/server` writes, takes a role and an
+ * accessible name as a browser would, refuses a package's class as a way to find anything, and fails on markup it cannot read.
  */
 import { describe, expect, test } from 'bun:test';
 import { createElement }          from 'react';

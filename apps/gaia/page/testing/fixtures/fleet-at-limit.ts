@@ -1,6 +1,6 @@
 /**
- * The example data of artboard B2: the fleet of `fleet-five-forges` with the machine limit lowered to 10 and reached, Research Wiki paused
- * and Design System starting.
+ * The example data of the start, stop and refusal artboard: the fleet of `fleet-five-forges` with the machine limit lowered to 10 and
+ * reached, Research Wiki paused and Design System starting.
  */
 import type { FleetDocument, FleetDocumentForge } from '../../@types/FleetDocument.ts';
 

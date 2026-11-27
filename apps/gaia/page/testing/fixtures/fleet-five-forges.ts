@@ -1,6 +1,6 @@
 /**
- * The example data of artboards A1 to A4: four running forges, one dormant and one whose repository is gone. Stamps are UTC; read at
- * `FLEET_FIXTURES_READ_AT`, every age and running time is the one the artboards show.
+ * The example data of the Attention, Agents, Activity and Forges artboards: four running forges, one dormant and one whose repository is
+ * gone. Stamps are UTC; read at `FLEET_FIXTURES_READ_AT`, every age and running time is the one the artboards show.
  */
 import type {
   FleetDocument,

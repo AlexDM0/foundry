@@ -1,6 +1,7 @@
 /**
- * The fixture must hold B3's example data. What matters: the four rows Gaia knows by name, the unreachable forge's rows kept as last
- * reported, the forges that cannot vouch for a figure named, and a counts-only job that reports no more than its summary holds.
+ * The fixture must hold the example data of the forges Gaia cannot fully read. What matters: the four rows Gaia knows by name, the
+ * unreachable forge's rows kept as last reported, the forges that cannot vouch for a figure named, and a counts-only job that reports no
+ * more than its summary holds.
  */
 import { describe, expect, test } from 'bun:test';
 

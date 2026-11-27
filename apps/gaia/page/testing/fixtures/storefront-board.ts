@@ -1,6 +1,6 @@
 /**
- * Example Storefront's board as B1 draws it in place, matching the five forges' fleet: J3 builds #014 Password reset flow and asked E2,
- * which waits on User, while J4 builds #016, over the live pipeline of the pipeline view's A5. Test-only.
+ * Example Storefront's board as the in-place artboard draws it, matching the five forges' fleet: one job builds #014 Password reset flow
+ * and asked a question that waits on User, while another builds #016, over the pipeline view's live flow. Test-only.
  */
 import type { BoardDecisionDocument } from '../../@types/board/BoardDecisionDocuments.ts';
 import type { BoardDocument }         from '../../@types/board/BoardDocument.ts';

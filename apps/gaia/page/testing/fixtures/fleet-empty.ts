@@ -1,6 +1,6 @@
 /**
- * The example data of artboard B4: no forge is registered, Gaia runs on its default settings because none are stored, and no forge program
- * was found. No forge reports a machine limit, so none is known.
+ * The example data of the "No forge yet" artboard: no forge is registered, Gaia runs on its default settings because none are stored,
+ * and no forge program was found. No forge reports a machine limit, so none is known.
  */
 import type { FleetDocument } from '../../@types/FleetDocument.ts';
 

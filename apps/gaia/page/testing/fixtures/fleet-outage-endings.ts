@@ -1,8 +1,7 @@
 /**
- * The example data of the outage alert: A1's fleet after a network outage stopped two of Example Storefront's agents and one of Invoice
- * Service's, which wait for User's resume. Example Mobile App holds a job the outage stopped that was already told to resume and one whose
- * supervision ended: neither counts. The fleet's alert heads what waits on User. Each of the three serves its presence, so its running
- * Hephaestus and Talos are known: Talos at protocol 2 on the forge's own code, the installed program not read yet.
+ * The example data of the outage alert: the Attention fleet after a network outage stopped two of Example Storefront's agents and one of
+ * Invoice Service's, which wait for User's resume. Example Mobile App's stopped jobs do not count: one was already told to resume and the
+ * other's supervision ended. Each of the three serves its presence, so its running Hephaestus and Talos are known.
  */
 import type {
   FleetDocument,

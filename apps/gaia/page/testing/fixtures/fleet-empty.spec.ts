@@ -1,4 +1,4 @@
-/** The fixture must hold B4's state: no forge registered, no machine limit known, and no forge program found or set. */
+/** The fixture must hold the empty fleet: no forge registered, no machine limit known, and no forge program found or set. */
 import { describe, expect, test } from 'bun:test';
 
 import { FLEET_EMPTY } from './fleet-empty.ts';

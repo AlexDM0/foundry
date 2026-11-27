@@ -1,8 +1,7 @@
 /**
- * Example Storefront's board as the Tickets artboard draws it (`docs/design/tickets.md`), over the live pipeline of the pipeline view's A5,
- * at the five forges' read moment: on the spec-then-plan route the intake J8 asks two questions, #021, #022 and #019 wait on User, spec
- * and plan agents write #023 and #020, six tickets are under way and forty-one are finished; on the one-ticket route #024 waits for its
- * review and #025 waits to be made ready. Test-only.
+ * Example Storefront's board as the Tickets artboard draws it (`docs/design/tickets.md`), over the pipeline view's live flow, at the five
+ * forges' read moment: the spec-then-plan route with its intake questions, tickets waiting on User, under way and finished, and the
+ * one-ticket route with one ticket in review and one waiting to be made ready. Test-only.
  */
 import type { BoardDocument }                     from '../../@types/board/BoardDocument.ts';
 import type { BoardAttentionEntryDocument }       from '../../@types/board/BoardFactDocuments.ts';
