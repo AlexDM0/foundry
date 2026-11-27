@@ -3,8 +3,9 @@
  * the recorded process, so another acquirer waits while that process lives and takes the slot once it is gone. Every holder is a child
  * folder: a line's folder is live while its child is and free once it ended or is lost, and a run's folder, whose lines run in step folders
  * below it, is live while one of them is. And over injected file moves: a held-file failure on a slot create is a taken slot on win32 and a
- * fault elsewhere, and a held move aside leaves a stale slot in place. A slot that cannot be read names no holder, so it is taken over and
- * logged; one whose bytes cannot be read at all is left in place and logged once. A gate profile comes after every real gate: it takes no
+ * fault elsewhere, and a held move aside leaves a stale slot in place. A slot older code wrote, with no version, is judged by its holder: held
+ * while it is live, taken over and logged once it is not. A slot that cannot be read names no holder, so it is taken over and logged; one
+ * whose bytes cannot be read at all is left in place and logged once. A gate profile comes after every real gate: it takes no
  * slot while a real gate refused this round, or one waiting in this process, still has none. A wait whose stop signal aborts ends at once,
  * holding no slot and holding no profile back.
  */
@@ -18,18 +19,18 @@ import {
   test
 } from 'bun:test';
 
-import { GateRunSlotIngestion }                            from '../../adapters/gate-run-slot/GateRunSlotIngestion.ts';
-import { createGateRunSlotWriter }                         from '../../adapters/gate-run-slot/GateRunSlotWriter.ts';
-import type { FileReplace }                                from '../../lib/atomic-file/FileReplace.ts';
-import { fileReplaceFor }                                  from '../../lib/atomic-file/FileReplaceFor.ts';
-import type { PlatformPorts }                              from '../../lib/platform-ports/PlatformPortsFor.ts';
-import { defaultSpecPlatformPorts }                        from '../../testing/DefaultSpecPlatformPorts.ts';
-import { createFakeWindowsKernel, fakeWindowsSupervision } from '../../testing/FakeWindowsKernel.ts';
-import { PlantedChild }                                    from '../../testing/PlantedChild.ts';
-import { createScratchDirectory, removeScratchDirectory }  from '../../testing/ScratchWorkspace.ts';
-import { EVERY_TALOS_IS_LIVE, talosChildReadingsWith }     from '../../testing/TalosChildReadings.ts';
-import { GateRunSlots, GateSlotWaitStoppedError }          from './GateRunSlots.ts';
-import { heldSlotCreateMeansTakenFor }                     from './HeldSlotCreateFor.ts';
+import { GATE_RUN_SLOT_FORMAT_VERSION, GateRunSlotIngestion } from '../../adapters/gate-run-slot/GateRunSlotIngestion.ts';
+import { createGateRunSlotWriter }                            from '../../adapters/gate-run-slot/GateRunSlotWriter.ts';
+import type { FileReplace }                                   from '../../lib/atomic-file/FileReplace.ts';
+import { fileReplaceFor }                                     from '../../lib/atomic-file/FileReplaceFor.ts';
+import type { PlatformPorts }                                 from '../../lib/platform-ports/PlatformPortsFor.ts';
+import { defaultSpecPlatformPorts }                           from '../../testing/DefaultSpecPlatformPorts.ts';
+import { createFakeWindowsKernel, fakeWindowsSupervision }    from '../../testing/FakeWindowsKernel.ts';
+import { PlantedChild }                                       from '../../testing/PlantedChild.ts';
+import { createScratchDirectory, removeScratchDirectory }     from '../../testing/ScratchWorkspace.ts';
+import { EVERY_TALOS_IS_LIVE, talosChildReadingsWith }        from '../../testing/TalosChildReadings.ts';
+import { GateRunSlots, GateSlotWaitStoppedError }             from './GateRunSlots.ts';
+import { heldSlotCreateMeansTakenFor }                        from './HeldSlotCreateFor.ts';
 
 
 /** The holder's liveness as the drive pass judges it, a gate line's read through Talos's adapter of the board's children. */
@@ -199,23 +200,52 @@ describe('a slot file that the platform refuses to create or move', () => {
     expect(new GateRunSlotIngestion(slotPath).read()).toMatchObject({ verdict: 'readable', holding: { holder: 'example-holder' } });
   });
 
-  test.each([
-    ['a holder line alone', 'example-live-holder'],
-    ['a process document of no version', `example-live-holder\n${JSON.stringify({ process: null })}`],
-  ])('a slot holding %s cannot be read, so it is taken over and logged, whatever its holder', (_case, slotText) => {
-    const loggedLines: string[] = [];
-    const scratch = createScratchDirectory('unreadable-gate-slots');
+  function slotsOverOnePlantedSlot(slotText: string, holderIsLive: boolean, loggedLines: string[]) {
+    const scratch = createScratchDirectory('older-gate-slots');
     scratchDirectories.push(scratch);
     const folder = join(scratch, 'slots');
     const slots = GateRunSlots.createGateRunSlots({
-      ports: defaultSpecPlatformPorts(), folder, limit: 1, holderIsLive: () => true, retryMilliseconds: 1, log: (line) => loggedLines.push(line),
+      ports: defaultSpecPlatformPorts(), folder, limit: 1, holderIsLive: () => holderIsLive, retryMilliseconds: 1, log: (line) => loggedLines.push(line),
     });
     const slotPath = join(folder, 'slot-1');
     mkdirSync(folder, { recursive: true });
     writeFileSync(slotPath, slotText);
+    return { slots, slotPath };
+  }
+
+  const OLDER_SLOT_FORMS = [
+    ['a holder line alone', 'example-old-holder'],
+    ['a process document of no version', `example-old-holder\n${JSON.stringify({ process: null })}`],
+    ['the process identity itself as the line', `example-old-holder\n${JSON.stringify({ processId: 5001, startStamp: '1700000001', bootIdentity: 'boot-example' })}`],
+  ] as const;
+
+  test.each(OLDER_SLOT_FORMS)('a slot older code wrote, %s, stays held while its holder is live', (_case, slotText) => {
+    const loggedLines: string[] = [];
+    const { slots, slotPath } = slotsOverOnePlantedSlot(slotText, true, loggedLines);
+
+    expect(slots.tryAcquire('example-holder')).toBe(false);
+    expect(readFileSync(slotPath, 'utf8')).toBe(slotText);
+    expect(loggedLines).toEqual([]);
+  });
+
+  test.each(OLDER_SLOT_FORMS)('a slot older code wrote, %s, is taken over and logged once its holder is gone, rewritten in the current form', (_case, slotText) => {
+    const loggedLines: string[] = [];
+    const { slots, slotPath } = slotsOverOnePlantedSlot(slotText, false, loggedLines);
 
     expect(slots.tryAcquire('example-holder')).toBe(true);
-    expect(loggedLines).toEqual([expect.stringContaining(`The gate run slot ${slotPath} could not be read`) as unknown as string]);
+    expect(loggedLines).toEqual([`The gate run slot ${slotPath} was stale and is taken over: its holder example-old-holder is no longer live.`]);
+    expect(readFileSync(slotPath, 'utf8')).toStartWith(`example-holder\n{\n  "version": ${GATE_RUN_SLOT_FORMAT_VERSION},`);
+  });
+
+  test.each([
+    ['a process line that is not JSON', 'example-live-holder\nnot json'],
+    ['a process line of the wrong shape', `example-live-holder\n${JSON.stringify({ process: 'a process' })}`],
+  ])('a slot holding %s cannot be read, so it is taken over and logged, whatever its holder', (_case, slotText) => {
+    const loggedLines: string[] = [];
+    const { slots, slotPath } = slotsOverOnePlantedSlot(slotText, true, loggedLines);
+
+    expect(slots.tryAcquire('example-holder')).toBe(true);
+    expect(loggedLines).toEqual([expect.stringContaining(`The gate run slot ${slotPath} was stale and is taken over: it could not be read (`) as unknown as string]);
   });
 
   test('a slot whose bytes cannot be read is left in place, and logged once however often it is tried', () => {

@@ -1,7 +1,8 @@
 /**
  * `<monitor>/gate-slots/slot-<n>`, one machine-wide gate run slot: its holder's folder on the first line, then a versioned JSON document
  * naming the process answering for it. Read, validate, map; the text read is handed back beside the verdict, so a taker that moves the slot
- * aside can tell whether it moved what it judged.
+ * aside can tell whether it moved what it judged. A slot is a holding judged by its holder, so the forms older code wrote read too: a
+ * document of any version, the process identity itself as the line, or the holder line alone, which names no process.
  */
 import { type ProcessIdentity, storedIdentityOf } from '../../lib/process-identity/ProcessIdentity.ts';
 import { storedFileTextOf }                       from '../StoredFileText.ts';
@@ -33,11 +34,12 @@ export class GateRunSlotIngestion {
     if (stored.verdict === 'unreadable') return { ...stored, storedText: null };
     const storedText = stored.text;
     const separatorIndex = storedText.indexOf(GATE_RUN_SLOT_HOLDER_SEPARATOR);
-    if (separatorIndex <= 0) return { verdict: 'unreadable', reason: 'it holds no holder line followed by a process document', storedText };
+    if (separatorIndex === 0 || storedText.length === 0) return { verdict: 'unreadable', reason: 'it names no holder', storedText };
+    if (separatorIndex < 0) return { verdict: 'readable', holding: { holder: storedText, process: null }, storedText };
     const processText = storedText.slice(separatorIndex + GATE_RUN_SLOT_HOLDER_SEPARATOR.length);
-    const document = StoredJsonDocumentUtil.documentOfText(processText, GATE_RUN_SLOT_FORMAT_VERSION);
+    const document = StoredJsonDocumentUtil.holdingDocumentOfText(processText);
     if (document.verdict === 'unreadable') return { ...document, storedText };
-    const recordedProcess = document.document['process'];
+    const recordedProcess = Object.hasOwn(document.document, 'process') ? document.document['process'] : document.document;
     const process = storedIdentityOf(recordedProcess);
     if (recordedProcess !== null && process === null) return { verdict: 'unreadable', reason: 'its "process" is not a process identity', storedText };
     return { verdict: 'readable', holding: { holder: storedText.slice(0, separatorIndex), process }, storedText };

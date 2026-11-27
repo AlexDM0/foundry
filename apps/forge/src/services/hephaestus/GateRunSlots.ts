@@ -1,7 +1,8 @@
 /**
  * The machine-wide cap on concurrent gate runs: one file per slot in the monitor folder, created exclusively and naming its holder, a child
- * folder, and the process answering for it. A slot whose holder is no longer live is taken over, so a crashed Hephaestus, an ended gate line
- * or one that died before it claimed frees its slot without a release.
+ * folder, and the process answering for it. A slot is a holding judged by its holder, whatever version wrote it. A stale slot, its holder
+ * no longer live or the slot unreadable, is taken over and logged, so a crashed Hephaestus, an ended gate line or one that died before it
+ * claimed frees its slot without a release.
  */
 import { existsSync, mkdirSync } from 'node:fs';
 import { dirname, join }         from 'node:path';
@@ -28,7 +29,7 @@ export interface GateRunSlotsOptions {
   fileReplace?:          FileReplace;
   /** Whether a held-file failure on a slot create means a taken slot rather than a fault; this process's platform decides when not given. */
   heldCreateMeansTaken?: boolean;
-  /** Where a slot that could not be read is logged: taken over, or left in place, once, when its bytes cannot be read at all. */
+  /** Where a stale slot taken over is logged, and a slot left in place, once, when its bytes cannot be read at all. */
   log:                   (line: string) => void;
 }
 
@@ -165,7 +166,8 @@ function createGateRunSlots(options: GateRunSlotsOptions): GateRunSlots {
     const movedText = moved.verdict === 'absent' ? null : moved.storedText;
     if (movedText !== judged.storedText && movedText !== null && !createdExclusively(() => createFileAtomically(slotPath, movedText, fileReplace))) return;
     removeHeldFile(asidePath, fileReplace);
-    if (judged.verdict === 'unreadable') options.log(`The gate run slot ${slotPath} could not be read (${judged.reason}); it was taken over.`);
+    const staleReason = judged.verdict === 'unreadable' ? `it could not be read (${judged.reason})` : `its holder ${judged.holding.holder} is no longer live`;
+    options.log(`The gate run slot ${slotPath} was stale and is taken over: ${staleReason}.`);
   }
 
   function tryAcquire(holder: string): boolean {

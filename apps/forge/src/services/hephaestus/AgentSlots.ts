@@ -1,7 +1,8 @@
 /**
  * The machine-wide cap on agent jobs, modelled on the gate run slots: one file `slot-<n>` per slot in `<monitor>/agent-slots/`, created
- * exclusively and naming the board, the job and the Hephaestus process answering for it. A slot whose Hephaestus is gone is taken over, so a
- * crashed Hephaestus frees its slots at the next claim of any Hephaestus, without a release.
+ * exclusively and naming the board, the job and the Hephaestus process answering for it. A slot is a holding judged by its Hephaestus,
+ * whatever version wrote it. A stale slot, its Hephaestus gone or the slot unreadable, is taken over and logged, so a crashed Hephaestus
+ * frees its slots at the next claim of any Hephaestus, without a release.
  */
 import { mkdirSync, readdirSync } from 'node:fs';
 import { join }                   from 'node:path';
@@ -29,7 +30,7 @@ export interface AgentSlotsOptions {
   /** Whether a recorded Hephaestus still runs; `null`, an unreadable record, is never live. */
   hephaestusIsLive:           (hephaestus: ProcessIdentity | null) => boolean;
   fileReplace?:               FileReplace;
-  /** Where a slot that could not be read is logged: taken over, or left in place when its bytes cannot be read at all. */
+  /** Where a stale slot taken over is logged, and a slot left in place when its bytes cannot be read at all. */
   log:                        (line: string) => void;
   /** The slots already logged as left in place, kept across passes so each is logged once; none when not given. */
   unreadableSlotPathsLogged?: Set<string>;
@@ -57,6 +58,12 @@ function holdingOf(reading: AgentSlotReading): AgentSlotHolding | null {
 
 function storedTextOf(reading: AgentSlotReading): string | null {
   return reading.verdict === 'absent' ? null : reading.storedText;
+}
+
+function staleReasonOf(judged: JudgedSlot): string {
+  if (judged.verdict === 'unreadable') return `it could not be read (${judged.reason})`;
+  const { hephaestus } = judged.holding;
+  return hephaestus === null ? 'it names no Hephaestus' : `the Hephaestus ${hephaestus.processId} it names is gone`;
 }
 
 function reservationIdOf(index: number): string {
@@ -113,7 +120,7 @@ function createAgentSlots(options: AgentSlotsOptions): AgentSlots {
     const movedText = storedTextOf(readingOf(asidePath));
     if (movedText !== judged.storedText && movedText !== null && createFileAtomically(slotPath, movedText, fileReplace) !== 'created') return;
     removeHeldFile(asidePath, fileReplace);
-    if (judged.verdict === 'unreadable') options.log(`The agent slot ${slotPath} could not be read (${judged.reason}); it was taken over.`);
+    options.log(`The agent slot ${slotPath} was stale and is taken over: ${staleReasonOf(judged)}.`);
   }
 
   /** A slot whose bytes could not be read at all is left for a later claim, and logged once. */

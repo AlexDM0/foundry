@@ -1,9 +1,10 @@
 /**
  * The machine-wide agent slots and the limit they keep, over scratch monitor folders and an injected liveness. What matters: two boards
- * together never hold more slots than the limit; a slot whose Hephaestus is gone is taken over by the next claim of any Hephaestus, and by the
- * restarted Hephaestus whose job still runs; one that cannot be read is taken over and logged, or, when its bytes cannot be read at all, left
- * in place and logged once; a lowered limit stops nothing but takes no new claim until the holdings drain; a reservation becomes the launched
- * job's slot and an unused one is freed; and the stored limit survives as a file, refused above the CPU ceiling with nothing written.
+ * together never hold more slots than the limit; a slot whose Hephaestus is gone is taken over and logged by the next claim of any
+ * Hephaestus, and by the restarted Hephaestus whose job still runs; a slot older code wrote, with no version, is judged by its Hephaestus
+ * the same way; one that cannot be read is taken over and logged, or, when its bytes cannot be read at all, left in place and logged once;
+ * a lowered limit stops nothing but takes no new claim until the holdings drain; a reservation becomes the launched job's slot and an
+ * unused one is freed; and the stored limit survives as a file, refused above the CPU ceiling with nothing written.
  */
 import {
   existsSync,
@@ -21,6 +22,7 @@ import {
   test
 } from 'bun:test';
 
+import { AGENT_SLOT_FORMAT_VERSION }                      from '../../adapters/agent-slot/AgentSlotIngestion.ts';
 import { MachineLimitsFile }                              from '../../adapters/machine-limits/MachineLimitsFile.ts';
 import type { ProcessIdentity }                           from '../../lib/process-identity/ProcessIdentity.ts';
 import { OperationRefusal }                               from '../../shared/OperationRefusal.ts';
@@ -122,7 +124,7 @@ describe('agent slots', () => {
     writeFileSync(slotPath, 'not json');
     expect(slots.tryAcquire('tracker-b', 'J2')).toBe(true);
     expect(readdirSync(join(folder, AGENT_SLOTS_FOLDER))).toEqual(['slot-1']);
-    expect(loggedLines).toEqual([expect.stringContaining(`The agent slot ${slotPath} could not be read`) as unknown as string]);
+    expect(loggedLines).toEqual([expect.stringContaining(`The agent slot ${slotPath} was stale and is taken over: it could not be read (`) as unknown as string]);
   });
 
   test('a slot whose bytes cannot be read is left in place, and logged once across passes', () => {
@@ -146,13 +148,35 @@ describe('agent slots', () => {
     expect(loggedLines[0]).toEndWith('it is left in place.');
   });
 
-  test('a slot whose Hephaestus is gone is taken over without a line logged', () => {
+  test('a slot whose Hephaestus is gone is taken over and logged', () => {
     const folder = monitorFolder();
     const live = new Set([FIRST_HEPHAESTUS.processId]);
     const loggedLines: string[] = [];
     expect(slotsOf(folder, 1, FIRST_HEPHAESTUS, live).tryAcquire('tracker-a', 'J1')).toBe(true);
     expect(slotsOf(folder, 1, SECOND_HEPHAESTUS, new Set([SECOND_HEPHAESTUS.processId]), loggedLines).tryAcquire('tracker-b', 'J2')).toBe(true);
+    const slotPath = join(folder, AGENT_SLOTS_FOLDER, 'slot-1');
+    expect(loggedLines).toEqual([`The agent slot ${slotPath} was stale and is taken over: the Hephaestus ${FIRST_HEPHAESTUS.processId} it names is gone.`]);
+  });
+
+  test('a slot without a version, as older code wrote, is held while its Hephaestus lives, and taken over, logged and rewritten once it is gone', () => {
+    const folder = monitorFolder();
+    const slotPath = join(folder, AGENT_SLOTS_FOLDER, 'slot-1');
+    mkdirSync(join(folder, AGENT_SLOTS_FOLDER), { recursive: true });
+    writeFileSync(slotPath, JSON.stringify({ trackerId: 'tracker-a', jobId: 'J1', hephaestus: FIRST_HEPHAESTUS }));
+    const loggedLines: string[] = [];
+    const live = new Set([FIRST_HEPHAESTUS.processId, SECOND_HEPHAESTUS.processId]);
+
+    const second = slotsOf(folder, 1, SECOND_HEPHAESTUS, live, loggedLines);
+    expect(second.liveHoldings()).toEqual([{ trackerId: 'tracker-a', jobId: 'J1', hephaestus: FIRST_HEPHAESTUS }]);
+    expect(second.tryAcquire('tracker-b', 'J2')).toBe(false);
     expect(loggedLines).toEqual([]);
+
+    live.delete(FIRST_HEPHAESTUS.processId);
+    expect(second.tryAcquire('tracker-b', 'J2')).toBe(true);
+    expect(loggedLines).toEqual([`The agent slot ${slotPath} was stale and is taken over: the Hephaestus ${FIRST_HEPHAESTUS.processId} it names is gone.`]);
+    expect(JSON.parse(readFileSync(slotPath, 'utf8'))).toEqual({
+      version: AGENT_SLOT_FORMAT_VERSION, trackerId: 'tracker-b', jobId: 'J2', hephaestus: SECOND_HEPHAESTUS
+    });
   });
 });
 

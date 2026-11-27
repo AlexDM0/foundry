@@ -1,9 +1,11 @@
 /**
- * An agent slot's stored format both ways. What matters: what the writer creates or rewrites reads back as the same holding; a missing slot
- * is absent; any other file is unreadable and never thrown, with the text it holds, since a taker compares that text after moving it aside.
+ * An agent slot's stored format both ways. What matters: what the writer creates or rewrites reads back as the same holding, with the
+ * current version; a missing slot is absent; a slot of today's fields without that version, as older code wrote, reads as the same
+ * holding, so its Hephaestus is judged; any other file is unreadable and never thrown, with the text it holds, since a taker compares that
+ * text after moving it aside.
  */
-import { writeFileSync } from 'node:fs';
-import { join }          from 'node:path';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { join }                        from 'node:path';
 import {
   afterEach,
   beforeEach,
@@ -39,16 +41,23 @@ test('what the writer creates, and then rewrites, reads back as the same holding
   const writer = createAgentSlotWriter(slotFilePath());
   expect(writer.create(HOLDING)).toBe('created');
   expect(reading()).toMatchObject({ verdict: 'readable', holding: HOLDING });
+  expect(JSON.parse(readFileSync(slotFilePath(), 'utf8'))).toMatchObject({ version: AGENT_SLOT_FORMAT_VERSION });
   expect(writer.create({ ...HOLDING, jobId: 'J2' })).toBe('already-exists');
   writer.write({ ...HOLDING, jobId: 'J3', hephaestus: null });
   expect(reading()).toMatchObject({ verdict: 'readable', holding: { ...HOLDING, jobId: 'J3', hephaestus: null } });
 });
 
 test.each([
+  ['no version', HOLDING],
+  ['another version', { ...HOLDING, version: AGENT_SLOT_FORMAT_VERSION - 1 }],
+])('a slot of today\'s fields with %s reads as the same holding', (_case, document) => {
+  writeFileSync(slotFilePath(), JSON.stringify(document));
+  expect(reading()).toMatchObject({ verdict: 'readable', holding: HOLDING });
+});
+
+test.each([
   ['not JSON', 'not json'],
   ['not an object', '[]'],
-  ['no version', JSON.stringify(HOLDING)],
-  ['another version', JSON.stringify({ ...HOLDING, version: AGENT_SLOT_FORMAT_VERSION + 1 })],
   ['a wrong trackerId', JSON.stringify({ ...HOLDING, version: AGENT_SLOT_FORMAT_VERSION, trackerId: 3 })],
   ['a wrong jobId', JSON.stringify({ ...HOLDING, version: AGENT_SLOT_FORMAT_VERSION, jobId: null })],
   ['a wrong hephaestus', JSON.stringify({ ...HOLDING, version: AGENT_SLOT_FORMAT_VERSION, hephaestus: 'a process' })],

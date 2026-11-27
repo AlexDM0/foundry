@@ -1,6 +1,7 @@
 /**
  * `<monitor>/agent-slots/slot-<n>`, one machine-wide agent slot: read, validate, map. The text read is handed back beside the verdict, so a
- * taker that moves the slot aside can tell whether it moved what it judged.
+ * taker that moves the slot aside can tell whether it moved what it judged. A slot is a holding judged by its Hephaestus, so a slot of
+ * today's fields reads whatever its version.
  */
 import { type ProcessIdentity, storedIdentityOf } from '../../lib/process-identity/ProcessIdentity.ts';
 import { storedFileTextOf }                       from '../StoredFileText.ts';
@@ -30,7 +31,7 @@ export class AgentSlotIngestion {
     if (stored.verdict === 'absent') return stored;
     if (stored.verdict === 'unreadable') return { ...stored, storedText: null };
     const storedText = stored.text;
-    const document = StoredJsonDocumentUtil.documentOfText(storedText, AGENT_SLOT_FORMAT_VERSION);
+    const document = StoredJsonDocumentUtil.holdingDocumentOfText(storedText);
     if (document.verdict === 'unreadable') return { ...document, storedText };
     const { trackerId, jobId, hephaestus } = document.document;
     if (typeof trackerId !== 'string') return { verdict: 'unreadable', reason: 'its "trackerId" is not a string', storedText };
