@@ -150,7 +150,7 @@ export function QuestionAskColumn({ decision, model, holdsTheFlintSlot }: Questi
       {model.ownWordsAllowed
         ? (
           <div className="board-question-panel-own-words">
-            <label htmlFor={ownWordsId}>Or answer in User&apos;s own words</label>
+            <label htmlFor={ownWordsId}>Or answer in your own words</label>
             <textarea id={ownWordsId} className="board-textarea" value={ownWords} onChange={(event) => setOwnWords(event.target.value)} />
           </div>
         )
