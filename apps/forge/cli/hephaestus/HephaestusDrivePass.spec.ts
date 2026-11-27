@@ -53,6 +53,7 @@ import { jobFolderIn }                                          from '../../src/
 import { localStoreLayoutOf }                                   from '../../src/services/tracker/LocalStoreLayout.ts';
 import { requireWorkspace, workspacePathsFor }                  from '../../src/services/tracker/Workspace.ts';
 import { QUIET_JOB_SWEEPS, SESSION_STOP_GRACE_MILLISECONDS }    from '../../src/shared/constants/HephaestusLimits.ts';
+import { AgentProgramWordingUtil }                              from '../../src/shared/utils/AgentProgramWordingUtil.ts';
 import { createScratchDrivePass, type ScratchDrivePassRequest } from '../../src/testing/DrivePassHarness.ts';
 import {
   type FakeAgentStep,
@@ -246,8 +247,10 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'one pass', () => {
 
     const storedJob = (storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.id === buildJobId());
     expect(storedJob).toMatchObject({ state: 'running', notLaunched: { cause: 'batch-target', programPath: shimPath } });
+    const repair = adapter.programRepairOf('batch-target');
+    expect(repair).not.toBeNull();
     expect(drivePass.state().notices).toContainEqual(expect.objectContaining({
-      kind: 'agent-program-refused', jobId: buildJobId(), cause: 'batch-target', repair: adapter.programRepairOf('batch-target')
+      kind: 'agent-program-refused', jobId: buildJobId(), cause: 'batch-target', repair: repair === null ? null : AgentProgramWordingUtil.repairClauseOf(repair)
     }));
     const noticeTexts = drivePass.state().notices.map(HephaestusNoticeWording.noticeTextOf);
     expect(noticeTexts.find((text) => text.startsWith(`job ${buildJobId()} is not launched: the ${adapter.displayName} at ${shimPath} is a batch file`))).toBeDefined();

@@ -1253,6 +1253,12 @@ function notLaunchedJobIdsWhoseProgramChanged(request: DrivePassRequest, board: 
   });
 }
 
+/** Only a batch target has a repair, which the adapter gives as a code and the notice carries worded. */
+function repairClauseOf(agentAdapter: DrivePassRequest['agentAdapter'], cause: JobNotLaunchedCause): string | null {
+  const repair = cause === 'batch-target' ? agentAdapter.programRepairOf('batch-target') : null;
+  return repair === null ? null : AgentProgramWordingUtil.repairClauseOf(repair);
+}
+
 /** One notice for each job that stands not launched, read from its stored fact so it outlasts a restart, this pass's refusals included. */
 function agentProgramNoticesOf(request: DrivePassRequest, board: Board, refusedThisPass: readonly AgentProgramRefused[]): HephaestusNotice[] {
   const standing = board.jobs().flatMap((job) => (job.notLaunched === undefined ? [] : [{ notLaunchedJobId: job.id, notLaunched: job.notLaunched }]));
@@ -1262,7 +1268,7 @@ function agentProgramNoticesOf(request: DrivePassRequest, board: Board, refusedT
     jobId:  notLaunchedJobId,
     cause:  notLaunched.cause,
     reason: AgentProgramWordingUtil.notLaunchedClauseOf(notLaunched.cause, request.agentAdapter.displayName, notLaunched.programPath),
-    repair: notLaunched.cause === 'batch-target' ? request.agentAdapter.programRepairOf('batch-target') : null,
+    repair: repairClauseOf(request.agentAdapter, notLaunched.cause),
   }));
 }
 

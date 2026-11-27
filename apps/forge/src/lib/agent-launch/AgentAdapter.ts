@@ -70,6 +70,12 @@ export type SentLine =
   | { readonly act: 'answer'; readonly requestId: string; readonly answers: Readonly<Record<string, string>> }
   | { readonly act: 'interrupt' };
 
+/** `install-native-windows-program`: the vendor's native Windows program replaces the refused one, installed by `installCommand`. */
+export interface AgentProgramRepair {
+  readonly code:           'install-native-windows-program';
+  readonly installCommand: string;
+}
+
 export interface AgentAdapter {
   readonly vendor:                 string;
   /** The agent's name as a person knows it, for help and next-step lines. */
@@ -100,8 +106,8 @@ export interface AgentAdapter {
   readonly versionArguments:       readonly string[];
   /** The version the program printed, or `null` when the output is not this agent's answer. */
   versionOf(versionOutput: string): string | null;
-  /** The sentence that repairs a refused program, or `null`. */
-  programRepairOf(cause: ExecutableRefusalCause): string | null;
+  /** How a refused program is repaired, as a code and the vendor's own values the caller words, or `null`. */
+  programRepairOf(cause: ExecutableRefusalCause): AgentProgramRepair | null;
   planOf(request: AgentLaunchRequest): AgentLaunchPlan;
   /** The session id a job keeps across every child instance and resume, derived from the board's scope and the job, never random. */
   sessionIdOf(scope: string, jobId: string): string;
