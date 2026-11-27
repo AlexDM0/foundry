@@ -139,6 +139,9 @@ its Deviations from them, each with why.
     reports it). `apps/gaia/page/Screens.visual.spec.ts` paints every artboard from
     `apps/gaia/page/testing/ArtboardScreens.tsx` in light and dark for the by-eye pass against the artboards
     (`apps/gaia/docs/design/README.md`).
+13. **Code documents itself.** `apps/gaia/architecture/CommentRuns.spec.ts` holds, over the server, the page and each
+    library, that an inline comment outside a docblock is one or two lines, that no comment runs past five lines, and
+    that no comment names a ticket, acceptance or question id, a plan section or an artboard.
 
 ## Map
 
