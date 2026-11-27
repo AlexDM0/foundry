@@ -124,6 +124,7 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 - A refusal thrown from `src/` carries a wordless `detail`; only `cli/` builds one from words (the install-version
   mismatch is its one detail). Every printed refusal is worded by the one refusal-wording util in `src/adapters/`,
   which no service imports.
+- `architecture/ErrorThrows.spec.ts` holds that no shipping code throws `new Error(` outside its exact allowlist.
 - Exit codes: 0 done or nothing to do; 1 an actionable refusal or unknown command; 2 `unrepaired` or any other
   throw. `cli/Main.ts` maps them, in that one place, and `agent-progress.ts` exits. Five deliberate exit-0
   failures are under Deviations.

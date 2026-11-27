@@ -1,0 +1,132 @@
+[
+  {
+    "case": "a directory in the file's place, which cannot be read",
+    "stored": null,
+    "sentence": "it could not be read ({systemError})"
+  },
+  {
+    "case": "bytes that are not UTF-8",
+    "stored": null,
+    "sentence": "it is not UTF-8 text"
+  },
+  {
+    "case": "text that is not JSON",
+    "stored": "{\"version\": ",
+    "sentence": "it is not valid JSON (JSON Parse error: Unexpected EOF)"
+  },
+  {
+    "case": "JSON that is a list, not an object",
+    "stored": "[]",
+    "sentence": "it is not a JSON object"
+  },
+  {
+    "case": "no version",
+    "stored": "{}",
+    "sentence": "its version is not 1"
+  },
+  {
+    "case": "another version",
+    "stored": "{\"version\":2}",
+    "sentence": "its version is not 1"
+  },
+  {
+    "case": "a manifest of the review phase",
+    "stored": "{\"version\":1,\"phase\":\"review\",\"phaseHash\":\"abc\",\"prepare\":[{\"name\":\"install\",\"run\":\"bun install\"}],\"gates\":[{\"name\":\"test\",\"run\":\"bun test\"}]}",
+    "sentence": "its \"phase\" is not the phase \"build\""
+  },
+  {
+    "case": "no phaseHash",
+    "stored": "{\"version\":1,\"phase\":\"build\",\"prepare\":[{\"name\":\"install\",\"run\":\"bun install\"}],\"gates\":[{\"name\":\"test\",\"run\":\"bun test\"}]}",
+    "sentence": "its \"phaseHash\" is not text"
+  },
+  {
+    "case": "entityPhaseHashes as a list",
+    "stored": "{\"version\":1,\"phase\":\"build\",\"phaseHash\":\"abc\",\"prepare\":[{\"name\":\"install\",\"run\":\"bun install\"}],\"gates\":[{\"name\":\"test\",\"run\":\"bun test\"}],\"entityPhaseHashes\":[\"abc\"]}",
+    "sentence": "its \"entityPhaseHashes\" is not a record of phase hashes"
+  },
+  {
+    "case": "prepare as an object",
+    "stored": "{\"version\":1,\"phase\":\"build\",\"phaseHash\":\"abc\",\"prepare\":{},\"gates\":[{\"name\":\"test\",\"run\":\"bun test\"}]}",
+    "sentence": "its \"prepare\" is not a list"
+  },
+  {
+    "case": "a prepare step that is text",
+    "stored": "{\"version\":1,\"phase\":\"build\",\"phaseHash\":\"abc\",\"prepare\":[{\"name\":\"install\",\"run\":\"bun install\"},\"install\"],\"gates\":[{\"name\":\"test\",\"run\":\"bun test\"}]}",
+    "sentence": "its \"prepare[1]\" is not an object"
+  },
+  {
+    "case": "a prepare step whose name is missing",
+    "stored": "{\"version\":1,\"phase\":\"build\",\"phaseHash\":\"abc\",\"prepare\":[{\"run\":\"bun install\"}],\"gates\":[{\"name\":\"test\",\"run\":\"bun test\"}]}",
+    "sentence": "its \"prepare[0].name\" is not text"
+  },
+  {
+    "case": "a prepare step whose run is a number",
+    "stored": "{\"version\":1,\"phase\":\"build\",\"phaseHash\":\"abc\",\"prepare\":[{\"name\":\"install\",\"run\":1}],\"gates\":[{\"name\":\"test\",\"run\":\"bun test\"}]}",
+    "sentence": "its \"prepare[0].run\" is not text"
+  },
+  {
+    "case": "a prepare step whose in is a number",
+    "stored": "{\"version\":1,\"phase\":\"build\",\"phaseHash\":\"abc\",\"prepare\":[{\"name\":\"install\",\"run\":\"bun install\",\"in\":1}],\"gates\":[{\"name\":\"test\",\"run\":\"bun test\"}]}",
+    "sentence": "its \"prepare[0].in\" is not text"
+  },
+  {
+    "case": "a prepare step whose entity is a number",
+    "stored": "{\"version\":1,\"phase\":\"build\",\"phaseHash\":\"abc\",\"prepare\":[{\"name\":\"install\",\"run\":\"bun install\",\"entity\":1}],\"gates\":[{\"name\":\"test\",\"run\":\"bun test\"}]}",
+    "sentence": "its \"prepare[0].entity\" is not text"
+  },
+  {
+    "case": "gates as text",
+    "stored": "{\"version\":1,\"phase\":\"build\",\"phaseHash\":\"abc\",\"prepare\":[{\"name\":\"install\",\"run\":\"bun install\"}],\"gates\":\"test\"}",
+    "sentence": "its \"gates\" is not a list"
+  },
+  {
+    "case": "a gate that is null",
+    "stored": "{\"version\":1,\"phase\":\"build\",\"phaseHash\":\"abc\",\"prepare\":[{\"name\":\"install\",\"run\":\"bun install\"}],\"gates\":[{\"name\":\"test\",\"run\":\"bun test\"},null]}",
+    "sentence": "its \"gates[1]\" is not an object"
+  },
+  {
+    "case": "a gate whose name is 1",
+    "stored": "{\"version\":1,\"phase\":\"build\",\"phaseHash\":\"abc\",\"prepare\":[{\"name\":\"install\",\"run\":\"bun install\"}],\"gates\":[{\"name\":1,\"run\":\"bun test\"}]}",
+    "sentence": "its \"gates[0].name\" is not text"
+  },
+  {
+    "case": "a gate whose run is missing",
+    "stored": "{\"version\":1,\"phase\":\"build\",\"phaseHash\":\"abc\",\"prepare\":[{\"name\":\"install\",\"run\":\"bun install\"}],\"gates\":[{\"name\":\"test\"}]}",
+    "sentence": "its \"gates[0].run\" is not text"
+  },
+  {
+    "case": "a gate whose in is 1",
+    "stored": "{\"version\":1,\"phase\":\"build\",\"phaseHash\":\"abc\",\"prepare\":[{\"name\":\"install\",\"run\":\"bun install\"}],\"gates\":[{\"name\":\"test\",\"run\":\"bun test\",\"in\":1}]}",
+    "sentence": "its \"gates[0].in\" is not text"
+  },
+  {
+    "case": "a gate whose entity is 1",
+    "stored": "{\"version\":1,\"phase\":\"build\",\"phaseHash\":\"abc\",\"prepare\":[{\"name\":\"install\",\"run\":\"bun install\"}],\"gates\":[{\"name\":\"test\",\"run\":\"bun test\",\"entity\":1}]}",
+    "sentence": "its \"gates[0].entity\" is not text"
+  },
+  {
+    "case": "a gate whose fix is 1",
+    "stored": "{\"version\":1,\"phase\":\"build\",\"phaseHash\":\"abc\",\"prepare\":[{\"name\":\"install\",\"run\":\"bun install\"}],\"gates\":[{\"name\":\"test\",\"run\":\"bun test\",\"fix\":1}]}",
+    "sentence": "its \"gates[0].fix\" is not text"
+  },
+  {
+    "case": "a gate whose definedBy is \"x\"",
+    "stored": "{\"version\":1,\"phase\":\"build\",\"phaseHash\":\"abc\",\"prepare\":[{\"name\":\"install\",\"run\":\"bun install\"}],\"gates\":[{\"name\":\"test\",\"run\":\"bun test\",\"definedBy\":\"x\"}]}",
+    "sentence": "its \"gates[0].definedBy\" is not a list of text"
+  },
+  {
+    "case": "a gate whose network is [1]",
+    "stored": "{\"version\":1,\"phase\":\"build\",\"phaseHash\":\"abc\",\"prepare\":[{\"name\":\"install\",\"run\":\"bun install\"}],\"gates\":[{\"name\":\"test\",\"run\":\"bun test\",\"network\":[1]}]}",
+    "sentence": "its \"gates[0].network\" is not a list of text"
+  },
+  {
+    "case": "a gate whose writes is \"x\"",
+    "stored": "{\"version\":1,\"phase\":\"build\",\"phaseHash\":\"abc\",\"prepare\":[{\"name\":\"install\",\"run\":\"bun install\"}],\"gates\":[{\"name\":\"test\",\"run\":\"bun test\",\"writes\":\"x\"}]}",
+    "sentence": "its \"gates[0].writes\" is not a list of text"
+  },
+  {
+    "case": "a gate whose forgeOnly is false",
+    "stored": "{\"version\":1,\"phase\":\"build\",\"phaseHash\":\"abc\",\"prepare\":[{\"name\":\"install\",\"run\":\"bun install\"}],\"gates\":[{\"name\":\"test\",\"run\":\"bun test\",\"forgeOnly\":false}]}",
+    "sentence": "its \"gates[0].forgeOnly\" is not true"
+  }
+]

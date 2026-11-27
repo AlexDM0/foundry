@@ -1,0 +1,11 @@
+[
+  {"case":"a directory stands in place of the file, so its bytes cannot be read","stored":null,"sentence":"it could not be read ({systemError})"},
+  {"case":"the bytes are not UTF-8","stored":null,"sentence":"it is not UTF-8 text"},
+  {"case":"the text is not JSON","stored":"{\"version\": 1,","sentence":"it is not valid JSON (JSON Parse error: Property name must be a string literal)"},
+  {"case":"the text is empty","stored":"","sentence":"it is not valid JSON (JSON Parse error: Unexpected EOF)"},
+  {"case":"the JSON is a list, not an object","stored":"[1]","sentence":"it is not a JSON object"},
+  {"case":"the JSON is null","stored":"null","sentence":"it is not a JSON object"},
+  {"case":"the version is another number","stored":"{\"version\":2}","sentence":"its version is not 1"},
+  {"case":"the version is absent","stored":"{}","sentence":"its version is not 1"},
+  {"case":"the version is text","stored":"{\"version\":\"1\"}","sentence":"its version is not 1"}
+]

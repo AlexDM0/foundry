@@ -1,0 +1,52 @@
+[
+  {
+    "case": "a directory in the file's place, which cannot be read",
+    "stored": null,
+    "sentence": "it could not be read ({systemError})"
+  },
+  {
+    "case": "bytes that are not UTF-8",
+    "stored": null,
+    "sentence": "it is not UTF-8 text"
+  },
+  {
+    "case": "text that is not JSON",
+    "stored": "{\"version\": ",
+    "sentence": "it is not valid JSON (JSON Parse error: Unexpected EOF)"
+  },
+  {
+    "case": "JSON that is a list, not an object",
+    "stored": "[]",
+    "sentence": "it is not a JSON object"
+  },
+  {
+    "case": "no version",
+    "stored": "{}",
+    "sentence": "its version is not 1"
+  },
+  {
+    "case": "another version",
+    "stored": "{\"version\":2}",
+    "sentence": "its version is not 1"
+  },
+  {
+    "case": "conflictedFiles as one text",
+    "stored": "{\"version\":1,\"conflictedFiles\":\"src/Example.ts\",\"leavesTheMergeOpen\":false,\"filesResolvedBefore\":[]}",
+    "sentence": "its \"conflictedFiles\" is not a list of file paths"
+  },
+  {
+    "case": "an empty conflicted file path",
+    "stored": "{\"version\":1,\"conflictedFiles\":[\"\"],\"leavesTheMergeOpen\":false,\"filesResolvedBefore\":[]}",
+    "sentence": "its \"conflictedFiles\" is not a list of file paths"
+  },
+  {
+    "case": "leavesTheMergeOpen as text",
+    "stored": "{\"version\":1,\"conflictedFiles\":[\"src/Example.ts\"],\"leavesTheMergeOpen\":\"true\",\"filesResolvedBefore\":[]}",
+    "sentence": "its \"leavesTheMergeOpen\" is neither true nor false"
+  },
+  {
+    "case": "no filesResolvedBefore",
+    "stored": "{\"version\":1,\"conflictedFiles\":[\"src/Example.ts\"],\"leavesTheMergeOpen\":false}",
+    "sentence": "its \"filesResolvedBefore\" is not a list of file paths"
+  }
+]

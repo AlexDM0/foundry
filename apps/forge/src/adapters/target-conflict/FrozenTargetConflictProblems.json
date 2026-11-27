@@ -1,0 +1,4 @@
+[
+  {"case":"the target tip is not a commit","stored":"{\"version\":1,\"conflictedFiles\":[]}","sentence":"its \"targetTip\" is not a commit"},
+  {"case":"the conflicted files are not a list of paths","stored":"{\"version\":1,\"targetTip\":\"a1b2c3d\",\"conflictedFiles\":\"a.ts\"}","sentence":"its \"conflictedFiles\" is not a list of paths"}
+]

@@ -1,0 +1,4 @@
+[
+  {"case":"the step is not text","stored":"{\"version\":1,\"reason\":\"refused\"}","sentence":"its \"step\" is not text"},
+  {"case":"the reason is not text","stored":"{\"version\":1,\"step\":\"build\",\"reason\":null}","sentence":"its \"reason\" is not text"}
+]

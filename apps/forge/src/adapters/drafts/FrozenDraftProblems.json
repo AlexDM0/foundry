@@ -1,0 +1,82 @@
+[
+  {
+    "case": "a directory stands where the file belongs (built in the spec; {systemError} is the OS message)",
+    "stored": null,
+    "sentence": "the file could not be read: Error: {systemError}"
+  },
+  {
+    "case": "the text is not JSON",
+    "stored": "{ \"version\": 1,",
+    "sentence": "it is not valid JSON ({parserError})"
+  },
+  {
+    "case": "the document is not a JSON object",
+    "stored": "[]\n",
+    "sentence": "the document is not a JSON object"
+  },
+  {
+    "case": "the version is another",
+    "stored": "{\n  \"version\": 2,\n  \"id\": \"D1\",\n  \"title\": \"Example draft\",\n  \"request\": \"Example request\",\n  \"openedAt\": \"2026-11-24T10:00:00.000Z\",\n  \"claim\": null,\n  \"notes\": [],\n  \"questions\": [],\n  \"nextNoteNumber\": 1,\n  \"nextQuestionNumber\": 1\n}\n",
+    "sentence": "version is 2, and this build of forge reads version 1; if an earlier forge wrote it, run `forge update` with a release that still reads it, then use this one"
+  },
+  {
+    "case": "the version is missing",
+    "stored": "{\n  \"id\": \"D1\",\n  \"title\": \"Example draft\",\n  \"request\": \"Example request\",\n  \"openedAt\": \"2026-11-24T10:00:00.000Z\",\n  \"claim\": null,\n  \"notes\": [],\n  \"questions\": [],\n  \"nextNoteNumber\": 1,\n  \"nextQuestionNumber\": 1\n}\n",
+    "sentence": "version is missing, and this build of forge reads version 1; if an earlier forge wrote it, run `forge update` with a release that still reads it, then use this one"
+  },
+  {
+    "case": "the id is not a draft id",
+    "stored": "{\n  \"version\": 1,\n  \"id\": \"X1\",\n  \"title\": \"Example draft\",\n  \"request\": \"Example request\",\n  \"openedAt\": \"2026-11-24T10:00:00.000Z\",\n  \"claim\": null,\n  \"notes\": [],\n  \"questions\": [],\n  \"nextNoteNumber\": 1,\n  \"nextQuestionNumber\": 1\n}\n",
+    "sentence": "id is \"X1\", and it has to be a draft id such as D1"
+  },
+  {
+    "case": "the id is missing",
+    "stored": "{\n  \"version\": 1,\n  \"title\": \"Example draft\",\n  \"request\": \"Example request\",\n  \"openedAt\": \"2026-11-24T10:00:00.000Z\",\n  \"claim\": null,\n  \"notes\": [],\n  \"questions\": [],\n  \"nextNoteNumber\": 1,\n  \"nextQuestionNumber\": 1\n}\n",
+    "sentence": "id is missing, and it has to be a draft id such as D1"
+  },
+  {
+    "case": "a blank title",
+    "stored": "{\n  \"version\": 1,\n  \"id\": \"D1\",\n  \"title\": \" \",\n  \"request\": \"Example request\",\n  \"openedAt\": \"2026-11-24T10:00:00.000Z\",\n  \"claim\": null,\n  \"notes\": [],\n  \"questions\": [],\n  \"nextNoteNumber\": 1,\n  \"nextQuestionNumber\": 1\n}\n",
+    "sentence": "title is not a text that is not blank"
+  },
+  {
+    "case": "the request is not text",
+    "stored": "{\n  \"version\": 1,\n  \"id\": \"D1\",\n  \"title\": \"Example draft\",\n  \"request\": 1,\n  \"openedAt\": \"2026-11-24T10:00:00.000Z\",\n  \"claim\": null,\n  \"notes\": [],\n  \"questions\": [],\n  \"nextNoteNumber\": 1,\n  \"nextQuestionNumber\": 1\n}\n",
+    "sentence": "request is not a text"
+  },
+  {
+    "case": "openedAt is not text",
+    "stored": "{\n  \"version\": 1,\n  \"id\": \"D1\",\n  \"title\": \"Example draft\",\n  \"request\": \"Example request\",\n  \"openedAt\": 1,\n  \"claim\": null,\n  \"notes\": [],\n  \"questions\": [],\n  \"nextNoteNumber\": 1,\n  \"nextQuestionNumber\": 1\n}\n",
+    "sentence": "openedAt is not a timestamp"
+  },
+  {
+    "case": "the claim is neither null nor an owner and claimedAt",
+    "stored": "{\n  \"version\": 1,\n  \"id\": \"D1\",\n  \"title\": \"Example draft\",\n  \"request\": \"Example request\",\n  \"openedAt\": \"2026-11-24T10:00:00.000Z\",\n  \"claim\": {\n    \"owner\": \"\"\n  },\n  \"notes\": [],\n  \"questions\": [],\n  \"nextNoteNumber\": 1,\n  \"nextQuestionNumber\": 1\n}\n",
+    "sentence": "claim is neither null nor an object holding an owner and a claimedAt"
+  },
+  {
+    "case": "a note of another kind",
+    "stored": "{\n  \"version\": 1,\n  \"id\": \"D1\",\n  \"title\": \"Example draft\",\n  \"request\": \"Example request\",\n  \"openedAt\": \"2026-11-24T10:00:00.000Z\",\n  \"claim\": null,\n  \"notes\": [\n    {\n      \"id\": \"N1\",\n      \"kind\": \"guess\",\n      \"text\": \"x\"\n    }\n  ],\n  \"questions\": [],\n  \"nextNoteNumber\": 1,\n  \"nextQuestionNumber\": 1\n}\n",
+    "sentence": "notes is not a list of notes, each holding an id, a kind of fact or assumption, and a text"
+  },
+  {
+    "case": "a question without its options",
+    "stored": "{\n  \"version\": 1,\n  \"id\": \"D1\",\n  \"title\": \"Example draft\",\n  \"request\": \"Example request\",\n  \"openedAt\": \"2026-11-24T10:00:00.000Z\",\n  \"claim\": null,\n  \"notes\": [],\n  \"questions\": [\n    {\n      \"id\": \"Q1\",\n      \"question\": \"x\",\n      \"context\": \"y\",\n      \"multiple\": false\n    }\n  ],\n  \"nextNoteNumber\": 1,\n  \"nextQuestionNumber\": 1\n}\n",
+    "sentence": "questions is not a list of questions, each with its options, recommendation, answer and follow-ups"
+  },
+  {
+    "case": "nextNoteNumber below the first item number",
+    "stored": "{\n  \"version\": 1,\n  \"id\": \"D1\",\n  \"title\": \"Example draft\",\n  \"request\": \"Example request\",\n  \"openedAt\": \"2026-11-24T10:00:00.000Z\",\n  \"claim\": null,\n  \"notes\": [],\n  \"questions\": [],\n  \"nextNoteNumber\": 0,\n  \"nextQuestionNumber\": 1\n}\n",
+    "sentence": "nextNoteNumber and nextQuestionNumber have to be whole numbers of at least 1"
+  },
+  {
+    "case": "a blank entity",
+    "stored": "{\n  \"version\": 1,\n  \"id\": \"D1\",\n  \"title\": \"Example draft\",\n  \"request\": \"Example request\",\n  \"openedAt\": \"2026-11-24T10:00:00.000Z\",\n  \"claim\": null,\n  \"notes\": [],\n  \"questions\": [],\n  \"nextNoteNumber\": 1,\n  \"nextQuestionNumber\": 1,\n  \"entity\": \" \"\n}\n",
+    "sentence": "entity is not an entity key that is not blank"
+  },
+  {
+    "case": "crosses holds a blank entity key",
+    "stored": "{\n  \"version\": 1,\n  \"id\": \"D1\",\n  \"title\": \"Example draft\",\n  \"request\": \"Example request\",\n  \"openedAt\": \"2026-11-24T10:00:00.000Z\",\n  \"claim\": null,\n  \"notes\": [],\n  \"questions\": [],\n  \"nextNoteNumber\": 1,\n  \"nextQuestionNumber\": 1,\n  \"crosses\": [\n    \"contracts\",\n    \"\"\n  ]\n}\n",
+    "sentence": "crosses is not a list of entity keys that are not blank"
+  }
+]

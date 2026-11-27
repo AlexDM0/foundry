@@ -1,0 +1,457 @@
+[
+  {
+    "case": "a directory stands where the file belongs (built in the spec; {systemError} is the OS message)",
+    "stored": null,
+    "sentence": "{file}: it could not be read ({systemError})"
+  },
+  {
+    "case": "the bytes are not UTF-8 text (built in the spec)",
+    "stored": null,
+    "sentence": "{file}: it is not UTF-8 text"
+  },
+  {
+    "case": "a line that is not JSON, after a good line",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"note\",\"fields\":{\"text\":\"Example note from the orchestrator\"}}\n{ \"at\":\n",
+    "sentence": "{file}, line 2: it is not valid JSON ({parserError})"
+  },
+  {
+    "case": "a record that is not an object",
+    "stored": "[]\n",
+    "sentence": "{file}, line 1: it is not an object"
+  },
+  {
+    "case": "a record whose at is not a string",
+    "stored": "{\"at\":1,\"kind\":\"note\",\"fields\":{\"text\":\"Example note from the orchestrator\"}}\n",
+    "sentence": "{file}, line 1: at is not a string"
+  },
+  {
+    "case": "a record of an unknown kind",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"constructor\",\"fields\":{\"text\":\"Example note from the orchestrator\"}}\n",
+    "sentence": "{file}, line 1: kind is \"constructor\", which is not a kind of log record"
+  },
+  {
+    "case": "a record whose fields is not an object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"note\",\"fields\":[]}\n",
+    "sentence": "{file}, line 1: fields is not an object"
+  },
+  {
+    "case": "a ticket record whose ticketId is not a string",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"ticket-retitled\",\"ticketId\":4,\"fields\":{\"from\":\"Example search page\",\"to\":\"Example search results page\"}}\n",
+    "sentence": "{file}, line 1: ticketId is not a string"
+  },
+  {
+    "case": "a review-bar record (review-bar-started) whose taskId is not a whole number",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"review-bar-started\",\"taskId\":\"7\",\"ticketId\":\"001\",\"fields\":{\"name\":\"Review 1 #001 — Example checkout page\"}}\n",
+    "sentence": "{file}, line 1: taskId is not a whole number"
+  },
+  {
+    "case": "the agent-pair field from of ticket-agents-changed holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"ticket-agents-changed\",\"ticketId\":\"001\",\"fields\":{\"from\":{},\"to\":{\"model\":\"sonnet\",\"effort\":\"high\"}}}\n",
+    "sentence": "{file}, line 1: fields.from.model is undefined, which is not a known model"
+  },
+  {
+    "case": "the billing-mode field mode of pipeline-setup-billing-set holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"pipeline-setup-billing-set\",\"setupId\":\"S1\",\"fields\":{\"mode\":{},\"maxBudgetUsd\":5}}\n",
+    "sentence": "{file}, line 1: fields.mode is {}, which is not one of subscription, api"
+  },
+  {
+    "case": "the chart-range field view of chart-range-set holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"chart-range-set\",\"fields\":{\"view\":{}}}\n",
+    "sentence": "{file}, line 1: fields.view is not a chart range"
+  },
+  {
+    "case": "the check-command field command of check-command-set holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"check-command-set\",\"fields\":{\"command\":{}}}\n",
+    "sentence": "{file}, line 1: fields.command is neither null nor a shell line that is not blank"
+  },
+  {
+    "case": "the child-instance field childInstance of job-interrupted holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"job-interrupted\",\"jobId\":\"J2\",\"fields\":{\"cause\":\"agent-crashed\",\"childInstance\":{}}}\n",
+    "sentence": "{file}, line 1: fields.childInstance is not a whole number of at least 1"
+  },
+  {
+    "case": "the concurrency-limit field limit of concurrency-limit-set holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"concurrency-limit-set\",\"fields\":{\"limit\":{}}}\n",
+    "sentence": "{file}, line 1: fields.limit is not a whole number of agents"
+  },
+  {
+    "case": "the count field runMilliseconds of pipeline-step-ran holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"pipeline-step-ran\",\"fields\":{\"stepKind\":\"gate\",\"stepName\":\"tests\",\"phase\":\"build\",\"entity\":\"web\",\"runMilliseconds\":{},\"ending\":\"passed\"}}\n",
+    "sentence": "{file}, line 1: fields.runMilliseconds is not a whole number of at least 0"
+  },
+  {
+    "case": "the customs-checks field checks of ticket-document-snapshot-touched holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"ticket-document-snapshot-touched\",\"ticketId\":\"004\",\"fields\":{\"document\":\"plan\",\"jobId\":\"J9\",\"checks\":{}}}\n",
+    "sentence": "{file}, line 1: fields.checks is not a list of Customs checks"
+  },
+  {
+    "case": "the decision-answer field answer of decision-answered holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"decision-answered\",\"decisionId\":\"E1\",\"fields\":{\"answer\":{},\"requestId\":\"request-1\"}}\n",
+    "sentence": "{file}, line 1: fields.answer is not an object of at least one answer keyed by its question"
+  },
+  {
+    "case": "the decision-kind field kind of decision-opened holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"decision-opened\",\"decisionId\":\"E1\",\"fields\":{\"kind\":{},\"ticketIds\":[\"002\"]}}\n",
+    "sentence": "{file}, line 1: fields.kind is {}, which is not one of agent-question, parked, waiver, landing-refused, merge-refused, checks-not-set, target-moved, branch-touches-agent-config, outage, quiet-job, leftover-worktree, forced-stop-refused, pipeline-proposal, api-key-not-set, api-authentication-failed, budget-reached, need-for-root, need-closes-circle, need-abandoned, work-in-other-entity, whitelist-removed-mid-crossing, package-refused, second-return, dependent-broken"
+  },
+  {
+    "case": "the dispatcher-run-id field runId of dispatcher-set holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"dispatcher-set\",\"fields\":{\"state\":\"finished\",\"runId\":{}}}\n",
+    "sentence": "{file}, line 1: fields.runId is neither null nor a run id"
+  },
+  {
+    "case": "the dispatcher-state field state of dispatcher-set holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"dispatcher-set\",\"fields\":{\"state\":{},\"runId\":\"wf_example-run\"}}\n",
+    "sentence": "{file}, line 1: fields.state is {}, which is not one of running, finished, stopped"
+  },
+  {
+    "case": "the draft-fields field fields of pipeline-draft-edited holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"pipeline-draft-edited\",\"setupId\":\"S1\",\"fields\":{\"by\":\"agent\",\"revision\":1,\"editIds\":[\"E1\",\"E2\"],\"fields\":{}}}\n",
+    "sentence": "{file}, line 1: fields.fields is not a list of draft fields"
+  },
+  {
+    "case": "the entity-assigner field by of entity-assigned holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"entity-assigned\",\"ticketId\":\"003\",\"fields\":{\"entity\":\"web\",\"reason\":\"The search page lives in the web app\",\"by\":{}}}\n",
+    "sentence": "{file}, line 1: fields.by is {}, which is not one of product-owner, user"
+  },
+  {
+    "case": "the epic-keys field epics of ticket-epics-set holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"ticket-epics-set\",\"ticketId\":\"002\",\"fields\":{\"epics\":{}}}\n",
+    "sentence": "{file}, line 1: fields.epics is not a list of epic keys"
+  },
+  {
+    "case": "the file-paths field paths of pipeline-tools-set holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"pipeline-tools-set\",\"fields\":{\"paths\":{}}}\n",
+    "sentence": "{file}, line 1: fields.paths is not a list of file paths"
+  },
+  {
+    "case": "the flag field cached of gate-ran holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"gate-ran\",\"fields\":{\"tree\":\"4b825dc642cb6eb9a060e54bf8d69288fbee4904\",\"outcome\":\"passed\",\"cached\":{}}}\n",
+    "sentence": "{file}, line 1: fields.cached is not true or false"
+  },
+  {
+    "case": "the flint-brain-ended-reason field endedReason of flint-brain-ended holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"flint-brain-ended\",\"fields\":{\"startedBy\":\"bridge\",\"startedAt\":\"2026-09-26T08:13:00.000Z\",\"endedAt\":\"2026-09-26T08:15:00.000Z\",\"endedReason\":{},\"tokens\":4200,\"calls\":3}}\n",
+    "sentence": "{file}, line 1: fields.endedReason is {}, which is not one of time, stopped, usage-limit, failed"
+  },
+  {
+    "case": "the flint-brain-starter field startedBy of flint-brain-ended holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"flint-brain-ended\",\"fields\":{\"startedBy\":{},\"startedAt\":\"2026-09-26T08:13:00.000Z\",\"endedAt\":\"2026-09-26T08:15:00.000Z\",\"endedReason\":\"time\",\"tokens\":4200,\"calls\":3}}\n",
+    "sentence": "{file}, line 1: fields.startedBy is {}, which is not one of bridge, api"
+  },
+  {
+    "case": "the gate-names field names of pipeline-gates-ordered holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"pipeline-gates-ordered\",\"fields\":{\"phase\":\"merge\",\"names\":{}}}\n",
+    "sentence": "{file}, line 1: fields.names is not a list of gate names"
+  },
+  {
+    "case": "the gate-outcome field outcome of gate-ran holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"gate-ran\",\"fields\":{\"tree\":\"4b825dc642cb6eb9a060e54bf8d69288fbee4904\",\"outcome\":{},\"cached\":true}}\n",
+    "sentence": "{file}, line 1: fields.outcome is {}, which is not one of passed, failed, cannot-run"
+  },
+  {
+    "case": "the gate-phase field phase of pipeline-gates-ordered holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"pipeline-gates-ordered\",\"fields\":{\"phase\":{},\"names\":[\"checks\"]}}\n",
+    "sentence": "{file}, line 1: fields.phase is {}, which is not one of build, review, merge"
+  },
+  {
+    "case": "the gate-profile-ending field state of gate-profiled holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"gate-profiled\",\"profileRunId\":\"P1\",\"fields\":{\"gateName\":\"tests\",\"phase\":\"build\",\"state\":{},\"elapsedMilliseconds\":4200}}\n",
+    "sentence": "{file}, line 1: fields.state is {}, which is not one of passed, red, cannot-run, timed-out"
+  },
+  {
+    "case": "the hephaestus-state field state of hephaestus-set holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"hephaestus-set\",\"fields\":{\"state\":{}}}\n",
+    "sentence": "{file}, line 1: fields.state is {}, which is not one of running, paused"
+  },
+  {
+    "case": "the hephaestus-stop-reason field reason of hephaestus-stopped holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"hephaestus-stopped\",\"fields\":{\"reason\":{}}}\n",
+    "sentence": "{file}, line 1: fields.reason is {}, which is not one of stopped, handed-over"
+  },
+  {
+    "case": "the incident-default-cause field cause of incident-defaulted holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"incident-defaulted\",\"incidentId\":\"I2\",\"fields\":{\"move\":\"incident-escalate\",\"cause\":{}}}\n",
+    "sentence": "{file}, line 1: fields.cause is {}, which is not one of turn-closed, turn-budget, no-assistant, assistant-off"
+  },
+  {
+    "case": "the incident-kind field kind of incident-opened holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"incident-opened\",\"incidentId\":\"I1\",\"fields\":{\"kind\":{},\"ticketIds\":[\"002\"]}}\n",
+    "sentence": "{file}, line 1: fields.kind is {}, which is not one of system-question, malformed-ticket, setup-failed, out-of-calls, blocked, job-lost, resume-failed, gate-cannot-run, sandbox-unavailable, quiet-job, setup-snapshot-touched, document-snapshot-touched, system-file-unreadable"
+  },
+  {
+    "case": "the incident-move field move of incident-handled holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"incident-handled\",\"incidentId\":\"I1\",\"fields\":{\"move\":{}}}\n",
+    "sentence": "{file}, line 1: fields.move is {}, which is not one of incident-answer, incident-escalate, incident-note, job-fresh, job-message, worktree-repair, gate-retry, ticket-park, open-quiet-job-decision"
+  },
+  {
+    "case": "the interruption-cause field cause of job-interrupted holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"job-interrupted\",\"jobId\":\"J2\",\"fields\":{\"cause\":{},\"childInstance\":1}}\n",
+    "sentence": "{file}, line 1: fields.cause is {}, which is not one of talos-lost, agent-crashed, reboot, answer-delivery, usage-limit, handoff-red, forced-stop-refused, authentication-failed, talos-paused, lease-ended, network-outage, forge-stopped, forge-crashed"
+  },
+  {
+    "case": "the job-kind field kind of job-launched holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"job-launched\",\"jobId\":\"J1\",\"fields\":{\"kind\":{},\"role\":null,\"ticketIds\":[\"001\"],\"attempt\":1,\"target\":\"main\",\"parentJobId\":null}}\n",
+    "sentence": "{file}, line 1: fields.kind is {}, which is not one of build, review, merge, merge-agent, refresh, constitution-commit, assistant, product-owner, pipeline-agent, document-agent, effect-reading"
+  },
+  {
+    "case": "the job-outcome field outcome of job-ended holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"job-ended\",\"jobId\":\"J1\",\"fields\":{\"outcome\":{},\"commit\":\"d4e5f60718293a4b5c6d7e8f9012345678901234\",\"deniedPermissions\":[]}}\n",
+    "sentence": "{file}, line 1: fields.outcome is {}, which is not one of built, reviewed, round-granted, does-not-hold, resolved, cannot-resolve, landed, integrated, refreshed, committed, wound-down, needs-declared, refused, package-return, failed, blocked, replaced, stopped, closed"
+  },
+  {
+    "case": "the job-role field role of job-launched holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"job-launched\",\"jobId\":\"J1\",\"fields\":{\"kind\":\"merge\",\"role\":{},\"ticketIds\":[\"001\"],\"attempt\":1,\"target\":\"main\",\"parentJobId\":null}}\n",
+    "sentence": "{file}, line 1: fields.role is {}, which is not one of builder, reviewer, re-reviewer, conflict-re-reviewer, assistant, product-owner, pipeline-agent, spec-agent, plan-agent, effect-reader"
+  },
+  {
+    "case": "the job-stop-mode field mode of job-stop-requested holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"job-stop-requested\",\"jobId\":\"J2\",\"fields\":{\"mode\":{}}}\n",
+    "sentence": "{file}, line 1: fields.mode is {}, which is not one of stop, wind-down, fresh"
+  },
+  {
+    "case": "the landing-kind field kind of merge-landed holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"merge-landed\",\"jobId\":\"J1\",\"fields\":{\"target\":\"main\",\"commit\":\"d4e5f60718293a4b5c6d7e8f9012345678901234\",\"kind\":{}}}\n",
+    "sentence": "{file}, line 1: fields.kind is {}, which is not one of landed, integrated"
+  },
+  {
+    "case": "the lost-line-kind field line of job-line-lost holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"job-line-lost\",\"jobId\":\"J2\",\"fields\":{\"line\":{},\"cause\":\"forge-crashed\"}}\n",
+    "sentence": "{file}, line 1: fields.line is {}, which is not one of gate, install"
+  },
+  {
+    "case": "the network-domains field domains of ticket-network-set holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"ticket-network-set\",\"ticketId\":\"003\",\"fields\":{\"domains\":{}}}\n",
+    "sentence": "{file}, line 1: fields.domains is not a list of domains"
+  },
+  {
+    "case": "the nullable-text field patchPath of worktree-repaired holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"worktree-repaired\",\"ticketId\":\"001\",\"fields\":{\"step\":\"prune\",\"patchPath\":{}}}\n",
+    "sentence": "{file}, line 1: fields.patchPath is not a string"
+  },
+  {
+    "case": "the optional-cache-reports field cacheReports of gate-ran holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"gate-ran\",\"fields\":{\"tree\":\"4b825dc642cb6eb9a060e54bf8d69288fbee4904\",\"outcome\":\"passed\",\"cached\":true,\"cacheReports\":{}}}\n",
+    "sentence": "{file}, line 1: fields.cacheReports is not a gate run's cache reports, a phase and a list of gates each with a gateName and a cacheReport of hit, partial, miss or null"
+  },
+  {
+    "case": "the optional-cost-usd field costUsd of agent-stopped holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"agent-stopped\",\"fields\":{\"agentId\":\"example-agent\",\"agentType\":\"agent-progress-worker\",\"apiCallCount\":12,\"endContextTokens\":48000,\"totalInputTokens\":310000,\"cacheReadInputTokens\":250000,\"outputTokens\":9000,\"costUsd\":{}}}\n",
+    "sentence": "{file}, line 1: fields.costUsd is not a cost of at least 0"
+  },
+  {
+    "case": "the optional-count field stage of job-launched holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"job-launched\",\"jobId\":\"J1\",\"fields\":{\"kind\":\"merge\",\"role\":null,\"ticketIds\":[\"001\"],\"attempt\":1,\"target\":\"main\",\"parentJobId\":null,\"stage\":{}}}\n",
+    "sentence": "{file}, line 1: fields.stage is not a whole number of at least 0"
+  },
+  {
+    "case": "the optional-flag field byHand of ticket-delivered holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"ticket-delivered\",\"ticketId\":\"001\",\"fields\":{\"byHand\":{}}}\n",
+    "sentence": "{file}, line 1: fields.byHand is not true or false"
+  },
+  {
+    "case": "the optional-gate-phase field phase of pipeline-step-ran holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"pipeline-step-ran\",\"fields\":{\"stepKind\":\"gate\",\"stepName\":\"tests\",\"phase\":{},\"entity\":\"web\",\"runMilliseconds\":4200,\"ending\":\"passed\"}}\n",
+    "sentence": "{file}, line 1: fields.phase is {}, which is not one of build, review, merge"
+  },
+  {
+    "case": "the optional-pictures field intakePictures of job-launched holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"job-launched\",\"jobId\":\"J1\",\"fields\":{\"kind\":\"merge\",\"role\":null,\"ticketIds\":[\"001\"],\"attempt\":1,\"target\":\"main\",\"parentJobId\":null,\"intakePictures\":{}}}\n",
+    "sentence": "{file}, line 1: fields.intakePictures is not a list of at least one picture, each a pictureId of 64 hex digits and a name"
+  },
+  {
+    "case": "the optional-refusal-detail field detail of hatch-applied holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"hatch-applied\",\"jobId\":\"J1\",\"fields\":{\"requestId\":\"request-5\",\"commandKind\":\"ticket-add\",\"outcome\":\"done\",\"ticketIds\":[\"001\"],\"detail\":{}}}\n",
+    "sentence": "{file}, line 1: fields.detail is not a refusal detail, an object naming its kind"
+  },
+  {
+    "case": "the optional-refusal-status field status of hatch-applied holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"hatch-applied\",\"jobId\":\"J1\",\"fields\":{\"requestId\":\"request-5\",\"commandKind\":\"ticket-add\",\"outcome\":\"done\",\"ticketIds\":[\"001\"],\"status\":{}}}\n",
+    "sentence": "{file}, line 1: fields.status is {}, which is not one of refused, unrepaired"
+  },
+  {
+    "case": "the optional-size field from of ticket-size-changed holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"ticket-size-changed\",\"ticketId\":\"001\",\"fields\":{\"to\":\"M\",\"from\":{}}}\n",
+    "sentence": "{file}, line 1: fields.from is {}, which is not one of XS, S, M, L, XL, XXL"
+  },
+  {
+    "case": "the optional-text field status of ticket-filed holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"ticket-filed\",\"ticketId\":\"003\",\"fields\":{\"title\":\"Example search page\",\"status\":{}}}\n",
+    "sentence": "{file}, line 1: fields.status is not a string"
+  },
+  {
+    "case": "the optional-ticket-ids field entitiesToAssign of job-launched holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"job-launched\",\"jobId\":\"J1\",\"fields\":{\"kind\":\"merge\",\"role\":null,\"ticketIds\":[\"001\"],\"attempt\":1,\"target\":\"main\",\"parentJobId\":null,\"entitiesToAssign\":{}}}\n",
+    "sentence": "{file}, line 1: fields.entitiesToAssign is not a list of ticket ids"
+  },
+  {
+    "case": "the permission-names field deniedPermissions of job-ended holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"job-ended\",\"jobId\":\"J1\",\"fields\":{\"outcome\":\"landed\",\"commit\":\"d4e5f60718293a4b5c6d7e8f9012345678901234\",\"deniedPermissions\":{}}}\n",
+    "sentence": "{file}, line 1: fields.deniedPermissions is not a list of permission names"
+  },
+  {
+    "case": "the pipeline-step-ending field ending of pipeline-step-ran holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"pipeline-step-ran\",\"fields\":{\"stepKind\":\"gate\",\"stepName\":\"tests\",\"phase\":\"build\",\"entity\":\"web\",\"runMilliseconds\":4200,\"ending\":{}}}\n",
+    "sentence": "{file}, line 1: fields.ending is {}, which is not one of passed, failed, time-bound"
+  },
+  {
+    "case": "the pipeline-step-kind field stepKind of pipeline-step-ran holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"pipeline-step-ran\",\"fields\":{\"stepKind\":{},\"stepName\":\"tests\",\"phase\":\"build\",\"entity\":\"web\",\"runMilliseconds\":4200,\"ending\":\"passed\"}}\n",
+    "sentence": "{file}, line 1: fields.stepKind is {}, which is not one of prepare, gate"
+  },
+  {
+    "case": "the priority field from of ticket-priority-changed holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"ticket-priority-changed\",\"ticketId\":\"001\",\"fields\":{\"from\":{},\"to\":\"high\"}}\n",
+    "sentence": "{file}, line 1: fields.from is {}, which is not one of low, normal, high"
+  },
+  {
+    "case": "the review-bar-round field round of review-recorded holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"review-recorded\",\"taskId\":3,\"ticketId\":\"001\",\"fields\":{\"round\":{},\"verdict\":\"round-requested\",\"reviewStartCommit\":\"a1b2c3d4e5f60718293a4b5c6d7e8f9012345678\",\"fixReworkedCodeLines\":12,\"rebaseReworkedCodeLines\":4,\"totalReworkedCodeLines\":16,\"builderChangedFiles\":3,\"builderInsertions\":120,\"builderDeletions\":8,\"claims\":[{\"item\":\"A1\",\"result\":\"holds\",\"handoffContradicted\":false}],\"findings\":[{\"class\":\"test-gap\",\"severity\":\"quality\",\"file\":\"src/example/ExampleCheckout.ts\",\"summary\":\"The empty cart had no spec\",\"evidence\":\"watched-fail\",\"outcome\":\"fixed\",\"commit\":\"b2c3d4e\"},{\"class\":\"out-of-scope\",\"severity\":\"nit\",\"file\":\"docs/example.md\",\"summary\":\"An example sentence wraps late\",\"evidence\":\"reading\",\"outcome\":\"filed\",\"filedTicketId\":\"004\"}]}}\n",
+    "sentence": "{file}, line 1: fields.round is not a whole round of at least 1"
+  },
+  {
+    "case": "the review-claims field claims of review-recorded holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"review-recorded\",\"taskId\":3,\"ticketId\":\"001\",\"fields\":{\"round\":1,\"verdict\":\"round-requested\",\"reviewStartCommit\":\"a1b2c3d4e5f60718293a4b5c6d7e8f9012345678\",\"fixReworkedCodeLines\":12,\"rebaseReworkedCodeLines\":4,\"totalReworkedCodeLines\":16,\"builderChangedFiles\":3,\"builderInsertions\":120,\"builderDeletions\":8,\"claims\":{},\"findings\":[{\"class\":\"test-gap\",\"severity\":\"quality\",\"file\":\"src/example/ExampleCheckout.ts\",\"summary\":\"The empty cart had no spec\",\"evidence\":\"watched-fail\",\"outcome\":\"fixed\",\"commit\":\"b2c3d4e\"},{\"class\":\"out-of-scope\",\"severity\":\"nit\",\"file\":\"docs/example.md\",\"summary\":\"An example sentence wraps late\",\"evidence\":\"reading\",\"outcome\":\"filed\",\"filedTicketId\":\"004\"}]}}\n",
+    "sentence": "{file}, line 1: fields.claims is not a list"
+  },
+  {
+    "case": "the review-findings field findings of review-recorded holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"review-recorded\",\"taskId\":3,\"ticketId\":\"001\",\"fields\":{\"round\":1,\"verdict\":\"round-requested\",\"reviewStartCommit\":\"a1b2c3d4e5f60718293a4b5c6d7e8f9012345678\",\"fixReworkedCodeLines\":12,\"rebaseReworkedCodeLines\":4,\"totalReworkedCodeLines\":16,\"builderChangedFiles\":3,\"builderInsertions\":120,\"builderDeletions\":8,\"claims\":[{\"item\":\"A1\",\"result\":\"holds\",\"handoffContradicted\":false}],\"findings\":{}}}\n",
+    "sentence": "{file}, line 1: fields.findings is not a list"
+  },
+  {
+    "case": "the review-round field round of ticket-rereviewed holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"ticket-rereviewed\",\"ticketId\":\"001\",\"fields\":{\"round\":{}}}\n",
+    "sentence": "{file}, line 1: fields.round is not a whole round of at least 2"
+  },
+  {
+    "case": "the review-verdict field verdict of review-recorded holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"review-recorded\",\"taskId\":3,\"ticketId\":\"001\",\"fields\":{\"round\":1,\"verdict\":{},\"reviewStartCommit\":\"a1b2c3d4e5f60718293a4b5c6d7e8f9012345678\",\"fixReworkedCodeLines\":12,\"rebaseReworkedCodeLines\":4,\"totalReworkedCodeLines\":16,\"builderChangedFiles\":3,\"builderInsertions\":120,\"builderDeletions\":8,\"claims\":[{\"item\":\"A1\",\"result\":\"holds\",\"handoffContradicted\":false}],\"findings\":[{\"class\":\"test-gap\",\"severity\":\"quality\",\"file\":\"src/example/ExampleCheckout.ts\",\"summary\":\"The empty cart had no spec\",\"evidence\":\"watched-fail\",\"outcome\":\"fixed\",\"commit\":\"b2c3d4e\"},{\"class\":\"out-of-scope\",\"severity\":\"nit\",\"file\":\"docs/example.md\",\"summary\":\"An example sentence wraps late\",\"evidence\":\"reading\",\"outcome\":\"filed\",\"filedTicketId\":\"004\"}]}}\n",
+    "sentence": "{file}, line 1: fields.verdict is {}, which is not one of released, round-requested, does-not-hold, not-released, integrated"
+  },
+  {
+    "case": "the setup-item-ids field editIds of pipeline-draft-edited holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"pipeline-draft-edited\",\"setupId\":\"S1\",\"fields\":{\"by\":\"agent\",\"revision\":1,\"editIds\":{},\"fields\":[\"review\",\"gate:tests\"]}}\n",
+    "sentence": "{file}, line 1: fields.editIds is not a list of setup item ids"
+  },
+  {
+    "case": "the setup-mode field mode of pipeline-setup-opened holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"pipeline-setup-opened\",\"setupId\":\"S1\",\"fields\":{\"mode\":{},\"replacesUnreadablePipeline\":false}}\n",
+    "sentence": "{file}, line 1: fields.mode is {}, which is not one of setup, update, advise"
+  },
+  {
+    "case": "the setup-step field step of pipeline-question-asked holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"pipeline-question-asked\",\"setupId\":\"S1\",\"fields\":{\"questionId\":\"Q1\",\"step\":{}}}\n",
+    "sentence": "{file}, line 1: fields.step is {}, which is not one of agent, billing, research, entities, constitution, design, apply"
+  },
+  {
+    "case": "the setup-step-state field state of pipeline-setup-step-moved holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"pipeline-setup-step-moved\",\"setupId\":\"S1\",\"fields\":{\"step\":\"research\",\"state\":{},\"currentStep\":\"constitution\",\"needsRecheck\":[]}}\n",
+    "sentence": "{file}, line 1: fields.state is {}, which is not one of not-started, in-progress, done, needs-recheck"
+  },
+  {
+    "case": "the setup-steps field needsRecheck of pipeline-setup-step-moved holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"pipeline-setup-step-moved\",\"setupId\":\"S1\",\"fields\":{\"step\":\"research\",\"state\":\"done\",\"currentStep\":\"constitution\",\"needsRecheck\":{}}}\n",
+    "sentence": "{file}, line 1: fields.needsRecheck is not a list of setup steps, each one of agent, billing, research, entities, constitution, design, apply"
+  },
+  {
+    "case": "the start-kind field kind of start-classified holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"start-classified\",\"fields\":{\"kind\":{},\"startOrigin\":\"successor\",\"previousGeneration\":3,\"crashSuspected\":true,\"crashLogNumber\":3}}\n",
+    "sentence": "{file}, line 1: fields.kind is {}, which is not one of first-start, handover, stopped-on-purpose, machine-went-down, crashed"
+  },
+  {
+    "case": "the start-origin field startOrigin of start-classified holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"start-classified\",\"fields\":{\"kind\":\"machine-went-down\",\"startOrigin\":{},\"previousGeneration\":3,\"crashSuspected\":true,\"crashLogNumber\":3}}\n",
+    "sentence": "{file}, line 1: fields.startOrigin is {}, which is not one of user, successor"
+  },
+  {
+    "case": "the text field text of note holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"note\",\"fields\":{\"text\":{}}}\n",
+    "sentence": "{file}, line 1: fields.text is not a string"
+  },
+  {
+    "case": "the ticket-ids field dependsOn of ticket-dependencies-set holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"ticket-dependencies-set\",\"ticketId\":\"002\",\"fields\":{\"dependsOn\":{}}}\n",
+    "sentence": "{file}, line 1: fields.dependsOn is not a list of ticket ids"
+  },
+  {
+    "case": "the ticket-size field to of ticket-size-changed holds an empty object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"ticket-size-changed\",\"ticketId\":\"001\",\"fields\":{\"to\":{}}}\n",
+    "sentence": "{file}, line 1: fields.to is {}, which is not one of XS, S, M, L, XL, XXL"
+  },
+  {
+    "case": "the agent-pair field from of ticket-agents-changed holds null",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"ticket-agents-changed\",\"ticketId\":\"001\",\"fields\":{\"from\":null,\"to\":{\"model\":\"sonnet\",\"effort\":\"high\"}}}\n",
+    "sentence": "{file}, line 1: fields.from is not an object"
+  },
+  {
+    "case": "the agent-pair field from of ticket-agents-changed names an unknown model",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"ticket-agents-changed\",\"ticketId\":\"001\",\"fields\":{\"from\":{\"model\":\"gpt\",\"effort\":\"low\"},\"to\":{\"model\":\"sonnet\",\"effort\":\"high\"}}}\n",
+    "sentence": "{file}, line 1: fields.from.model is \"gpt\", which is not a known model"
+  },
+  {
+    "case": "the agent-pair field from of ticket-agents-changed names an unknown effort",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"ticket-agents-changed\",\"ticketId\":\"001\",\"fields\":{\"from\":{\"model\":\"opus\",\"effort\":\"extreme\"},\"to\":{\"model\":\"sonnet\",\"effort\":\"high\"}}}\n",
+    "sentence": "{file}, line 1: fields.from.effort is \"extreme\", which is not a known effort"
+  },
+  {
+    "case": "the review-claims field claims of review-recorded holds an entry that is not an object",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"review-recorded\",\"taskId\":3,\"ticketId\":\"001\",\"fields\":{\"round\":1,\"verdict\":\"round-requested\",\"reviewStartCommit\":\"a1b2c3d4e5f60718293a4b5c6d7e8f9012345678\",\"fixReworkedCodeLines\":12,\"rebaseReworkedCodeLines\":4,\"totalReworkedCodeLines\":16,\"builderChangedFiles\":3,\"builderInsertions\":120,\"builderDeletions\":8,\"claims\":[1],\"findings\":[{\"class\":\"test-gap\",\"severity\":\"quality\",\"file\":\"src/example/ExampleCheckout.ts\",\"summary\":\"The empty cart had no spec\",\"evidence\":\"watched-fail\",\"outcome\":\"fixed\",\"commit\":\"b2c3d4e\"},{\"class\":\"out-of-scope\",\"severity\":\"nit\",\"file\":\"docs/example.md\",\"summary\":\"An example sentence wraps late\",\"evidence\":\"reading\",\"outcome\":\"filed\",\"filedTicketId\":\"004\"}]}}\n",
+    "sentence": "{file}, line 1: fields.claims[0] is not an object"
+  },
+  {
+    "case": "the review-claims field claims of review-recorded holds a claim with a blank item",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"review-recorded\",\"taskId\":3,\"ticketId\":\"001\",\"fields\":{\"round\":1,\"verdict\":\"round-requested\",\"reviewStartCommit\":\"a1b2c3d4e5f60718293a4b5c6d7e8f9012345678\",\"fixReworkedCodeLines\":12,\"rebaseReworkedCodeLines\":4,\"totalReworkedCodeLines\":16,\"builderChangedFiles\":3,\"builderInsertions\":120,\"builderDeletions\":8,\"claims\":[{\"item\":\" \",\"result\":\"holds\",\"handoffContradicted\":false}],\"findings\":[{\"class\":\"test-gap\",\"severity\":\"quality\",\"file\":\"src/example/ExampleCheckout.ts\",\"summary\":\"The empty cart had no spec\",\"evidence\":\"watched-fail\",\"outcome\":\"fixed\",\"commit\":\"b2c3d4e\"},{\"class\":\"out-of-scope\",\"severity\":\"nit\",\"file\":\"docs/example.md\",\"summary\":\"An example sentence wraps late\",\"evidence\":\"reading\",\"outcome\":\"filed\",\"filedTicketId\":\"004\"}]}}\n",
+    "sentence": "{file}, line 1: fields.claims[0].item is not a text that is not blank"
+  },
+  {
+    "case": "the review-claims field claims of review-recorded holds a claim with an unknown result",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"review-recorded\",\"taskId\":3,\"ticketId\":\"001\",\"fields\":{\"round\":1,\"verdict\":\"round-requested\",\"reviewStartCommit\":\"a1b2c3d4e5f60718293a4b5c6d7e8f9012345678\",\"fixReworkedCodeLines\":12,\"rebaseReworkedCodeLines\":4,\"totalReworkedCodeLines\":16,\"builderChangedFiles\":3,\"builderInsertions\":120,\"builderDeletions\":8,\"claims\":[{\"item\":\"A1\",\"result\":\"maybe\",\"handoffContradicted\":false}],\"findings\":[{\"class\":\"test-gap\",\"severity\":\"quality\",\"file\":\"src/example/ExampleCheckout.ts\",\"summary\":\"The empty cart had no spec\",\"evidence\":\"watched-fail\",\"outcome\":\"fixed\",\"commit\":\"b2c3d4e\"},{\"class\":\"out-of-scope\",\"severity\":\"nit\",\"file\":\"docs/example.md\",\"summary\":\"An example sentence wraps late\",\"evidence\":\"reading\",\"outcome\":\"filed\",\"filedTicketId\":\"004\"}]}}\n",
+    "sentence": "{file}, line 1: fields.claims[0].result is \"maybe\", which is not one of holds, does-not-hold, waived, waiver-proposed"
+  },
+  {
+    "case": "the review-claims field claims of review-recorded holds a claim whose handoffContradicted is not a flag",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"review-recorded\",\"taskId\":3,\"ticketId\":\"001\",\"fields\":{\"round\":1,\"verdict\":\"round-requested\",\"reviewStartCommit\":\"a1b2c3d4e5f60718293a4b5c6d7e8f9012345678\",\"fixReworkedCodeLines\":12,\"rebaseReworkedCodeLines\":4,\"totalReworkedCodeLines\":16,\"builderChangedFiles\":3,\"builderInsertions\":120,\"builderDeletions\":8,\"claims\":[{\"item\":\"A1\",\"result\":\"holds\",\"handoffContradicted\":\"no\"}],\"findings\":[{\"class\":\"test-gap\",\"severity\":\"quality\",\"file\":\"src/example/ExampleCheckout.ts\",\"summary\":\"The empty cart had no spec\",\"evidence\":\"watched-fail\",\"outcome\":\"fixed\",\"commit\":\"b2c3d4e\"},{\"class\":\"out-of-scope\",\"severity\":\"nit\",\"file\":\"docs/example.md\",\"summary\":\"An example sentence wraps late\",\"evidence\":\"reading\",\"outcome\":\"filed\",\"filedTicketId\":\"004\"}]}}\n",
+    "sentence": "{file}, line 1: fields.claims[0].handoffContradicted is not true or false"
+  },
+  {
+    "case": "the review-findings field findings of review-recorded holds a finding of an unknown class",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"review-recorded\",\"taskId\":3,\"ticketId\":\"001\",\"fields\":{\"round\":1,\"verdict\":\"round-requested\",\"reviewStartCommit\":\"a1b2c3d4e5f60718293a4b5c6d7e8f9012345678\",\"fixReworkedCodeLines\":12,\"rebaseReworkedCodeLines\":4,\"totalReworkedCodeLines\":16,\"builderChangedFiles\":3,\"builderInsertions\":120,\"builderDeletions\":8,\"claims\":[{\"item\":\"A1\",\"result\":\"holds\",\"handoffContradicted\":false}],\"findings\":[{\"class\":\"style-ish\",\"severity\":\"quality\",\"file\":\"src/example/ExampleCheckout.ts\",\"summary\":\"The empty cart had no spec\",\"evidence\":\"watched-fail\",\"outcome\":\"fixed\",\"commit\":\"b2c3d4e\"}]}}\n",
+    "sentence": "{file}, line 1: fields.findings[0].class is \"style-ish\", which is not one of correctness, acceptance-gap, test-gap, handoff-claim-false, convention, docs, rebase, out-of-scope"
+  },
+  {
+    "case": "the review-findings field findings of review-recorded holds a finding of an unknown severity",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"review-recorded\",\"taskId\":3,\"ticketId\":\"001\",\"fields\":{\"round\":1,\"verdict\":\"round-requested\",\"reviewStartCommit\":\"a1b2c3d4e5f60718293a4b5c6d7e8f9012345678\",\"fixReworkedCodeLines\":12,\"rebaseReworkedCodeLines\":4,\"totalReworkedCodeLines\":16,\"builderChangedFiles\":3,\"builderInsertions\":120,\"builderDeletions\":8,\"claims\":[{\"item\":\"A1\",\"result\":\"holds\",\"handoffContradicted\":false}],\"findings\":[{\"class\":\"test-gap\",\"severity\":\"huge\",\"file\":\"src/example/ExampleCheckout.ts\",\"summary\":\"The empty cart had no spec\",\"evidence\":\"watched-fail\",\"outcome\":\"fixed\",\"commit\":\"b2c3d4e\"}]}}\n",
+    "sentence": "{file}, line 1: fields.findings[0].severity is \"huge\", which is not one of would-ship-a-bug, acceptance-fails, quality, nit"
+  },
+  {
+    "case": "the review-findings field findings of review-recorded holds a finding with a blank file",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"review-recorded\",\"taskId\":3,\"ticketId\":\"001\",\"fields\":{\"round\":1,\"verdict\":\"round-requested\",\"reviewStartCommit\":\"a1b2c3d4e5f60718293a4b5c6d7e8f9012345678\",\"fixReworkedCodeLines\":12,\"rebaseReworkedCodeLines\":4,\"totalReworkedCodeLines\":16,\"builderChangedFiles\":3,\"builderInsertions\":120,\"builderDeletions\":8,\"claims\":[{\"item\":\"A1\",\"result\":\"holds\",\"handoffContradicted\":false}],\"findings\":[{\"class\":\"test-gap\",\"severity\":\"quality\",\"file\":\"\",\"summary\":\"The empty cart had no spec\",\"evidence\":\"watched-fail\",\"outcome\":\"fixed\",\"commit\":\"b2c3d4e\"}]}}\n",
+    "sentence": "{file}, line 1: fields.findings[0].file is not a text that is not blank"
+  },
+  {
+    "case": "the review-findings field findings of review-recorded holds a finding with a blank summary",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"review-recorded\",\"taskId\":3,\"ticketId\":\"001\",\"fields\":{\"round\":1,\"verdict\":\"round-requested\",\"reviewStartCommit\":\"a1b2c3d4e5f60718293a4b5c6d7e8f9012345678\",\"fixReworkedCodeLines\":12,\"rebaseReworkedCodeLines\":4,\"totalReworkedCodeLines\":16,\"builderChangedFiles\":3,\"builderInsertions\":120,\"builderDeletions\":8,\"claims\":[{\"item\":\"A1\",\"result\":\"holds\",\"handoffContradicted\":false}],\"findings\":[{\"class\":\"test-gap\",\"severity\":\"quality\",\"file\":\"src/example/ExampleCheckout.ts\",\"summary\":\"\",\"evidence\":\"watched-fail\",\"outcome\":\"fixed\",\"commit\":\"b2c3d4e\"}]}}\n",
+    "sentence": "{file}, line 1: fields.findings[0].summary is not a text that is not blank"
+  },
+  {
+    "case": "the review-findings field findings of review-recorded holds a finding of an unknown evidence kind",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"review-recorded\",\"taskId\":3,\"ticketId\":\"001\",\"fields\":{\"round\":1,\"verdict\":\"round-requested\",\"reviewStartCommit\":\"a1b2c3d4e5f60718293a4b5c6d7e8f9012345678\",\"fixReworkedCodeLines\":12,\"rebaseReworkedCodeLines\":4,\"totalReworkedCodeLines\":16,\"builderChangedFiles\":3,\"builderInsertions\":120,\"builderDeletions\":8,\"claims\":[{\"item\":\"A1\",\"result\":\"holds\",\"handoffContradicted\":false}],\"findings\":[{\"class\":\"test-gap\",\"severity\":\"quality\",\"file\":\"src/example/ExampleCheckout.ts\",\"summary\":\"The empty cart had no spec\",\"evidence\":\"hunch\",\"outcome\":\"fixed\",\"commit\":\"b2c3d4e\"}]}}\n",
+    "sentence": "{file}, line 1: fields.findings[0].evidence is \"hunch\", which is not one of watched-fail, probe, reading"
+  },
+  {
+    "case": "the review-findings field findings of review-recorded holds a finding of an unknown outcome",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"review-recorded\",\"taskId\":3,\"ticketId\":\"001\",\"fields\":{\"round\":1,\"verdict\":\"round-requested\",\"reviewStartCommit\":\"a1b2c3d4e5f60718293a4b5c6d7e8f9012345678\",\"fixReworkedCodeLines\":12,\"rebaseReworkedCodeLines\":4,\"totalReworkedCodeLines\":16,\"builderChangedFiles\":3,\"builderInsertions\":120,\"builderDeletions\":8,\"claims\":[{\"item\":\"A1\",\"result\":\"holds\",\"handoffContradicted\":false}],\"findings\":[{\"class\":\"test-gap\",\"severity\":\"quality\",\"file\":\"src/example/ExampleCheckout.ts\",\"summary\":\"The empty cart had no spec\",\"evidence\":\"watched-fail\",\"outcome\":\"ignored\",\"commit\":\"b2c3d4e\"}]}}\n",
+    "sentence": "{file}, line 1: fields.findings[0].outcome is \"ignored\", which is not one of fixed, filed"
+  },
+  {
+    "case": "the review-findings field findings of review-recorded holds a fixed finding without its commit",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"review-recorded\",\"taskId\":3,\"ticketId\":\"001\",\"fields\":{\"round\":1,\"verdict\":\"round-requested\",\"reviewStartCommit\":\"a1b2c3d4e5f60718293a4b5c6d7e8f9012345678\",\"fixReworkedCodeLines\":12,\"rebaseReworkedCodeLines\":4,\"totalReworkedCodeLines\":16,\"builderChangedFiles\":3,\"builderInsertions\":120,\"builderDeletions\":8,\"claims\":[{\"item\":\"A1\",\"result\":\"holds\",\"handoffContradicted\":false}],\"findings\":[{\"class\":\"test-gap\",\"severity\":\"quality\",\"file\":\"src/example/ExampleCheckout.ts\",\"summary\":\"The empty cart had no spec\",\"evidence\":\"watched-fail\",\"outcome\":\"fixed\",\"commit\":\"\"}]}}\n",
+    "sentence": "{file}, line 1: fields.findings[0].commit is not a text that is not blank"
+  },
+  {
+    "case": "the review-findings field findings of review-recorded holds a filed finding without its ticket",
+    "stored": "{\"at\":\"2026-09-18T21:30:54+02:00\",\"kind\":\"review-recorded\",\"taskId\":3,\"ticketId\":\"001\",\"fields\":{\"round\":1,\"verdict\":\"round-requested\",\"reviewStartCommit\":\"a1b2c3d4e5f60718293a4b5c6d7e8f9012345678\",\"fixReworkedCodeLines\":12,\"rebaseReworkedCodeLines\":4,\"totalReworkedCodeLines\":16,\"builderChangedFiles\":3,\"builderInsertions\":120,\"builderDeletions\":8,\"claims\":[{\"item\":\"A1\",\"result\":\"holds\",\"handoffContradicted\":false}],\"findings\":[{\"class\":\"test-gap\",\"severity\":\"quality\",\"file\":\"src/example/ExampleCheckout.ts\",\"summary\":\"The empty cart had no spec\",\"evidence\":\"watched-fail\",\"outcome\":\"filed\",\"commit\":\"b2c3d4e\",\"filedTicketId\":\"\"}]}}\n",
+    "sentence": "{file}, line 1: fields.findings[0].filedTicketId is not a text that is not blank"
+  }
+]

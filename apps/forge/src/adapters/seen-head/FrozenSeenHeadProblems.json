@@ -1,0 +1,3 @@
+[
+  {"case":"the content hash is neither text nor null","stored":"{\"version\":1,\"contentHash\":5}","sentence":"its contentHash is neither text nor null"}
+]

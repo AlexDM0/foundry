@@ -1,0 +1,11 @@
+[
+  {"case":"the stage keeps no statement","stored":"{\"version\":1,\"stage\":\"build\"}","sentence":"its \"stage\" is not a stage that keeps a statement"},
+  {"case":"a package build has no exposed surface answer","stored":"{\"version\":1,\"stage\":\"package-build\"}","sentence":"its \"exposedSurfaceChanged\" is not true or false"},
+  {"case":"a package review has no confirmation","stored":"{\"version\":1,\"stage\":\"package-review\",\"reviewText\":\"ok\",\"sealedReachPaths\":[]}","sentence":"its \"exposedSurfaceConfirmed\" is not true or false"},
+  {"case":"a package review has no review text","stored":"{\"version\":1,\"stage\":\"package-review\",\"exposedSurfaceConfirmed\":true,\"sealedReachPaths\":[]}","sentence":"its \"reviewText\" is not text"},
+  {"case":"a package review has no list of sealed paths","stored":"{\"version\":1,\"stage\":\"package-review\",\"exposedSurfaceConfirmed\":true,\"reviewText\":\"ok\",\"sealedReachPaths\":[1]}","sentence":"its \"sealedReachPaths\" is not a list of paths"},
+  {"case":"review findings have no section","stored":"{\"version\":1,\"stage\":\"package-review-findings\"}","sentence":"its \"reviewSection\" is not text"},
+  {"case":"an adapt statement names no package","stored":"{\"version\":1,\"stage\":\"adapt\",\"packageReturnReason\":\"needs an export\"}","sentence":"its \"returnedPackage\" is not text"},
+  {"case":"an adapt statement has no return reason","stored":"{\"version\":1,\"stage\":\"adapt\",\"returnedPackage\":\"core\"}","sentence":"its \"packageReturnReason\" is not text"},
+  {"case":"a refused package has no reason","stored":"{\"version\":1,\"stage\":\"package-refused\"}","sentence":"its \"refusedReason\" is not text"}
+]

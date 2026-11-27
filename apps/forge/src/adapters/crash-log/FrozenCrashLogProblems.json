@@ -1,0 +1,92 @@
+[
+  {
+    "case": "a directory stands at its path",
+    "stored": null,
+    "sentence": "it could not be read ({systemError})"
+  },
+  {
+    "case": "its bytes are not UTF-8",
+    "stored": null,
+    "sentence": "it is not UTF-8 text"
+  },
+  {
+    "case": "it is not JSON",
+    "stored": "not json",
+    "sentence": "it is not valid JSON (JSON Parse error: Unexpected identifier \"not\")"
+  },
+  {
+    "case": "it is not a JSON object",
+    "stored": "[]",
+    "sentence": "it is not a JSON object"
+  },
+  {
+    "case": "its crashLogVersion is not 2",
+    "stored": "{\"crashLogVersion\":1,\"crashedGeneration\":4,\"component\":\"hephaestus\",\"suspected\":false,\"classification\":null,\"recordedAt\":\"2026-11-19T09:30:00.000+01:00\",\"recordedBy\":{\"generation\":4,\"startOrigin\":\"user\",\"crashPath\":true},\"crashedProcess\":{\"processId\":4242,\"startStamp\":\"1700000000\",\"bootIdentity\":\"example-boot\"},\"codeVersion\":\"example-code\",\"startedAt\":\"2026-11-19T09:00:00.000+01:00\",\"lastHeartbeat\":{\"sequence\":12,\"at\":\"2026-11-19T09:29:45.000+01:00\"},\"error\":{\"origin\":\"uncaught-exception\",\"name\":\"Error\",\"message\":\"example failure\",\"stack\":null},\"activeJobs\":[{\"jobId\":\"J7\",\"kind\":\"build\",\"role\":\"builder\",\"ticketIds\":[\"004\"],\"state\":\"running\",\"interruption\":null,\"instance\":2,\"airlockPhase\":null,\"eventSequence\":31}],\"talosChildren\":[],\"logTail\":[\"example line\"]}",
+    "sentence": "its crashLogVersion is not 2"
+  },
+  {
+    "case": "its crashedGeneration is not a generation",
+    "stored": "{\"crashLogVersion\":2,\"crashedGeneration\":0,\"component\":\"hephaestus\",\"suspected\":false,\"classification\":null,\"recordedAt\":\"2026-11-19T09:30:00.000+01:00\",\"recordedBy\":{\"generation\":4,\"startOrigin\":\"user\",\"crashPath\":true},\"crashedProcess\":{\"processId\":4242,\"startStamp\":\"1700000000\",\"bootIdentity\":\"example-boot\"},\"codeVersion\":\"example-code\",\"startedAt\":\"2026-11-19T09:00:00.000+01:00\",\"lastHeartbeat\":{\"sequence\":12,\"at\":\"2026-11-19T09:29:45.000+01:00\"},\"error\":{\"origin\":\"uncaught-exception\",\"name\":\"Error\",\"message\":\"example failure\",\"stack\":null},\"activeJobs\":[{\"jobId\":\"J7\",\"kind\":\"build\",\"role\":\"builder\",\"ticketIds\":[\"004\"],\"state\":\"running\",\"interruption\":null,\"instance\":2,\"airlockPhase\":null,\"eventSequence\":31}],\"talosChildren\":[],\"logTail\":[\"example line\"]}",
+    "sentence": "crashedGeneration is not a generation or null"
+  },
+  {
+    "case": "its component is not a crashed component",
+    "stored": "{\"crashLogVersion\":2,\"crashedGeneration\":4,\"component\":\"board\",\"suspected\":false,\"classification\":null,\"recordedAt\":\"2026-11-19T09:30:00.000+01:00\",\"recordedBy\":{\"generation\":4,\"startOrigin\":\"user\",\"crashPath\":true},\"crashedProcess\":{\"processId\":4242,\"startStamp\":\"1700000000\",\"bootIdentity\":\"example-boot\"},\"codeVersion\":\"example-code\",\"startedAt\":\"2026-11-19T09:00:00.000+01:00\",\"lastHeartbeat\":{\"sequence\":12,\"at\":\"2026-11-19T09:29:45.000+01:00\"},\"error\":{\"origin\":\"uncaught-exception\",\"name\":\"Error\",\"message\":\"example failure\",\"stack\":null},\"activeJobs\":[{\"jobId\":\"J7\",\"kind\":\"build\",\"role\":\"builder\",\"ticketIds\":[\"004\"],\"state\":\"running\",\"interruption\":null,\"instance\":2,\"airlockPhase\":null,\"eventSequence\":31}],\"talosChildren\":[],\"logTail\":[\"example line\"]}",
+    "sentence": "component is not a crashed component"
+  },
+  {
+    "case": "its suspected is not a flag",
+    "stored": "{\"crashLogVersion\":2,\"crashedGeneration\":4,\"component\":\"hephaestus\",\"suspected\":\"no\",\"classification\":null,\"recordedAt\":\"2026-11-19T09:30:00.000+01:00\",\"recordedBy\":{\"generation\":4,\"startOrigin\":\"user\",\"crashPath\":true},\"crashedProcess\":{\"processId\":4242,\"startStamp\":\"1700000000\",\"bootIdentity\":\"example-boot\"},\"codeVersion\":\"example-code\",\"startedAt\":\"2026-11-19T09:00:00.000+01:00\",\"lastHeartbeat\":{\"sequence\":12,\"at\":\"2026-11-19T09:29:45.000+01:00\"},\"error\":{\"origin\":\"uncaught-exception\",\"name\":\"Error\",\"message\":\"example failure\",\"stack\":null},\"activeJobs\":[{\"jobId\":\"J7\",\"kind\":\"build\",\"role\":\"builder\",\"ticketIds\":[\"004\"],\"state\":\"running\",\"interruption\":null,\"instance\":2,\"airlockPhase\":null,\"eventSequence\":31}],\"talosChildren\":[],\"logTail\":[\"example line\"]}",
+    "sentence": "suspected is not a flag"
+  },
+  {
+    "case": "its classification is not a start classification",
+    "stored": "{\"crashLogVersion\":2,\"crashedGeneration\":4,\"component\":\"hephaestus\",\"suspected\":false,\"classification\":{},\"recordedAt\":\"2026-11-19T09:30:00.000+01:00\",\"recordedBy\":{\"generation\":4,\"startOrigin\":\"user\",\"crashPath\":true},\"crashedProcess\":{\"processId\":4242,\"startStamp\":\"1700000000\",\"bootIdentity\":\"example-boot\"},\"codeVersion\":\"example-code\",\"startedAt\":\"2026-11-19T09:00:00.000+01:00\",\"lastHeartbeat\":{\"sequence\":12,\"at\":\"2026-11-19T09:29:45.000+01:00\"},\"error\":{\"origin\":\"uncaught-exception\",\"name\":\"Error\",\"message\":\"example failure\",\"stack\":null},\"activeJobs\":[{\"jobId\":\"J7\",\"kind\":\"build\",\"role\":\"builder\",\"ticketIds\":[\"004\"],\"state\":\"running\",\"interruption\":null,\"instance\":2,\"airlockPhase\":null,\"eventSequence\":31}],\"talosChildren\":[],\"logTail\":[\"example line\"]}",
+    "sentence": "classification is neither null nor a start classification"
+  },
+  {
+    "case": "its recordedAt is not a string",
+    "stored": "{\"crashLogVersion\":2,\"crashedGeneration\":4,\"component\":\"hephaestus\",\"suspected\":false,\"classification\":null,\"recordedAt\":3,\"recordedBy\":{\"generation\":4,\"startOrigin\":\"user\",\"crashPath\":true},\"crashedProcess\":{\"processId\":4242,\"startStamp\":\"1700000000\",\"bootIdentity\":\"example-boot\"},\"codeVersion\":\"example-code\",\"startedAt\":\"2026-11-19T09:00:00.000+01:00\",\"lastHeartbeat\":{\"sequence\":12,\"at\":\"2026-11-19T09:29:45.000+01:00\"},\"error\":{\"origin\":\"uncaught-exception\",\"name\":\"Error\",\"message\":\"example failure\",\"stack\":null},\"activeJobs\":[{\"jobId\":\"J7\",\"kind\":\"build\",\"role\":\"builder\",\"ticketIds\":[\"004\"],\"state\":\"running\",\"interruption\":null,\"instance\":2,\"airlockPhase\":null,\"eventSequence\":31}],\"talosChildren\":[],\"logTail\":[\"example line\"]}",
+    "sentence": "recordedAt is not a string"
+  },
+  {
+    "case": "its recordedBy is not who recorded",
+    "stored": "{\"crashLogVersion\":2,\"crashedGeneration\":4,\"component\":\"hephaestus\",\"suspected\":false,\"classification\":null,\"recordedAt\":\"2026-11-19T09:30:00.000+01:00\",\"recordedBy\":{},\"crashedProcess\":{\"processId\":4242,\"startStamp\":\"1700000000\",\"bootIdentity\":\"example-boot\"},\"codeVersion\":\"example-code\",\"startedAt\":\"2026-11-19T09:00:00.000+01:00\",\"lastHeartbeat\":{\"sequence\":12,\"at\":\"2026-11-19T09:29:45.000+01:00\"},\"error\":{\"origin\":\"uncaught-exception\",\"name\":\"Error\",\"message\":\"example failure\",\"stack\":null},\"activeJobs\":[{\"jobId\":\"J7\",\"kind\":\"build\",\"role\":\"builder\",\"ticketIds\":[\"004\"],\"state\":\"running\",\"interruption\":null,\"instance\":2,\"airlockPhase\":null,\"eventSequence\":31}],\"talosChildren\":[],\"logTail\":[\"example line\"]}",
+    "sentence": "recordedBy is not who recorded the crash"
+  },
+  {
+    "case": "its crashedProcess is not a process identity",
+    "stored": "{\"crashLogVersion\":2,\"crashedGeneration\":4,\"component\":\"hephaestus\",\"suspected\":false,\"classification\":null,\"recordedAt\":\"2026-11-19T09:30:00.000+01:00\",\"recordedBy\":{\"generation\":4,\"startOrigin\":\"user\",\"crashPath\":true},\"crashedProcess\":{},\"codeVersion\":\"example-code\",\"startedAt\":\"2026-11-19T09:00:00.000+01:00\",\"lastHeartbeat\":{\"sequence\":12,\"at\":\"2026-11-19T09:29:45.000+01:00\"},\"error\":{\"origin\":\"uncaught-exception\",\"name\":\"Error\",\"message\":\"example failure\",\"stack\":null},\"activeJobs\":[{\"jobId\":\"J7\",\"kind\":\"build\",\"role\":\"builder\",\"ticketIds\":[\"004\"],\"state\":\"running\",\"interruption\":null,\"instance\":2,\"airlockPhase\":null,\"eventSequence\":31}],\"talosChildren\":[],\"logTail\":[\"example line\"]}",
+    "sentence": "crashedProcess is neither null nor a process identity"
+  },
+  {
+    "case": "its codeVersion is not text or null",
+    "stored": "{\"crashLogVersion\":2,\"crashedGeneration\":4,\"component\":\"hephaestus\",\"suspected\":false,\"classification\":null,\"recordedAt\":\"2026-11-19T09:30:00.000+01:00\",\"recordedBy\":{\"generation\":4,\"startOrigin\":\"user\",\"crashPath\":true},\"crashedProcess\":{\"processId\":4242,\"startStamp\":\"1700000000\",\"bootIdentity\":\"example-boot\"},\"codeVersion\":3,\"startedAt\":\"2026-11-19T09:00:00.000+01:00\",\"lastHeartbeat\":{\"sequence\":12,\"at\":\"2026-11-19T09:29:45.000+01:00\"},\"error\":{\"origin\":\"uncaught-exception\",\"name\":\"Error\",\"message\":\"example failure\",\"stack\":null},\"activeJobs\":[{\"jobId\":\"J7\",\"kind\":\"build\",\"role\":\"builder\",\"ticketIds\":[\"004\"],\"state\":\"running\",\"interruption\":null,\"instance\":2,\"airlockPhase\":null,\"eventSequence\":31}],\"talosChildren\":[],\"logTail\":[\"example line\"]}",
+    "sentence": "codeVersion and startedAt are each a string or null"
+  },
+  {
+    "case": "its lastHeartbeat is not a beat",
+    "stored": "{\"crashLogVersion\":2,\"crashedGeneration\":4,\"component\":\"hephaestus\",\"suspected\":false,\"classification\":null,\"recordedAt\":\"2026-11-19T09:30:00.000+01:00\",\"recordedBy\":{\"generation\":4,\"startOrigin\":\"user\",\"crashPath\":true},\"crashedProcess\":{\"processId\":4242,\"startStamp\":\"1700000000\",\"bootIdentity\":\"example-boot\"},\"codeVersion\":\"example-code\",\"startedAt\":\"2026-11-19T09:00:00.000+01:00\",\"lastHeartbeat\":{},\"error\":{\"origin\":\"uncaught-exception\",\"name\":\"Error\",\"message\":\"example failure\",\"stack\":null},\"activeJobs\":[{\"jobId\":\"J7\",\"kind\":\"build\",\"role\":\"builder\",\"ticketIds\":[\"004\"],\"state\":\"running\",\"interruption\":null,\"instance\":2,\"airlockPhase\":null,\"eventSequence\":31}],\"talosChildren\":[],\"logTail\":[\"example line\"]}",
+    "sentence": "lastHeartbeat is neither null nor a beat"
+  },
+  {
+    "case": "its error is not a crash error",
+    "stored": "{\"crashLogVersion\":2,\"crashedGeneration\":4,\"component\":\"hephaestus\",\"suspected\":false,\"classification\":null,\"recordedAt\":\"2026-11-19T09:30:00.000+01:00\",\"recordedBy\":{\"generation\":4,\"startOrigin\":\"user\",\"crashPath\":true},\"crashedProcess\":{\"processId\":4242,\"startStamp\":\"1700000000\",\"bootIdentity\":\"example-boot\"},\"codeVersion\":\"example-code\",\"startedAt\":\"2026-11-19T09:00:00.000+01:00\",\"lastHeartbeat\":{\"sequence\":12,\"at\":\"2026-11-19T09:29:45.000+01:00\"},\"error\":{},\"activeJobs\":[{\"jobId\":\"J7\",\"kind\":\"build\",\"role\":\"builder\",\"ticketIds\":[\"004\"],\"state\":\"running\",\"interruption\":null,\"instance\":2,\"airlockPhase\":null,\"eventSequence\":31}],\"talosChildren\":[],\"logTail\":[\"example line\"]}",
+    "sentence": "error is neither null nor a crash error"
+  },
+  {
+    "case": "its activeJobs is not a list of jobs",
+    "stored": "{\"crashLogVersion\":2,\"crashedGeneration\":4,\"component\":\"hephaestus\",\"suspected\":false,\"classification\":null,\"recordedAt\":\"2026-11-19T09:30:00.000+01:00\",\"recordedBy\":{\"generation\":4,\"startOrigin\":\"user\",\"crashPath\":true},\"crashedProcess\":{\"processId\":4242,\"startStamp\":\"1700000000\",\"bootIdentity\":\"example-boot\"},\"codeVersion\":\"example-code\",\"startedAt\":\"2026-11-19T09:00:00.000+01:00\",\"lastHeartbeat\":{\"sequence\":12,\"at\":\"2026-11-19T09:29:45.000+01:00\"},\"error\":{\"origin\":\"uncaught-exception\",\"name\":\"Error\",\"message\":\"example failure\",\"stack\":null},\"activeJobs\":[{}],\"talosChildren\":[],\"logTail\":[\"example line\"]}",
+    "sentence": "activeJobs is neither null nor a list of jobs"
+  },
+  {
+    "case": "its talosChildren is not a list",
+    "stored": "{\"crashLogVersion\":2,\"crashedGeneration\":4,\"component\":\"hephaestus\",\"suspected\":false,\"classification\":null,\"recordedAt\":\"2026-11-19T09:30:00.000+01:00\",\"recordedBy\":{\"generation\":4,\"startOrigin\":\"user\",\"crashPath\":true},\"crashedProcess\":{\"processId\":4242,\"startStamp\":\"1700000000\",\"bootIdentity\":\"example-boot\"},\"codeVersion\":\"example-code\",\"startedAt\":\"2026-11-19T09:00:00.000+01:00\",\"lastHeartbeat\":{\"sequence\":12,\"at\":\"2026-11-19T09:29:45.000+01:00\"},\"error\":{\"origin\":\"uncaught-exception\",\"name\":\"Error\",\"message\":\"example failure\",\"stack\":null},\"activeJobs\":[{\"jobId\":\"J7\",\"kind\":\"build\",\"role\":\"builder\",\"ticketIds\":[\"004\"],\"state\":\"running\",\"interruption\":null,\"instance\":2,\"airlockPhase\":null,\"eventSequence\":31}],\"talosChildren\":{},\"logTail\":[\"example line\"]}",
+    "sentence": "talosChildren is neither null nor a list"
+  },
+  {
+    "case": "its logTail is not a list of lines",
+    "stored": "{\"crashLogVersion\":2,\"crashedGeneration\":4,\"component\":\"hephaestus\",\"suspected\":false,\"classification\":null,\"recordedAt\":\"2026-11-19T09:30:00.000+01:00\",\"recordedBy\":{\"generation\":4,\"startOrigin\":\"user\",\"crashPath\":true},\"crashedProcess\":{\"processId\":4242,\"startStamp\":\"1700000000\",\"bootIdentity\":\"example-boot\"},\"codeVersion\":\"example-code\",\"startedAt\":\"2026-11-19T09:00:00.000+01:00\",\"lastHeartbeat\":{\"sequence\":12,\"at\":\"2026-11-19T09:29:45.000+01:00\"},\"error\":{\"origin\":\"uncaught-exception\",\"name\":\"Error\",\"message\":\"example failure\",\"stack\":null},\"activeJobs\":[{\"jobId\":\"J7\",\"kind\":\"build\",\"role\":\"builder\",\"ticketIds\":[\"004\"],\"state\":\"running\",\"interruption\":null,\"instance\":2,\"airlockPhase\":null,\"eventSequence\":31}],\"talosChildren\":[],\"logTail\":[3]}",
+    "sentence": "logTail is neither null nor a list of lines"
+  }
+]

@@ -1,0 +1,92 @@
+[
+  {
+    "case": "the file is absent (built in the spec: nothing is written)",
+    "stored": null,
+    "sentence": "the file is missing"
+  },
+  {
+    "case": "a directory stands where the file belongs (built in the spec; {systemError} is the OS message)",
+    "stored": null,
+    "sentence": "it could not be read ({systemError})"
+  },
+  {
+    "case": "the bytes are not UTF-8 text (built in the spec)",
+    "stored": null,
+    "sentence": "it is not UTF-8 text"
+  },
+  {
+    "case": "the text is not JSON",
+    "stored": "{ \"version\": 1,",
+    "sentence": "it is not valid JSON ({parserError})"
+  },
+  {
+    "case": "the record is not an object",
+    "stored": "[]\n",
+    "sentence": "the record is not an object"
+  },
+  {
+    "case": "the version is another",
+    "stored": "{\n  \"version\": 99,\n  \"ticketId\": \"004\",\n  \"openedAt\": \"2026-11-24T10:00:00.000Z\",\n  \"documents\": [\n    {\n      \"kind\": \"spec\",\n      \"versions\": [\n        {\n          \"number\": 1,\n          \"contentHash\": \"3ccaf7dc2d326a03\",\n          \"author\": \"agent\",\n          \"jobId\": \"J4\",\n          \"at\": \"2026-11-24T10:00:00.000Z\"\n        }\n      ],\n      \"approvals\": [\n        {\n          \"number\": 1,\n          \"contentHash\": \"3ccaf7dc2d326a03\",\n          \"by\": \"person\",\n          \"at\": \"2026-11-24T10:00:00.000Z\",\n          \"constitutionCommit\": \"c1\"\n        }\n      ],\n      \"messages\": [],\n      \"proposals\": [],\n      \"proposalMode\": \"ask-first\",\n      \"nextMessageNumber\": 1,\n      \"nextCommentNumber\": 1,\n      \"nextProposalNumber\": 1\n    }\n  ]\n}\n",
+    "sentence": "version is not 1"
+  },
+  {
+    "case": "documents is not a list",
+    "stored": "{\n  \"version\": 1,\n  \"ticketId\": \"004\",\n  \"openedAt\": \"2026-11-24T10:00:00.000Z\",\n  \"documents\": {}\n}\n",
+    "sentence": "documents is not a list"
+  },
+  {
+    "case": "a document is not an object",
+    "stored": "{\n  \"version\": 1,\n  \"ticketId\": \"004\",\n  \"openedAt\": \"2026-11-24T10:00:00.000Z\",\n  \"documents\": [\n    1\n  ]\n}\n",
+    "sentence": "documents[0] is not an object"
+  },
+  {
+    "case": "a document kind is not a known kind",
+    "stored": "{\n  \"version\": 1,\n  \"ticketId\": \"004\",\n  \"openedAt\": \"2026-11-24T10:00:00.000Z\",\n  \"documents\": [\n    {\n      \"kind\": \"memo\",\n      \"versions\": [\n        {\n          \"number\": 1,\n          \"contentHash\": \"3ccaf7dc2d326a03\",\n          \"author\": \"agent\",\n          \"jobId\": \"J4\",\n          \"at\": \"2026-11-24T10:00:00.000Z\"\n        }\n      ],\n      \"approvals\": [\n        {\n          \"number\": 1,\n          \"contentHash\": \"3ccaf7dc2d326a03\",\n          \"by\": \"person\",\n          \"at\": \"2026-11-24T10:00:00.000Z\",\n          \"constitutionCommit\": \"c1\"\n        }\n      ],\n      \"messages\": [],\n      \"proposals\": [],\n      \"proposalMode\": \"ask-first\",\n      \"nextMessageNumber\": 1,\n      \"nextCommentNumber\": 1,\n      \"nextProposalNumber\": 1\n    }\n  ]\n}\n",
+    "sentence": "documents[0].kind is not one of spec, plan"
+  },
+  {
+    "case": "a version number is not a whole number",
+    "stored": "{\n  \"version\": 1,\n  \"ticketId\": \"004\",\n  \"openedAt\": \"2026-11-24T10:00:00.000Z\",\n  \"documents\": [\n    {\n      \"kind\": \"spec\",\n      \"versions\": [\n        {\n          \"number\": -1,\n          \"contentHash\": \"3ccaf7dc2d326a03\",\n          \"author\": \"agent\",\n          \"jobId\": \"J4\",\n          \"at\": \"2026-11-24T10:00:00.000Z\"\n        }\n      ],\n      \"approvals\": [\n        {\n          \"number\": 1,\n          \"contentHash\": \"3ccaf7dc2d326a03\",\n          \"by\": \"person\",\n          \"at\": \"2026-11-24T10:00:00.000Z\",\n          \"constitutionCommit\": \"c1\"\n        }\n      ],\n      \"messages\": [],\n      \"proposals\": [],\n      \"proposalMode\": \"ask-first\",\n      \"nextMessageNumber\": 1,\n      \"nextCommentNumber\": 1,\n      \"nextProposalNumber\": 1\n    }\n  ]\n}\n",
+    "sentence": "documents[0].versions[0].number is not a whole number"
+  },
+  {
+    "case": "a version author is not one of person, agent",
+    "stored": "{\n  \"version\": 1,\n  \"ticketId\": \"004\",\n  \"openedAt\": \"2026-11-24T10:00:00.000Z\",\n  \"documents\": [\n    {\n      \"kind\": \"spec\",\n      \"versions\": [\n        {\n          \"number\": 1,\n          \"contentHash\": \"3ccaf7dc2d326a03\",\n          \"author\": \"robot\",\n          \"jobId\": \"J4\",\n          \"at\": \"2026-11-24T10:00:00.000Z\"\n        }\n      ],\n      \"approvals\": [\n        {\n          \"number\": 1,\n          \"contentHash\": \"3ccaf7dc2d326a03\",\n          \"by\": \"person\",\n          \"at\": \"2026-11-24T10:00:00.000Z\",\n          \"constitutionCommit\": \"c1\"\n        }\n      ],\n      \"messages\": [],\n      \"proposals\": [],\n      \"proposalMode\": \"ask-first\",\n      \"nextMessageNumber\": 1,\n      \"nextCommentNumber\": 1,\n      \"nextProposalNumber\": 1\n    }\n  ]\n}\n",
+    "sentence": "documents[0].versions[0].author is not one of person, agent"
+  },
+  {
+    "case": "a version contentHash is not text",
+    "stored": "{\n  \"version\": 1,\n  \"ticketId\": \"004\",\n  \"openedAt\": \"2026-11-24T10:00:00.000Z\",\n  \"documents\": [\n    {\n      \"kind\": \"spec\",\n      \"versions\": [\n        {\n          \"number\": 1,\n          \"contentHash\": 1,\n          \"author\": \"agent\",\n          \"jobId\": \"J4\",\n          \"at\": \"2026-11-24T10:00:00.000Z\"\n        }\n      ],\n      \"approvals\": [\n        {\n          \"number\": 1,\n          \"contentHash\": \"3ccaf7dc2d326a03\",\n          \"by\": \"person\",\n          \"at\": \"2026-11-24T10:00:00.000Z\",\n          \"constitutionCommit\": \"c1\"\n        }\n      ],\n      \"messages\": [],\n      \"proposals\": [],\n      \"proposalMode\": \"ask-first\",\n      \"nextMessageNumber\": 1,\n      \"nextCommentNumber\": 1,\n      \"nextProposalNumber\": 1\n    }\n  ]\n}\n",
+    "sentence": "documents[0].versions[0].contentHash is not text"
+  },
+  {
+    "case": "an approval is not by a person or the pipeline",
+    "stored": "{\n  \"version\": 1,\n  \"ticketId\": \"004\",\n  \"openedAt\": \"2026-11-24T10:00:00.000Z\",\n  \"documents\": [\n    {\n      \"kind\": \"spec\",\n      \"versions\": [\n        {\n          \"number\": 1,\n          \"contentHash\": \"3ccaf7dc2d326a03\",\n          \"author\": \"agent\",\n          \"jobId\": \"J4\",\n          \"at\": \"2026-11-24T10:00:00.000Z\"\n        }\n      ],\n      \"approvals\": [\n        {\n          \"number\": 1,\n          \"contentHash\": \"3ccaf7dc2d326a03\",\n          \"by\": \"agent\",\n          \"at\": \"2026-11-24T10:00:00.000Z\",\n          \"constitutionCommit\": \"c1\"\n        }\n      ],\n      \"messages\": [],\n      \"proposals\": [],\n      \"proposalMode\": \"ask-first\",\n      \"nextMessageNumber\": 1,\n      \"nextCommentNumber\": 1,\n      \"nextProposalNumber\": 1\n    }\n  ]\n}\n",
+    "sentence": "documents[0].approvals[0].by is not one of person, pipeline"
+  },
+  {
+    "case": "a message is orphaned other than true",
+    "stored": "{\n  \"version\": 1,\n  \"ticketId\": \"004\",\n  \"openedAt\": \"2026-11-24T10:00:00.000Z\",\n  \"documents\": [\n    {\n      \"kind\": \"spec\",\n      \"versions\": [\n        {\n          \"number\": 1,\n          \"contentHash\": \"3ccaf7dc2d326a03\",\n          \"author\": \"agent\",\n          \"jobId\": \"J4\",\n          \"at\": \"2026-11-24T10:00:00.000Z\"\n        }\n      ],\n      \"approvals\": [\n        {\n          \"number\": 1,\n          \"contentHash\": \"3ccaf7dc2d326a03\",\n          \"by\": \"person\",\n          \"at\": \"2026-11-24T10:00:00.000Z\",\n          \"constitutionCommit\": \"c1\"\n        }\n      ],\n      \"messages\": [\n        {\n          \"messageId\": \"M1\",\n          \"text\": \"Name the total.\",\n          \"from\": \"person\",\n          \"state\": \"sent\",\n          \"queuedAt\": \"2026-11-24T10:00:00.000Z\",\n          \"orphaned\": false\n        }\n      ],\n      \"proposals\": [],\n      \"proposalMode\": \"ask-first\",\n      \"nextMessageNumber\": 1,\n      \"nextCommentNumber\": 1,\n      \"nextProposalNumber\": 1\n    }\n  ]\n}\n",
+    "sentence": "documents[0].messages[0].orphaned is not true"
+  },
+  {
+    "case": "a message anchor sectionPath holds a non-text heading",
+    "stored": "{\n  \"version\": 1,\n  \"ticketId\": \"004\",\n  \"openedAt\": \"2026-11-24T10:00:00.000Z\",\n  \"documents\": [\n    {\n      \"kind\": \"spec\",\n      \"versions\": [\n        {\n          \"number\": 1,\n          \"contentHash\": \"3ccaf7dc2d326a03\",\n          \"author\": \"agent\",\n          \"jobId\": \"J4\",\n          \"at\": \"2026-11-24T10:00:00.000Z\"\n        }\n      ],\n      \"approvals\": [\n        {\n          \"number\": 1,\n          \"contentHash\": \"3ccaf7dc2d326a03\",\n          \"by\": \"person\",\n          \"at\": \"2026-11-24T10:00:00.000Z\",\n          \"constitutionCommit\": \"c1\"\n        }\n      ],\n      \"messages\": [\n        {\n          \"messageId\": \"M1\",\n          \"text\": \"Name the total.\",\n          \"from\": \"person\",\n          \"state\": \"sent\",\n          \"queuedAt\": \"2026-11-24T10:00:00.000Z\",\n          \"anchor\": {\n            \"view\": \"preview\",\n            \"versionNumber\": 1,\n            \"lines\": {\n              \"from\": 1,\n              \"to\": 1\n            },\n            \"sectionPath\": [\n              1\n            ],\n            \"surroundingLines\": {\n              \"from\": 1,\n              \"to\": 1\n            }\n          }\n        }\n      ],\n      \"proposals\": [],\n      \"proposalMode\": \"ask-first\",\n      \"nextMessageNumber\": 1,\n      \"nextCommentNumber\": 1,\n      \"nextProposalNumber\": 1\n    }\n  ]\n}\n",
+    "sentence": "documents[0].messages[0].anchor.sectionPath[0] is not text"
+  },
+  {
+    "case": "a proposal edits is not a list",
+    "stored": "{\n  \"version\": 1,\n  \"ticketId\": \"004\",\n  \"openedAt\": \"2026-11-24T10:00:00.000Z\",\n  \"documents\": [\n    {\n      \"kind\": \"spec\",\n      \"versions\": [\n        {\n          \"number\": 1,\n          \"contentHash\": \"3ccaf7dc2d326a03\",\n          \"author\": \"agent\",\n          \"jobId\": \"J4\",\n          \"at\": \"2026-11-24T10:00:00.000Z\"\n        }\n      ],\n      \"approvals\": [\n        {\n          \"number\": 1,\n          \"contentHash\": \"3ccaf7dc2d326a03\",\n          \"by\": \"person\",\n          \"at\": \"2026-11-24T10:00:00.000Z\",\n          \"constitutionCommit\": \"c1\"\n        }\n      ],\n      \"messages\": [],\n      \"proposals\": [\n        {\n          \"proposalId\": \"P1\",\n          \"jobId\": \"J1\",\n          \"baseNumber\": null,\n          \"edits\": {},\n          \"summary\": \"x\",\n          \"state\": \"proposed\",\n          \"at\": \"x\"\n        }\n      ],\n      \"proposalMode\": \"ask-first\",\n      \"nextMessageNumber\": 1,\n      \"nextCommentNumber\": 1,\n      \"nextProposalNumber\": 1\n    }\n  ]\n}\n",
+    "sentence": "documents[0].proposals[0].edits is not a list"
+  },
+  {
+    "case": "documents holds a kind twice",
+    "stored": "{\n  \"version\": 1,\n  \"ticketId\": \"004\",\n  \"openedAt\": \"2026-11-24T10:00:00.000Z\",\n  \"documents\": [\n    {\n      \"kind\": \"spec\",\n      \"versions\": [\n        {\n          \"number\": 1,\n          \"contentHash\": \"3ccaf7dc2d326a03\",\n          \"author\": \"agent\",\n          \"jobId\": \"J4\",\n          \"at\": \"2026-11-24T10:00:00.000Z\"\n        }\n      ],\n      \"approvals\": [\n        {\n          \"number\": 1,\n          \"contentHash\": \"3ccaf7dc2d326a03\",\n          \"by\": \"person\",\n          \"at\": \"2026-11-24T10:00:00.000Z\",\n          \"constitutionCommit\": \"c1\"\n        }\n      ],\n      \"messages\": [],\n      \"proposals\": [],\n      \"proposalMode\": \"ask-first\",\n      \"nextMessageNumber\": 1,\n      \"nextCommentNumber\": 1,\n      \"nextProposalNumber\": 1\n    },\n    {\n      \"kind\": \"spec\",\n      \"versions\": [\n        {\n          \"number\": 1,\n          \"contentHash\": \"3ccaf7dc2d326a03\",\n          \"author\": \"agent\",\n          \"jobId\": \"J4\",\n          \"at\": \"2026-11-24T10:00:00.000Z\"\n        }\n      ],\n      \"approvals\": [\n        {\n          \"number\": 1,\n          \"contentHash\": \"3ccaf7dc2d326a03\",\n          \"by\": \"person\",\n          \"at\": \"2026-11-24T10:00:00.000Z\",\n          \"constitutionCommit\": \"c1\"\n        }\n      ],\n      \"messages\": [],\n      \"proposals\": [],\n      \"proposalMode\": \"ask-first\",\n      \"nextMessageNumber\": 1,\n      \"nextCommentNumber\": 1,\n      \"nextProposalNumber\": 1\n    }\n  ]\n}\n",
+    "sentence": "documents holds a kind twice"
+  },
+  {
+    "case": "the ticketId is not text",
+    "stored": "{\n  \"version\": 1,\n  \"ticketId\": 4,\n  \"openedAt\": \"2026-11-24T10:00:00.000Z\",\n  \"documents\": [\n    {\n      \"kind\": \"spec\",\n      \"versions\": [\n        {\n          \"number\": 1,\n          \"contentHash\": \"3ccaf7dc2d326a03\",\n          \"author\": \"agent\",\n          \"jobId\": \"J4\",\n          \"at\": \"2026-11-24T10:00:00.000Z\"\n        }\n      ],\n      \"approvals\": [\n        {\n          \"number\": 1,\n          \"contentHash\": \"3ccaf7dc2d326a03\",\n          \"by\": \"person\",\n          \"at\": \"2026-11-24T10:00:00.000Z\",\n          \"constitutionCommit\": \"c1\"\n        }\n      ],\n      \"messages\": [],\n      \"proposals\": [],\n      \"proposalMode\": \"ask-first\",\n      \"nextMessageNumber\": 1,\n      \"nextCommentNumber\": 1,\n      \"nextProposalNumber\": 1\n    }\n  ]\n}\n",
+    "sentence": "ticketId is not text"
+  }
+]

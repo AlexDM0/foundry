@@ -1,0 +1,62 @@
+[
+  {
+    "case": "a directory in the file's place, which cannot be read",
+    "stored": null,
+    "sentence": "it could not be read ({systemError})"
+  },
+  {
+    "case": "bytes that are not UTF-8",
+    "stored": null,
+    "sentence": "it is not UTF-8 text"
+  },
+  {
+    "case": "text that is not JSON",
+    "stored": "{\"version\": ",
+    "sentence": "it is not valid JSON (JSON Parse error: Unexpected EOF)"
+  },
+  {
+    "case": "JSON that is a list, not an object",
+    "stored": "[]",
+    "sentence": "it is not a JSON object"
+  },
+  {
+    "case": "no version",
+    "stored": "{}",
+    "sentence": "its version is not 1"
+  },
+  {
+    "case": "another version",
+    "stored": "{\"version\":2}",
+    "sentence": "its version is not 1"
+  },
+  {
+    "case": "a conflictRound of 0",
+    "stored": "{\"version\":1,\"conflictRound\":0,\"targetTip\":\"abc\",\"branchTip\":\"def\",\"conflictedFiles\":[\"a.ts\"],\"resolutionCommit\":\"fed\",\"lines\":3}",
+    "sentence": "its \"conflictRound\" is not a round"
+  },
+  {
+    "case": "no targetTip",
+    "stored": "{\"version\":1,\"conflictRound\":1,\"branchTip\":\"def\",\"conflictedFiles\":[\"a.ts\"],\"resolutionCommit\":\"fed\",\"lines\":3}",
+    "sentence": "its \"targetTip\" is not a commit"
+  },
+  {
+    "case": "a branchTip that is a number",
+    "stored": "{\"version\":1,\"conflictRound\":1,\"targetTip\":\"abc\",\"branchTip\":1,\"conflictedFiles\":[\"a.ts\"],\"resolutionCommit\":\"fed\",\"lines\":3}",
+    "sentence": "its \"branchTip\" is not a commit"
+  },
+  {
+    "case": "conflictedFiles as text",
+    "stored": "{\"version\":1,\"conflictRound\":1,\"targetTip\":\"abc\",\"branchTip\":\"def\",\"conflictedFiles\":\"a.ts\",\"resolutionCommit\":\"fed\",\"lines\":3}",
+    "sentence": "its \"conflictedFiles\" is not a list of paths"
+  },
+  {
+    "case": "no resolutionCommit",
+    "stored": "{\"version\":1,\"conflictRound\":1,\"targetTip\":\"abc\",\"branchTip\":\"def\",\"conflictedFiles\":[\"a.ts\"],\"lines\":3}",
+    "sentence": "its \"resolutionCommit\" is not a commit"
+  },
+  {
+    "case": "a negative line count",
+    "stored": "{\"version\":1,\"conflictRound\":1,\"targetTip\":\"abc\",\"branchTip\":\"def\",\"conflictedFiles\":[\"a.ts\"],\"resolutionCommit\":\"fed\",\"lines\":-1}",
+    "sentence": "its \"lines\" is not a line count or null"
+  }
+]

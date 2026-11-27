@@ -1,0 +1,37 @@
+[
+  {
+    "case": "a directory stands at its path",
+    "stored": null,
+    "sentence": "it could not be read ({systemError})"
+  },
+  {
+    "case": "its bytes are not UTF-8",
+    "stored": null,
+    "sentence": "it is not UTF-8 text"
+  },
+  {
+    "case": "it is not JSON",
+    "stored": "not json",
+    "sentence": "it is not valid JSON (JSON Parse error: Unexpected identifier \"not\")"
+  },
+  {
+    "case": "it is not a JSON object",
+    "stored": "[]",
+    "sentence": "it is not a JSON object"
+  },
+  {
+    "case": "its trackerId is not a string",
+    "stored": "{\"version\":2,\"trackerId\":3,\"jobId\":\"J7\",\"hephaestus\":null}",
+    "sentence": "its \"trackerId\" is not a string"
+  },
+  {
+    "case": "its jobId is not a string",
+    "stored": "{\"version\":2,\"trackerId\":\"example-tracker\",\"jobId\":null,\"hephaestus\":null}",
+    "sentence": "its \"jobId\" is not a string"
+  },
+  {
+    "case": "its hephaestus is not a process identity",
+    "stored": "{\"version\":2,\"trackerId\":\"example-tracker\",\"jobId\":\"J7\",\"hephaestus\":{\"processId\":42}}",
+    "sentence": "its \"hephaestus\" is not a process identity"
+  }
+]

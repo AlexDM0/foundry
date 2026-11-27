@@ -1,0 +1,32 @@
+[
+  {
+    "case": "the file is absent (built in the spec: nothing is written)",
+    "stored": null,
+    "sentence": "committed-content-missing: no content is kept under the hash 0123456789abcdef"
+  },
+  {
+    "case": "a directory stands where the file belongs (built in the spec; {systemError} is the OS message)",
+    "stored": null,
+    "sentence": "committed-content-missing: it could not be read ({systemError})"
+  },
+  {
+    "case": "the bytes are not UTF-8 text (built in the spec)",
+    "stored": null,
+    "sentence": "committed-content-missing: it is not UTF-8 text"
+  },
+  {
+    "case": "the text is not JSON",
+    "stored": "{ \"title\": \"x\",",
+    "sentence": "committed-content-missing: it is not valid JSON ({parserError})"
+  },
+  {
+    "case": "the body is not text",
+    "stored": "{ \"title\": \"Fix the export dialog\", \"body\": 1 }\n",
+    "sentence": "committed-content-missing: it is not an object of a text \"title\" and a text \"body\""
+  },
+  {
+    "case": "the title and body do not hash to the file name",
+    "stored": "{ \"title\": \"Fix the export dialog\", \"body\": \"Changed.\" }\n",
+    "sentence": "committed-content-missing: its title and body do not hash to 0123456789abcdef"
+  }
+]

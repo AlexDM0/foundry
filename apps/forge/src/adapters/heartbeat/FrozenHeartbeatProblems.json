@@ -1,0 +1,42 @@
+[
+  {
+    "case": "a directory stands at its path",
+    "stored": null,
+    "sentence": "it could not be read ({systemError})"
+  },
+  {
+    "case": "its bytes are not UTF-8",
+    "stored": null,
+    "sentence": "it is not UTF-8 text"
+  },
+  {
+    "case": "it is not JSON",
+    "stored": "not json",
+    "sentence": "it is not valid JSON (JSON Parse error: Unexpected identifier \"not\")"
+  },
+  {
+    "case": "it is not a JSON object",
+    "stored": "[]",
+    "sentence": "it is not a JSON object"
+  },
+  {
+    "case": "its heartbeatVersion is not 1",
+    "stored": "{\"heartbeatVersion\":2,\"generation\":4,\"sequence\":12,\"at\":\"2026-11-19T09:00:00.000+01:00\"}",
+    "sentence": "its heartbeatVersion is not 1"
+  },
+  {
+    "case": "its generation is below 1",
+    "stored": "{\"heartbeatVersion\":1,\"generation\":0,\"sequence\":12,\"at\":\"2026-11-19T09:00:00.000+01:00\"}",
+    "sentence": "generation is not a whole number from 1"
+  },
+  {
+    "case": "its sequence is below 1",
+    "stored": "{\"heartbeatVersion\":1,\"generation\":4,\"sequence\":0,\"at\":\"2026-11-19T09:00:00.000+01:00\"}",
+    "sentence": "sequence is not a whole number from 1"
+  },
+  {
+    "case": "its at is not a string",
+    "stored": "{\"heartbeatVersion\":1,\"generation\":4,\"sequence\":12,\"at\":3}",
+    "sentence": "at is not a string"
+  }
+]

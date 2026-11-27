@@ -1,0 +1,152 @@
+[
+  {
+    "case": "a directory stands where the file belongs (built in the spec; {systemError} is the OS message)",
+    "stored": null,
+    "sentence": "the file could not be read: Error: {systemError}"
+  },
+  {
+    "case": "the bytes are not UTF-8 text (built in the spec)",
+    "stored": null,
+    "sentence": "the file is not UTF-8 text"
+  },
+  {
+    "case": "the first line is not the frontmatter fence",
+    "stored": "id: \"004\"\ntitle: \"Fix the export dialog\"\ntype: \"bug\"\nstatus: \"committed\"\nfiled: \"2026-09-18T09:00:00+02:00\"\nupdated: \"2026-09-18T09:00:00+02:00\"\nstarted: null\nfinished: null\ndelivered: null\nabandonedAt: null\ntask: null\n---\n# 004 — Fix the export dialog\n",
+    "sentence": "the first line must be the frontmatter fence `---`"
+  },
+  {
+    "case": "the frontmatter has no closing fence",
+    "stored": "---\nid: \"004\"\ntitle: \"Fix the export dialog\"\ntype: \"bug\"\nstatus: \"committed\"\nfiled: \"2026-09-18T09:00:00+02:00\"\nupdated: \"2026-09-18T09:00:00+02:00\"\nstarted: null\nfinished: null\ndelivered: null\nabandonedAt: null\ntask: null\nbody — Fix the export dialog\n",
+    "sentence": "the frontmatter has no closing `---` fence"
+  },
+  {
+    "case": "a markdown heading inside the frontmatter",
+    "stored": "---\nid: \"004\"\ntitle: \"Fix the export dialog\"\ntype: \"bug\"\nstatus: \"committed\"\nfiled: \"2026-09-18T09:00:00+02:00\"\nupdated: \"2026-09-18T09:00:00+02:00\"\nstarted: null\nfinished: null\ndelivered: null\nabandonedAt: null\ntask: null\n## Report\n---\n# 004 — Fix the export dialog\n",
+    "sentence": "line 13 is the markdown heading `## Report`, and a frontmatter holds no heading (a comment has one `#`); if the closing `---` fence was deleted, restore it above line 13"
+  },
+  {
+    "case": "a one-hash line followed after blank lines by prose",
+    "stored": "---\nid: \"004\"\ntitle: \"Fix the export dialog\"\ntype: \"bug\"\nstatus: \"committed\"\nfiled: \"2026-09-18T09:00:00+02:00\"\nupdated: \"2026-09-18T09:00:00+02:00\"\nstarted: null\nfinished: null\ndelivered: null\nabandonedAt: null\ntask: null\n# Fix the export dialog\n\nThe dialog closes.\n---\n# 004 — Fix the export dialog\n",
+    "sentence": "line 13 `# Fix the export dialog` is followed after blank lines by line 15, which is not a `key: value` line: if line 13 is a markdown heading, the closing `---` fence was deleted and belongs above it; if it is a comment, line 15 does not belong in the frontmatter"
+  },
+  {
+    "case": "an indented line",
+    "stored": "---\nid: \"004\"\ntitle: \"Fix the export dialog\"\ntype: \"bug\"\nstatus: \"committed\"\nfiled: \"2026-09-18T09:00:00+02:00\"\nupdated: \"2026-09-18T09:00:00+02:00\"\nstarted: null\nfinished: null\ndelivered: null\nabandonedAt: null\ntask: null\n  nested: true\n---\n# 004 — Fix the export dialog\n",
+    "sentence": "`  nested: true` is indented, and this frontmatter has no nested structure"
+  },
+  {
+    "case": "a line that is not key: value",
+    "stored": "---\nid: \"004\"\ntitle: \"Fix the export dialog\"\ntype: \"bug\"\nstatus: \"committed\"\nfiled: \"2026-09-18T09:00:00+02:00\"\nupdated: \"2026-09-18T09:00:00+02:00\"\nstarted: null\nfinished: null\ndelivered: null\nabandonedAt: null\ntask: null\njust prose\n---\n# 004 — Fix the export dialog\n",
+    "sentence": "`just prose` is not a `key: value` line"
+  },
+  {
+    "case": "a key that is not usable",
+    "stored": "---\nid: \"004\"\ntitle: \"Fix the export dialog\"\ntype: \"bug\"\nstatus: \"committed\"\nfiled: \"2026-09-18T09:00:00+02:00\"\nupdated: \"2026-09-18T09:00:00+02:00\"\nstarted: null\nfinished: null\ndelivered: null\nabandonedAt: null\ntask: null\n1st: value\n---\n# 004 — Fix the export dialog\n",
+    "sentence": "`1st` is not a usable frontmatter key"
+  },
+  {
+    "case": "a task that is not a safe whole number",
+    "stored": "---\nid: \"004\"\ntitle: \"Fix the export dialog\"\ntype: \"bug\"\nstatus: \"committed\"\nfiled: \"2026-09-18T09:00:00+02:00\"\nupdated: \"2026-09-18T09:00:00+02:00\"\nstarted: null\nfinished: null\ndelivered: null\nabandonedAt: null\ntask: 99999999999999999999\n---\n# 004 — Fix the export dialog\n",
+    "sentence": "`task` is not a safe whole number: 99999999999999999999"
+  },
+  {
+    "case": "a quoted task",
+    "stored": "---\nid: \"004\"\ntitle: \"Fix the export dialog\"\ntype: \"bug\"\nstatus: \"committed\"\nfiled: \"2026-09-18T09:00:00+02:00\"\nupdated: \"2026-09-18T09:00:00+02:00\"\nstarted: null\nfinished: null\ndelivered: null\nabandonedAt: null\ntask: \"12\"\n---\n# 004 — Fix the export dialog\n",
+    "sentence": "`task` is quoted, but a task is a whole number written without quotes: \"12\""
+  },
+  {
+    "case": "a task that is not a whole number",
+    "stored": "---\nid: \"004\"\ntitle: \"Fix the export dialog\"\ntype: \"bug\"\nstatus: \"committed\"\nfiled: \"2026-09-18T09:00:00+02:00\"\nupdated: \"2026-09-18T09:00:00+02:00\"\nstarted: null\nfinished: null\ndelivered: null\nabandonedAt: null\ntask: twelve\n---\n# 004 — Fix the export dialog\n",
+    "sentence": "`task` is not a whole number: twelve"
+  },
+  {
+    "case": "a quoted value that does not close",
+    "stored": "---\nid: \"004\"\ntitle: \"Fix the export dialog\ntype: \"bug\"\nstatus: \"committed\"\nfiled: \"2026-09-18T09:00:00+02:00\"\nupdated: \"2026-09-18T09:00:00+02:00\"\nstarted: null\nfinished: null\ndelivered: null\nabandonedAt: null\ntask: null\n---\n# 004 — Fix the export dialog\n",
+    "sentence": "`title` opens a quoted value that does not close: \"Fix the export dialog"
+  },
+  {
+    "case": "an unknown type",
+    "stored": "---\nid: \"004\"\ntitle: \"Fix the export dialog\"\ntype: \"chore\"\nstatus: \"committed\"\nfiled: \"2026-09-18T09:00:00+02:00\"\nupdated: \"2026-09-18T09:00:00+02:00\"\nstarted: null\nfinished: null\ndelivered: null\nabandonedAt: null\ntask: null\n---\n# 004 — Fix the export dialog\n",
+    "sentence": "`type` is not a known ticket type: chore"
+  },
+  {
+    "case": "an unknown status",
+    "stored": "---\nid: \"004\"\ntitle: \"Fix the export dialog\"\ntype: \"bug\"\nstatus: \"parked\"\nfiled: \"2026-09-18T09:00:00+02:00\"\nupdated: \"2026-09-18T09:00:00+02:00\"\nstarted: null\nfinished: null\ndelivered: null\nabandonedAt: null\ntask: null\n---\n# 004 — Fix the export dialog\n",
+    "sentence": "`status` is not a known ticket status: parked; if an earlier forge wrote it, run `forge update` with a release that still reads it, then use this one"
+  },
+  {
+    "case": "an id that is not a ticket number",
+    "stored": "---\nid: \"four\"\ntitle: \"Fix the export dialog\"\ntype: \"bug\"\nstatus: \"committed\"\nfiled: \"2026-09-18T09:00:00+02:00\"\nupdated: \"2026-09-18T09:00:00+02:00\"\nstarted: null\nfinished: null\ndelivered: null\nabandonedAt: null\ntask: null\n---\n# 004 — Fix the export dialog\n",
+    "sentence": "`id` is not a ticket number: four"
+  },
+  {
+    "case": "a required key is missing",
+    "stored": "---\nid: \"004\"\ntitle: \"Fix the export dialog\"\ntype: \"bug\"\nstatus: \"committed\"\nupdated: \"2026-09-18T09:00:00+02:00\"\nstarted: null\nfinished: null\ndelivered: null\nabandonedAt: null\ntask: null\n---\n# 004 — Fix the export dialog\n",
+    "sentence": "the frontmatter has no `filed` key"
+  },
+  {
+    "case": "a required key is null",
+    "stored": "---\nid: \"004\"\ntitle: null\ntype: \"bug\"\nstatus: \"committed\"\nfiled: \"2026-09-18T09:00:00+02:00\"\nupdated: \"2026-09-18T09:00:00+02:00\"\nstarted: null\nfinished: null\ndelivered: null\nabandonedAt: null\ntask: null\n---\n# 004 — Fix the export dialog\n",
+    "sentence": "`title` may not be null"
+  },
+  {
+    "case": "an unknown priority",
+    "stored": "---\nid: \"004\"\ntitle: \"Fix the export dialog\"\ntype: \"bug\"\nstatus: \"committed\"\nfiled: \"2026-09-18T09:00:00+02:00\"\nupdated: \"2026-09-18T09:00:00+02:00\"\nstarted: null\nfinished: null\ndelivered: null\nabandonedAt: null\ntask: null\npriority: \"urgent\"\n---\n# 004 — Fix the export dialog\n",
+    "sentence": "`priority` is not a known ticket priority: urgent"
+  },
+  {
+    "case": "an unknown size",
+    "stored": "---\nid: \"004\"\ntitle: \"Fix the export dialog\"\ntype: \"bug\"\nstatus: \"committed\"\nfiled: \"2026-09-18T09:00:00+02:00\"\nupdated: \"2026-09-18T09:00:00+02:00\"\nstarted: null\nfinished: null\ndelivered: null\nabandonedAt: null\ntask: null\nsize: \"m\"\n---\n# 004 — Fix the export dialog\n",
+    "sentence": "`size` is not a known ticket size: m"
+  },
+  {
+    "case": "an unknown model",
+    "stored": "---\nid: \"004\"\ntitle: \"Fix the export dialog\"\ntype: \"bug\"\nstatus: \"committed\"\nfiled: \"2026-09-18T09:00:00+02:00\"\nupdated: \"2026-09-18T09:00:00+02:00\"\nstarted: null\nfinished: null\ndelivered: null\nabandonedAt: null\ntask: null\nmodel: \"gpt\"\n---\n# 004 — Fix the export dialog\n",
+    "sentence": "`model` is not a known agent model: gpt"
+  },
+  {
+    "case": "an unknown effort",
+    "stored": "---\nid: \"004\"\ntitle: \"Fix the export dialog\"\ntype: \"bug\"\nstatus: \"committed\"\nfiled: \"2026-09-18T09:00:00+02:00\"\nupdated: \"2026-09-18T09:00:00+02:00\"\nstarted: null\nfinished: null\ndelivered: null\nabandonedAt: null\ntask: null\neffort: \"extreme\"\n---\n# 004 — Fix the export dialog\n",
+    "sentence": "`effort` is not a known agent effort: extreme"
+  },
+  {
+    "case": "releasesGroup neither true nor null",
+    "stored": "---\nid: \"004\"\ntitle: \"Fix the export dialog\"\ntype: \"bug\"\nstatus: \"committed\"\nfiled: \"2026-09-18T09:00:00+02:00\"\nupdated: \"2026-09-18T09:00:00+02:00\"\nstarted: null\nfinished: null\ndelivered: null\nabandonedAt: null\ntask: null\nreleasesGroup: yes\n---\n# 004 — Fix the export dialog\n",
+    "sentence": "`releasesGroup` is neither true nor null: yes"
+  },
+  {
+    "case": "dependsOn names something that is not a ticket number",
+    "stored": "---\nid: \"004\"\ntitle: \"Fix the export dialog\"\ntype: \"bug\"\nstatus: \"committed\"\nfiled: \"2026-09-18T09:00:00+02:00\"\nupdated: \"2026-09-18T09:00:00+02:00\"\nstarted: null\nfinished: null\ndelivered: null\nabandonedAt: null\ntask: null\ndependsOn: \"003, four\"\n---\n# 004 — Fix the export dialog\n",
+    "sentence": "`dependsOn` names something that is not a ticket number: four"
+  },
+  {
+    "case": "introducedBy names something that is not a ticket number",
+    "stored": "---\nid: \"004\"\ntitle: \"Fix the export dialog\"\ntype: \"bug\"\nstatus: \"committed\"\nfiled: \"2026-09-18T09:00:00+02:00\"\nupdated: \"2026-09-18T09:00:00+02:00\"\nstarted: null\nfinished: null\ndelivered: null\nabandonedAt: null\ntask: null\nintroducedBy: \"three\"\n---\n# 004 — Fix the export dialog\n",
+    "sentence": "`introducedBy` names something that is not a ticket number: three"
+  },
+  {
+    "case": "foundInReview names something that is not a ticket number",
+    "stored": "---\nid: \"004\"\ntitle: \"Fix the export dialog\"\ntype: \"bug\"\nstatus: \"committed\"\nfiled: \"2026-09-18T09:00:00+02:00\"\nupdated: \"2026-09-18T09:00:00+02:00\"\nstarted: null\nfinished: null\ndelivered: null\nabandonedAt: null\ntask: null\nfoundInReview: \"three\"\n---\n# 004 — Fix the export dialog\n",
+    "sentence": "`foundInReview` names something that is not a ticket number: three"
+  },
+  {
+    "case": "epics names something that is not an epic key",
+    "stored": "---\nid: \"004\"\ntitle: \"Fix the export dialog\"\ntype: \"bug\"\nstatus: \"committed\"\nfiled: \"2026-09-18T09:00:00+02:00\"\nupdated: \"2026-09-18T09:00:00+02:00\"\nstarted: null\nfinished: null\ndelivered: null\nabandonedAt: null\ntask: null\nepics: \"Search!\"\n---\n# 004 — Fix the export dialog\n",
+    "sentence": "`epics` names something that is not an epic key: Search!"
+  },
+  {
+    "case": "network names a domain that is not public",
+    "stored": "---\nid: \"004\"\ntitle: \"Fix the export dialog\"\ntype: \"bug\"\nstatus: \"committed\"\nfiled: \"2026-09-18T09:00:00+02:00\"\nupdated: \"2026-09-18T09:00:00+02:00\"\nstarted: null\nfinished: null\ndelivered: null\nabandonedAt: null\ntask: null\nnetwork: \"api.example.com, localhost\"\n---\n# 004 — Fix the export dialog\n",
+    "sentence": "`network` names something that is not a public domain: localhost"
+  },
+  {
+    "case": "a blank entity",
+    "stored": "---\nid: \"004\"\ntitle: \"Fix the export dialog\"\ntype: \"bug\"\nstatus: \"committed\"\nfiled: \"2026-09-18T09:00:00+02:00\"\nupdated: \"2026-09-18T09:00:00+02:00\"\nstarted: null\nfinished: null\ndelivered: null\nabandonedAt: null\ntask: null\nentity: \"\"\n---\n# 004 — Fix the export dialog\n",
+    "sentence": "`entity` is blank, and it has to name an entity"
+  },
+  {
+    "case": "a contentHash that is not sixteen hex digits",
+    "stored": "---\nid: \"004\"\ntitle: \"Fix the export dialog\"\ntype: \"bug\"\nstatus: \"committed\"\nfiled: \"2026-09-18T09:00:00+02:00\"\nupdated: \"2026-09-18T09:00:00+02:00\"\nstarted: null\nfinished: null\ndelivered: null\nabandonedAt: null\ntask: null\ncontentHash: \"abc\"\n---\n# 004 — Fix the export dialog\n",
+    "sentence": "`contentHash` is not a content hash of sixteen hex digits: abc"
+  }
+]

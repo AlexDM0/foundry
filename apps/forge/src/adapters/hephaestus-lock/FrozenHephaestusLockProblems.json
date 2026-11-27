@@ -1,0 +1,67 @@
+[
+  {
+    "case": "a directory stands at its path",
+    "stored": null,
+    "sentence": "it could not be read ({systemError})"
+  },
+  {
+    "case": "its bytes are not UTF-8",
+    "stored": null,
+    "sentence": "it is not UTF-8 text"
+  },
+  {
+    "case": "it is not JSON",
+    "stored": "not json",
+    "sentence": "it is not valid JSON (JSON Parse error: Unexpected identifier \"not\")"
+  },
+  {
+    "case": "it is not a JSON object",
+    "stored": "[]",
+    "sentence": "it is not a JSON object"
+  },
+  {
+    "case": "its processId is not a number",
+    "stored": "{\"processId\":\"1\",\"processStartStamp\":\"1700000000\",\"bootIdentity\":\"example-boot\",\"port\":4000,\"url\":\"http://127.0.0.1:4000\",\"tokenFile\":\"token\",\"codeVersion\":\"example-code\",\"installVersion\":11,\"talosProtocolVersion\":1}",
+    "sentence": "its \"processId\" is not a number"
+  },
+  {
+    "case": "its port is not a number",
+    "stored": "{\"processId\":42,\"processStartStamp\":\"1700000000\",\"bootIdentity\":\"example-boot\",\"port\":\"1\",\"url\":\"http://127.0.0.1:4000\",\"tokenFile\":\"token\",\"codeVersion\":\"example-code\",\"installVersion\":11,\"talosProtocolVersion\":1}",
+    "sentence": "its \"port\" is not a number"
+  },
+  {
+    "case": "its installVersion is not a number",
+    "stored": "{\"processId\":42,\"processStartStamp\":\"1700000000\",\"bootIdentity\":\"example-boot\",\"port\":4000,\"url\":\"http://127.0.0.1:4000\",\"tokenFile\":\"token\",\"codeVersion\":\"example-code\",\"installVersion\":\"1\",\"talosProtocolVersion\":1}",
+    "sentence": "its \"installVersion\" is not a number"
+  },
+  {
+    "case": "its talosProtocolVersion is not a number",
+    "stored": "{\"processId\":42,\"processStartStamp\":\"1700000000\",\"bootIdentity\":\"example-boot\",\"port\":4000,\"url\":\"http://127.0.0.1:4000\",\"tokenFile\":\"token\",\"codeVersion\":\"example-code\",\"installVersion\":11,\"talosProtocolVersion\":\"1\"}",
+    "sentence": "its \"talosProtocolVersion\" is not a number"
+  },
+  {
+    "case": "its processStartStamp is not a string",
+    "stored": "{\"processId\":42,\"processStartStamp\":1,\"bootIdentity\":\"example-boot\",\"port\":4000,\"url\":\"http://127.0.0.1:4000\",\"tokenFile\":\"token\",\"codeVersion\":\"example-code\",\"installVersion\":11,\"talosProtocolVersion\":1}",
+    "sentence": "its \"processStartStamp\" is not a string"
+  },
+  {
+    "case": "its bootIdentity is not a string",
+    "stored": "{\"processId\":42,\"processStartStamp\":\"1700000000\",\"bootIdentity\":1,\"port\":4000,\"url\":\"http://127.0.0.1:4000\",\"tokenFile\":\"token\",\"codeVersion\":\"example-code\",\"installVersion\":11,\"talosProtocolVersion\":1}",
+    "sentence": "its \"bootIdentity\" is not a string"
+  },
+  {
+    "case": "its url is not a string",
+    "stored": "{\"processId\":42,\"processStartStamp\":\"1700000000\",\"bootIdentity\":\"example-boot\",\"port\":4000,\"url\":1,\"tokenFile\":\"token\",\"codeVersion\":\"example-code\",\"installVersion\":11,\"talosProtocolVersion\":1}",
+    "sentence": "its \"url\" is not a string"
+  },
+  {
+    "case": "its tokenFile is not a string",
+    "stored": "{\"processId\":42,\"processStartStamp\":\"1700000000\",\"bootIdentity\":\"example-boot\",\"port\":4000,\"url\":\"http://127.0.0.1:4000\",\"tokenFile\":1,\"codeVersion\":\"example-code\",\"installVersion\":11,\"talosProtocolVersion\":1}",
+    "sentence": "its \"tokenFile\" is not a string"
+  },
+  {
+    "case": "its codeVersion is not a string",
+    "stored": "{\"processId\":42,\"processStartStamp\":\"1700000000\",\"bootIdentity\":\"example-boot\",\"port\":4000,\"url\":\"http://127.0.0.1:4000\",\"tokenFile\":\"token\",\"codeVersion\":1,\"installVersion\":11,\"talosProtocolVersion\":1}",
+    "sentence": "its \"codeVersion\" is not a string"
+  }
+]

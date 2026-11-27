@@ -1,0 +1,47 @@
+[
+  {
+    "case": "a directory stands at its path",
+    "stored": null,
+    "sentence": "it could not be read ({systemError})"
+  },
+  {
+    "case": "its bytes are not UTF-8",
+    "stored": null,
+    "sentence": "it is not UTF-8 text"
+  },
+  {
+    "case": "it is not JSON",
+    "stored": "not json",
+    "sentence": "it is not valid JSON (JSON Parse error: Unexpected identifier \"not\")"
+  },
+  {
+    "case": "it is not a JSON object",
+    "stored": "[]",
+    "sentence": "it is not a JSON object"
+  },
+  {
+    "case": "its cacheDir is not a string",
+    "stored": "{\"cacheDir\":3}",
+    "sentence": "its \"cacheDir\" is not a string"
+  },
+  {
+    "case": "its tasks is not an object",
+    "stored": "{\"tasks\":[]}",
+    "sentence": "its \"tasks\" is not an object"
+  },
+  {
+    "case": "its pipeline is not an object",
+    "stored": "{\"pipeline\":\"build\"}",
+    "sentence": "its \"pipeline\" is not an object"
+  },
+  {
+    "case": "a task is not an object",
+    "stored": "{\"tasks\":{\"build\":3}}",
+    "sentence": "its task \"build\" is not an object"
+  },
+  {
+    "case": "the inputs of a task is not a list of strings",
+    "stored": "{\"tasks\":{\"build\":{\"inputs\":[3]}}}",
+    "sentence": "the \"inputs\" of its task \"build\" is not a list of strings"
+  }
+]

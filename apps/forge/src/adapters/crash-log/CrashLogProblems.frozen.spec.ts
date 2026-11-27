@@ -1,0 +1,54 @@
+/** Every reason a crash log gives today is frozen: a row's stored text reads as its sentence, whatever moves the wording. */
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join }                                   from 'node:path';
+import {
+  afterEach,
+  beforeEach,
+  expect,
+  test
+} from 'bun:test';
+
+import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { CrashLogIngestion }                              from './CrashLogIngestion.ts';
+import FROZEN_CRASH_LOG_PROBLEMS                          from './FrozenCrashLogProblems.json';
+
+/** The rows whose `stored` is `null`, since no stored text builds them. */
+const UNSTORABLE_CASE_BUILDERS: Readonly<Record<string, (filePath: string) => void>> = {
+  'a directory stands at its path': (filePath) => mkdirSync(filePath),
+  'its bytes are not UTF-8':        (filePath) => writeFileSync(filePath, Uint8Array.of(0xff)),
+};
+
+let scratchDirectory = '';
+
+const filePath = (): string => join(scratchDirectory, 'crash-1.json');
+
+function systemErrorAt(storedFilePath: string): string {
+  try {
+    readFileSync(storedFilePath);
+    return '';
+  } catch (error) {
+    return error instanceof Error ? error.message : '';
+  }
+}
+
+function reasonAt(): string | null {
+  const reading = new CrashLogIngestion(filePath()).read();
+  return 'reason' in reading ? reading.reason : null;
+}
+
+beforeEach(() => {
+  scratchDirectory = createScratchDirectory('frozen-crash-log-problems');
+});
+
+afterEach(() => {
+  removeScratchDirectory(scratchDirectory);
+});
+
+test.each(FROZEN_CRASH_LOG_PROBLEMS)('$case', (frozenProblem) => {
+  const unstorableCaseBuilder = UNSTORABLE_CASE_BUILDERS[frozenProblem.case];
+  if (frozenProblem.stored === null) unstorableCaseBuilder?.(filePath());
+  else writeFileSync(filePath(), frozenProblem.stored);
+
+  expect(frozenProblem.stored !== null || unstorableCaseBuilder !== undefined).toBe(true);
+  expect(reasonAt()).toBe(frozenProblem.sentence.replace('{systemError}', systemErrorAt(filePath())));
+});

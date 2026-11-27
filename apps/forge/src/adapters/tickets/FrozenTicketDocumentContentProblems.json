@@ -1,0 +1,22 @@
+[
+  {
+    "case": "the file is absent (built in the spec: nothing is written)",
+    "stored": null,
+    "sentence": "no text is kept under the hash 0123456789abcdef"
+  },
+  {
+    "case": "a directory stands where the file belongs (built in the spec; {systemError} is the OS message)",
+    "stored": null,
+    "sentence": "it could not be read ({systemError})"
+  },
+  {
+    "case": "the bytes are not UTF-8 text (built in the spec)",
+    "stored": null,
+    "sentence": "it is not UTF-8 text"
+  },
+  {
+    "case": "the text does not hash to the file name",
+    "stored": "## Acceptance\n\nA1. Changed.\n",
+    "sentence": "its text does not hash to 0123456789abcdef"
+  }
+]

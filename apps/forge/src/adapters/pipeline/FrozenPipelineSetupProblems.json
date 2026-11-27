@@ -1,0 +1,327 @@
+[
+  {
+    "case": "a directory in the file's place, which cannot be read (built as a directory; the OS message is {systemError})",
+    "stored": null,
+    "sentence": "it could not be read ({systemError})"
+  },
+  {
+    "case": "the bytes are not UTF-8 (built as the byte 0xFF)",
+    "stored": null,
+    "sentence": "it is not UTF-8 text"
+  },
+  {
+    "case": "the text is not JSON",
+    "stored": "{",
+    "sentence": "it is not valid JSON (JSON Parse error: Expected '}')"
+  },
+  {
+    "case": "the document is a list, not an object",
+    "stored": "[]",
+    "sentence": "the document is not a JSON object"
+  },
+  {
+    "case": "formatVersion is missing",
+    "stored": "{\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "formatVersion is missing, and this build reads 4"
+  },
+  {
+    "case": "formatVersion is a version this build does not read",
+    "stored": "{\"formatVersion\":3,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "formatVersion is 3, and this build reads 4"
+  },
+  {
+    "case": "an owned key is missing",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null}",
+    "sentence": "nextNumbers is missing"
+  },
+  {
+    "case": "setupId is not a setup id",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"X1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "setupId is \"X1\", and it has to be a setup id such as S1"
+  },
+  {
+    "case": "mode is outside the vocabulary",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"explore\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "mode is \"explore\", which is not one of setup, update, advise"
+  },
+  {
+    "case": "baseContentHash is neither null nor a text",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":1,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "baseContentHash is neither null nor a text"
+  },
+  {
+    "case": "stepStates is not an object",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":[],\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "stepStates is not an object"
+  },
+  {
+    "case": "stepStates has a key it does not know",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\",\"deploy\":\"done\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "stepStates.deploy is not a key of stepStates; the keys are agent, billing, research, constitution, design, apply"
+  },
+  {
+    "case": "stepStates lacks a step",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "stepStates.apply is missing"
+  },
+  {
+    "case": "a step state is outside the vocabulary",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"paused\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "stepStates.agent is \"paused\", which is not one of not-started, in-progress, done, needs-recheck"
+  },
+  {
+    "case": "currentStep is outside the vocabulary",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"deploy\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "currentStep is \"deploy\", which is not one of agent, billing, research, entities, constitution, design, apply"
+  },
+  {
+    "case": "billing is not as pipeline.json stores it",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":{\"mode\":\"free\"},\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "billing.mode is neither subscription nor api"
+  },
+  {
+    "case": "agent is not as pipeline.json stores it",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":{\"vendor\":\"\",\"program\":{\"follows\":\"machine\"}},\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "agent.vendor is not a name"
+  },
+  {
+    "case": "readyToContinue is not a list",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":\"agent\",\"findings\":[],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "readyToContinue is not a list"
+  },
+  {
+    "case": "readyToContinue holds a step outside the vocabulary",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[\"deploy\"],\"findings\":[],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "readyToContinue[0] is \"deploy\", which is not one of agent, billing, research, entities, constitution, design, apply"
+  },
+  {
+    "case": "a finding is not an object",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[1],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "findings[0] is not an object"
+  },
+  {
+    "case": "a finding has a key it does not know",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[{\"findingId\":\"F1\",\"topic\":\"scripts\",\"label\":\"Build\",\"value\":null,\"sourcePaths\":[],\"script\":null,\"needsRecheck\":false,\"colour\":\"red\"}],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "findings[0].colour is not a key of findings[0]; the keys are findingId, topic, label, value, sourcePaths, script, needsRecheck"
+  },
+  {
+    "case": "a finding lacks a key",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[{\"findingId\":\"F1\",\"topic\":\"scripts\",\"label\":\"Build\",\"value\":null,\"sourcePaths\":[],\"script\":null}],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "findings[0].needsRecheck is missing"
+  },
+  {
+    "case": "a finding id is not a text",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[{\"findingId\":1,\"topic\":\"scripts\",\"label\":\"Build\",\"value\":null,\"sourcePaths\":[],\"script\":null,\"needsRecheck\":false}],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "findings[0].findingId is not a text"
+  },
+  {
+    "case": "a finding topic is outside the vocabulary",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[{\"findingId\":\"F1\",\"topic\":\"weather\",\"label\":\"Build\",\"value\":null,\"sourcePaths\":[],\"script\":null,\"needsRecheck\":false}],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "findings[0].topic is \"weather\", which is not one of stack, scripts, conventions, continuous-integration, note, layout"
+  },
+  {
+    "case": "a finding sourcePaths is not a list of texts",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[{\"findingId\":\"F1\",\"topic\":\"scripts\",\"label\":\"Build\",\"value\":null,\"sourcePaths\":[1],\"script\":null,\"needsRecheck\":false}],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "findings[0].sourcePaths is not a list of texts"
+  },
+  {
+    "case": "a finding script is not an object",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[{\"findingId\":\"F1\",\"topic\":\"scripts\",\"label\":\"Build\",\"value\":null,\"sourcePaths\":[],\"script\":\"x\",\"needsRecheck\":false}],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "findings[0].script is not an object"
+  },
+  {
+    "case": "a finding script gateCandidate is outside the vocabulary",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[{\"findingId\":\"F1\",\"topic\":\"scripts\",\"label\":\"Build\",\"value\":null,\"sourcePaths\":[],\"script\":{\"name\":\"build\",\"run\":\"bun run build\",\"meaning\":\"builds\",\"gateCandidate\":\"maybe\",\"needs\":[]},\"needsRecheck\":false}],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "findings[0].script.gateCandidate is \"maybe\", which is not one of gate, not-a-gate, unsure"
+  },
+  {
+    "case": "a finding needsRecheck is not true or false",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[{\"findingId\":\"F1\",\"topic\":\"scripts\",\"label\":\"Build\",\"value\":null,\"sourcePaths\":[],\"script\":null,\"needsRecheck\":\"no\"}],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "findings[0].needsRecheck is not true or false"
+  },
+  {
+    "case": "a question step is outside the vocabulary",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[{\"questionId\":\"Q1\",\"step\":\"apply\",\"subject\":null,\"question\":\"Which?\",\"context\":\"\",\"options\":[],\"recommended\":[],\"multiple\":false,\"answer\":null}],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "questions[0].step is \"apply\", which is not one of research, entities, constitution, design"
+  },
+  {
+    "case": "a question subject kind is outside the vocabulary",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[{\"questionId\":\"Q1\",\"step\":\"research\",\"subject\":{\"kind\":\"planet\",\"reference\":\"x\"},\"question\":\"Which?\",\"context\":\"\",\"options\":[],\"recommended\":[],\"multiple\":false,\"answer\":null}],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "questions[0].subject.kind is \"planet\", which is not one of node, gate, rule, finding"
+  },
+  {
+    "case": "a question option lacks its text",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[{\"questionId\":\"Q1\",\"step\":\"research\",\"subject\":null,\"question\":\"Which?\",\"context\":\"\",\"options\":[{\"letter\":\"A\"}],\"recommended\":[],\"multiple\":false,\"answer\":null}],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "questions[0].options[0].text is missing"
+  },
+  {
+    "case": "a question answer with letters lacks answeredAt",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[{\"questionId\":\"Q1\",\"step\":\"research\",\"subject\":null,\"question\":\"Which?\",\"context\":\"\",\"options\":[],\"recommended\":[],\"multiple\":false,\"answer\":{\"letters\":[\"A\"]}}],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "questions[0].answer.answeredAt is missing"
+  },
+  {
+    "case": "a question answer with text has a key it does not know",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[{\"questionId\":\"Q1\",\"step\":\"research\",\"subject\":null,\"question\":\"Which?\",\"context\":\"\",\"options\":[],\"recommended\":[],\"multiple\":false,\"answer\":{\"text\":\"x\",\"answeredAt\":\"now\",\"by\":\"me\"}}],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "questions[0].answer.by is not a key of questions[0].answer; the keys are text, answeredAt"
+  },
+  {
+    "case": "the constitution draftedFrom lacks a source",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":{\"markdown\":\"\",\"annotations\":[],\"draftedFrom\":{\"contributing\":false,\"research\":false},\"baseBlob\":null,\"revision\":0},\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "constitution.draftedFrom.installedDefault is missing"
+  },
+  {
+    "case": "the constitution draftedFrom source is not true or false",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":{\"markdown\":\"\",\"annotations\":[],\"draftedFrom\":{\"contributing\":false,\"research\":1,\"installedDefault\":false},\"baseBlob\":null,\"revision\":0},\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "constitution.draftedFrom.research is not true or false"
+  },
+  {
+    "case": "the constitution revision is negative",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":{\"markdown\":\"\",\"annotations\":[],\"draftedFrom\":{\"contributing\":false,\"research\":false,\"installedDefault\":false},\"baseBlob\":null,\"revision\":-1},\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "constitution.revision is not a whole number of at least 0"
+  },
+  {
+    "case": "the constitution's first annotation is not an object",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":{\"markdown\":\"\",\"annotations\":[\"text\"],\"draftedFrom\":{\"contributing\":false,\"research\":false,\"installedDefault\":false},\"baseBlob\":null,\"revision\":0},\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "constitution.annotations[0] is not an object"
+  },
+  {
+    "case": "the constitution's first annotation has a key it does not know",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":{\"markdown\":\"\",\"annotations\":[{\"lineText\":\"- Keep it fast.\",\"occurrence\":1,\"kind\":\"research\",\"path\":null,\"colour\":\"red\"}],\"draftedFrom\":{\"contributing\":false,\"research\":false,\"installedDefault\":false},\"baseBlob\":null,\"revision\":0},\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "constitution.annotations[0].colour is not a key of constitution.annotations[0]; the keys are lineText, occurrence, kind, path"
+  },
+  {
+    "case": "the constitution's first annotation lacks a key",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":{\"markdown\":\"\",\"annotations\":[{\"lineText\":\"- Keep it fast.\",\"occurrence\":1,\"kind\":\"research\"}],\"draftedFrom\":{\"contributing\":false,\"research\":false,\"installedDefault\":false},\"baseBlob\":null,\"revision\":0},\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "constitution.annotations[0].path is missing"
+  },
+  {
+    "case": "the constitution's first annotation's lineText is not a text",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":{\"markdown\":\"\",\"annotations\":[{\"lineText\":3,\"occurrence\":1,\"kind\":\"research\",\"path\":null}],\"draftedFrom\":{\"contributing\":false,\"research\":false,\"installedDefault\":false},\"baseBlob\":null,\"revision\":0},\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "constitution.annotations[0].lineText is not a text"
+  },
+  {
+    "case": "the constitution's first annotation's occurrence is below 1",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":{\"markdown\":\"\",\"annotations\":[{\"lineText\":\"- Keep it fast.\",\"occurrence\":0,\"kind\":\"research\",\"path\":null}],\"draftedFrom\":{\"contributing\":false,\"research\":false,\"installedDefault\":false},\"baseBlob\":null,\"revision\":0},\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "constitution.annotations[0].occurrence is not a whole number of at least 1"
+  },
+  {
+    "case": "the constitution's first annotation's kind is outside the vocabulary",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":{\"markdown\":\"\",\"annotations\":[{\"lineText\":\"- Keep it fast.\",\"occurrence\":1,\"kind\":\"rumour\",\"path\":null}],\"draftedFrom\":{\"contributing\":false,\"research\":false,\"installedDefault\":false},\"baseBlob\":null,\"revision\":0},\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "constitution.annotations[0].kind is \"rumour\", which is not one of contributing, research, installed-default"
+  },
+  {
+    "case": "the constitution's first annotation's path is neither null nor a text",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":{\"markdown\":\"\",\"annotations\":[{\"lineText\":\"- Keep it fast.\",\"occurrence\":1,\"kind\":\"research\",\"path\":4}],\"draftedFrom\":{\"contributing\":false,\"research\":false,\"installedDefault\":false},\"baseBlob\":null,\"revision\":0},\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "constitution.annotations[0].path is neither null nor a text"
+  },
+  {
+    "case": "the draft is a malformed pipeline",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":null,\"draft\":{\"version\":5,\"prepare\":[],\"gates\":[],\"phases\":[]},\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "draft is not a pipeline: phases is not an object"
+  },
+  {
+    "case": "the draft is an older pipeline",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":null,\"draft\":{\"version\":4,\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]}},\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "draft is not a pipeline: its version is older"
+  },
+  {
+    "case": "draftRevision is not a whole number",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":1.5,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "draftRevision is not a whole number of at least 0"
+  },
+  {
+    "case": "an edit field is not a draft field",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[{\"editId\":\"E1\",\"by\":\"agent\",\"field\":\"colour\",\"summary\":\"x\",\"undone\":false}],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "edits[0].field is not a draft field"
+  },
+  {
+    "case": "an edit batch is not a text",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[{\"editId\":\"E1\",\"by\":\"agent\",\"field\":\"airlock\",\"summary\":\"x\",\"undone\":false,\"batch\":1}],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "edits[0].batch is not a text"
+  },
+  {
+    "case": "an edit author is outside the vocabulary",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[{\"editId\":\"E1\",\"by\":\"robot\",\"field\":\"airlock\",\"summary\":\"x\",\"undone\":false}],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "edits[0].by is \"robot\", which is not one of agent, user"
+  },
+  {
+    "case": "replacesUnreadablePipeline is not true or false",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":null,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "replacesUnreadablePipeline is not true or false"
+  },
+  {
+    "case": "the apply request reason is outside the vocabulary",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":{\"draftRevision\":0,\"resumesBoard\":false,\"commitJobId\":null,\"state\":\"committing\",\"reason\":\"whim\"},\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "applyRequest.reason is \"whim\", which is not one of interrupted, not-on-target-branch, dirty-checkout, target-file-held, git-failed, constitution-commit-unsigned, constitution-commit-unexpected-paths, constitution-moved, pipeline-moved, entity-named-by-tickets, entities-while-tickets-in-flight"
+  },
+  {
+    "case": "the apply request state is outside the vocabulary",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":{\"draftRevision\":0,\"resumesBoard\":false,\"commitJobId\":null,\"state\":\"sleeping\",\"reason\":null},\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "applyRequest.state is \"sleeping\", which is not one of committing, held, refused"
+  },
+  {
+    "case": "the apply request commitJobId is neither null nor a text",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":{\"draftRevision\":0,\"resumesBoard\":false,\"commitJobId\":1,\"state\":\"committing\",\"reason\":null},\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1}}",
+    "sentence": "applyRequest.commitJobId is neither null nor a text"
+  },
+  {
+    "case": "nextNumbers counts below the first number",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":0}}",
+    "sentence": "nextNumbers.edit is not a whole number of at least 1"
+  },
+  {
+    "case": "the check gateNames is not a list of texts",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1},\"check\":{\"draftRevision\":0,\"gateNames\":\"x\",\"state\":\"running\",\"result\":null,\"reason\":null}}",
+    "sentence": "check.gateNames is not a list of texts"
+  },
+  {
+    "case": "the check result prepare is not an object",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1},\"check\":{\"draftRevision\":0,\"gateNames\":[],\"state\":\"running\",\"result\":{\"snapshotCommit\":\"abc\",\"prepare\":[],\"gates\":[]},\"reason\":null}}",
+    "sentence": "check.result.prepare is not an object"
+  },
+  {
+    "case": "the check result failed steps hold a non-text",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1},\"check\":{\"draftRevision\":0,\"gateNames\":[],\"state\":\"running\",\"result\":{\"snapshotCommit\":\"abc\",\"prepare\":{\"failedSteps\":[1],\"output\":\"\"},\"gates\":[]},\"reason\":null}}",
+    "sentence": "check.result.prepare.failedSteps[0] is neither null nor a text"
+  },
+  {
+    "case": "a checked gate outcome is outside the vocabulary",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1},\"check\":{\"draftRevision\":0,\"gateNames\":[],\"state\":\"running\",\"result\":{\"snapshotCommit\":\"abc\",\"prepare\":{\"failedSteps\":[],\"output\":\"\"},\"gates\":[{\"name\":\"build\",\"outcomes\":[\"maybe\"],\"durationsMilliseconds\":[1],\"verdict\":\"green\",\"output\":\"\"}]},\"reason\":null}}",
+    "sentence": "check.result.gates[0].outcomes[0] is \"maybe\", which is not one of passed, failed, cannot-run"
+  },
+  {
+    "case": "a checked gate duration is negative",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1},\"check\":{\"draftRevision\":0,\"gateNames\":[],\"state\":\"running\",\"result\":{\"snapshotCommit\":\"abc\",\"prepare\":{\"failedSteps\":[],\"output\":\"\"},\"gates\":[{\"name\":\"build\",\"outcomes\":[\"passed\"],\"durationsMilliseconds\":[-1],\"verdict\":\"green\",\"output\":\"\"}]},\"reason\":null}}",
+    "sentence": "check.result.gates[0].durationsMilliseconds[0] is not a whole number of at least 0"
+  },
+  {
+    "case": "a checked gate verdict is outside the vocabulary",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1},\"check\":{\"draftRevision\":0,\"gateNames\":[],\"state\":\"running\",\"result\":{\"snapshotCommit\":\"abc\",\"prepare\":{\"failedSteps\":[],\"output\":\"\"},\"gates\":[{\"name\":\"build\",\"outcomes\":[\"passed\"],\"durationsMilliseconds\":[1],\"verdict\":\"odd\",\"output\":\"\"}]},\"reason\":null}}",
+    "sentence": "check.result.gates[0].verdict is \"odd\", which is not one of green, red, cannot-run, disagreeing"
+  },
+  {
+    "case": "entities is not an object",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1},\"entities\":[]}",
+    "sentence": "entities is not an object"
+  },
+  {
+    "case": "entities has an empty entity key",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1},\"entities\":{\"\":{\"agentJobId\":null,\"findings\":[],\"questions\":[],\"constitution\":null}}}",
+    "sentence": "entities has an empty entity key"
+  },
+  {
+    "case": "an entity part lacks a key",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1},\"entities\":{\"web\":{\"agentJobId\":null,\"findings\":[],\"questions\":[]}}}",
+    "sentence": "entities.web.constitution is missing"
+  },
+  {
+    "case": "an entity part check state is outside the vocabulary",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1},\"entities\":{\"web\":{\"agentJobId\":null,\"findings\":[],\"questions\":[],\"constitution\":null,\"check\":{\"draftRevision\":0,\"gateNames\":[],\"state\":\"odd\",\"result\":null,\"reason\":null}}}}",
+    "sentence": "entities.web.check.state is \"odd\", which is not one of queued, running, checked, cannot-run, stopped"
+  },
+  {
+    "case": "openedAtEntity is not an entity key",
+    "stored": "{\"formatVersion\":4,\"setupId\":\"S1\",\"mode\":\"setup\",\"baseContentHash\":null,\"stepStates\":{\"agent\":\"not-started\",\"billing\":\"not-started\",\"research\":\"not-started\",\"constitution\":\"not-started\",\"design\":\"not-started\",\"apply\":\"not-started\"},\"currentStep\":\"agent\",\"billing\":null,\"agent\":null,\"agentJobId\":null,\"snapshotCommit\":null,\"readyToContinue\":[],\"findings\":[],\"questions\":[],\"constitution\":null,\"draft\":null,\"draftRevision\":0,\"edits\":[],\"replacesUnreadablePipeline\":false,\"applyRequest\":null,\"nextNumbers\":{\"finding\":1,\"question\":1,\"edit\":1},\"openedAtEntity\":\"\"}",
+    "sentence": "openedAtEntity is not an entity key"
+  }
+]
