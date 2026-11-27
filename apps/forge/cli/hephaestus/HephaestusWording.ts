@@ -18,21 +18,21 @@ import { ROOT_ENTITY_KEY }                                    from '../../src/do
 import type { AgentAdapter }                                  from '../../src/lib/agent-launch/AgentAdapter.ts';
 import { AgentBillingUtil }                                   from '../../src/lib/agent-launch/utils/AgentBillingUtil.ts';
 import { ALLOWED_MOVES_BY_INCIDENT_KIND }                     from '../../src/services/control/constants/AllowedMovesByIncidentKind.ts';
-import type { AssistantFacts }                                from '../../src/services/hephaestus/AssistantBoot.ts';
-import type { AssistantChatFacts }                            from '../../src/services/hephaestus/AssistantSession.ts';
+import type {
+  AirlockFacts,
+  JobLaunchFacts,
+  JobLaunchText,
+  ReviewFindingsFacts
+} from '../../src/services/hephaestus/@types/JobLaunchFacts.ts';
+import type { AssistantFacts }     from '../../src/services/hephaestus/AssistantBoot.ts';
+import type { AssistantChatFacts } from '../../src/services/hephaestus/AssistantSession.ts';
 import type {
   CrossedPackageResult,
   CrossingStageFacts,
   RefusedPackageChange,
   SealedPackageReview
 } from '../../src/services/hephaestus/CrossingStages.ts';
-import type { DependentFixFacts, DependentFixWording } from '../../src/services/hephaestus/DependentFixTickets.ts';
-import type {
-  AirlockFacts,
-  JobLaunchFacts,
-  JobLaunchText,
-  ReviewFindingsFacts
-} from '../../src/services/hephaestus/DrivePass.ts';
+import type { DependentFixFacts, DependentFixWording }                from '../../src/services/hephaestus/DependentFixTickets.ts';
 import type { PackageNeedFacts, PackageNeedWording }                  from '../../src/services/hephaestus/EntityDecisionAnswers.ts';
 import type { NeedsSettledFacts }                                     from '../../src/services/hephaestus/NeedTickets.ts';
 import { filledTemplateOf }                                           from '../../src/shared/FilledTemplate.ts';

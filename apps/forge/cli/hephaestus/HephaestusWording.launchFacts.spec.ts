@@ -21,8 +21,9 @@ import type { Job }                                 from '../../src/domain/track
 import type { JobOutcome }                          from '../../src/domain/tracker-model/@types/Job.ts';
 import type { TicketStage }                         from '../../src/domain/tracker-model/@types/Task.ts';
 import type { Board }                               from '../../src/domain/tracker-model/Board.ts';
+import type { DrivePassRequest }                    from '../../src/services/hephaestus/@types/DrivePassRequest.ts';
 import { CrossingStages }                           from '../../src/services/hephaestus/CrossingStages.ts';
-import { launchFactsOf, type DrivePassRequest }     from '../../src/services/hephaestus/DrivePass.ts';
+import { launchFactsOf }                            from '../../src/services/hephaestus/LaunchFacts.ts';
 import { StoredFileUnreadable }                     from '../../src/services/hephaestus/StoredFileUnreadable.ts';
 import { branchNamesOf }                            from '../../src/shared/BranchNames.ts';
 import { resourceFilePathOf }                       from '../../src/shared/ResourceFilePath.ts';

@@ -796,7 +796,7 @@ package from the repository root.
 | What `advise` is given | `src/services/hephaestus/PipelineAgentSessions.ts` |
 | Customs checks | `src/services/lifecycle/Customs.ts` (the table) and its `Customs*Check.ts` and `Customs*Checks.ts` files beside it |
 | Job kinds and roles | `src/domain/tracker-model/@types/Job.ts` |
-| Decisions, incidents, notices | `src/domain/tracker-model/constants/DecisionAndIncidentVocabulary.ts`, `src/services/hephaestus/DrivePass.ts`, `docs/concepts/overview.md` |
+| Decisions, incidents, notices | `src/domain/tracker-model/constants/DecisionAndIncidentVocabulary.ts`, `src/services/hephaestus/@types/HephaestusStateDocument.ts`, `docs/concepts/overview.md` |
 | The budget of a launch | `src/services/hephaestus/ApiBillingStops.ts` |
 | A ticket's size | `src/domain/tracker-model/@types/Ticket.ts` |
 | The store port | `src/services/store/BoardStore.ts`, `architecture/StoreBoundary.spec.ts` |
