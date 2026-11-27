@@ -1,9 +1,7 @@
 /**
- * The brand's stylesheets, held where its style contract does not reach. Each closes every brace it opens: a lost brace nests every rule
- * after it in the block above and the browser reports nothing. And the mark is still: no stylesheet names a `:hover` or `:active` state,
- * an animation, a transition or a keyframe, so nothing moves under the pointer and reduced motion has nothing to stop. A mark that is to
- * move brings its own checks for a hover that moves nothing and a reduced-motion rule that wins. Braces and words inside comments and
- * quoted strings are text and are left out. The scan first proves it read the stylesheets, and each form is planted in memory.
+ * The brand's stylesheets close every brace they open, since a lost brace silently nests every later rule, and the mark is still: no `:hover`,
+ * `:active`, animation, transition or keyframe. Text inside comments and quoted strings is left out. The scan first proves it read the
+ * stylesheets, and each form is planted in memory.
  */
 import { describe, expect, test } from 'bun:test';
 

@@ -1,8 +1,7 @@
 /**
- * The brand's style contract, read from its stylesheets and its marks as React renders them. What matters: each mark's stylesheet styles
- * exactly the classes that mark draws, at every size, and every class is the mark's own; every token a stylesheet reads is a token of
- * `styles/tokens.css`, which gives each one a light and a dark value; and `styles/brand.css` imports the tokens, then each mark's stylesheet
- * once. Each check is first proved on a planted case.
+ * The brand's style contract: each mark's stylesheet styles exactly the classes that mark draws at every size, every token it reads is one of
+ * `styles/tokens.css` with a light and a dark value, and `styles/brand.css` imports the tokens, then each mark's stylesheet once. Each check is
+ * first proved on a planted case.
  */
 import { describe, expect, test }            from 'bun:test';
 import { type ComponentType, createElement } from 'react';
