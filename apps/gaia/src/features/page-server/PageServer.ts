@@ -14,6 +14,7 @@ import { bearerTokenMatches }                                                   
 import { monotonicMillisecondsOfNow }                                                    from '../../services/Clock.ts';
 import type { ClockTimers }                                                              from '../../services/Clock.ts';
 import type { FleetStore }                                                               from '../../services/FleetStore.ts';
+import { GAIA_ENDPOINTS }                                                                from '../../shared/constants/GaiaCompatibilityRegistry.ts';
 import { GAIA_ENDPOINT_VERSIONS }                                                        from '../../shared/constants/GaiaSystemVersions.ts';
 import { BOARD_PICTURE_UPLOAD_LIMIT_BYTES, TICKET_DOCUMENT_COMMAND_BODY_BOUND_BYTES }    from '../../shared/constants/Limits.ts';
 import type { BoardRelayLog }                                                            from './@types/BoardRelayLogEntry.ts';
@@ -134,6 +135,11 @@ function exactly(expectedEndpoint: string): (endpoint: string) => boolean {
   return (endpoint) => endpoint === expectedEndpoint;
 }
 
+/** A route at the registry's path for `endpointName`, at that endpoint's version. */
+function servedAt(endpointName: keyof typeof GAIA_ENDPOINT_VERSIONS): Pick<PageServerRoute, 'matchesEndpoint' | 'version'> {
+  return { matchesEndpoint: exactly(GAIA_ENDPOINTS[endpointName]), version: GAIA_ENDPOINT_VERSIONS[endpointName] };
+}
+
 /** The forge and the item a relay endpoint names; the route matched it, so it names both as its pattern asks. */
 function relayValuesOf(endpointName: BoardRelayEndpointName, endpoint: string): { readonly trackerId: string; readonly itemId: string } {
   const values = BoardRelayEndpointUtil.valuesOf(endpointName, endpoint);
@@ -150,47 +156,46 @@ function boardRelayRoutesOf(context: RouteContext): readonly PageServerRoute[] {
   const relayRoute = (
     method: PageServerRoute['method'],
     endpointName: BoardRelayEndpointName,
-    version: number,
     answer: PageServerRoute['answer'],
     shape: { readonly isStream?: boolean; readonly maximumBodyBytes?: number } = {},
   ): PageServerRoute => ({
     method,
     matchesEndpoint:  BoardRelayEndpointUtil.matches(endpointName),
-    version,
+    version:          GAIA_ENDPOINT_VERSIONS[endpointName],
     access:           'session-or-token',
     isStream:         shape.isStream ?? false,
     maximumBodyBytes: shape.maximumBodyBytes ?? ROUTE_BODY_BOUND_BYTES,
     answer,
   });
   return [
-    relayRoute('GET', 'board', GAIA_ENDPOINT_VERSIONS.forgeBoard, (_request, endpoint) => boardStateRoute.answerFor(relayValuesOf('board', endpoint).trackerId)),
-    relayRoute('GET', 'boardEvents', GAIA_ENDPOINT_VERSIONS.forgeBoardEvents, (request, endpoint) => {
-      return boardEventsAnswerFor(request, relayValuesOf('boardEvents', endpoint).trackerId, streamSources);
+    relayRoute('GET', 'forgeBoard', (_request, endpoint) => boardStateRoute.answerFor(relayValuesOf('forgeBoard', endpoint).trackerId)),
+    relayRoute('GET', 'forgeBoardEvents', (request, endpoint) => {
+      return boardEventsAnswerFor(request, relayValuesOf('forgeBoardEvents', endpoint).trackerId, streamSources);
     }, { isStream: true }),
-    relayRoute('GET', 'jobStream', GAIA_ENDPOINT_VERSIONS.forgeJobStream, (request, endpoint) => {
-      const { trackerId, itemId } = relayValuesOf('jobStream', endpoint);
+    relayRoute('GET', 'forgeJobStream', (request, endpoint) => {
+      const { trackerId, itemId } = relayValuesOf('forgeJobStream', endpoint);
       return jobStreamAnswerFor(request, trackerId, itemId, streamSources);
     }, { isStream: true }),
-    relayRoute('GET', 'profileStream', GAIA_ENDPOINT_VERSIONS.forgeProfileStream, (request, endpoint) => {
-      const { trackerId, itemId } = relayValuesOf('profileStream', endpoint);
+    relayRoute('GET', 'forgeProfileStream', (request, endpoint) => {
+      const { trackerId, itemId } = relayValuesOf('forgeProfileStream', endpoint);
       return profileStreamAnswerFor(request, trackerId, itemId, streamSources);
     }, { isStream: true }),
-    relayRoute('POST', 'pictures', GAIA_ENDPOINT_VERSIONS.forgePictureUpload, (request, endpoint, maximumBodyBytes) => {
-      return pictureUploadAnswerFor(request, relayValuesOf('pictures', endpoint).trackerId, forgeAccess, maximumBodyBytes);
+    relayRoute('POST', 'forgePictureUpload', (request, endpoint, maximumBodyBytes) => {
+      return pictureUploadAnswerFor(request, relayValuesOf('forgePictureUpload', endpoint).trackerId, forgeAccess, maximumBodyBytes);
     }, { maximumBodyBytes: BOARD_PICTURE_UPLOAD_LIMIT_BYTES }),
-    relayRoute('GET', 'picture', GAIA_ENDPOINT_VERSIONS.forgePicture, (_request, endpoint) => {
-      const { trackerId, itemId } = relayValuesOf('picture', endpoint);
+    relayRoute('GET', 'forgePicture', (_request, endpoint) => {
+      const { trackerId, itemId } = relayValuesOf('forgePicture', endpoint);
       return pictureAnswerFor(trackerId, itemId, forgeAccess);
     }),
-    relayRoute('POST', 'commands', GAIA_ENDPOINT_VERSIONS.forgeCommands, (request, endpoint, maximumBodyBytes) => {
-      return boardCommandAnswerFor(request, relayValuesOf('commands', endpoint).trackerId, forgeAccess, maximumBodyBytes);
+    relayRoute('POST', 'forgeCommands', (request, endpoint, maximumBodyBytes) => {
+      return boardCommandAnswerFor(request, relayValuesOf('forgeCommands', endpoint).trackerId, forgeAccess, maximumBodyBytes);
     }, { maximumBodyBytes: TICKET_DOCUMENT_COMMAND_BODY_BOUND_BYTES }),
-    relayRoute('GET', 'crashLog', GAIA_ENDPOINT_VERSIONS.forgeCrashLog, (_request, endpoint) => {
-      const { trackerId, itemId } = relayValuesOf('crashLog', endpoint);
+    relayRoute('GET', 'forgeCrashLog', (_request, endpoint) => {
+      const { trackerId, itemId } = relayValuesOf('forgeCrashLog', endpoint);
       return crashLogRoute.answerFor(trackerId, itemId);
     }),
-    relayRoute('GET', 'ticketDocuments', GAIA_ENDPOINT_VERSIONS.forgeTicketDocuments, (_request, endpoint) => {
-      const { trackerId, itemId } = relayValuesOf('ticketDocuments', endpoint);
+    relayRoute('GET', 'forgeTicketDocuments', (_request, endpoint) => {
+      const { trackerId, itemId } = relayValuesOf('forgeTicketDocuments', endpoint);
       return ticketDocumentsAnswerFor(trackerId, itemId, readTicketDocuments);
     }),
   ];
@@ -209,52 +214,46 @@ function routesOf(context: RouteContext): readonly PageServerRoute[] {
       answer:          () => versionsAnswerOf(),
     }),
     route({
-      method:          'GET',
-      matchesEndpoint: exactly('health'),
-      version:         GAIA_ENDPOINT_VERSIONS.health,
-      access:          'open',
-      isStream:        false,
-      answer:          () => healthAnswerOf(options.forgeCounts()),
+      method:   'GET',
+      ...servedAt('health'),
+      access:   'open',
+      isStream: false,
+      answer:   () => healthAnswerOf(options.forgeCounts()),
     }),
     route({
-      method:          'POST',
-      matchesEndpoint: exactly('session-codes'),
-      version:         GAIA_ENDPOINT_VERSIONS.sessionCodes,
-      access:          'token',
-      isStream:        false,
-      answer:          () => sessionCodeAnswerOf(sessionCodes),
+      method:   'POST',
+      ...servedAt('sessionCodes'),
+      access:   'token',
+      isStream: false,
+      answer:   () => sessionCodeAnswerOf(sessionCodes),
     }),
     route({
-      method:          'POST',
-      matchesEndpoint: exactly('session'),
-      version:         GAIA_ENDPOINT_VERSIONS.session,
-      access:          'open',
-      isStream:        false,
-      answer:          (request, _endpoint, maximumBodyBytes) => sessionExchangeAnswerFor(request, sessionCodes, maximumBodyBytes),
+      method:   'POST',
+      ...servedAt('session'),
+      access:   'open',
+      isStream: false,
+      answer:   (request, _endpoint, maximumBodyBytes) => sessionExchangeAnswerFor(request, sessionCodes, maximumBodyBytes),
     }),
     route({
-      method:          'GET',
-      matchesEndpoint: exactly('fleet'),
-      version:         GAIA_ENDPOINT_VERSIONS.fleet,
-      access:          'session-or-token',
-      isStream:        false,
-      answer:          () => fleetAnswerOf(broker),
+      method:   'GET',
+      ...servedAt('fleet'),
+      access:   'session-or-token',
+      isStream: false,
+      answer:   () => fleetAnswerOf(broker),
     }),
     route({
-      method:          'GET',
-      matchesEndpoint: exactly('events'),
-      version:         GAIA_ENDPOINT_VERSIONS.events,
-      access:          'session-or-token',
-      isStream:        true,
-      answer:          () => broker.openEventStream(),
+      method:   'GET',
+      ...servedAt('events'),
+      access:   'session-or-token',
+      isStream: true,
+      answer:   () => broker.openEventStream(),
     }),
     route({
-      method:          'POST',
-      matchesEndpoint: exactly('commands'),
-      version:         GAIA_ENDPOINT_VERSIONS.commands,
-      access:          'session-or-token',
-      isStream:        false,
-      answer:          (request, _endpoint, maximumBodyBytes) => commandAnswerFor(request, options.carryCommand, maximumBodyBytes),
+      method:   'POST',
+      ...servedAt('commands'),
+      access:   'session-or-token',
+      isStream: false,
+      answer:   (request, _endpoint, maximumBodyBytes) => commandAnswerFor(request, options.carryCommand, maximumBodyBytes),
     }),
     ...boardRelayRoutesOf(context),
   ];

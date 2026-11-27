@@ -37,13 +37,13 @@ describe('the relay\'s addresses', () => {
     const trackerId = 'example tracker/1';
     const endpointOf = (path: string): string => ApiPathUtil.endpointOfPath(path.split('?')[0] ?? '')?.endpoint ?? '';
     const cases = [
-      { endpointName: 'board', path: BoardApiPaths.boardPathOf(trackerId), itemId: null },
-      { endpointName: 'boardEvents', path: BoardApiPaths.boardEventsPathOf(trackerId), itemId: null },
-      { endpointName: 'jobStream', path: BoardApiPaths.jobStreamPathOf(trackerId, 'J12', '1.4'), itemId: 'J12' },
-      { endpointName: 'profileStream', path: BoardApiPaths.profileStreamPathOf(trackerId, 'P3', 2), itemId: 'P3' },
-      { endpointName: 'pictures', path: BoardApiPaths.picturesPathOf(trackerId), itemId: null },
-      { endpointName: 'picture', path: BoardApiPaths.picturePathOf(trackerId, 'b'.repeat(64)), itemId: 'b'.repeat(64) },
-      { endpointName: 'commands', path: BoardApiPaths.commandsPathOf(trackerId), itemId: null },
+      { endpointName: 'forgeBoard', path: BoardApiPaths.boardPathOf(trackerId), itemId: null },
+      { endpointName: 'forgeBoardEvents', path: BoardApiPaths.boardEventsPathOf(trackerId), itemId: null },
+      { endpointName: 'forgeJobStream', path: BoardApiPaths.jobStreamPathOf(trackerId, 'J12', '1.4'), itemId: 'J12' },
+      { endpointName: 'forgeProfileStream', path: BoardApiPaths.profileStreamPathOf(trackerId, 'P3', 2), itemId: 'P3' },
+      { endpointName: 'forgePictureUpload', path: BoardApiPaths.picturesPathOf(trackerId), itemId: null },
+      { endpointName: 'forgePicture', path: BoardApiPaths.picturePathOf(trackerId, 'b'.repeat(64)), itemId: 'b'.repeat(64) },
+      { endpointName: 'forgeCommands', path: BoardApiPaths.commandsPathOf(trackerId), itemId: null },
     ] as const;
     for (const { endpointName, path, itemId } of cases) {
       const values = BoardRelayEndpointUtil.valuesOf(endpointName, endpointOf(path));
