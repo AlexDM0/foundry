@@ -1,8 +1,7 @@
 /**
- * The fleet's one resume of the jobs a network outage stopped, against its own contract and the verdicts each forge's send answers. What
- * matters: two forges with outage endings and one not answering give two `resumed` and one `not-reached`, and the one not answering is sent
- * nothing; a forge's refusal keeps its sentence; with nothing waiting every forge answers `nothing-to-do`; a forge Gaia could not send it
- * to is `not-reached`; and the forges are sent the resume one after another, never two at once, with no second try.
+ * The fleet's one resume of the jobs a network outage stopped: each forge answers `resumed`, `nothing-to-do`, refused with its sentence or
+ * `not-reached`, a forge not answering is sent nothing, and the forges are sent the resume one after another, never two at once, with no second
+ * try.
  */
 import { describe, expect, test } from 'bun:test';
 

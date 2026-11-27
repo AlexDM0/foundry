@@ -1,10 +1,7 @@
 /**
- * The real-system spec of the browser window watch, run only by `bun run record browser-window-watch` on a Mac with Chrome or Edge. It
- * opens the browser as the launcher does, on a scratch profile with its debugging pipe and on this repository's splash as a file page, and
- * records each situation of the window, with the splash's file at the launcher specs' example path: the splash listed and navigated to a
- * step, which the splash then shows; a navigation the browser refuses while the window stays; the window closed while another window on
- * the profile stays; every window closed while the browser runs; and the browser ended. The browser opens no debugging port. The browser's
- * own version stamps the recording.
+ * The real-system spec of the browser window watch, run only by `bun run record browser-window-watch` on a Mac with Chrome or Edge: it opens the
+ * browser as the launcher does, on a scratch profile and the splash, and records each situation of the window, from a navigation to its close and
+ * the browser's end. The browser's version stamps it.
  */
 import { readdirSync }   from 'node:fs';
 import { join }          from 'node:path';

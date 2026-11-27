@@ -1,8 +1,6 @@
 /**
- * The browser-window-watch mock every launcher spec uses in place of the real boundary. It answers from the answers recorded from a real
- * browser for one situation of its window, which the spec moves on as the flow goes, and fails the spec on a call with no answer. It keeps
- * the real boundary's demands on the caller: a watch is built over a browser child's channel and asked only while that channel is open,
- * and a navigation goes to a listed window. Test-only.
+ * The browser-window-watch mock every launcher spec uses: it answers what was recorded from a real browser for one situation of its window, fails
+ * the spec on a call with no answer, and keeps the real boundary's demands of an open channel and a navigation to a listed window. Test-only.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';

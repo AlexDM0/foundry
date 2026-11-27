@@ -1,10 +1,7 @@
 /**
- * The count of other forges that follow this machine's program of an agent vendor. What matters: only a forge whose last read board follows
- * the machine's program of that vendor counts, never the forge asking, one that pins its own program, chose no agent or follows another
- * vendor; a count never waits on another forge: a forge not read yet is read in the background, once, and counted from the next count; a
- * newer board read replaces what an earlier one noted; and a forge whose board cannot be read, such as a stopped one, is not asked again
- * until the hold has passed on the injected clock. While any other forge's choice is not read the count is unknown, never 0, so changing the
- * machine's program still asks first. The agents are the recorded board's.
+ * The count of other forges that follow this machine's program of an agent vendor: only forges whose last read board follows it count, a forge not
+ * read yet is read in the background and counted next time, an unreadable one is held off on the injected clock, and while any choice is unread the
+ * count is unknown, never 0.
  */
 import { describe, expect, test } from 'bun:test';
 

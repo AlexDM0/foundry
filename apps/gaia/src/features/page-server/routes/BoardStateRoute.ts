@@ -1,8 +1,7 @@
 /**
- * `GET /api/v1/forges/<trackerId>/board`: the forge's board document read afresh, ingested into Gaia's model and mapped to the page's
- * `BoardDocument`, the Markdown the forge serves rendered here into the HTML the page shows. Reads of one forge are shared: a request that
- * comes while a read is on its way waits for the next one, which starts once that read is done and answers every request that waited, so a
- * burst of change signals costs at most two reads and one map each.
+ * `GET /api/v1/forges/<trackerId>/board`: the forge's board read afresh, ingested and mapped to the page's `BoardDocument` with its Markdown
+ * rendered here. Reads are shared: a request during a read waits for the next one, which answers every waiting request, so a burst of change
+ * signals costs at most two reads.
  */
 import type { ResumeWaitsOfJobs }                         from '../../../adapters/forge-api/@types/ResumeWaitsOfJobs.ts';
 import { BoardStateIngestion }                            from '../../../adapters/forge-api/BoardStateIngestion.ts';

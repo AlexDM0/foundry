@@ -1,5 +1,5 @@
 /**
- * The order of what waits on User across forges (`docs/design/screens.md` A1, "The order of what waits"). What matters: escalated entries lead, then the
+ * The order of what waits on User across forges (`docs/design/screens.md`, "The order of what waits"). What matters: escalated entries lead, then the
  * oldest stamp, compared as an instant whatever its offset; a tie keeps the forges' and each forge's own order; and only a forge read in full, or its last
  * full reading while it does not answer, lists entries by name.
  */

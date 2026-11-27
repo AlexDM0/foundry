@@ -1,9 +1,7 @@
 /**
- * The board command route over Example Storefront's recorded command answers. What matters: a command is sent as the forge's command of
- * its kind, with the token as its bearer, and an applied one answers its outcome; a forge's refusal answers the forge's code, fields and
- * sentence unchanged, a command naming one included (decision 45), and a held launch answers install-held under 423; an unknown kind, a
- * malformed body and a body over its bound reach no forge; a forge that cannot be reached before the command goes is unreachable, and
- * one that gives no answer after it went leaves the outcome unknown; and the token is in no answer.
+ * The board command route over Example Storefront's recorded command answers: a command goes with the token as its bearer and answers its outcome,
+ * a forge's refusal passes unchanged, a held launch answers install-held under 423, a bad kind or body reaches no forge, an unreachable forge is
+ * told from an unknown outcome, and no answer carries the token.
  */
 import {
   afterEach,

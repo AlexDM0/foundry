@@ -1,9 +1,7 @@
 /**
- * The real-system spec of the install, run only by `bun run record app-install-programs` on a Mac with the developer tools: it installs
- * Gaia.app for real into a scratch Applications folder, with the real compiler, joiner and signer, and records what each answers. The situations:
- * an install that compiles and signs (twice, the second over the first), a launcher source the compiler rejects, and a staged bundle the
- * signer cannot write its signature into. The installed bundle is checked as macOS sees it: a universal, validly signed stub that runs the
- * launch script beside it. The Darwin release stamps the recording.
+ * The real-system spec of the install, run only by `bun run record app-install-programs` on a Mac with the developer tools: it installs Gaia.app
+ * for real into a scratch Applications folder and records what the compiler, joiner and signer answer, a rejected launcher source and an unwritable
+ * signature included. The Darwin release stamps the recording.
  */
 import {
   chmodSync,

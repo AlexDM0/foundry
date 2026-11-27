@@ -1,9 +1,7 @@
 /**
- * The diagram frame, built from the repository's real `page/diagram-frame/`. What matters: the frame is served at `/diagram-frame/` with
- * every script it names beside it, each under the frame's own policy, a sandbox with scripts and no origin of its own; it loads its script
- * as a classic one, with no `type="module"` and no `crossorigin`, since either would make the opaque frame ask with `Origin: null`, which
- * the Origin guard refuses; the bundle holds every module in itself and loads none later; and the script's source holds no colour, since
- * every colour reaches the frame from the board's tokens. The Host and Origin guards on the frame are `PageServer.spec.ts`'s to hold.
+ * The diagram frame built from the real `page/diagram-frame/`: served with its scripts under its own sandboxed policy, its script loaded as a
+ * classic one, since a module would ask with `Origin: null`, which the Origin guard refuses; the bundle holds every module and no colour, which
+ * comes from the board's tokens.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';

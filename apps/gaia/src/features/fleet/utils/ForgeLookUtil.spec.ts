@@ -1,5 +1,5 @@
 /**
- * The table of `docs/design/screens.md` A1, "Forges that need a look", one case per row, then the rule that picks between rows. What matters: each
+ * The table of `docs/design/screens.md`, "Forges that need a look", one case per row, then the rule that picks between rows. What matters: each
  * condition raises its own kind, a forge shows at most the first look that applies, and a dormant forge Gaia read nothing of in this run shows none, since
  * Gaia never reads a board's files.
  */

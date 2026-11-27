@@ -1,8 +1,7 @@
 /**
- * From a tracker id to a forge's Hephaestus. What matters: a registered forge the watch read at the registry's address, at a version Gaia
- * talks to, gives the access with its token and the version the watch read, ahead of the supported one too; the token file is read again
- * at each call; and each way there is no access is its own refusal, asked of nothing: an unregistered forge, a registry Gaia cannot read,
- * a forge the watch could not reach or read at another address, a version Gaia cannot talk to, and a token file that is gone or unnamed.
+ * From a tracker id to a forge's Hephaestus: a registered forge the watch read at a version Gaia talks to gives its access, its token read again at
+ * each call, and each way there is no access (unregistered, unreadable registry, unreachable, wrong version or missing token) is its own refusal
+ * that asks nothing.
  */
 import { writeFileSync } from 'node:fs';
 import { join }          from 'node:path';

@@ -1,8 +1,7 @@
 /**
- * How many other forges of this machine follow its program of an agent vendor, counted across the forges Gaia reads: each forge's agent
- * choice as its last board read named it. A count never waits on another forge: a forge not read yet is read in the background, its
- * choice counted from the next count on, and a forge whose read failed, such as a stopped one, is left alone for a while before it is read
- * again. While any other forge's choice is not read, the count is unknown rather than a 0 that would let a change skip its question.
+ * How many other forges of this machine follow its program of an agent vendor, from each forge's last read board. A count never waits: an unread
+ * forge is read in the background for the next count, a failed one is left alone a while, and while any choice is unread the count is unknown, so a
+ * change never skips its question.
  */
 import type { BoardAgent } from '../../shared/@types/board/BoardAgent.ts';
 

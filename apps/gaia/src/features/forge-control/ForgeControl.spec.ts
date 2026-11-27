@@ -1,13 +1,7 @@
 /**
- * forge-control over recorded Hephaestus answers, forge program runs and chooser runs, and the real settings store under a scratch home: one
- * spec per kind and the carrier `ForgeControl` picks for it. What matters: the command each kind sends and to whom, a refusal's code and sentence
- * passed on unchanged from the API and the program, the contract check that sends nothing to a forge whose control contract Gaia does not
- * know, every command sent at the versioned path of the commands, also
- * to a forge ahead of the one Gaia supports, a stop and a machine limit that fall back to the program, or the next live forge,
- * when no Hephaestus answers or no token can be read, a command sent only to Hephaestus at the address the watch read, a registry Gaia
- * cannot read refused with its reason, an add that runs `init`, then `start`, and stops at the first refusal, settings changed one key at
- * a time, a cancelled chooser that answers nothing-to-do, and the in-flight rule, which holds one forge, one repository, the machine limit
- * and the chooser, and leaves the others free.
+ * forge-control over recorded Hephaestus answers, program and chooser runs, and the real settings store under a scratch home, one spec per command
+ * kind: what each sends and to whom, refusals passed on unchanged, nothing sent to a forge whose control contract Gaia does not know, the fallback
+ * to the program when no Hephaestus answers, and the in-flight rule.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join }            from 'node:path';

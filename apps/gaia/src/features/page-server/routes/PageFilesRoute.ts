@@ -1,10 +1,7 @@
 /**
- * `GET /` and the page's files: the page is built by `Bun.build` on its first request, not at start, so the health route answers at once.
- * Every later request shares that one build; a failed build answers its refusal and the next request builds again. The built files stay
- * in memory, `index.html` at `/` and each chunk at its own name, so nothing generated lands in the repository. The design system's font
- * files are among them, emitted with their content hash in the name, so a browser keeps each for a year without asking again. The diagram
- * frame is built apart, as its hand-written `index.html` at `/diagram-frame/` and one classic script beside it with mermaid bundled in: a
- * sandboxed frame has no origin of its own, and a module script would ask with `Origin: null`, which the Origin guard refuses.
+ * `GET /` and the page's files, built in memory by `Bun.build` on the first request so health answers at once; a failed build is retried on the
+ * next request. The diagram frame is built apart as one classic script with mermaid bundled in, since its sandbox has no origin and a module would
+ * ask with `Origin: null`.
  */
 import { join } from 'node:path';
 

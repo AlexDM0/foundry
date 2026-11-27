@@ -1,8 +1,7 @@
 /**
- * `GET /api/v1/forges/<trackerId>/tickets/<ticketId>/documents`: a ticket's spec and plan, read afresh from the forge on every ask, ingested
- * and mapped to the page's `GaiaTicketDocumentsDocument` with the Markdown left as source text. A forge's refusal, such as a ticket with no
- * documents, reaches the page as the forge's own sentence; a refusal of Gaia's as its code and Gaia's sentence, which the page shows as it
- * shows the forge's.
+ * `GET /api/v1/forges/<trackerId>/tickets/<ticketId>/documents`: a ticket's spec and plan read afresh from the forge, mapped to the page's
+ * `GaiaTicketDocumentsDocument` with the Markdown left as source. A forge's refusal reaches the page as its own sentence, Gaia's as its code and
+ * sentence, which the page shows alike.
  */
 import { TicketDocumentsIngestion }                       from '../../../adapters/forge-api/TicketDocumentsIngestion.ts';
 import { TicketDocumentsDocumentMapUtil }                 from '../../../adapters/page-api/TicketDocumentsDocumentMapUtil.ts';

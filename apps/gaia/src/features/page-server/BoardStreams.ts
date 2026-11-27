@@ -1,8 +1,7 @@
 /**
- * The open relayed streams of every forge's board, keyed by tracker id: each page stream with the one forge stream it follows, opened with
- * Gaia's handshake once the forge's own names the version the watch read, then each forge event mapped once per forge and sent to every
- * page stream that follows it, under the forge's event name and id. A page stream that closes stops its forge stream, a forge stream that
- * ends closes its page stream, and a stop closes them all. A heartbeat runs only while a stream is open.
+ * The open relayed streams of every forge's board, keyed by tracker id: each page stream follows one forge stream, opened with Gaia's handshake,
+ * and each forge event is mapped once per forge and sent to every page stream that follows it. A close on either side closes the other; a heartbeat
+ * runs only while a stream is open.
  */
 import { createHash } from 'node:crypto';
 

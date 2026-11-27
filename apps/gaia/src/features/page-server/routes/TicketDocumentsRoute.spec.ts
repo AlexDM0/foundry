@@ -1,10 +1,7 @@
 /**
- * A ticket's documents answered to the page, read through the forge client from the recorded forge (`hephaestus-fetch-ticket-documents`)
- * and from hand-built reads. What matters: documents read are answered as the page's contract at its version and never cached; a forge's
- * refusal, a ticket with no documents among them, keeps the forge's code, fields and sentence byte for byte under a conflict status, even a
- * sentence that names a command; a refusal of Gaia's is answered with its code and Gaia's sentence under its own status, a forge that does
- * not answer and a body that does not ingest among them, the latter logged with its keys; the reader is asked for the forge and ticket the
- * route names; and no answer carries the token. The session guard on the route is `PageServer.spec.ts`'s to hold.
+ * A ticket's documents answered to the page from the recorded forge and hand-built reads: documents map to the page's contract uncached, a forge's
+ * refusal keeps its sentence byte for byte under a conflict status, Gaia's refusals carry its code and sentence, the reader is asked for the
+ * route's forge and ticket, and no answer carries the token.
  */
 import {
   afterEach,

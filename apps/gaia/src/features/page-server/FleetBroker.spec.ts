@@ -1,8 +1,7 @@
 /**
- * The fleet broker over a fleet store and timers fired by hand: a stream opens on its handshake, which names Gaia's system version, then on
- * the current document, hears every published snapshot once as a `fleet` event carrying Gaia's system version beside the document, and
- * hears nothing for a snapshot the store does not publish. The heartbeat runs only while a stream is open; a
- * stream whose reader went away is dropped, and a stop ends every stream, cancels the heartbeat and hears the store no more.
+ * The fleet broker over a fleet store and timers fired by hand: a stream opens on its handshake and the current document, then hears every
+ * published snapshot once as a `fleet` event with Gaia's system version; the heartbeat runs only while a stream is open, and a stop ends every
+ * stream and the heartbeat.
  */
 import { describe, expect, test } from 'bun:test';
 

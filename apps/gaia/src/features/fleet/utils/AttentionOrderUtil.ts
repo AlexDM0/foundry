@@ -1,11 +1,11 @@
 /**
- * What waits on User across forges, in the order of `docs/design/screens.md` A1, "The order of what waits": escalated entries first, then the oldest stamp
+ * What waits on User across forges, in the order of `docs/design/screens.md`, "The order of what waits": escalated entries first, then the oldest stamp
  * first; a tie keeps the forges' own order.
  */
 import type { FleetAttentionItem }          from '../../../shared/@types/FleetSnapshot.ts';
 import type { ForgeFidelity, ForgeReading } from '../../../shared/@types/ForgeReading.ts';
 
-/** An unreachable forge keeps its last full reading, so its entries stay listed as last reported (artboard B3). */
+/** An unreachable forge keeps its last full reading, so its entries stay listed as last reported. */
 const FIDELITIES_THAT_LIST_ATTENTION: ReadonlySet<ForgeFidelity> = new Set<ForgeFidelity>(['full', 'unreachable']);
 
 /** A stamp that does not parse sorts after every stamp that does, so it never pushes a readable entry down. */

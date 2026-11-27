@@ -1,9 +1,7 @@
 /**
- * The set of open relayed streams over Example Storefront's recorded board stream, its heartbeat fired by hand. What matters: a heartbeat
- * reaches every open stream and runs only while one is open; a stop closes every page stream and the forge stream each follows, and opens
- * no stream after it; an event two page streams of one forge hear is mapped once; and a job's `history`, which carries the last cursor as
- * its id whatever cursor a page resumed from, reaches each page stream with its own entries. The routes' specs hold the opening, the
- * relaying and the refusals.
+ * The open relayed streams over Example Storefront's recorded board stream, its heartbeat fired by hand: the heartbeat runs only while a stream is
+ * open, a stop closes every stream, an event two page streams hear is mapped once, and a job's `history` reaches each page stream with its own
+ * entries. The routes' specs hold the rest.
  */
 import {
   afterEach,

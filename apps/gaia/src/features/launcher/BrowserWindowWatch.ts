@@ -1,8 +1,7 @@
 /**
- * The boundary to the browser's debugging pipe: the browser started with `--remote-debugging-pipe` speaks its DevTools protocol over the
- * channel of the browser child, which only the launcher holds, so no other process can reach the window. Over it the watch reads the page
- * targets the browser lists, one per open window, and navigates one window to another address. A browser that does not answer is an
- * ordinary answer, never a throw.
+ * The boundary to the browser's debugging pipe: a browser started with `--remote-debugging-pipe` speaks DevTools over the channel of the browser
+ * child, which only the launcher holds, so no other process can reach the window. It lists the windows and navigates one; a browser that does not
+ * answer is an ordinary answer, never a throw.
  */
 import { JsonValueUtil, type JsonObject } from '../../lib/json-value/JsonValueUtil.ts';
 import type { ChildChannel }              from '../../lib/process-run/ProcessRun.ts';

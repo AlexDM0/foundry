@@ -1,9 +1,7 @@
 /**
- * The three relayed streams over Example Storefront's recorded streams. What matters: a stream opens with Gaia's handshake, with no id,
- * naming Gaia's and the forge's versions; the forge's own handshake is dropped; each event is re-emitted under the forge's name and id with
- * its data mapped to the page's contract; the page's `Last-Event-ID` and `after` reach the forge; the page's stream ends when the forge's
- * does, and the forge's is closed when the page goes; two page streams of one forge map each event once; an event that does not ingest is
- * dropped and logged; and each way a stream cannot open is its own refusal, the token in no answer and no log line.
+ * The three relayed streams over Example Storefront's recorded streams: each opens with Gaia's handshake in place of the forge's, re-emits every
+ * event under the forge's name and id mapped to the page's contract, resumes from the page's cursor, ends and closes with its other side, drops and
+ * logs what does not ingest, and never shows the token.
  */
 import {
   afterEach,

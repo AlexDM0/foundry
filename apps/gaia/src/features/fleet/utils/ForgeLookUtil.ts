@@ -1,5 +1,5 @@
 /**
- * The forge-level conditions of `docs/design/screens.md` A1, "Forges that need a look": derived from one reading, never stored, at most one per forge, the
+ * The forge-level conditions of `docs/design/screens.md`, "Forges that need a look": derived from one reading, never stored, at most one per forge, the
  * first that applies.
  */
 import type { ForgeLook, ForgeLookKind } from '../../../shared/@types/FleetSnapshot.ts';
@@ -38,7 +38,7 @@ function ticketsWaitForAMachineSlot(reading: ForgeReading): boolean {
   return forgeIsReadInFull(reading) && (reading.concurrency?.ticketsWaitingForMachineSlot ?? 0) > 0;
 }
 
-/** The table of `docs/design/screens.md` A1, "Forges that need a look", in its order. */
+/** The table of `docs/design/screens.md`, "Forges that need a look", in its order. */
 const LOOK_RULES: readonly { readonly kind: ForgeLookKind; readonly applies: (reading: ForgeReading) => boolean }[] = [
   { kind: 'unreachable', applies: (reading) => reading.fidelity === 'unreachable' },
   { kind: 'newer-contract', applies: (reading) => reading.fidelity === 'newer-contract' },

@@ -1,9 +1,7 @@
 /**
- * The install as a flow, over the compiler, joiner and signer recorded from a real Mac, one answer set per situation, into a scratch
- * Applications folder. What matters: the bundle is generated whole, built and signed in a staging folder and only then put in place, over
- * an earlier install of Gaia's; a compile or a signing that fails leaves the earlier install as it was; another application of the same name
- * is never touched; an earlier install that a failed placement stranded goes back before the next install clears its staging folder; and no
- * staging folder is left behind.
+ * The install as a flow over the recorded compiler, joiner and signer, into a scratch Applications folder: the bundle is built and signed in
+ * staging and only then put in place, so a failed compile or signing, or a stranded earlier install, leaves Gaia's earlier install intact, another
+ * application of the same name untouched and no staging folder behind.
  */
 import {
   chmodSync,

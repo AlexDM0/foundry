@@ -1,9 +1,7 @@
 /**
- * The board route over Example Storefront's recorded board. What matters: the board answers as the page's `BoardDocument`, mapped from
- * the forge's document as Gaia's model reads it, never stored; reads of one forge are shared, so a burst of requests while a read is on
- * its way costs one more read, never one each, and a request after it reads afresh; each way the forge cannot be read is its own refusal,
- * a document that does not ingest logged with its keys; a board with waiting work takes each job's wait from the presence the forge watch
- * reads, never a read of its own, and one without asks for none; and the token is in no answer and no log line.
+ * The board route over Example Storefront's recorded board: it answers the page's `BoardDocument` mapped afresh, shares reads so a burst costs one
+ * more read, refuses each unreadable forge on its own terms, logging a document that does not ingest by its keys, takes job waits from the watch's
+ * presence, and never shows the token.
  */
 import {
   afterEach,

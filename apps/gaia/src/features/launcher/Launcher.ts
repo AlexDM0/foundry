@@ -1,11 +1,7 @@
 /**
- * `gaia launch` (`docs/architecture.md`, "Processes"): probes Gaia's health on the port; starts `gaia serve` as an owned child when nothing
- * answers and opens the browser at once on the splash, which it moves on as the server and its forges answer; moves the window to Gaia's
- * page with a session code asked for only once the window exists; follows the window through the browser's debugging pipe; and when no
- * window of Gaia's is left, stops the browser and the server it started, whatever other window the browser still shows on Gaia's profile.
- * Every wait is a bounded number of tries at an injectable interval, and every refusal or failure is shown in a dialog; a window User
- * closes before the page opens closes Gaia quietly. A launch from a Gaia.app installed for another install version refuses before it starts
- * anything (conventions section 9).
+ * `gaia launch` (`docs/architecture.md`, "Processes"): starts `gaia serve` and the splash when nothing answers on the port, moves the window to
+ * Gaia's page once it exists, and stops what it started when no window of Gaia's is left, whatever other window shows on Gaia's profile. Every
+ * wait is bounded and every refusal a dialog; a Gaia.app of another install version refuses before it starts anything.
  */
 import { appBundleFolderName, type AppBundleInfoReading } from '../../adapters/app-bundle/AppBundleInfoFile.ts';
 import type { GaiaServerClient, HealthReading }           from '../../adapters/gaia-server/GaiaServerClient.ts';

@@ -32,8 +32,8 @@ function instantOf(stamp: string): number {
 }
 
 /**
- * Entries of different writers are ordered by their stamps for display only: the stated exception to "a clock decides nothing" (`docs/design/screens.md`
- * A1, "The order of what waits"); nothing else depends on the order.
+ * Entries of different writers are ordered by their stamps for display only: the stated exception to "a clock decides nothing" (`docs/design/screens.md`,
+ * "The order of what waits"); nothing else depends on the order.
  */
 function newestFirst(a: FleetActivityEntry, b: FleetActivityEntry): number {
   const aInstant = instantOf(a.at);
@@ -42,7 +42,7 @@ function newestFirst(a: FleetActivityEntry, b: FleetActivityEntry): number {
   return aInstant > bInstant ? -1 : 1;
 }
 
-/** A dormant forge's entries stay as long as Gaia runs (artboard A3), so every reading's entries are merged. */
+/** A dormant forge's entries stay as long as Gaia runs, so every reading's entries are merged. */
 function fleetActivityOf(readings: readonly ForgeReading[]): FleetActivityEntry[] {
   return readings
     .flatMap((reading) => reading.activity
@@ -52,7 +52,7 @@ function fleetActivityOf(readings: readonly ForgeReading[]): FleetActivityEntry[
     .sort(newestFirst);
 }
 
-/** By project name, then by job id read as a number, so J2 comes before J11. */
+/** By project name, then by job id read as a number, so `J2` comes before `J11`. */
 function fleetAgentsOf(readings: readonly ForgeReading[]): FleetAgentRow[] {
   const collator = new Intl.Collator('en', { numeric: true });
   return readings

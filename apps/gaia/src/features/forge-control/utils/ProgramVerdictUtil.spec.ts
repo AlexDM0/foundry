@@ -1,8 +1,7 @@
 /**
- * How a forge program's run ends as Gaia's command verdict. What matters: a done update whose restart the live Hephaestus did not take is
- * restart pending, not plain done, since the old code still drives; a pass that was done or not needed leaves the update's own outcome; a
- * refusal keeps the forge's code and sentence for the page contract's mapper to word; and each way the program did not finish is Gaia's
- * own verdict. The failed pass is a value of the internal model: no forge was recorded answering it yet (docs/backlog.md).
+ * How a forge program's run ends as Gaia's command verdict: a done update whose restart the live Hephaestus did not take is restart pending,
+ * since the old code still drives, a refusal keeps the forge's code and sentence, and each unfinished run is Gaia's own verdict. No forge was
+ * recorded answering the failed pass yet (docs/backlog.md).
  */
 import { describe, expect, test } from 'bun:test';
 

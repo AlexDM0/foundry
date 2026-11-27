@@ -1,8 +1,7 @@
 /**
- * The three relayed streams of a forge's board: `GET /api/v1/forges/<trackerId>/board/events`, `.../jobs/<jobId>/stream` and
- * `.../profiles/<profileRunId>/stream`. Each follows the forge's stream from the page's `Last-Event-ID` and `after`, and hands every event
- * to `BoardStreams`, ingested and mapped to the page's contract by its kind: a board event as a change signal, a job stream's `history` and
- * `message` and a profile stream's `line` as a `ConversationDocument`. An event that does not ingest is dropped, never forwarded raw.
+ * The three relayed streams of a forge's board: its events, a job's stream and a profile run's stream. Each follows the forge's stream from the
+ * page's `Last-Event-ID` and `after` and hands every event to `BoardStreams`, mapped by its kind; an event that does not ingest is dropped, never
+ * forwarded raw.
  */
 import type { DocumentReadingFailure }                                from '../../../adapters/forge-api/@types/ForgeDocumentReading.ts';
 import { BoardEventIngestion }                                        from '../../../adapters/forge-api/BoardEventIngestion.ts';

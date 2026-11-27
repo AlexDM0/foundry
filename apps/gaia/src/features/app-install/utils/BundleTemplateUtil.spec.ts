@@ -1,8 +1,6 @@
 /**
- * The generated Info.plist and launch script are pinned whole, from the real templates and example values: the plist carries the install
- * version the launcher compares and the keys that keep Gaia out of the Dock and awake, and the script finds Bun with a bare PATH, shows a
- * failure as a dialog, and runs the launch with its bundle named. A change to a template changes its pin in the same change. A value lands
- * escaped for its file, so no path can break out of its shell word or its XML string, and a placeholder with no value fills nothing.
+ * The generated Info.plist and launch script pinned whole from the real templates, so a template change changes its pin in the same change. Every
+ * value lands escaped for its file, so no path breaks out of its shell word or XML string, and a placeholder with no value fills nothing.
  */
 import { readFileSync }           from 'node:fs';
 import { join }                   from 'node:path';

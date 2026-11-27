@@ -1,8 +1,7 @@
 /**
- * A forge's pictures relayed, over Example Storefront's recorded pictures. What matters: an upload forwards the page's bytes and content
- * type and answers the stored picture; a forge's refusal of a picture keeps the forge's code, fields and sentence; a body over Gaia's bound
- * is refused unread and the forge asked nothing; a picture reads back as its bytes under the forge's type, never sniffed, sandboxed and
- * never stored; and each way the forge cannot be reached is its own refusal, the token in no answer.
+ * A forge's pictures relayed over Example Storefront's recorded pictures: an upload forwards the page's bytes and type, a refusal keeps the forge's
+ * sentence, an oversized body is refused unread, a picture reads back under the forge's type, sandboxed and never sniffed, and each unreachable
+ * forge is its own refusal with the token in no answer.
  */
 import {
   afterEach,

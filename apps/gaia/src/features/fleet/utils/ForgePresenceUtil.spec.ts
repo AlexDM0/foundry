@@ -1,8 +1,7 @@
 /**
- * How a forge is present, against the util's own contract. What matters: crashed, stopped, handed over, down, hung, serving and unknown are
- * told apart from the registry's presence, Hephaestus's answer and the served supervision alone, a forge of a version Gaia cannot talk to
- * answering all the same; a crash the registry records wins over an answer; the crash summary, the crash logs and the waiting work reach
- * only the forge that holds them; and an alert, with Start where Hephaestus is gone, is raised only for a crashed, down or hung forge.
+ * How a forge is present, from the registry's presence, Hephaestus's answer and the served supervision alone: crashed, stopped, handed over, down,
+ * hung, serving and unknown told apart, a recorded crash winning over an answer, crash details reaching only their forge, and an alert raised only
+ * for a crashed, down or hung forge.
  */
 import { describe, expect, test } from 'bun:test';
 

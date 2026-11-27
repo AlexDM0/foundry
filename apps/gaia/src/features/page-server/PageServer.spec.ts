@@ -1,14 +1,7 @@
 /**
- * The page server, headless, on any free port under a scratch home: the token it writes, the whole road of the page (a code bought with the
- * token, spent for the cookie, the fleet read, a `fleet` event heard after a store change), one refused request per guard, a command
- * carried through the command port and answered with its verdict, each route of a forge's board's relay routed behind the session guard and
- * no frame session route, a body over a route's bound refused but on the picture upload, and the CSP on every answer, refusals and failures
- * included, framing nothing but its own origin; the diagram frame's files alone carry the frame's own sandboxed policy. Gaia's system
- * version answers at `/api/versions`, unversioned only; every other route answers at its versioned path alone, behind its guards, never
- * at another version nor at its unversioned path. It refuses to start where Gaia already answers, and a start that loses the port leaves
- * the token as it was; a stop closes every relayed stream with the forge stream it follows. The page's files are a stand-in for the
- * build, whose own spec builds the real page; the command port is a stand-in for forge-control, whose own spec carries every kind; the
- * relay routes' own specs ask a forge; the heartbeat's timers are fired by hand.
+ * The page server, headless on a free port under a scratch home: the page's whole road from token to cookie to fleet event, one refusal per guard,
+ * the command port, the relay routes behind the session guard, body bounds, the CSP on every answer, and versioned paths only but `/api/versions`.
+ * Stand-ins replace the page build, forge-control and the relays, whose own specs hold them.
  */
 import {
   mkdirSync,

@@ -1,9 +1,7 @@
 /**
- * The splash the launcher opens (artboard C3), read as the file it is: it paints with the page's tokens only, the design-system package's
- * and Gaia's, and reads no token that both lack; it says what `docs/design/screens.md` C3 says and tells User to run nothing; and it knows every step and
- * fragment key the launcher moves it with; and it marks motion ready only after its first step has painted, so that step shows at once and
- * a later one fades in. Its own script runs against a stand-in document and stand-in frames at each step the launcher moves it to, since
- * specs have no document; the browser window watch's recording shows it in a real browser at a step.
+ * The splash the launcher opens, read as the file it is: it paints with the page's tokens only, says what `docs/design/screens.md` says of it,
+ * knows every step and fragment key the launcher uses, and marks motion ready only after its first step painted. Its script runs against a stand-in
+ * document, since specs have none.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join }            from 'node:path';

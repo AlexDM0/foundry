@@ -1,8 +1,7 @@
 /**
- * The crash log route over Example Storefront's recorded crash log (`hephaestus-fetch-presence`). What matters: a live forge's log answers as
- * the page's `CrashLogDocument`, mapped from the forge's log as Gaia reads it; it is read once per start of the forge's Hephaestus, however
- * often it is asked; a log the forge does not have and a number that is none are not found; a forge whose Hephaestus does not answer, the one
- * off after a crash included, is refused and asked nothing more; and the token is in no answer.
+ * The crash log route over Example Storefront's recorded crash log: a live forge's log answers as the page's `CrashLogDocument`, read once per
+ * Hephaestus start, a missing log or a number that is none is not found, a forge whose Hephaestus is down is refused and asked nothing more, and no
+ * answer carries the token.
  */
 import {
   afterEach,

@@ -1,11 +1,7 @@
 /**
- * The real-system spec of the launcher, run only by `bun run record launcher-programs` on a Mac with Chrome or Edge: it launches Gaia for
- * real under the run's scratch home, with the real `gaia serve`, browser, window watch and dialogs, and records what each program the
- * launcher starts answers, under the example values the flow spec launches with. The situations: nothing on the port (the server and the
- * splash start, the page opens, and closing the window stops both), Gaia already up (the splash opens at its last step and moves on to the
- * page, and the server outlives the window),
- * a server that ends before it answers, no browser, another program on the port and a Gaia.app installed for another install version (a
- * dialog each, which this spec dismisses), and the dialog of every other refusal and failure. The browser's version stamps the recording.
+ * The real-system spec of the launcher, run only by `bun run record launcher-programs` on a Mac with Chrome or Edge: it launches Gaia for real
+ * under a scratch home and records what each program the launcher starts answers, from a clean start and Gaia already up to every refusal and
+ * failure dialog. The browser's version stamps the recording.
  */
 import { join }          from 'node:path';
 import { pathToFileURL } from 'node:url';

@@ -1,9 +1,7 @@
 /**
- * The page's files, built from the repository's real `page/index.html`: the page is served at `/`, every file it names is served beside
- * it, and nothing it loads is inline, which the page's CSP would block. One build serves every request; a build that fails answers its
- * refusal, and the next request builds again, so a page fixed on disk is served without a restart. The design system's font files come from
- * the package through the page's script and are served from Gaia's own origin, each with its content hash in its name, so a browser may
- * keep it for a year. The page bundles one React, the workspace's hoisted copy, which the design-system package's hooks share.
+ * The page's files built from the real `page/index.html`: everything it names is served beside it and nothing inline, which the CSP would block,
+ * one build serves every request and a failed one is retried on the next, and the design system's fonts are served hashed from Gaia's origin to
+ * be kept for a year. The page bundles one React, the hoisted copy the design-system package's hooks share.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import {
