@@ -26,6 +26,7 @@ import {
   test
 } from 'bun:test';
 
+import { SUPPORTED_FORGE_VERSION }           from '../../shared/constants/SupportedForgeVersions.ts';
 import { recordAnswer, recordSystemVersion } from '../../testing/BoundaryRecordings.ts';
 import {
   recordedFormOf,
@@ -155,22 +156,22 @@ function bodyOf(answer: HephaestusAnswer): Record<string, unknown> {
 }
 
 async function sendCommand(command: Record<string, unknown>): Promise<HephaestusAnswer> {
-  return realHephaestusFetch().request(requestOf('POST', forgeEndpointPathOf('commands'), { jsonBody: JSON.stringify(command) }));
+  return realHephaestusFetch().request(requestOf('POST', forgeEndpointPathOf('commands', SUPPORTED_FORGE_VERSION), { jsonBody: JSON.stringify(command) }));
 }
 
 async function keepCommand(situation: BoardSituation, command: Record<string, unknown>): Promise<HephaestusAnswer> {
-  const commandRequest = requestOf('POST', forgeEndpointPathOf('commands'), { jsonBody: JSON.stringify(command) });
+  const commandRequest = requestOf('POST', forgeEndpointPathOf('commands', SUPPORTED_FORGE_VERSION), { jsonBody: JSON.stringify(command) });
   const answer = await realHephaestusFetch().request(commandRequest);
   keep(situation, requestCallShapeOf(commandRequest), answer);
   return answer;
 }
 
 async function boardDocument(): Promise<Record<string, unknown>> {
-  return bodyOf(await realHephaestusFetch().request(requestOf('GET', forgeEndpointPathOf('board'))));
+  return bodyOf(await realHephaestusFetch().request(requestOf('GET', forgeEndpointPathOf('board', SUPPORTED_FORGE_VERSION))));
 }
 
 async function uploaded(situation: BoardSituation, byteBody: HephaestusByteBody): Promise<HephaestusAnswer> {
-  const uploadRequest = requestOf('POST', forgeEndpointPathOf('pictures'), { byteBody });
+  const uploadRequest = requestOf('POST', forgeEndpointPathOf('pictures', SUPPORTED_FORGE_VERSION), { byteBody });
   const answer = await realHephaestusFetch().request(uploadRequest);
   keep(situation, requestCallShapeOf(uploadRequest), answer);
   return answer;
@@ -220,7 +221,7 @@ async function historyWithItsFirstEntry(jobStreamRequest: HephaestusStreamReques
 
 /** Waits on the board's event stream until the board document shows what `boardShows` asks, and answers that document. */
 async function boardOnceItShows(wanted: string, boardShows: (board: Record<string, unknown>) => boolean): Promise<Record<string, unknown>> {
-  const stream = await openedStream(streamRequestOf(forgeEndpointPathOf('events')));
+  const stream = await openedStream(streamRequestOf(forgeEndpointPathOf('events', SUPPORTED_FORGE_VERSION)));
   const parser = eventStreamParserOf();
   try {
     for (let eventsSeen = 0; eventsSeen <= EVENTS_LOOKED_AT_MOST;) {
@@ -264,7 +265,7 @@ function assistantKeyOf(board: Record<string, unknown>): unknown {
 async function keepTheAssistantSwitched(situation: BoardSituation, on: boolean): Promise<Record<string, unknown>> {
   expect(await keepCommand(situation, { kind: 'pipeline-assistant-set', on })).toMatchObject({ status: SUCCESS_STATUS });
   await boardOnceItShows(`the Assistant switched ${on ? 'on' : 'off'}`, (board) => (assistantKeyOf(board) === true) === on);
-  const boardRequest = requestOf('GET', forgeEndpointPathOf('board'));
+  const boardRequest = requestOf('GET', forgeEndpointPathOf('board', SUPPORTED_FORGE_VERSION));
   const answer = await realHephaestusFetch().request(boardRequest);
   keep(situation, requestCallShapeOf(boardRequest), answer);
   return bodyOf(answer);
@@ -369,7 +370,7 @@ function appEntityEditsOf(entityKey: string, home: string): Record<string, unkno
 /** Keeps the board as it shows `wanted`, read once the board's event stream brought it there. */
 async function keepTheBoardOnceItShows(situation: BoardSituation, wanted: string, boardShows: (board: Record<string, unknown>) => boolean): Promise<Record<string, unknown>> {
   await boardOnceItShows(wanted, boardShows);
-  const boardRequest = requestOf('GET', forgeEndpointPathOf('board'));
+  const boardRequest = requestOf('GET', forgeEndpointPathOf('board', SUPPORTED_FORGE_VERSION));
   const answer = await realHephaestusFetch().request(boardRequest);
   const board = bodyOf(answer);
   expect(boardShows(board)).toBe(true);
@@ -494,7 +495,7 @@ describe('Example Storefront\'s board, read as the relay reads it', () => {
     expect(started).toMatchObject({ status: SUCCESS_STATUS });
     const board = await boardOnceItShows('a profile run', (shown) => listOf(shown['profileRuns']).length > 0);
     const profileRunId = String(listOf(board['profileRuns'])[0]?.['profileRunId'] ?? listOf(board['profileRuns'])[0]?.['id']);
-    const profileStreamRequest = streamRequestOf(forgeEndpointPathOf('profileStream', { profileRunId }));
+    const profileStreamRequest = streamRequestOf(forgeEndpointPathOf('profileStream', SUPPORTED_FORGE_VERSION, { profileRunId }));
     const profileStream = await openedStream(profileStreamRequest);
     const chunks = await chunksUntil(profileStream, (eventNames) => eventNames.includes('line')).finally(() => profileStream.close());
     keep('gate-profile-run', streamCallShapeOf(profileStreamRequest), { verdict: 'streaming', chunks, ending: 'stays-open' });
@@ -503,7 +504,7 @@ describe('Example Storefront\'s board, read as the relay reads it', () => {
   test('answers its board with a recommended question, an open incident, a default\'s notice, an applied pipeline over entities and an update '
     + 'draft whose refusal with its fix Apply refuses, and 401 to another token', async () => {
     await leaveTheEntitiesDraftRefused();
-    const boardRequest = requestOf('GET', forgeEndpointPathOf('board'));
+    const boardRequest = requestOf('GET', forgeEndpointPathOf('board', SUPPORTED_FORGE_VERSION));
     const answer = await realHephaestusFetch().request(boardRequest);
     const board = bodyOf(answer);
     const optionsOfOpenQuestions = listOf(board['decisions'])
@@ -521,18 +522,18 @@ describe('Example Storefront\'s board, read as the relay reads it', () => {
     });
     expect(Object.keys(recordOf(appliedPipeline['entityPipelines'])).sort()).toEqual(['api', 'web']);
     keep('board-at-work', requestCallShapeOf(boardRequest), answer);
-    const wrongTokenRequest = requestOf('GET', forgeEndpointPathOf('board'), { bearerToken: WRONG_TOKEN });
+    const wrongTokenRequest = requestOf('GET', forgeEndpointPathOf('board', SUPPORTED_FORGE_VERSION), { bearerToken: WRONG_TOKEN });
     const wrongToken = await realHephaestusFetch().request(wrongTokenRequest);
     expect(wrongToken).toMatchObject({ status: UNAUTHORIZED_STATUS });
     keep('board-token-rejected', requestCallShapeOf(wrongTokenRequest), wrongToken);
-    const wrongTokenStreamRequest = { ...streamRequestOf(forgeEndpointPathOf('events')), bearerToken: WRONG_TOKEN };
+    const wrongTokenStreamRequest = { ...streamRequestOf(forgeEndpointPathOf('events', SUPPORTED_FORGE_VERSION)), bearerToken: WRONG_TOKEN };
     const wrongTokenStream = await realHephaestusFetch().openStream(wrongTokenStreamRequest);
     expect(wrongTokenStream).toMatchObject({ status: UNAUTHORIZED_STATUS });
     if (wrongTokenStream.verdict !== 'streaming') keep('board-token-rejected', streamCallShapeOf(wrongTokenStreamRequest), wrongTokenStream);
   });
 
   test('streams its handshake and a whole board event, and replays from that event\'s id on a reconnect', async () => {
-    const firstRequest = streamRequestOf(forgeEndpointPathOf('events'));
+    const firstRequest = streamRequestOf(forgeEndpointPathOf('events', SUPPORTED_FORGE_VERSION));
     const firstStream = await openedStream(firstRequest);
     const firstChunks = await chunksUntil(firstStream, (eventNames) => eventNames.includes('board')).finally(() => firstStream.close());
     expect(firstChunks.join('')).toStartWith('event: handshake\n');
@@ -541,7 +542,7 @@ describe('Example Storefront\'s board, read as the relay reads it', () => {
     if (firstEventId === undefined) throw new Error('The first board event carried no id.');
     // A change after the first event, so the reconnect has an event to replay.
     expect(await sendCommand({ kind: 'concurrency-set', limit: RAISED_CONCURRENCY_LIMIT - 1 })).toMatchObject({ status: SUCCESS_STATUS });
-    const reconnectRequest = streamRequestOf(forgeEndpointPathOf('events'), firstEventId);
+    const reconnectRequest = streamRequestOf(forgeEndpointPathOf('events', SUPPORTED_FORGE_VERSION), firstEventId);
     const reconnected = await openedStream(reconnectRequest);
     const reconnectChunks = await chunksUntil(reconnected, (eventNames) => eventNames.includes('board')).finally(() => reconnected.close());
     keep('board-at-work', streamCallShapeOf(reconnectRequest), { verdict: 'streaming', chunks: reconnectChunks, ending: 'stays-open' });
@@ -572,7 +573,7 @@ describe('Example Storefront\'s board, read as the relay reads it', () => {
     const started = await keepCommand('intake-conversation', { kind: 'intake-start', text: 'Example: suggest searches as the shopper types.', pictures });
     expect(started).toMatchObject({ status: SUCCESS_STATUS });
     // An upload no command names is swept at the next pass, so the picture an intake names is the one read back.
-    const pictureRequest = requestOf('GET', forgeEndpointPathOf('picture', { pictureId: String(uploadedPicture['pictureId']) }), { answerAs: 'bytes' });
+    const pictureRequest = requestOf('GET', forgeEndpointPathOf('picture', SUPPORTED_FORGE_VERSION, { pictureId: String(uploadedPicture['pictureId']) }), { answerAs: 'bytes' });
     const picture = await realHephaestusFetch().request(pictureRequest);
     expect(picture).toMatchObject({ status: SUCCESS_STATUS, contentType: 'image/png', bodyBytes: EXAMPLE_PICTURE });
     keep('picture-accepted', requestCallShapeOf(pictureRequest), picture);
@@ -580,7 +581,7 @@ describe('Example Storefront\'s board, read as the relay reads it', () => {
       && job['lastLine'] !== null && job['id'] !== recordOf(shown['entityAssignment'])['jobId'];
     const board = await boardOnceItShows('the intake\'s product owner at work', (shown) => listOf(shown['jobs']).some((job) => intakeProductOwnerIsAtWork(shown, job)));
     const jobId = String(listOf(board['jobs']).find((job) => intakeProductOwnerIsAtWork(board, job))?.['id']);
-    const jobStreamRequest = streamRequestOf(forgeEndpointPathOf('jobStream', { jobId }));
+    const jobStreamRequest = streamRequestOf(forgeEndpointPathOf('jobStream', SUPPORTED_FORGE_VERSION, { jobId }));
     const chunks = await historyWithItsFirstEntry(jobStreamRequest);
     keep('intake-conversation', streamCallShapeOf(jobStreamRequest), { verdict: 'streaming', chunks, ending: 'stays-open' });
   }, STEP_TIMEOUT_MILLISECONDS);
@@ -595,8 +596,8 @@ describe('Example Storefront\'s board, read as the relay reads it', () => {
       await boardOnceItShows('launches held', (board) => recordOf(board['hephaestus'])['state'] === 'held-by-install-change');
       const held = await sendCommand({ kind: 'ticket-hold', ticketReference: UNKNOWN_TICKET_REFERENCE, reason: 'Example' });
       expect(held).toMatchObject({ status: INSTALL_HELD_STATUS });
-      keep('board-install-held', requestCallShapeOf(requestOf('POST', forgeEndpointPathOf('commands'))), held);
-      const boardRequest = requestOf('GET', forgeEndpointPathOf('board'));
+      keep('board-install-held', requestCallShapeOf(requestOf('POST', forgeEndpointPathOf('commands', SUPPORTED_FORGE_VERSION))), held);
+      const boardRequest = requestOf('GET', forgeEndpointPathOf('board', SUPPORTED_FORGE_VERSION));
       keep('board-install-held', requestCallShapeOf(boardRequest), await realHephaestusFetch().request(boardRequest));
     } finally {
       writeFileSync(manifestPath, manifestText);

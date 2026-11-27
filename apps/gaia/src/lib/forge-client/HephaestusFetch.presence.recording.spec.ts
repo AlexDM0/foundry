@@ -16,6 +16,7 @@ import {
   test
 } from 'bun:test';
 
+import { SUPPORTED_FORGE_VERSION }           from '../../shared/constants/SupportedForgeVersions.ts';
 import { recordAnswer, recordSystemVersion } from '../../testing/BoundaryRecordings.ts';
 import {
   recordedFormOf,
@@ -27,6 +28,8 @@ import { agentAtTheFoundPlaceOf, createScratchForge, type ScratchForge }      fr
 import { scratchRoot }                                                        from '../../testing/ScratchRoot.ts';
 import { forgeEndpointPathOf }                                                from './ForgeClient.ts';
 import { realHephaestusFetch, type HephaestusAnswer, type HephaestusRequest } from './HephaestusFetch.ts';
+
+const COMMANDS_PATH = forgeEndpointPathOf('commands', SUPPORTED_FORGE_VERSION);
 
 const RECORDING_NAME = 'hephaestus-fetch-presence';
 const SETUP_TIMEOUT_MILLISECONDS = 240_000;
@@ -68,7 +71,7 @@ function requestOf(path: string): HephaestusRequest {
 }
 
 function crashLogPathOf(crashLogNumber: number): string {
-  return `${forgeEndpointPathOf('crashLog')}?${new URLSearchParams({ number: String(crashLogNumber) }).toString()}`;
+  return `${forgeEndpointPathOf('crashLog', SUPPORTED_FORGE_VERSION)}?${new URLSearchParams({ number: String(crashLogNumber) }).toString()}`;
 }
 
 async function keptAnswerOf(situation: PresenceSituation, path: string): Promise<HephaestusAnswer> {
@@ -92,7 +95,7 @@ function followTheLiveHephaestus(): void {
 /** The presence once the serving generation classified its start: before, it answers 503 `starting`. */
 async function servedPresence(wanted: string, presenceShows: (presence: Record<string, unknown>) => boolean): Promise<Record<string, unknown>> {
   for (let look = 0; look < PRESENCE_LOOKS_AT_MOST; look += 1) {
-    const answer = await realHephaestusFetch().request(requestOf(forgeEndpointPathOf('presence')));
+    const answer = await realHephaestusFetch().request(requestOf(forgeEndpointPathOf('presence', SUPPORTED_FORGE_VERSION)));
     if (answer.verdict === 'answered' && answer.status === SUCCESS_STATUS) {
       const presence = JSON.parse(answer.bodyText) as Record<string, unknown>;
       if (presenceShows(presence)) return presence;
@@ -108,7 +111,7 @@ async function servedPresence(wanted: string, presenceShows: (presence: Record<s
 /** Waits until the board lists the Assistant's job as running, so the crash log names a job active at the crash. */
 async function boardWithAnAssistantJob(): Promise<void> {
   for (let look = 0; look < PRESENCE_LOOKS_AT_MOST; look += 1) {
-    const answer = await realHephaestusFetch().request(requestOf(forgeEndpointPathOf('board')));
+    const answer = await realHephaestusFetch().request(requestOf(forgeEndpointPathOf('board', SUPPORTED_FORGE_VERSION)));
     if (answer.verdict !== 'answered' || answer.status !== SUCCESS_STATUS) throw new Error(`The board answered ${JSON.stringify(answer)}`);
     const { jobs } = JSON.parse(answer.bodyText) as { jobs: { role: string; state: string }[] };
     if (jobs.some((job) => job.role === 'assistant' && job.state === 'running')) return;
@@ -137,12 +140,12 @@ beforeAll(async () => {
   await scratchForge.runForDocument(repository, ['start', '--json']);
   followTheLiveHephaestus();
   // A forge with no agent chosen launches no job: the board's agent is the one it offers at a found place.
-  const board = await realHephaestusFetch().request(requestOf(forgeEndpointPathOf('board')));
+  const board = await realHephaestusFetch().request(requestOf(forgeEndpointPathOf('board', SUPPORTED_FORGE_VERSION)));
   if (board.verdict !== 'answered' || board.status !== SUCCESS_STATUS) throw new Error(`The board answered ${JSON.stringify(board)}`);
   const agentChoice = { kind: 'pipeline-agent-set', agent: agentAtTheFoundPlaceOf(JSON.parse(board.bodyText) as Record<string, unknown>) };
-  const agentChosen = await realHephaestusFetch().request({ ...requestOf(forgeEndpointPathOf('commands')), method: 'POST', jsonBody: JSON.stringify(agentChoice) });
+  const agentChosen = await realHephaestusFetch().request({ ...requestOf(COMMANDS_PATH), method: 'POST', jsonBody: JSON.stringify(agentChoice) });
   expect(agentChosen).toMatchObject({ verdict: 'answered', status: SUCCESS_STATUS });
-  const resumed = await realHephaestusFetch().request({ ...requestOf(forgeEndpointPathOf('commands')), method: 'POST', jsonBody: JSON.stringify({ kind: 'hephaestus-unpause' }) });
+  const resumed = await realHephaestusFetch().request({ ...requestOf(COMMANDS_PATH), method: 'POST', jsonBody: JSON.stringify({ kind: 'hephaestus-unpause' }) });
   expect(resumed).toMatchObject({ verdict: 'answered', status: SUCCESS_STATUS });
   const { installVersion, codeVersion } = await scratchForge.runForDocument(repository, ['version', '--json']);
   recordSystemVersion(RECORDING_NAME, `install version ${String(installVersion)}, code ${String(codeVersion)}`);
@@ -162,7 +165,7 @@ afterAll(async () => {
 describe('a forge\'s presence and crash logs', () => {
   test('serves its presence while it supervises, and refuses a crash log it does not have', async () => {
     await servedPresence('a supervised board', (presence) => presence['supervision'] === 'supervising');
-    const presenceAnswer = await keptAnswerOf('presence-serving', forgeEndpointPathOf('presence'));
+    const presenceAnswer = await keptAnswerOf('presence-serving', forgeEndpointPathOf('presence', SUPPORTED_FORGE_VERSION));
     expect(presenceAnswer).toMatchObject({ verdict: 'answered', status: SUCCESS_STATUS });
     const absentLog = await keptAnswerOf('presence-serving', crashLogPathOf(ABSENT_CRASH_LOG_NUMBER));
     expect(absentLog).toMatchObject({ verdict: 'answered', status: 404 });
@@ -176,7 +179,7 @@ describe('a forge\'s presence and crash logs', () => {
     await scratchForge.runForDocument(repository, ['start', '--json']);
     followTheLiveHephaestus();
     const presence = await servedPresence('the crash log of the crash', (served) => jobsOf(served, 'crashLogs').length > 0);
-    const presenceAnswer = await keptAnswerOf('started-after-a-crash', forgeEndpointPathOf('presence'));
+    const presenceAnswer = await keptAnswerOf('started-after-a-crash', forgeEndpointPathOf('presence', SUPPORTED_FORGE_VERSION));
     expect(presenceAnswer).toMatchObject({ verdict: 'answered', status: SUCCESS_STATUS });
     const [crashLogEntry] = jobsOf(presence, 'crashLogs') as { number: number }[];
     const crashLog = await keptAnswerOf('started-after-a-crash', crashLogPathOf(crashLogEntry?.number ?? ABSENT_CRASH_LOG_NUMBER));

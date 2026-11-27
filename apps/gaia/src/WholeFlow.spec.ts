@@ -34,13 +34,13 @@ import { startPageServer, type PageServer }                                     
 import { eventStreamParserOf, type ServerSentEvent }                                                 from './lib/event-stream/EventStreamParser.ts';
 import { forgeClientOf }                                                                             from './lib/forge-client/ForgeClient.ts';
 import type { HephaestusFetch }                                                                      from './lib/forge-client/HephaestusFetch.ts';
-import { SUPPORTED_FORGE_VERSION }                                                                   from './lib/forge-client/constants/SupportedForgeVersions.ts';
 import type { ProcessRun }                                                                           from './lib/process-run/ProcessRun.ts';
 import { createFleetStore }                                                                          from './services/FleetStore.ts';
 import { createForgeWatch, type ForgeWatch, type ForgeWatchIntervals }                               from './services/ForgeWatch.ts';
 import { createSettingsStore }                                                                       from './services/SettingsStore.ts';
 import { CONTRACT_VERSIONS }                                                                         from './shared/constants/ContractVersions.ts';
 import { GAIA_SYSTEM_VERSION }                                                                       from './shared/constants/GaiaSystemVersions.ts';
+import { SUPPORTED_FORGE_VERSION }                                                                   from './shared/constants/SupportedForgeVersions.ts';
 import { manualTimers, type ManualTimers }                                                           from './testing/ManualTimers.ts';
 import {
   recordedHephaestusAnswersOf,
@@ -244,6 +244,7 @@ async function startGaia(): Promise<RunningGaia> {
     [FORGES.invoiceService.hephaestusOrigin, stagedHephaestusFetch(answersOf('not-answering'))],
   ]);
   const forgeClient = forgeClientOf({
+    supportedForgeVersion:         SUPPORTED_FORGE_VERSION,
     hephaestusFetch:               hephaestusFetchByAddress(forgeFetches),
     requestTimeoutMilliseconds:    SHORT_BOUND_MILLISECONDS,
     streamOpenTimeoutMilliseconds: SHORT_BOUND_MILLISECONDS,
