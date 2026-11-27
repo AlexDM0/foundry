@@ -2961,8 +2961,8 @@ version 1.
 ```
 
 - `<data>/gate-profile-runs/<P>.ndjson` holds a run's output, appended in place outside the hold, one JSON line per
-  piece, `{ version: 1, text }`, as a child's event log is; a reader ignores an unterminated last line, and logs and
-  skips a line it cannot read.
+  piece, `{ version: 1, text }`, as a child's event log is; a reader ignores an unterminated last line and skips a line
+  it cannot read, logging the first such line once per stream it serves.
 - `<worktrees>/gate-profiles/<P>` is a run's worktree, removed when the run ends and at every Hephaestus start.
 - No state is written as `timed-out` yet; the read accepts it.
 - A run without `entity` is written without the key, so a file of a forge without entities stays byte for byte. A

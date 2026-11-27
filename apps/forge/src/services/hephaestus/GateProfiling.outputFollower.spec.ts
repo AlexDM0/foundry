@@ -1,8 +1,9 @@
 /**
  * Following a gate profile's output file, `<data>/gate-profile-runs/<P>.ndjson`, as the profile stream route reads it. What matters: the
  * lines come numbered from 1 in the order they were appended, only those after the cursor; a later call gives only the lines appended since;
- * an unterminated last line waits for its line feed, also when it ends inside a character; a line that cannot be read keeps its number, is
- * not sent and is logged; and a run with no output yet gives nothing until its file appears.
+ * an unterminated last line waits for its line feed, also when it ends inside a character; a line that cannot be read keeps its number and
+ * is not sent, and only the first after the cursor is logged, since every stream request follows the file again; and a run with no output
+ * yet gives nothing until its file appears.
  */
 import { appendFileSync, mkdirSync } from 'node:fs';
 import { join }                      from 'node:path';
@@ -74,11 +75,19 @@ describe('the gate profile output follower', () => {
     expect(follow()).toEqual([{ lineNumber: 1, text: 'naïve' }]);
   });
 
-  test('a line that cannot be read keeps its number, is not sent and is logged', () => {
+  test('a line that cannot be read keeps its number and is not sent, and only the first is logged, once per follower', () => {
     const unreadableLines = ['not json', JSON.stringify({ version: GATE_PROFILE_OUTPUT_FORMAT_VERSION, other: 1 }), JSON.stringify({ text: 'no version' })];
     appendToOutput(`${unreadableLines.join('\n')}\n${outputLineOf('fourth')}`);
     const follow = followerAfter(0);
     expect(follow()).toEqual([{ lineNumber: 4, text: 'fourth' }]);
-    expect(loggedLines.map((line) => line.split(' of the gate profile output')[0])).toEqual(['Line 1', 'Line 2', 'Line 3']);
+    appendToOutput('not json either\n');
+    expect(follow()).toEqual([]);
+    expect(loggedLines.map((line) => line.split(' of the gate profile output')[0])).toEqual(['Line 1']);
+  });
+
+  test('a follower after the cursor logs none of the unreadable lines before it, as a reconnecting stream does', () => {
+    appendToOutput(`not json\n${outputLineOf('second')}`);
+    expect(followerAfter(1)()).toEqual([{ lineNumber: 2, text: 'second' }]);
+    expect(loggedLines).toEqual([]);
   });
 });

@@ -285,13 +285,15 @@ function outputFilePathOf(trackerDirectory: string, profileRunId: string): strin
 
 /**
  * Follows `<data>/gate-profile-runs/<P>.ndjson` after line `afterLineNumber`. Each call reads only the bytes appended since the last one; a
- * line that cannot be read keeps its number, is not sent and is logged: it is one piece of shown output, which nothing decides on.
+ * line that cannot be read keeps its number and is not sent: it is one piece of shown output, which nothing decides on. The first such line
+ * after `afterLineNumber` is logged once per follower, since each stream request and reconnect follows the file again from its start.
  */
 function outputFollowerOf(trackerDirectory: string, profileRunId: string, afterLineNumber: number, log: (line: string) => void): GateProfileOutputFollower {
   const outputFilePath = outputFilePathOf(trackerDirectory, profileRunId);
   const ingestion = new GateProfileOutputIngestion(outputFilePath);
   let lineNumber = 0;
   let unreadableFileLogged = false;
+  let unreadableLineLogged = false;
   return () => {
     const reading = ingestion.read();
     if (reading.verdict === 'absent') return [];
@@ -303,8 +305,13 @@ function outputFollowerOf(trackerDirectory: string, profileRunId: string, afterL
     const lines: GateProfileOutputLine[] = [];
     for (const lineReading of reading.lines) {
       lineNumber += 1;
-      if (lineReading.verdict === 'unreadable') log(`Line ${lineNumber} of the gate profile output ${outputFilePath} could not be read (${lineReading.reason}); it is not sent.`);
-      else if (lineNumber > afterLineNumber) lines.push({ lineNumber, text: lineReading.text });
+      if (lineNumber <= afterLineNumber) continue;
+      if (lineReading.verdict === 'readable') {
+        lines.push({ lineNumber, text: lineReading.text });
+      } else if (!unreadableLineLogged) {
+        log(`Line ${lineNumber} of the gate profile output ${outputFilePath} could not be read (${lineReading.reason}); it and any later unreadable line are not sent.`);
+        unreadableLineLogged = true;
+      }
     }
     return lines;
   };
