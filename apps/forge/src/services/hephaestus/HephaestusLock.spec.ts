@@ -1,12 +1,12 @@
 /**
- * The Hephaestus lock's generations in one process: what matters is that a live newest generation refuses, also one that cannot be read but
- * names a live process, a dead one is followed by the next, the holder removes only the generations below its own, a newer generation makes
- * the holder's effect-batch check refuse `hephaestus-lock-taken` as unrepaired, and a release never unlinks a generation the releaser does not
- * hold. Two starters racing are
- * `cli/hephaestus/StartCommand.integration.spec.ts`'s. Where hard links fail, both claims are refused in words and leave no Hephaestus lock. This
- * process's identity is the recorded process table's, so no spec reads it through a program a sandbox may refuse.
+ * The Hephaestus lock's generations in one process: what matters is that a live newest generation refuses, also one of older code with no
+ * version, a dead or unreadable one is followed by the next and named for the log, the holder removes only the generations below its own, a
+ * newer generation makes the holder's effect-batch check refuse `hephaestus-lock-taken` as unrepaired, and a release never unlinks a
+ * generation the releaser does not hold. Two starters racing are `cli/hephaestus/StartCommand.integration.spec.ts`'s. Where hard links fail,
+ * both claims are refused in words and leave no Hephaestus lock. This process's identity is the recorded process table's, so no spec reads it
+ * through a program a sandbox may refuse.
  */
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import {
   afterEach,
   beforeEach,
@@ -14,6 +14,7 @@ import {
   test
 } from 'bun:test';
 
+import { HEPHAESTUS_LOCK_FORMAT_VERSION }                 from '../../adapters/hephaestus-lock/HephaestusLockIngestion.ts';
 import { createHephaestusLockWriter }                     from '../../adapters/hephaestus-lock/HephaestusLockWriter.ts';
 import type { FileReplace }                               from '../../lib/atomic-file/FileReplace.ts';
 import { fileReplaceOfThisProcess }                       from '../../lib/atomic-file/FileReplaceFor.ts';
@@ -92,51 +93,42 @@ describeWhenRecorded(['process-table-recording'], 'a claim where hard links fail
 });
 
 describeWhenRecorded(['process-table-recording'], 'HephaestusLock.acquire', () => {
-  test('an empty folder gives generation 1, and a live newest generation then refuses already-running with its URL', () => {
+  test('an empty folder gives generation 1, and a live newest generation then refuses already-running with its record', () => {
     expect(HephaestusLock.acquire(ports, hephaestusDirectory, liveRecord())).toEqual({ verdict: 'acquired', generation: 1 });
-    expect(HephaestusLock.acquire(ports, hephaestusDirectory, liveRecord())).toEqual({ verdict: 'already-running', generation: 1, url: liveRecord().url });
+    expect(HephaestusLock.acquire(ports, hephaestusDirectory, liveRecord())).toEqual({ verdict: 'already-running', generation: 1, record: liveRecord() });
     expect(HephaestusLock.newestOf(ports, hephaestusDirectory)).toEqual({ verdict: 'live', generation: 1, record: liveRecord() });
   });
 
-  test('a dead newest generation, or an unreadable one, is followed by the next, which removes every older one', () => {
+  test('an unreadable newest generation, not JSON or of the wrong fields, reads dead and is taken over, named for the log', () => {
     plant(2, deadRecord());
     writeFileSync(HephaestusLock.filePathFor(hephaestusDirectory, 5), '{ not a hephaestusLock');
     expect(HephaestusLock.newestOf(ports, hephaestusDirectory)).toMatchObject({ verdict: 'dead', generation: 5, record: null });
     const acquisition = HephaestusLock.acquire(ports, hephaestusDirectory, liveRecord());
-    expect(acquisition).toMatchObject({ verdict: 'acquired', generation: 6, unreadableTakenOver: { hephaestusLockFilePath: HephaestusLock.filePathFor(hephaestusDirectory, 5) } });
-    expect(acquisition.verdict === 'acquired' ? acquisition.unreadableTakenOver?.reason : null).toStartWith('it is not valid JSON');
+    expect(acquisition).toMatchObject({ verdict: 'acquired', generation: 6, staleTakenOver: { hephaestusLockFilePath: HephaestusLock.filePathFor(hephaestusDirectory, 5) } });
+    expect(acquisition.verdict === 'acquired' ? acquisition.staleTakenOver?.reason : null).toStartWith('it could not be read (it is not valid JSON');
     expect(HephaestusLock.generationsIn(hephaestusDirectory)).toEqual([6]);
+    writeFileSync(HephaestusLock.filePathFor(hephaestusDirectory, 7), JSON.stringify({ ...liveRecord(), port: 'not a port' }));
+    const unreadableTakenOver = { reason: 'it could not be read (its "port" is not a number)' };
+    expect(HephaestusLock.acquire(ports, hephaestusDirectory, liveRecord())).toMatchObject({ verdict: 'acquired', generation: 8, staleTakenOver: unreadableTakenOver });
   });
 
-  test('an unreadable newest generation whose JSON names a live process, as an older Hephaestus\'s lock with no version, reads live and is never taken over', () => {
-    writeFileSync(HephaestusLock.filePathFor(hephaestusDirectory, 4), JSON.stringify(liveRecord()));
-    const {
-      processId, processStartStamp, bootIdentity, url, tokenFile
-    } = liveRecord();
-    expect(HephaestusLock.newestOf(ports, hephaestusDirectory)).toEqual({
-      verdict:    'live-unreadable',
-      generation: 4,
-      holder:     {
-        processId, processStartStamp, bootIdentity, url, tokenFile
-      },
-      unreadableReason: 'its version is not 1'
-    });
-    expect(HephaestusLock.acquire(ports, hephaestusDirectory, liveRecord())).toEqual({ verdict: 'already-running', generation: 4, url });
-    expect(HephaestusLock.generationsIn(hephaestusDirectory)).toEqual([4]);
-  });
-
-  test('an unreadable newest generation whose JSON names a dead process is taken over, and the take-over names it for the log', () => {
-    writeFileSync(HephaestusLock.filePathFor(hephaestusDirectory, 4), JSON.stringify(deadRecord()));
-    expect(HephaestusLock.newestOf(ports, hephaestusDirectory)).toEqual({
-      verdict: 'dead', generation: 4, record: null, unreadableReason: 'its version is not 1'
-    });
-    const unreadableTakenOver = { hephaestusLockFilePath: HephaestusLock.filePathFor(hephaestusDirectory, 4), reason: 'its version is not 1' };
-    expect(HephaestusLock.acquire(ports, hephaestusDirectory, liveRecord())).toEqual({ verdict: 'acquired', generation: 5, unreadableTakenOver });
-  });
-
-  test('a dead newest generation that reads whole is taken over without an unreadable lock to log', () => {
+  test('a dead newest generation that reads whole is taken over, named for the log by its gone process', () => {
     plant(3, deadRecord());
-    expect(HephaestusLock.acquire(ports, hephaestusDirectory, liveRecord())).toEqual({ verdict: 'acquired', generation: 4 });
+    const staleTakenOver = { hephaestusLockFilePath: HephaestusLock.filePathFor(hephaestusDirectory, 3), reason: `the process ${process.pid} it names is gone` };
+    expect(HephaestusLock.acquire(ports, hephaestusDirectory, liveRecord())).toEqual({ verdict: 'acquired', generation: 4, staleTakenOver });
+  });
+
+  test('a newest generation without a version, as a Hephaestus of older code wrote, is judged by its process: live refuses, dead is taken over', () => {
+    writeFileSync(HephaestusLock.filePathFor(hephaestusDirectory, 4), JSON.stringify(liveRecord()));
+    expect(HephaestusLock.newestOf(ports, hephaestusDirectory)).toEqual({ verdict: 'live', generation: 4, record: liveRecord() });
+    expect(HephaestusLock.acquire(ports, hephaestusDirectory, liveRecord())).toEqual({ verdict: 'already-running', generation: 4, record: liveRecord() });
+    expect(HephaestusLock.generationsIn(hephaestusDirectory)).toEqual([4]);
+
+    writeFileSync(HephaestusLock.filePathFor(hephaestusDirectory, 5), JSON.stringify(deadRecord()));
+    expect(HephaestusLock.newestOf(ports, hephaestusDirectory)).toEqual({ verdict: 'dead', generation: 5, record: deadRecord() });
+    const deadTakenOver = { reason: `the process ${process.pid} it names is gone` };
+    expect(HephaestusLock.acquire(ports, hephaestusDirectory, liveRecord())).toMatchObject({ verdict: 'acquired', generation: 6, staleTakenOver: deadTakenOver });
+    expect(JSON.parse(readFileSync(HephaestusLock.filePathFor(hephaestusDirectory, 6), 'utf8'))).toEqual({ version: HEPHAESTUS_LOCK_FORMAT_VERSION, ...liveRecord() });
   });
 });
 

@@ -6,41 +6,37 @@
 import { readdirSync, unlinkSync } from 'node:fs';
 import { join }                    from 'node:path';
 
-import { type HephaestusLockFileRecord, type HephaestusLockHolder, HephaestusLockIngestion } from '../../adapters/hephaestus-lock/HephaestusLockIngestion.ts';
-import { createHephaestusLockWriter }                                                        from '../../adapters/hephaestus-lock/HephaestusLockWriter.ts';
-import type { ExclusiveCreation, FileReplace }                                               from '../../lib/atomic-file/FileReplace.ts';
-import { fileReplaceOfThisProcess }                                                          from '../../lib/atomic-file/FileReplaceFor.ts';
-import type { PlatformPorts }                                                                from '../../lib/platform-ports/PlatformPortsFor.ts';
-import type { ProcessIdentity }                                                              from '../../lib/process-identity/ProcessIdentity.ts';
-import { OperationRefusal }                                                                  from '../../shared/OperationRefusal.ts';
+import { HephaestusLockIngestion, type HephaestusLockFileRecord } from '../../adapters/hephaestus-lock/HephaestusLockIngestion.ts';
+import { createHephaestusLockWriter }                             from '../../adapters/hephaestus-lock/HephaestusLockWriter.ts';
+import type { ExclusiveCreation, FileReplace }                    from '../../lib/atomic-file/FileReplace.ts';
+import { fileReplaceOfThisProcess }                               from '../../lib/atomic-file/FileReplaceFor.ts';
+import type { PlatformPorts }                                     from '../../lib/platform-ports/PlatformPortsFor.ts';
+import type { ProcessIdentity }                                   from '../../lib/process-identity/ProcessIdentity.ts';
+import { OperationRefusal }                                       from '../../shared/OperationRefusal.ts';
 
 /** What a Hephaestus lock names, as its ingestion reads it; the CLI's readers name it from here. */
 export type HephaestusLockRecord = HephaestusLockFileRecord;
 
-export type { HephaestusLockHolder };
-
 /**
- * An unreadable Hephaestus lock fails closed: `live-unreadable` when its JSON still names a live process, as a Hephaestus of older code does, so
- * it is stopped and never taken over; dead otherwise. A partial lock would hand the board to a second Hephaestus, so where hard links fail the
- * claim is refused `hephaestus-lock-not-created-whole`, never created by the open fallback.
+ * The one reading every reader of the lock goes through. A lock of today's fields is judged by its process whatever its version, so a live
+ * Hephaestus of older code reads live; one that cannot be read names no process, so it reads as dead and a start takes it over, logged. A
+ * partial lock would hand the board to a second Hephaestus, so where hard links fail the claim is refused `hephaestus-lock-not-created-whole`,
+ * never created by the open fallback.
  */
 export type HephaestusLockReading =
   | { verdict: 'none' }
   | { verdict: 'live'; generation: number; record: HephaestusLockRecord }
-  | { verdict: 'live-unreadable'; generation: number; holder: HephaestusLockHolder; unreadableReason: string }
   | { verdict: 'dead'; generation: number; record: HephaestusLockRecord | null; unreadableReason?: string };
 
-export type LiveHephaestusLockReading = Extract<HephaestusLockReading, { verdict: 'live' | 'live-unreadable' }>;
-
-/** A newest generation that could not be read and that this acquisition took over, so the taker can log it. */
-export interface UnreadableHephaestusLockTakenOver {
+/** A stale newest generation this acquisition took over, its process gone or the file unreadable, so the taker can log it. */
+export interface StaleHephaestusLockTakenOver {
   hephaestusLockFilePath: string;
   reason:                 string;
 }
 
 export type HephaestusLockAcquisition =
-  | { verdict: 'acquired'; generation: number; unreadableTakenOver?: UnreadableHephaestusLockTakenOver }
-  | { verdict: 'already-running'; generation: number; url: string }
+  | { verdict: 'acquired'; generation: number; staleTakenOver?: StaleHephaestusLockTakenOver }
+  | { verdict: 'already-running'; generation: number; record: HephaestusLockRecord }
   | { verdict: 'contended' };
 
 const HEPHAESTUS_LOCK_FILE_PATTERN = /^lock-(\d+)\.json$/;
@@ -65,43 +61,26 @@ function generationsIn(hephaestusDirectory: string): number[] {
     .sort((a, b) => a - b);
 }
 
-function identityNamedBy(holder: HephaestusLockHolder): ProcessIdentity {
-  return { processId: holder.processId, startStamp: holder.processStartStamp, bootIdentity: holder.bootIdentity };
+function identityNamedBy(record: HephaestusLockRecord): ProcessIdentity {
+  return { processId: record.processId, startStamp: record.processStartStamp, bootIdentity: record.bootIdentity };
 }
 
 /** Live only while the process the Hephaestus lock names is still that process: a reused pid or a reboot reads as dead. */
-function hephaestusLockNamesALiveProcess({ processSupervision }: PlatformPorts, holder: HephaestusLockHolder): boolean {
-  const currentIdentity = processSupervision.identityOf(holder.processId);
-  return currentIdentity !== null && processSupervision.sameProcess(currentIdentity, identityNamedBy(holder));
+function hephaestusLockNamesALiveProcess({ processSupervision }: PlatformPorts, record: HephaestusLockRecord): boolean {
+  const currentIdentity = processSupervision.identityOf(record.processId);
+  return currentIdentity !== null && processSupervision.sameProcess(currentIdentity, identityNamedBy(record));
 }
 
 function newestOf(ports: PlatformPorts, hephaestusDirectory: string): HephaestusLockReading {
   const newest = generationsIn(hephaestusDirectory).at(-1);
   if (newest === undefined) return { verdict: 'none' };
   const reading = new HephaestusLockIngestion(filePathFor(hephaestusDirectory, newest)).read();
-  if (reading.verdict === 'unreadable') {
-    const { namedHolder, reason } = reading;
-    if (namedHolder !== null && hephaestusLockNamesALiveProcess(ports, namedHolder)) {
-      return {
-        verdict: 'live-unreadable', generation: newest, holder: namedHolder, unreadableReason: reason
-      };
-    }
-    return {
-      verdict: 'dead', generation: newest, record: null, unreadableReason: reason
-    };
-  }
+  if (reading.verdict === 'unreadable') return {
+    verdict: 'dead', generation: newest, record: null, unreadableReason: reading.reason
+  };
   const record = reading.verdict === 'readable' ? reading.record : null;
   if (record !== null && hephaestusLockNamesALiveProcess(ports, record)) return { verdict: 'live', generation: newest, record };
   return { verdict: 'dead', generation: newest, record };
-}
-
-function namesALiveHephaestus(reading: HephaestusLockReading): reading is LiveHephaestusLockReading {
-  return reading.verdict === 'live' || reading.verdict === 'live-unreadable';
-}
-
-/** The live holder's process, whether its lock reads or not. */
-function holderOf(reading: LiveHephaestusLockReading): HephaestusLockHolder {
-  return reading.verdict === 'live' ? reading.record : reading.holder;
 }
 
 function newerGenerationExists(hephaestusDirectory: string, generation: number): boolean {
@@ -130,22 +109,27 @@ function createHephaestusLockWhole(hephaestusDirectory: string, generation: numb
   }
 }
 
+function staleTakenOverOf(hephaestusDirectory: string, dead: Extract<HephaestusLockReading, { verdict: 'dead' }>): StaleHephaestusLockTakenOver {
+  const hephaestusLockFilePath = filePathFor(hephaestusDirectory, dead.generation);
+  if (dead.record === null) return { hephaestusLockFilePath, reason: `it could not be read (${dead.unreadableReason ?? 'unknown'})` };
+  return { hephaestusLockFilePath, reason: `the process ${dead.record.processId} it names is gone` };
+}
+
 /**
  * The generation after the newest is created only once the newest names a dead process, and whoever creates it holds the Hephaestus lock unless a
  * newer one already exists: two starters after a reboot both judge the old Hephaestus lock dead, and exactly one of them drives.
  */
 function acquire(ports: PlatformPorts, hephaestusDirectory: string, record: HephaestusLockRecord, fileReplace = fileReplaceOfThisProcess()): HephaestusLockAcquisition {
   const newest = newestOf(ports, hephaestusDirectory);
-  if (namesALiveHephaestus(newest)) return { verdict: 'already-running', generation: newest.generation, url: holderOf(newest).url };
+  if (newest.verdict === 'live') return { verdict: 'already-running', generation: newest.generation, record: newest.record };
   const claimed = newest.verdict === 'none' ? 1 : newest.generation + 1;
   if (createHephaestusLockWhole(hephaestusDirectory, claimed, record, fileReplace) === 'already-exists') {
     return { verdict: 'contended' };
   }
   if (newerGenerationExists(hephaestusDirectory, claimed)) return { verdict: 'contended' };
   removeGenerationsBelow(hephaestusDirectory, claimed);
-  if (newest.verdict !== 'dead' || newest.unreadableReason === undefined) return { verdict: 'acquired', generation: claimed };
-  const unreadableTakenOver = { hephaestusLockFilePath: filePathFor(hephaestusDirectory, newest.generation), reason: newest.unreadableReason };
-  return { verdict: 'acquired', generation: claimed, unreadableTakenOver };
+  if (newest.verdict === 'none') return { verdict: 'acquired', generation: claimed };
+  return { verdict: 'acquired', generation: claimed, staleTakenOver: staleTakenOverOf(hephaestusDirectory, newest) };
 }
 
 /** Run before each effect batch: a Hephaestus whose generation was overtaken stops `hephaestus-lock-taken` without acting. */
@@ -170,8 +154,6 @@ export const HephaestusLock = Object.freeze({
   release,
   requireNewestGeneration,
   newestOf,
-  namesALiveHephaestus,
-  holderOf,
   filePathFor,
   generationsIn,
 });

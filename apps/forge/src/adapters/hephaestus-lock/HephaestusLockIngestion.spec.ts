@@ -1,10 +1,10 @@
 /**
- * The Hephaestus lock's stored format both ways. What matters: the writer's record reads back as the same record and is created only once;
- * a missing file is absent; any other file is unreadable, never thrown, and names the process its JSON still names, since an unreadable lock
- * whose process lives must not be taken over.
+ * The Hephaestus lock's stored format both ways. What matters: the writer's record reads back as the same record, with the current version,
+ * and is created only once; a missing file is absent; a record of today's fields without that version, as older code wrote, reads as the
+ * same record, so a live Hephaestus of older code is never taken over; any other file is unreadable, never thrown.
  */
-import { writeFileSync } from 'node:fs';
-import { join }          from 'node:path';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { join }                        from 'node:path';
 import {
   afterEach,
   beforeEach,
@@ -54,15 +54,22 @@ test('what the writer creates reads back as the same record, and a second create
   const writer = createHephaestusLockWriter(lockFilePath());
   expect(writer.createWhole(RECORD)).toBe('created');
   expect(reading()).toEqual({ verdict: 'readable', record: RECORD });
+  expect(JSON.parse(readFileSync(lockFilePath(), 'utf8'))).toMatchObject({ version: HEPHAESTUS_LOCK_FORMAT_VERSION });
   expect(writer.createWhole({ ...RECORD, port: 1 })).toBe('already-exists');
+  expect(reading()).toEqual({ verdict: 'readable', record: RECORD });
+});
+
+test.each([
+  ['no version', RECORD],
+  ['another version', { ...RECORD, version: HEPHAESTUS_LOCK_FORMAT_VERSION + 1 }],
+])('a record of today\'s fields with %s reads as the same record', (_case, document) => {
+  storeDocument(document);
   expect(reading()).toEqual({ verdict: 'readable', record: RECORD });
 });
 
 test.each([
   ['not JSON', '{ not a lock'],
   ['not an object', '[]'],
-  ['no version', JSON.stringify(RECORD)],
-  ['another version', JSON.stringify({ ...RECORD, version: HEPHAESTUS_LOCK_FORMAT_VERSION + 1 })],
 ])('%s is unreadable', (_case, text) => {
   writeFileSync(lockFilePath(), text);
   expect(reading().verdict).toBe('unreadable');
@@ -70,30 +77,5 @@ test.each([
 
 test.each(Object.keys(RECORD))('a wrong "%s" is unreadable', (field) => {
   storeDocument({ ...RECORD, version: HEPHAESTUS_LOCK_FORMAT_VERSION, [field]: null });
-  expect(reading()).toMatchObject({ verdict: 'unreadable', reason: expect.stringContaining(`"${field}"`) as unknown as string });
-});
-
-test('an unreadable lock whose JSON still names a process carries that holder, and only that', () => {
-  storeDocument(RECORD);
-  expect(reading()).toEqual({
-    verdict:     'unreadable',
-    reason:      `its version is not ${HEPHAESTUS_LOCK_FORMAT_VERSION}`,
-    namedHolder: {
-      processId: RECORD.processId, processStartStamp: RECORD.processStartStamp, bootIdentity: RECORD.bootIdentity, url: RECORD.url, tokenFile: RECORD.tokenFile
-    },
-  });
-});
-
-test.each([
-  ['not JSON', '{ not a lock'],
-  ['no process id', JSON.stringify({ ...RECORD, processId: null })],
-  ['no url', JSON.stringify({ ...RECORD, url: 7 })],
-])('an unreadable lock with %s names no holder', (_case, text) => {
-  writeFileSync(lockFilePath(), text);
-  expect(reading()).toMatchObject({ verdict: 'unreadable', namedHolder: null });
-});
-
-test('a holder without a token file is named with none, so a stop goes to its process', () => {
-  storeDocument({ ...RECORD, tokenFile: undefined });
-  expect(reading()).toMatchObject({ verdict: 'unreadable', namedHolder: { processId: RECORD.processId, tokenFile: null } });
+  expect(reading()).toEqual({ verdict: 'unreadable', reason: expect.stringContaining(`"${field}"`) as unknown as string });
 });

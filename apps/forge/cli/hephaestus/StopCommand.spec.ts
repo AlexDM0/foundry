@@ -1,10 +1,10 @@
 /**
  * `stop`, answered in this process: it finds nothing to do with no Hephaestus live or, over a fake process table, never reports a clean stop
  * after an end that skipped Hephaestus's own stop, and repairs only once the process is gone, also when an earlier close was refused and left
- * a dead Hephaestus lock; a live one whose lock cannot be read is still ended. The stop waits of a stopping Hephaestus share one bound, so a
- * drive pass that never ends cannot hold back the stop record past what Windows gives. The registry's presence key is written in each state
- * and kept by a call without one; a stop ends presence `stopped` and a release `handed-over`, each also in the registry, the handover's
- * ending written before the crash path lets go of the generation.
+ * a dead Hephaestus lock; a live one whose lock has no version, as older code wrote, is still ended. The stop waits of a stopping
+ * Hephaestus share one bound, so a drive pass that never ends cannot hold back the stop record past what Windows gives. The registry's
+ * presence key is written in each state and kept by a call without one; a stop ends presence `stopped` and a release `handed-over`, each
+ * also in the registry, the handover's ending written before the crash path lets go of the generation.
  */
 import {
   existsSync,
@@ -199,9 +199,9 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run stop', (
     expect(hephaestusStoppedRecordsIn(storedLogKindsOf(repositoryDirectory))).toBe(1);
   });
 
-  test('a live Hephaestus whose lock has no version, as one of older code holds, reads live and is still ended by stop', async () => {
+  test('a live Hephaestus whose lock has no version, as one of older code holds, reads live and is ended by stop', async () => {
     const wedged = plantWedgedHephaestus(true, undefined, 'without-version');
-    expect(HephaestusLock.newestOf(wedged.platformPorts, wedged.hephaestusDirectory).verdict).toBe('live-unreadable');
+    expect(HephaestusLock.newestOf(wedged.platformPorts, wedged.hephaestusDirectory).verdict).toBe('live');
 
     const stopped = wedged.stopContext();
     expect(await stopWithInstantWaits(['stop'], stopped), stopped.errorText()).toBe(0);

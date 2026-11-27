@@ -757,11 +757,10 @@ job.
 
 A file `<data>/hephaestus/lock-<n>.json` created exclusively at each Hephaestus start and never rewritten. The newest
 [generation](#generation) decides: if it names a live process, that process is Hephaestus; if not, no Hephaestus is
-running (`src/services/hephaestus/HephaestusLock.ts`). A file that cannot be read, as one a Hephaestus of older code
-holds, is judged by the process its JSON still names, so a live one is stopped and never taken over; only one naming no
-live process is taken over and logged. The holder removes the generations below its own. Only a stop releases it; at a
-[restart](#restart) the old Hephaestus exits with its file still there, and the [successor](#successor) takes the next
-generation over the dead one.
+running (`src/services/hephaestus/HephaestusLock.ts`). It is judged by its process whatever its version, so a live
+Hephaestus of older code reads live; one that cannot be read is taken over and logged. The holder removes the
+generations below its own. Only a stop releases it; at a [restart](#restart) the old Hephaestus exits with its file
+still there, and the [successor](#successor) takes the next generation over the dead one.
 
 ### own row
 

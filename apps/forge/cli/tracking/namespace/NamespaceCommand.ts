@@ -45,9 +45,9 @@ function printCurrentNamespace(commandArguments: ArgumentParser, context: Comman
 function refuseWhileAnHephaestusServes(context: CommandContext): void {
   const { hephaestusDirectory } = hephaestusFilesIn(requireWorkspace(context.currentDirectory).trackerDirectory);
   const newest = HephaestusLock.newestOf(context.platformPorts, hephaestusDirectory);
-  if (!HephaestusLock.namesALiveHephaestus(newest)) return;
+  if (newest.verdict !== 'live') return;
   const hephaestusLockFilePath = HephaestusLock.filePathFor(hephaestusDirectory, newest.generation);
-  throw new OperationRefusal('refused', { kind: 'hephaestus-already-running', url: HephaestusLock.holderOf(newest).url, hephaestusLockFilePath });
+  throw new OperationRefusal('refused', { kind: 'hephaestus-already-running', url: newest.record.url, hephaestusLockFilePath });
 }
 
 function refuseANamespaceAnotherTrackerLists(context: CommandContext, wantedNamespace: string): void {

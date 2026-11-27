@@ -24,10 +24,10 @@ function stopTextOf(stopped: Exclude<StopOutcome, { verdict: 'was-down' }>, now:
   const lineChildNote = now ? ' Line children were not stopped: --now needs the API.' : '';
   const closing       = `this command recorded the stop in its place.${lineChildNote}`;
   if (stopped.verdict === 'found-dead') return `${hephaestusAtUrl} had already ended before it finished its stop, so ${closing}`;
-  const { ending, url } = stopped;
-  if (ending === 'clean') return `Stopped Hephaestus at ${url}.`;
-  if (ending === 'forced') return `Ended Hephaestus at ${url} by force: its API did not answer and it could not finish its stop, so ${closing}`;
-  return `Hephaestus at ${url} ended before it finished its stop, so ${closing}`;
+  const { ending, record } = stopped;
+  if (ending === 'clean') return `Stopped Hephaestus at ${record.url}.`;
+  if (ending === 'forced') return `Ended Hephaestus at ${record.url} by force: its API did not answer and it could not finish its stop, so ${closing}`;
+  return `${hephaestusAtUrl} ended before it finished its stop, so ${closing}`;
 }
 
 export async function stopHephaestus(request: StoppedHephaestusRequest, files: HephaestusFiles, now: boolean): Promise<StopReport> {

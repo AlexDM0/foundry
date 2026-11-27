@@ -1,8 +1,11 @@
 /**
  * Hephaestus's process facts `status` prints above the board, over the recorded process table: a forge down after a crash names the crashed
  * Hephaestus lock and its crash log's path above the board, `--json` carries the facts under `hephaestus` with the presence block, and a board no forge
- * ran on is down with no crash line.
+ * ran on is down with no crash line. A live Hephaestus whose lock has no version, as one of older code holds, is live to status and to the
+ * command line's control context alike.
  */
+import { mkdirSync, writeFileSync } from 'node:fs';
+
 import {
   afterEach,
   beforeEach,
@@ -12,15 +15,18 @@ import {
 
 import { CrashLog }                               from '../../../src/services/hephaestus/CrashLog.ts';
 import { hephaestusFilesIn }                      from '../../../src/services/hephaestus/HephaestusFiles.ts';
+import { HephaestusLock }                         from '../../../src/services/hephaestus/HephaestusLock.ts';
 import { Presence }                               from '../../../src/services/hephaestus/Presence.ts';
 import { createUnreadableBoardFiles }             from '../../../src/services/hephaestus/UnreadableBoardFiles.ts';
 import { requireWorkspace }                       from '../../../src/services/tracker/Workspace.ts';
 import { PRODUCT_NAMES }                          from '../../../src/shared/constants/ProductNames.ts';
 import { defaultSpecPlatformPorts }               from '../../../src/testing/DefaultSpecPlatformPorts.ts';
+import { fakeAgentAdapter }                       from '../../../src/testing/FakeAgentAdapter.ts';
 import { useRecordedGit }                         from '../../../src/testing/RecordedGit.ts';
 import { useRecordedProcessTable }                from '../../../src/testing/RecordedProcessTable.ts';
 import { removeScratchDirectory }                 from '../../../src/testing/ScratchWorkspace.ts';
 import { describeWhenRecorded }                   from '../../../src/testing/ToolGuard.ts';
+import { commandControlContextOf }                from '../../CommandControlContext.ts';
 import { runCommandLine }                         from '../../Main.ts';
 import { createCapturedCommandContext }           from '../../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository } from '../../testing/InitializedScratchRepository.ts';
@@ -150,5 +156,33 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'status after
     expect(await runCommandLine(['status'], text), text.errorText()).toBe(0);
     expect(text.outputText()).not.toContain('off after a crash');
     expect(text.outputText()).toStartWith('hephaestus: down; paused\ncode on disk: ');
+  });
+});
+
+describeWhenRecorded(['git-recording', 'process-table-recording'], 'status of a Hephaestus of older code', () => {
+  test('a lock without a version that names a live process is live to status and to the control context', async () => {
+    const { trackerDirectory } = requireWorkspace(repositoryDirectory);
+    const { hephaestusDirectory } = hephaestusFilesIn(trackerDirectory);
+    const hephaestus = processTable.bornProcess();
+    const url = 'http://127.0.0.1:1/';
+    mkdirSync(hephaestusDirectory, { recursive: true });
+    writeFileSync(HephaestusLock.filePathFor(hephaestusDirectory, 2), JSON.stringify({
+      processId:            hephaestus.processId,
+      processStartStamp:    hephaestus.startStamp,
+      bootIdentity:         hephaestus.bootIdentity,
+      port:                 1,
+      url,
+      tokenFile:            `${hephaestusDirectory}/token`,
+      codeVersion:          'code-example',
+      installVersion:       1,
+      talosProtocolVersion: 1,
+    }));
+    const context = createCapturedCommandContext({ currentDirectory: repositoryDirectory, platformPorts: processTable.ports });
+
+    expect(await runCommandLine(['status'], context), context.errorText()).toBe(0);
+
+    expect(context.outputText()).toContain(`hephaestus: starting at ${url}, process ${hephaestus.processId}, Hephaestus lock 2;`);
+    const liveHephaestus = commandControlContextOf(processTable.ports, fakeAgentAdapter()).liveHephaestusOf(trackerDirectory);
+    expect(liveHephaestus).toEqual({ url, hephaestusLockFilePath: HephaestusLock.filePathFor(hephaestusDirectory, 2) });
   });
 });

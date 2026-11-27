@@ -6,17 +6,12 @@
  */
 import { readFileSync } from 'node:fs';
 
-import type { PlatformPorts }   from '../src/lib/platform-ports/PlatformPortsFor.ts';
-import type { HephaestusFiles } from '../src/services/hephaestus/HephaestusFiles.ts';
-import {
-  type HephaestusLockHolder,
-  type HephaestusLockReading,
-  type HephaestusLockRecord,
-  HephaestusLock
-} from '../src/services/hephaestus/HephaestusLock.ts';
-import { Presence }                                                    from '../src/services/hephaestus/Presence.ts';
-import { outlivingProgramEnvironment, hephaestusPollIntervalOverride } from '../src/shared/Environment.ts';
-import { OperationRefusal }                                            from '../src/shared/OperationRefusal.ts';
+import type { PlatformPorts }                                                    from '../src/lib/platform-ports/PlatformPortsFor.ts';
+import type { HephaestusFiles }                                                  from '../src/services/hephaestus/HephaestusFiles.ts';
+import { type HephaestusLockReading, type HephaestusLockRecord, HephaestusLock } from '../src/services/hephaestus/HephaestusLock.ts';
+import { Presence }                                                              from '../src/services/hephaestus/Presence.ts';
+import { outlivingProgramEnvironment, hephaestusPollIntervalOverride }           from '../src/shared/Environment.ts';
+import { OperationRefusal }                                                      from '../src/shared/OperationRefusal.ts';
 import {
   HEPHAESTUS_READY_INTERVAL_MILLISECONDS,
   HEPHAESTUS_READY_TRIES,
@@ -34,19 +29,15 @@ export type RuntimeStopKind = 'hephaestus-stop' | 'hephaestus-restart';
 /** `clean`: Hephaestus finished its own stop. `forced`: this command ended it by force. `unfinished`: it ended by itself before its stop finished. */
 export type HephaestusEnding = 'clean' | 'forced' | 'unfinished';
 
-/**
- * `found-dead`: the newest Hephaestus lock already named a dead process, so its Hephaestus's own stop never finished. An unreadable lock has
- * no record: one found dead names nothing, and a live one is stopped through the process and URL its JSON still names.
- */
+/** `found-dead`: the newest Hephaestus lock already named a dead process, so its Hephaestus's own stop never finished; an unreadable one has no record. */
 export type StopOutcome =
   | { verdict: 'was-down' }
-  | { verdict: 'stopped'; record: HephaestusLockRecord | null; url: string; generation: number; ending: HephaestusEnding }
+  | { verdict: 'stopped'; record: HephaestusLockRecord; generation: number; ending: HephaestusEnding }
   | { verdict: 'found-dead'; record: HephaestusLockRecord | null; generation: number };
 
-function tokenIn(holder: HephaestusLockHolder): string | null {
-  if (holder.tokenFile === null) return null;
+function tokenIn(record: HephaestusLockRecord): string | null {
   try {
-    return readFileSync(holder.tokenFile, 'utf8').trim();
+    return readFileSync(record.tokenFile, 'utf8').trim();
   } catch {
     return null;
   }
@@ -83,11 +74,11 @@ async function identityOnceItAnswers(record: HephaestusLockRecord): Promise<Read
   return null;
 }
 
-async function commandWasTaken(holder: HephaestusLockHolder, kind: RuntimeStopKind, now: boolean): Promise<boolean> {
-  const token = tokenIn(holder);
+async function commandWasTaken(record: HephaestusLockRecord, kind: RuntimeStopKind, now: boolean): Promise<boolean> {
+  const token = tokenIn(record);
   if (token === null) return false;
   try {
-    const response = await fetch(new URL('api/commands', holder.url), {
+    const response = await fetch(new URL('api/commands', record.url), {
       method:  'POST',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
       body:    JSON.stringify({ kind, now }),
@@ -103,12 +94,12 @@ async function commandWasTaken(holder: HephaestusLockHolder, kind: RuntimeStopKi
  * Ends only the process the Hephaestus lock names, still being that process: a reused pid is never signalled. What it answers is what the wait below sees.
  * True when a forced end took effect, which no listener of that process ever hears.
  */
-function forcedTheHephaestusLockProcess({ processSupervision }: PlatformPorts, holder: HephaestusLockHolder): boolean {
-  const currentIdentity = processSupervision.identityOf(holder.processId);
-  const hephaestusLockIdentity   = { processId: holder.processId, startStamp: holder.processStartStamp, bootIdentity: holder.bootIdentity };
+function forcedTheHephaestusLockProcess({ processSupervision }: PlatformPorts, record: HephaestusLockRecord): boolean {
+  const currentIdentity = processSupervision.identityOf(record.processId);
+  const hephaestusLockIdentity   = { processId: record.processId, startStamp: record.processStartStamp, bootIdentity: record.bootIdentity };
   if (currentIdentity === null || !processSupervision.sameProcess(currentIdentity, hephaestusLockIdentity)) return false;
   const { fallbackStopIsForced } = processSupervision;
-  const outcome = processSupervision.stopProcess(holder.processId, fallbackStopIsForced ? 'force' : 'ask');
+  const outcome = processSupervision.stopProcess(record.processId, fallbackStopIsForced ? 'force' : 'ask');
   return fallbackStopIsForced && outcome.verdict === 'signalled';
 }
 
@@ -117,7 +108,7 @@ async function hephaestusLockReadingOnceGone(ports: PlatformPorts, files: Hephae
   const schedule = hephaestusPollScheduleOf({ tries: HEPHAESTUS_STOP_TRIES, intervalMilliseconds: HEPHAESTUS_STOP_INTERVAL_MILLISECONDS }, hephaestusPollIntervalOverride());
   for (let attempt = 0; attempt < schedule.tries; attempt++) {
     const newest = HephaestusLock.newestOf(ports, files.hephaestusDirectory);
-    if (!HephaestusLock.namesALiveHephaestus(newest) || newest.generation !== generation) return newest;
+    if (newest.verdict !== 'live' || newest.generation !== generation) return newest;
     await Bun.sleep(schedule.intervalMilliseconds);
   }
   return null;
@@ -134,14 +125,12 @@ async function stopTheLiveHephaestus(ports: PlatformPorts, files: HephaestusFile
   const newest = HephaestusLock.newestOf(ports, files.hephaestusDirectory);
   if (newest.verdict === 'none') return { verdict: 'was-down' };
   if (newest.verdict === 'dead') return { verdict: 'found-dead', record: newest.record, generation: newest.generation };
-  const { generation } = newest;
-  const holder = HephaestusLock.holderOf(newest);
-  const forced = !await commandWasTaken(holder, kind, now) && forcedTheHephaestusLockProcess(ports, holder);
+  const { generation, record } = newest;
+  const forced = !await commandWasTaken(record, kind, now) && forcedTheHephaestusLockProcess(ports, record);
   const reading = await hephaestusLockReadingOnceGone(ports, files, generation);
-  if (reading === null) throw new OperationRefusal('refused', { kind: 'hephaestus-still-live', url: holder.url, processId: holder.processId });
-  const record = newest.verdict === 'live' ? newest.record : null;
+  if (reading === null) throw new OperationRefusal('refused', { kind: 'hephaestus-still-live', url: record.url, processId: record.processId });
   return {
-    verdict: 'stopped', record, url: holder.url, generation, ending: endingOf(reading, generation, forced)
+    verdict: 'stopped', record, generation, ending: endingOf(reading, generation, forced)
   };
 }
 
@@ -220,8 +209,7 @@ function handedOver(files: HephaestusFiles, generation: number): boolean {
  */
 async function restartTheLiveHephaestus(ports: PlatformPorts, files: HephaestusFiles, now: boolean): Promise<RestartOutcome> {
   const newest = HephaestusLock.newestOf(ports, files.hephaestusDirectory);
-  // A Hephaestus whose lock cannot be read is only stopped, by the caller's stop and start.
-  if (newest.verdict === 'none' || newest.verdict === 'live-unreadable' || newest.record === null) return { verdict: 'was-down' };
+  if (newest.verdict === 'none' || newest.record === null) return { verdict: 'was-down' };
   const { record } = newest;
   const answer: RestartAnswer = newest.verdict === 'live' ? await restartAnswerOf(record, now) : { verdict: 'not-taken' };
   const unanswered: RestartOutcome = newest.verdict === 'live' ? { verdict: 'not-taken', record } : { verdict: 'was-down' };
