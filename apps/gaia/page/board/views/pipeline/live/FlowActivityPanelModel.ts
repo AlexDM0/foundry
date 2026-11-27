@@ -14,6 +14,7 @@ import type {
 } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import type { BoardProfileRunState, BoardSetupMode }               from '../../../../@types/board/BoardVocabulary.ts';
 import type { BoardRoute }                                         from '../../../../shared/BoardRouter.ts';
+import { CountTextUtil }                                           from '../../../../shared/utils/CountTextUtil.ts';
 import { DetailRoute, type DetailItem }                            from '../../../shared/routing/DetailRoute.ts';
 import { ElapsedTimeUtil }                                         from '../../../utils/ElapsedTimeUtil.ts';
 import { TimeUtil, type TimestampSlices }                          from '../../../utils/TimeUtil.ts';
@@ -185,7 +186,7 @@ function profileActivityRowsOf(profileRuns: readonly BoardGateProfileRunDocument
 
 /** "Now · 1 item", "Now · 6 items". */
 function nowHeadingOf(rowCount: number): string {
-  return `Now · ${rowCount} ${rowCount === 1 ? 'item' : 'items'}`;
+  return `Now · ${CountTextUtil.countedPhrase(rowCount, 'item', 'items')}`;
 }
 
 /** The panel head's dot and word on the On the flow tab: "4 working", or quiet while nothing is on the flow. */
@@ -195,12 +196,12 @@ function flowStatusOf(rowCount: number): PanelStatus {
 
 /** "2 builds at a time", from the board's concurrency limit. */
 function buildsAtATimeTextOf(concurrencyLimit: number): string {
-  return `${concurrencyLimit} ${concurrencyLimit === 1 ? 'build' : 'builds'} at a time`;
+  return `${CountTextUtil.countedPhrase(concurrencyLimit, 'build', 'builds')} at a time`;
 }
 
 /** "Every entity · 6 jobs at a time": a forge over entities counts jobs over every entity (E72). */
 function everyEntityHeadTextOf(concurrencyLimit: number | null): string {
-  return concurrencyLimit === null ? 'Every entity' : `Every entity · ${concurrencyLimit} ${concurrencyLimit === 1 ? 'job' : 'jobs'} at a time`;
+  return concurrencyLimit === null ? 'Every entity' : `Every entity · ${CountTextUtil.countedPhrase(concurrencyLimit, 'job', 'jobs')} at a time`;
 }
 
 function historyTextOf(record: BoardPipelineHistoryEntryDocument): string {

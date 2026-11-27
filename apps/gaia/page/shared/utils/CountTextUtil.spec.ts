@@ -13,6 +13,12 @@ describe('a counted phrase', () => {
   });
 });
 
+describe('an agreeing phrase', () => {
+  test('takes the singular phrase for one and the plural for none and for many, without the count', () => {
+    expect([0, 1, 2].map((count) => CountTextUtil.agreeingPhrase(count, 'waits', 'wait'))).toEqual(['wait', 'waits', 'wait']);
+  });
+});
+
 describe('a short count', () => {
   test('keeps three significant digits in its unit', () => {
     expect([840, 999, 3_100, 41_300, 51_900, 146_000, 1_240_000, 1_250_000, 12_345_678].map((count) => CountTextUtil.shortCountTextOf(count)))

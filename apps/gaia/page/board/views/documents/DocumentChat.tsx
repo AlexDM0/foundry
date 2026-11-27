@@ -11,6 +11,7 @@ import { MarkdownBlocks }                                                       
 import type { BoardProposalMode }                                                           from '../../../@types/board/BoardVocabulary.ts';
 import type { BoardLineRangeDocument }                                                      from '../../../@types/board/TicketDocumentsDocument.ts';
 import { Button, SegmentedControl, type SegmentOption }                                     from '../../../lib/design-system/DesignSystemInterface.ts';
+import { CountTextUtil }                                                                    from '../../../shared/utils/CountTextUtil.ts';
 import { FLINT_SLOT_CUES }                                                                  from '../../flint/FlintSlotCues.ts';
 import { useControlCommand }                                                                from '../../shared/commands/ControlCommandSender.ts';
 import { sendKeyIsPressed }                                                                 from './CommentPopover.tsx';
@@ -258,7 +259,7 @@ function ChatItem({ item, props }: { readonly item: DocumentChatItem; readonly p
       return <ProposalNote text={item.text} editedNumbers={item.editedNumbers} />;
     case 'effect-card': {
       const { onOpenEffect } = props;
-      const facts = `${item.placeCount} ${item.placeCount === 1 ? 'place' : 'places'} · ${item.unresolvedCount} unresolved`;
+      const facts = `${CountTextUtil.countedPhrase(item.placeCount, 'place', 'places')} · ${item.unresolvedCount} unresolved`;
       return onOpenEffect === null
         ? <p className="board-document-chat-note">{`What the plan names: ${facts}`}</p>
         : (

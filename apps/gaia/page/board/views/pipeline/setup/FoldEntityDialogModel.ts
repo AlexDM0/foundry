@@ -5,6 +5,7 @@
  * cannot stand in it: a whitelist names packages only, and nothing names the root it already depends on.
  */
 import type { BoardDraftEditDocument, BoardPipelineEntityDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
+import { CountTextUtil }                                            from '../../../../shared/utils/CountTextUtil.ts';
 import { EntitiesStepModel }                                        from './EntitiesStepModel.ts';
 
 export interface FoldWords {
@@ -48,7 +49,7 @@ function targetIsImpliedRoot(entities: Readonly<Record<string, BoardPipelineEnti
 function buildGateCountTextOf(entity: Readonly<BoardPipelineEntityDocument> | undefined): string {
   const count = entity?.phases.build.length ?? 0;
   if (count === 0) return 'no build gate yet';
-  return count === 1 ? '1 build gate' : `${count} build gates`;
+  return CountTextUtil.countedPhrase(count, 'build gate', 'build gates');
 }
 
 function wordsOf(entities: Readonly<Record<string, BoardPipelineEntityDocument>>, packageKey: string, targetKey: string): FoldWords {

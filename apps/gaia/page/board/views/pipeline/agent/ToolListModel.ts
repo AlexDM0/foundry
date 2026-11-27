@@ -8,8 +8,8 @@
 import { PAGE_CONTRACT_VERSIONS }                                                           from '../../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardAgentToolDocument, BoardAgentToolUseDocument, BoardToolRequestDocument } from '../../../../@types/board/BoardAgentDocuments.ts';
 import type { BoardCommandDocument }                                                        from '../../../../@types/board/BoardCommandDocument.ts';
+import { CountTextUtil }                                                                    from '../../../../shared/utils/CountTextUtil.ts';
 import type { ForgeRefusalFacts }                                                           from '../../../api/RefusalOf.ts';
-import { ChatTurnWordingUtil }                                                              from '../../../conversation/ChatTurnWordingUtil.ts';
 
 const COMMAND_VERSION = { boardCommandVersion: PAGE_CONTRACT_VERSIONS.gaiaBoardCommand } as const;
 
@@ -113,7 +113,7 @@ function keepCommandOf(target: ToolListTarget, tools: readonly BoardAgentToolDoc
 /** "4 tools · 1 missing", the footer's and the settings' summary. */
 function summaryOf(tools: readonly BoardAgentToolDocument[]): string {
   const missingCount = tools.filter((tool) => tool.path === null).length;
-  const count = ChatTurnWordingUtil.countTextOf(tools.length, 'tool', 'tools');
+  const count = CountTextUtil.countedPhrase(tools.length, 'tool', 'tools');
   return missingCount === 0 ? count : `${count} · ${missingCount} missing`;
 }
 

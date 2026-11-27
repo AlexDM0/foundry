@@ -9,6 +9,7 @@ import type { MarkdownBlock }                                                   
 import type { BoardDecisionDocument, BoardDecisionOptionDocument }                                  from '../../../@types/board/BoardDecisionDocuments.ts';
 import type { BoardTicketDocumentKind }                                                             from '../../../@types/board/BoardVocabulary.ts';
 import type { BoardDocumentMessageDocument, BoardDocumentProposalDocument, BoardLineRangeDocument } from '../../../@types/board/TicketDocumentsDocument.ts';
+import { CountTextUtil }                                                                            from '../../../shared/utils/CountTextUtil.ts';
 import { OptionConsequencesUtil, type OptionConsequences }                                          from '../../conversation/OptionConsequencesUtil.ts';
 import { CommentPopoverModel }                                                                      from './CommentPopoverModel.ts';
 import type { CommentChip }                                                                         from './DocumentBlocks.tsx';
@@ -243,7 +244,7 @@ function questionAtLineOf(open: readonly OpenQuestionModel[], line: number | nul
 /** "2 questions open", `null` with none. */
 function openCountTextOf(openCount: number): string | null {
   if (openCount === 0) return null;
-  return `${openCount} ${openCount === 1 ? 'question' : 'questions'} open`;
+  return `${CountTextUtil.countedPhrase(openCount, 'question', 'questions')} open`;
 }
 
 export const DocumentQuestionsModel = Object.freeze({

@@ -4,6 +4,7 @@
  */
 import type { StampProps } from '../../lib/design-system/DesignSystemInterface.ts';
 
+import { CountTextUtil }                            from '../../shared/utils/CountTextUtil.ts';
 import { TimeUtil }                                 from '../utils/TimeUtil.ts';
 import type { SystemLineFacts, ToolCall, ToolFold } from './ChatThreadModel.ts';
 import type { ToolCallLine, ToolUse }               from './ToolUseFold.tsx';
@@ -20,11 +21,6 @@ const CALL_RESULT_TEXT: Readonly<Record<Exclude<ToolCall['state'], 'running'>, s
   error:      'error',
   unanswered: 'no result',
 };
-
-/** "1 turn", "3 turns". */
-function countTextOf(count: number, singular: string, plural: string): string {
-  return `${count} ${count === 1 ? singular : plural}`;
-}
 
 /** A chat stamp in the viewer's local time with seconds, the full date on hover; none for an entry with no stamp. */
 function stampOf(at: string | null, todayCalendarDate: string): StampProps | null {
@@ -65,14 +61,12 @@ function toolCallLineOf(call: ToolCall): ToolCallLine {
 function toolUseOf(fold: ToolFold, working: boolean): ToolUse {
   const callCount = fold.calls.length;
   return {
-    summaryText: working ? `Using tools · ${callCount} so far` : `Used ${countTextOf(callCount, 'tool', 'tools')}`,
+    summaryText: working ? `Using tools · ${callCount} so far` : `Used ${CountTextUtil.countedPhrase(callCount, 'tool', 'tools')}`,
     namesText:   fold.toolCounts.map(({ toolName, count }) => (count === 1 ? toolName : `${toolName} ×${count}`)).join(' · '),
-    errorText:   fold.errorCount === 0 ? null : countTextOf(fold.errorCount, 'error', 'errors'),
+    errorText:   fold.errorCount === 0 ? null : CountTextUtil.countedPhrase(fold.errorCount, 'error', 'errors'),
     calls:       fold.calls.map(toolCallLineOf),
     openAtFirst: working,
   };
 }
 
-export const ChatTurnWordingUtil = Object.freeze({
-  countTextOf, stampOf, systemLineTextOf, toolUseOf
-});
+export const ChatTurnWordingUtil = Object.freeze({ stampOf, systemLineTextOf, toolUseOf });

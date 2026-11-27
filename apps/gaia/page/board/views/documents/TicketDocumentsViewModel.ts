@@ -10,6 +10,7 @@ import type { BoardCommandDocument }                                     from '.
 import type { BoardTicketDocument }                                      from '../../../@types/board/BoardTicketDocuments.ts';
 import type { BoardTicketDocumentKind }                                  from '../../../@types/board/BoardVocabulary.ts';
 import type { BoardTicketDocumentDocument, GaiaTicketDocumentsDocument } from '../../../@types/board/TicketDocumentsDocument.ts';
+import { CountTextUtil }                                                 from '../../../shared/utils/CountTextUtil.ts';
 import { TimeUtil }                                                      from '../../utils/TimeUtil.ts';
 import { DocumentQuestionsModel }                                        from './DocumentQuestionsModel.ts';
 import { TicketDocumentCommands }                                        from './TicketDocumentCommands.ts';
@@ -114,7 +115,7 @@ function stateLineOf(document: BoardTicketDocumentDocument | null, kind: BoardTi
   if (document.standing === 'out-of-date' && document.outOfDate !== null) {
     return `${version} · approved on spec v${document.outOfDate.approvedOnSpecNumber}`;
   }
-  if (openEdits > 0) return `${version} · ${openEdits} ${openEdits === 1 ? 'edit' : 'edits'} proposed`;
+  if (openEdits > 0) return `${version} · ${CountTextUtil.countedPhrase(openEdits, 'edit', 'edits')} proposed`;
   const savedAt = clockTextOf(document.head.at);
   return savedAt === null ? version : `${version} · saved ${savedAt}`;
 }

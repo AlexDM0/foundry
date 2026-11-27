@@ -28,6 +28,7 @@ import {
   StateBadge
 } from '../../../lib/design-system/DesignSystemInterface.ts';
 import type { BoardRoute }                                             from '../../../shared/BoardRouter.ts';
+import { CountTextUtil }                                               from '../../../shared/utils/CountTextUtil.ts';
 import { EpicChips }                                                   from '../../chips/EpicChips.tsx';
 import type { PreferenceStore }                                        from '../../preferences/PreferenceStore.ts';
 import { useChangedKeys }                                              from '../../shared/ChangeHighlight.ts';
@@ -66,7 +67,7 @@ function FoldChevron() {
 }
 
 function rowCountTextOf(rowCount: number): string {
-  return rowCount === 1 ? '1 row' : `${rowCount} rows`;
+  return CountTextUtil.countedPhrase(rowCount, 'row', 'rows');
 }
 
 function ticketRowRouteOf(ticketId: string): BoardRoute {

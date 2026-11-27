@@ -5,6 +5,7 @@
  * unresolved; it is done once its document is approved with nothing open; otherwise it idles and the strip says how to start.
  */
 import type { BoardTicketDocumentDocument, BoardEffectReadingDocument } from '../../../@types/board/TicketDocumentsDocument.ts';
+import { CountTextUtil }                                                from '../../../shared/utils/CountTextUtil.ts';
 import type { ToolCall }                                                from '../../conversation/ChatThreadModel.ts';
 import { FLINT_SLOT_CUES, type FlintSlotCue }                           from '../../flint/FlintSlotCues.ts';
 import type { DocumentChat }                                            from './DocumentChatModel.ts';
@@ -33,10 +34,6 @@ export interface DocumentAgentReading {
 }
 
 const NAMED_PATH = /"(?:file_path|path|notebook_path|pattern)"\s*:\s*"([^"]+)"/u;
-
-function countText(count: number, one: string, many: string): string {
-  return `${count} ${count === 1 ? one : many}`;
-}
 
 function versionText(document: BoardTicketDocumentDocument): string {
   return document.head === null ? 'no version yet' : `v${document.head.number}`;
@@ -93,18 +90,18 @@ function stripOf(reading: DocumentAgentReading): DocumentAgentStripModel {
   if (openQuestionCount > 0) {
     return {
       agentName,
-      headLine: `Waiting on your ${countText(openQuestionCount, 'answer', 'answers')} · ${readsTextOf(reading)}`,
-      status:   `Waiting on you · ${countText(openQuestionCount, 'question', 'questions')} to answer`,
+      headLine: `Waiting on your ${CountTextUtil.countedPhrase(openQuestionCount, 'answer', 'answers')} · ${readsTextOf(reading)}`,
+      status:   `Waiting on you · ${CountTextUtil.countedPhrase(openQuestionCount, 'question', 'questions')} to answer`,
       cue:      FLINT_SLOT_CUES.AGENT_WAITS_ON_USER,
     };
   }
   const openEdits = document.proposals.filter((proposal) => proposal.state === 'proposed');
   if (openEdits.length > 0) {
     const forSpec = document.document === 'plan' ? openEdits.find((proposal) => proposal.forSpecNumber !== null)?.forSpecNumber ?? null : null;
-    const headLine = forSpec === null ? `Waiting on you · ${countText(openEdits.length, 'edit', 'edits')} to review` : `Waiting on you · reads spec v${forSpec}`;
+    const headLine = forSpec === null ? `Waiting on you · ${CountTextUtil.countedPhrase(openEdits.length, 'edit', 'edits')} to review` : `Waiting on you · reads spec v${forSpec}`;
     const status = forSpec === null
-      ? `Waiting on you · ${countText(openEdits.length, 'edit', 'edits')} to review`
-      : `Waiting on you · ${countText(openEdits.length, 'edit', 'edits')} for spec v${forSpec}`;
+      ? `Waiting on you · ${CountTextUtil.countedPhrase(openEdits.length, 'edit', 'edits')} to review`
+      : `Waiting on you · ${CountTextUtil.countedPhrase(openEdits.length, 'edit', 'edits')} for spec v${forSpec}`;
     return {
       agentName, headLine, status, cue: FLINT_SLOT_CUES.AGENT_WAITS_ON_USER
     };
@@ -114,7 +111,7 @@ function stripOf(reading: DocumentAgentReading): DocumentAgentStripModel {
     return {
       agentName,
       headLine: `Idle · ${readsTextOf(reading)}`,
-      status:   `Waiting on you · ${countText(unresolvedCount, 'unresolved place', 'unresolved places')}`,
+      status:   `Waiting on you · ${CountTextUtil.countedPhrase(unresolvedCount, 'unresolved place', 'unresolved places')}`,
       cue:      FLINT_SLOT_CUES.AGENT_WAITS_ON_USER,
     };
   }

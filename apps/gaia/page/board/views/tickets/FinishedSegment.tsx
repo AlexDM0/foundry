@@ -3,6 +3,7 @@
  * opening its ticket's detail in place; under it "N earlier tickets · show all", which widens the board's window to all.
  */
 import { StateBadge, TextButton }                            from '../../../lib/design-system/DesignSystemInterface.ts';
+import { CountTextUtil }                                     from '../../../shared/utils/CountTextUtil.ts';
 import { useDetailRouting }                                  from '../../shared/routing/DetailRouting.ts';
 import { StateToneUtil }                                     from '../../utils/StateToneUtil.ts';
 import type { FinishedTicketRowModel, FinishedTicketsModel } from './FinishedTicketsModel.ts';
@@ -65,7 +66,7 @@ export function FinishedSegment({
           ? null
           : (
             <p className="board-tickets-earlier">
-              {`${model.earlierCount} earlier ${model.earlierCount === 1 ? 'ticket' : 'tickets'} · `}
+              {`${CountTextUtil.countedPhrase(model.earlierCount, 'earlier ticket', 'earlier tickets')} · `}
               <TextButton label="show all" onPress={onShowAll} />
             </p>
           )}

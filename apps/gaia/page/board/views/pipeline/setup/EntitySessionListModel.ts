@@ -14,7 +14,7 @@ import type {
   BoardSetupQuestionDocument
 } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import type { BoardEntityKind }                                               from '../../../../@types/board/BoardVocabulary.ts';
-import { ChatTurnWordingUtil }                                                from '../../../conversation/ChatTurnWordingUtil.ts';
+import { CountTextUtil }                                                      from '../../../../shared/utils/CountTextUtil.ts';
 import type { PanelStatus }                                                   from '../PipelinePanel.tsx';
 import { NOT_LAUNCHED_PANEL_STATUS, type AgentSessionState, type SessionJob } from '../agent-panel/AgentSessionModel.ts';
 import { PipelineAgentPanelModel }                                            from '../agent-panel/PipelineAgentPanelModel.ts';
@@ -147,8 +147,8 @@ function stopCommandOf(agentJobId: string | null, state: ResearchSessionState): 
 
 function accessibleNameOf(row: Omit<EntitySessionRowView, 'accessibleName'>): string {
   const parts = [row.name, row.kindText, row.stateText];
-  if (row.findingCount > 0) parts.push(ChatTurnWordingUtil.countTextOf(row.findingCount, 'finding', 'findings'));
-  if (row.openQuestionCount > 0) parts.push(ChatTurnWordingUtil.countTextOf(row.openQuestionCount, 'open question', 'open questions'));
+  if (row.findingCount > 0) parts.push(CountTextUtil.countedPhrase(row.findingCount, 'finding', 'findings'));
+  if (row.openQuestionCount > 0) parts.push(CountTextUtil.countedPhrase(row.openQuestionCount, 'open question', 'open questions'));
   return parts.join(', ');
 }
 
@@ -188,7 +188,7 @@ function rowsOf(facts: EntitySessionFacts, selectedLevel: PipelineLevel): Entity
 /** "Forge and 2 entities": the forge's own session and the entities'. */
 function countTextOf(rows: readonly EntitySessionRowView[]): string {
   const entityCount = rows.length - 1;
-  return `${PipelineLevelModel.levelNameOf(FORGE_LEVEL)} and ${ChatTurnWordingUtil.countTextOf(entityCount, 'entity', 'entities')}`;
+  return `${PipelineLevelModel.levelNameOf(FORGE_LEVEL)} and ${CountTextUtil.countedPhrase(entityCount, 'entity', 'entities')}`;
 }
 
 /** A stop for each session that runs, the forge's first; empty while none runs. */
@@ -204,7 +204,7 @@ function footerCountsOf(rows: readonly EntitySessionRowView[]): string {
     return count === 0 ? [] : [`${count} ${STATE_TEXTS[state].toLowerCase()}`];
   });
   const openQuestionCount = rows.reduce((sum, row) => sum + row.openQuestionCount, 0);
-  const questions = openQuestionCount === 0 ? [] : [ChatTurnWordingUtil.countTextOf(openQuestionCount, 'open question', 'open questions')];
+  const questions = openQuestionCount === 0 ? [] : [CountTextUtil.countedPhrase(openQuestionCount, 'open question', 'open questions')];
   return [...stateCounts, ...questions].join(' · ');
 }
 

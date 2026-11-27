@@ -9,6 +9,7 @@ import { PAGE_CONTRACT_VERSIONS }                                   from '../../
 import type { BoardCommandDocument }                                from '../../../../@types/board/BoardCommandDocument.ts';
 import type { BoardPipelineChangeDocument, BoardSetupEditDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import type { BoardChangeKind }                                     from '../../../../@types/board/BoardVocabulary.ts';
+import { CountTextUtil }                                            from '../../../../shared/utils/CountTextUtil.ts';
 import { ChangeListModel, type ChangeRowView, type FieldWords }     from '../apply/ChangeListModel.ts';
 import { FORGE_LEVEL, PipelineLevelModel, type PipelineLevel }      from './PipelineLevelModel.ts';
 
@@ -137,7 +138,7 @@ function groupsOf(changes: readonly BoardPipelineChangeDocument[], edits: readon
       level,
       name:        PipelineLevelModel.levelNameOf(level),
       changeCount: levelChanges.length,
-      headName:    `${PipelineLevelModel.levelNameOf(level)}, ${levelChanges.length} ${levelChanges.length === 1 ? 'change' : 'changes'}`,
+      headName:    `${PipelineLevelModel.levelNameOf(level)}, ${CountTextUtil.countedPhrase(levelChanges.length, 'change', 'changes')}`,
       items:       itemsOf(levelChanges, edits),
     }];
   });

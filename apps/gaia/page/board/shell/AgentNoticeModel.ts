@@ -6,6 +6,7 @@
  */
 import type { BoardDocument } from '../../@types/board/BoardDocument.ts';
 import type { BoardRoute }    from '../../shared/BoardRouter.ts';
+import { CountTextUtil }      from '../../shared/utils/CountTextUtil.ts';
 import { PipelineViewModel }  from '../views/pipeline/PipelineViewModel.ts';
 
 export interface AgentNoticeView {
@@ -20,8 +21,8 @@ export interface AgentNoticeView {
 export type AgentNoticeFacts = Pick<BoardDocument, 'jobs' | 'agent' | 'pipeline'>;
 
 function notLaunchedTextOf(jobIds: readonly string[], reason: string): string {
-  if (jobIds.length === 1) return `Job ${jobIds[0] ?? ''} is not launched: ${reason}.`;
-  return `Jobs ${jobIds.join(', ')} are not launched: ${reason}.`;
+  const { agreeingPhrase } = CountTextUtil;
+  return `${agreeingPhrase(jobIds.length, 'Job', 'Jobs')} ${jobIds.join(', ')} ${agreeingPhrase(jobIds.length, 'is', 'are')} not launched: ${reason}.`;
 }
 
 function agentNoticeOf(facts: AgentNoticeFacts): AgentNoticeView | null {

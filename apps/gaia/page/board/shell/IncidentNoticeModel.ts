@@ -6,6 +6,7 @@
 import type { BoardQuestionHistoryEntryDocument } from '../../@types/board/BoardDecisionDocuments.ts';
 import type { BoardDocument }                     from '../../@types/board/BoardDocument.ts';
 import type { BoardNoticeDocument }               from '../../@types/board/BoardFactDocuments.ts';
+import { CountTextUtil }                          from '../../shared/utils/CountTextUtil.ts';
 import {
   IncidentTrailUtil,
   type IncidentEntry,
@@ -112,10 +113,6 @@ function stampOf(at: string | null, format: NoticeStampFormat | null): NoticeSta
   return { shortText: TimeUtil.shortStampText(at, format.todayCalendarDate, format.slices), fullText: TimeUtil.fullStampText(at, format.slices) };
 }
 
-function countText(count: number, singular: string, plural: string): string {
-  return `${String(count)} ${count === 1 ? singular : plural}`;
-}
-
 /** A default the log does not hold yet still makes a row: its kind and tickets unknown, settled by its notice's move. */
 function entryOfNotice(notice: DefaultNotice): IncidentEntry {
   return {
@@ -197,10 +194,10 @@ function bannerOf({
 }: BannerReading): IncidentBannerModel | null {
   const newest = notices.at(-1);
   if (newest === undefined) return null;
-  const openClause = openCount === 0 ? '' : `, ${countText(openCount, 'open incident', 'open incidents')}`;
+  const openClause = openCount === 0 ? '' : `, ${CountTextUtil.countedPhrase(openCount, 'open incident', 'open incidents')}`;
   const entry = settled.find((candidate) => candidate.incidentId === newest.incidentId);
   return {
-    leadText: `${countText(notices.length, 'incident default', 'incident defaults')}${openClause}.`,
+    leadText: `${CountTextUtil.countedPhrase(notices.length, 'incident default', 'incident defaults')}${openClause}.`,
     newest:   {
       incidentId: newest.incidentId,
       move:       newest.move,
@@ -226,7 +223,7 @@ function incidentNoticeModelOf(board: IncidentNoticeBoard, seenIncidentIds: read
       notices, openCount: openEntries.length, settled, history, format
     }) : null,
     drawer: {
-      summaryText: `${String(openEntries.length)} open · ${countText(notices.length, 'default applied', 'defaults applied')}`,
+      summaryText: `${String(openEntries.length)} open · ${CountTextUtil.countedPhrase(notices.length, 'default applied', 'defaults applied')}`,
       openRows:    openEntries.map((entry) => rowOf(entry, openMetaOf(entry, liveAssistantId, format), false, format)),
       defaultedRows,
     },

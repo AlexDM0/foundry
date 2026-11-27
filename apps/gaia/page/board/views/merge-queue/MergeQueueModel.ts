@@ -10,6 +10,7 @@ import type { BoardMergeCandidateDocument, BoardMergeQueueDocument }         fro
 import type { BoardMergeTargetDocument }                                     from '../../../@types/board/BoardJobDocuments.ts';
 import type { BoardAppliedPipelineDocument }                                 from '../../../@types/board/BoardPipelineDocuments.ts';
 import type { BoardDisplayState, BoardMergePrediction, BoardTicketPriority } from '../../../@types/board/BoardVocabulary.ts';
+import { CountTextUtil }                                                     from '../../../shared/utils/CountTextUtil.ts';
 
 const FIVE_KEY_ORDER_TEXT = 'Ordered by priority, clean before conflicting, fewest conflicts caused, readiness, then ticket id.';
 
@@ -109,7 +110,7 @@ function targetOf(facts: BoardMergeTargetDocument, notices: readonly BoardNotice
       position:   index + 1,
       ticketId:   entry.ticketId,
       priority:   entry.priority,
-      causesText: entry.conflictsCaused === 0 ? null : `would conflict with ${entry.conflictsCaused} clean ${entry.conflictsCaused === 1 ? 'candidate' : 'candidates'}`,
+      causesText: entry.conflictsCaused === 0 ? null : `would conflict with ${CountTextUtil.countedPhrase(entry.conflictsCaused, 'clean candidate', 'clean candidates')}`,
     })),
     pairwiseTexts:  facts.pairwiseConflicts.map(([first, second]) => `#${first} and #${second} conflict with each other`),
     waitingReasons: [

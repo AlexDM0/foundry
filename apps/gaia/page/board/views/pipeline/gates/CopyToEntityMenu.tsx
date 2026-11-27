@@ -13,6 +13,7 @@ import {
   Text,
   View
 } from '../../../../lib/design-system/DesignSystemInterface.ts';
+import { CountTextUtil }                  from '../../../../shared/utils/CountTextUtil.ts';
 import { CommandButton }                  from '../../../shared/commands/CommandButton.tsx';
 import { CopyBetweenEntitiesDialogModel } from '../editing/CopyBetweenEntitiesDialogModel.ts';
 import type { DraftEditTarget }           from '../flow/PipelineFlowModel.ts';
@@ -52,7 +53,7 @@ export function CopyToEntityMenu({
     setChosenKeys(checked ? [...chosenKeys, entityKey] : chosenKeys.filter((chosenKey) => chosenKey !== entityKey));
   };
   const copied = (): void => {
-    setCopiedText(`Copied to ${chosenKeys.join(', ')} · ${edits.length} ${edits.length === 1 ? 'edit' : 'edits'} in Changes`);
+    setCopiedText(`Copied to ${chosenKeys.join(', ')} · ${CountTextUtil.countedPhrase(edits.length, 'edit', 'edits')} in Changes`);
     setChosenKeys([]);
     setIsOpen(false);
   };
@@ -78,7 +79,7 @@ export function CopyToEntityMenu({
             <CommandButton
               compact
               primary
-              label={`Copy ${gateCount} ${gateCount === 1 ? 'gate' : 'gates'}`}
+              label={`Copy ${CountTextUtil.countedPhrase(gateCount, 'gate', 'gates')}`}
               command={CopyBetweenEntitiesDialogModel.copyCommandOf(target, edits)}
               onApplied={copied}
             />

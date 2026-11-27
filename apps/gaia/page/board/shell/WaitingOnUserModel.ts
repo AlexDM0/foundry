@@ -7,6 +7,7 @@ import type { BoardDocument }                                                   
 import type { BoardAttentionEntryDocument }                                      from '../../@types/board/BoardFactDocuments.ts';
 import type { BoardAttentionActionLabel, BoardAttentionKind, BoardDisplayState } from '../../@types/board/BoardVocabulary.ts';
 import { BoardRouter, type BoardMenuEntry, type BoardRoute }                     from '../../shared/BoardRouter.ts';
+import { CountTextUtil }                                                         from '../../shared/utils/CountTextUtil.ts';
 
 export type TabCountTone = 'waiting' | 'escalated' | 'neutral';
 
@@ -81,18 +82,10 @@ function waitingOnUserOf(board: Pick<WaitingOnUserBoard, 'attention'>): WaitingO
   };
 }
 
-function waitsWord(count: number): string {
-  return count === 1 ? 'waits' : 'wait';
-}
-
-function plural(count: number, singular: string, pluralWord: string): string {
-  return count === 1 ? singular : pluralWord;
-}
-
 function questionsTabCountOf(board: WaitingOnUserBoard, waiting: WaitingOnUser): TabCount | null {
   const count = board.decisions.length;
   if (count === 0) return null;
-  const lead = `Questions, ${count} ${plural(count, 'question', 'questions')} ${waitsWord(count)} on User`;
+  const lead = `Questions, ${CountTextUtil.countedPhrase(count, 'question waits', 'questions wait')} on User`;
   return {
     count,
     tone:      waiting.escalatedCount > 0 ? 'escalated' : 'waiting',
@@ -111,7 +104,7 @@ function draftsWaitingCountOf(waiting: WaitingOnUser): number {
 
 /** `1 waits on User`, `4 wait on User`. */
 function waitingPhraseOf(count: number): string {
-  return `${count} ${waitsWord(count)} on User`;
+  return `${CountTextUtil.countedPhrase(count, 'waits', 'wait')} on User`;
 }
 
 function waitingTabCountOf(entryLabel: string, count: number): TabCount | null {
@@ -122,7 +115,7 @@ function waitingTabCountOf(entryLabel: string, count: number): TabCount | null {
 function assistantTabCountOf(board: WaitingOnUserBoard): TabCount | null {
   const count = board.incidents.length;
   if (count === 0) return null;
-  return { count, tone: 'neutral', ariaLabel: `Assistant, ${count} ${plural(count, 'incident', 'incidents')} the Assistant is settling` };
+  return { count, tone: 'neutral', ariaLabel: `Assistant, ${CountTextUtil.countedPhrase(count, 'incident', 'incidents')} the Assistant is settling` };
 }
 
 /**

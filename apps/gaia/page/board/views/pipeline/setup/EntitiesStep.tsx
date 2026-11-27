@@ -18,6 +18,7 @@ import {
   TextField,
   View
 } from '../../../../lib/design-system/DesignSystemInterface.ts';
+import { CountTextUtil }                                            from '../../../../shared/utils/CountTextUtil.ts';
 import type { TranscriptFollower }                                  from '../../../@types/BoardServices.ts';
 import { type BoardClock, useTickingNow }                           from '../../../shared/BoardClock.ts';
 import { CommandButton }                                            from '../../../shared/commands/CommandButton.tsx';
@@ -99,7 +100,7 @@ function ModeBanner({
       <section aria-label="Proposal">
         <Card decision row centerY gap="fourteen">
           <View gap="two" grow>
-            <Text bold>{`Research found ${rowCount} stand-alone ${rowCount === 1 ? 'codebase' : 'codebases'}`}</Text>
+            <Text bold>{`Research found ${CountTextUtil.countedPhrase(rowCount, 'stand-alone codebase', 'stand-alone codebases')}`}</Text>
             <Text typeRole="small" muted>
               Monorepo mode runs each as an entity, below. Single mode keeps one pipeline for the whole repository, as a forge has today.
             </Text>

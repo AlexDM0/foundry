@@ -7,6 +7,7 @@
 import type { BoardPipelineEntityDocument }                                 from '../../../@types/board/BoardPipelineDocuments.ts';
 import type { BoardPageTicketFactsDocument, BoardTicketStageFactsDocument } from '../../../@types/board/BoardTicketDocuments.ts';
 import type { BoardEntityKind, BoardTicketStage }                           from '../../../@types/board/BoardVocabulary.ts';
+import { CountTextUtil }                                                    from '../../../shared/utils/CountTextUtil.ts';
 import { EntityGroupUtil }                                                  from '../../utils/EntityGroupUtil.ts';
 import type { KanbanBoard }                                                 from './@types/KanbanBoard.ts';
 
@@ -115,10 +116,6 @@ function ticketIsInEntity(facts: Pick<BoardPageTicketFactsDocument, 'entity' | '
   return facts?.entity === entityKey || facts?.stage?.entity === entityKey;
 }
 
-function countedText(count: number, singular: string, plural: string): string {
-  return `${count} ${count === 1 ? singular : plural}`;
-}
-
 /** `null` in single mode; the stored entity counts only while the pipeline still names it. */
 function entityFilterOf(board: KanbanBoard, storedEntity: string | null, storedSwimlanes: KanbanSwimlanes): KanbanEntityFilter | null {
   const entities = entitiesOf(board);
@@ -145,7 +142,7 @@ function railRowOf(entity: KanbanEntityFilterEntity, chosenEntity: string | null
     kindText,
     openTicketCount: entity.openTicketCount,
     selected:        entity.key === chosenEntity,
-    accessibleName:  `${entity.key}, ${kindText}, ${countedText(entity.openTicketCount, 'open ticket', 'open tickets')}`,
+    accessibleName:  `${entity.key}, ${kindText}, ${CountTextUtil.countedPhrase(entity.openTicketCount, 'open ticket', 'open tickets')}`,
   };
 }
 
@@ -162,7 +159,7 @@ function railOf(filter: KanbanEntityFilter, filterText: string): KanbanEntityRai
       kindText:        ALL_ENTITIES_KIND_TEXT,
       openTicketCount: filter.openTicketCount,
       selected:        filter.chosenEntity === null,
-      accessibleName:  `${ALL_ENTITIES_NAME}, ${countedText(filter.openTicketCount, 'open ticket', 'open tickets')}`,
+      accessibleName:  `${ALL_ENTITIES_NAME}, ${CountTextUtil.countedPhrase(filter.openTicketCount, 'open ticket', 'open tickets')}`,
     },
     groups: EntityGroupUtil.groupsOf(rows, (row) => kindByKey.get(row.name) ?? null)
       .map((group) => ({ groupKind: group.groupKind, label: group.label, rows: group.items })),

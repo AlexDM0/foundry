@@ -7,6 +7,7 @@
 import { PAGE_CONTRACT_VERSIONS }                                                               from '../../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardAgentDocument, BoardAgentProgramChoiceDocument, BoardPipelineAgentDocument } from '../../../../@types/board/BoardAgentDocuments.ts';
 import type { BoardCommandDocument }                                                            from '../../../../@types/board/BoardCommandDocument.ts';
+import { CountTextUtil }                                                                        from '../../../../shared/utils/CountTextUtil.ts';
 import type { CommandWaitExplanation }                                                          from '../../../shared/commands/CommandWait.ts';
 
 const COMMAND_VERSION = { boardCommandVersion: PAGE_CONTRACT_VERSIONS.gaiaBoardCommand } as const;
@@ -155,7 +156,7 @@ function machineChangeAsksFirst(agent: BoardAgentDocument, forEveryForge: boolea
 /** "3 other forges follow", or `null` while Gaia has not read every other forge. */
 function followersTextOf(count: number | null): string | null {
   if (count === null) return null;
-  return count === 1 ? '1 other forge follows' : `${count} other forges follow`;
+  return CountTextUtil.countedPhrase(count, 'other forge follows', 'other forges follow');
 }
 
 function machineChangeQuestionOf(agent: BoardAgentDocument, displayName: string): string {

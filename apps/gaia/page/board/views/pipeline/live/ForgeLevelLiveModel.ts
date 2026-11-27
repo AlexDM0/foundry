@@ -5,6 +5,7 @@
  */
 import type { BoardPipelineFlowDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import type { BoardRoute }                from '../../../../shared/BoardRouter.ts';
+import { CountTextUtil }                  from '../../../../shared/utils/CountTextUtil.ts';
 import { ElapsedTimeUtil }                from '../../../utils/ElapsedTimeUtil.ts';
 import { PipelinePhaseModel }             from '../flow/PipelinePhaseModel.ts';
 import { FlowActivityPanelModel }         from './FlowActivityPanelModel.ts';
@@ -25,10 +26,6 @@ export interface MergeTrainRowView {
 const IN_AIRLOCK_TEXT = 'In the Airlock · merging onto main';
 
 const QUEUED_TEXT = 'Waiting for the Airlock';
-
-function countText(count: number, singular: string, plural: string): string {
-  return `${count} ${count === 1 ? singular : plural}`;
-}
 
 /** The tickets in the Airlock first, then the queue, each in the facts' order. */
 function mergeTrainRowsOf(
@@ -59,8 +56,8 @@ function mergeTrainRowsOf(
 
 /** "1 of 2 jobs running"; "2 jobs at once" when the facts do not count the jobs in flight. */
 function boardJobsTextOf(concurrency: { readonly limit: number; readonly agentsInFlight?: number }): string {
-  if (concurrency.agentsInFlight === undefined) return `${countText(concurrency.limit, 'job', 'jobs')} at once`;
-  return `${String(concurrency.agentsInFlight)} of ${countText(concurrency.limit, 'job', 'jobs')} running`;
+  if (concurrency.agentsInFlight === undefined) return `${CountTextUtil.countedPhrase(concurrency.limit, 'job', 'jobs')} at once`;
+  return `${String(concurrency.agentsInFlight)} of ${CountTextUtil.countedPhrase(concurrency.limit, 'job', 'jobs')} running`;
 }
 
 export const ForgeLevelLiveModel = Object.freeze({

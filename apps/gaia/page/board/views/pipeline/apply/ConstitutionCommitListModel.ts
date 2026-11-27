@@ -4,6 +4,7 @@
  * installed default. A draft with no text commits nothing, as the Apply reads it.
  */
 import type { BoardSetupRecordDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
+import { CountTextUtil }                 from '../../../../shared/utils/CountTextUtil.ts';
 
 export interface ConstitutionCommit {
   /** The entities whose drafted text the one commit writes, in the draft's order. */
@@ -52,19 +53,18 @@ function commitOf(record: Pick<BoardSetupRecordDocument, 'draft' | 'entities'>):
 /** "3 constitutions go to main in one commit", or that none does. */
 function headlineOf(committedCount: number): string {
   if (committedCount === 0) return 'No constitution goes to main: Apply makes no constitution commit.';
-  if (committedCount === 1) return '1 constitution goes to main in one commit';
-  return `${committedCount} constitutions go to main in one commit`;
+  return `${CountTextUtil.countedPhrase(committedCount, 'constitution goes', 'constitutions go')} to main in one commit`;
 }
 
 function viewOf(record: Pick<BoardSetupRecordDocument, 'draft' | 'entities'>): ConstitutionCommitView {
   const commit = commitOf(record);
   const notes: string[] = [];
   if (commit.adoptedKeys.length > 0) {
-    const single = commit.adoptedKeys.length === 1;
-    notes.push(`${listedText(commit.adoptedKeys)} ${single ? 'keeps its own file' : 'keep their own files'} from the repository, byte for byte.`);
+    const keepsText = CountTextUtil.agreeingPhrase(commit.adoptedKeys.length, 'keeps its own file', 'keep their own files');
+    notes.push(`${listedText(commit.adoptedKeys)} ${keepsText} from the repository, byte for byte.`);
   }
   if (commit.defaultKeys.length > 0) {
-    notes.push(`${listedText(commit.defaultKeys)} ${commit.defaultKeys.length === 1 ? 'reads' : 'read'} the installed default constitution.`);
+    notes.push(`${listedText(commit.defaultKeys)} ${CountTextUtil.agreeingPhrase(commit.defaultKeys.length, 'reads', 'read')} the installed default constitution.`);
   }
   if (commit.keptForAPersonKeys.length > 0) notes.push(`${listedText(commit.keptForAPersonKeys)} is kept for a person: no constitution.`);
   if (commit.committedKeys.length > 0) notes.push('The commit changes only these files, so it runs no gates.');

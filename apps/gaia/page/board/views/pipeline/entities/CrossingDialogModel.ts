@@ -4,6 +4,7 @@
  * package. Nothing here edits: the stages follow from the entities, so User sees the cost and the order before taking a whitelist entry.
  */
 import type { BoardDraftEntityFactsDocument, BoardPipelineEntityDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
+import { CountTextUtil }                                                   from '../../../../shared/utils/CountTextUtil.ts';
 
 /** `home`: the app, the ticket's home; `package`: the whitelisted package, whose stages a dashed edge and a neutral tint set apart. */
 export type CrossingStageOwner = 'home' | 'package' | 'both';
@@ -60,7 +61,7 @@ function possessiveListOf(keys: readonly string[]): string {
 function packageBuildGatesOf(entities: Readonly<Record<string, BoardPipelineEntityDocument>>, dependents: readonly string[], packageKey: string): string {
   const own = gatesTextOf(entityOf(entities, packageKey), packageKey);
   if (dependents.length === 0) return own;
-  return `${own}; then ${possessiveListOf(dependents)}, which ${dependents.length === 1 ? 'depends' : 'depend'} on ${packageKey}`;
+  return `${own}; then ${possessiveListOf(dependents)}, which ${CountTextUtil.agreeingPhrase(dependents.length, 'depends', 'depend')} on ${packageKey}`;
 }
 
 function landingGatesOf(dependents: readonly string[], appKey: string, packageKey: string): string {

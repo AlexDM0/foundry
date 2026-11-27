@@ -20,6 +20,7 @@ import {
   type BoardEntityKind,
   type BoardGatePhase
 } from '../../../../@types/board/BoardVocabulary.ts';
+import { CountTextUtil }        from '../../../../shared/utils/CountTextUtil.ts';
 import type { DraftEditTarget } from '../flow/PipelineFlowModel.ts';
 
 /** What one copy carries: an entity's gates with their phases, its prepare steps, or its agents' model and effort. */
@@ -57,10 +58,6 @@ interface TargetEdits {
 const KIND_WORDS: Readonly<Record<BoardEntityKind, string>> = Object.freeze({ app: 'app', package: 'package', root: 'root' });
 
 const KEPT_FOR_A_PERSON_TEXT = 'kept for a person';
-
-function countText(count: number, singular: string, plural: string): string {
-  return `${count} ${count === 1 ? singular : plural}`;
-}
 
 function entityOf(draft: BoardPipelineDefinitionDocument, entityKey: string): BoardPipelineEntityDocument | null {
   const entities = draft.entities ?? {};
@@ -146,16 +143,16 @@ function previewLinesOf(draft: BoardPipelineDefinitionDocument, request: CopyReq
   return request.toEntityKeys.flatMap((targetKey) => {
     const { edits, replacedGates } = targetEditsOf(draft, request, targetKey);
     if (edits.length === 0) return [];
-    const replaces = replacedGates.length === 1 ? 'replaces' : 'replace';
+    const replaces = CountTextUtil.agreeingPhrase(replacedGates.length, 'replaces', 'replace');
     const rest = replacedGates.length === 0
       ? '.'
-      : `; ${countText(replacedGates.length, 'gate', 'gates')} ${replaces} ${targetKey}’s own ${replacedGates.join(', ')}.`;
-    return [{ entityKey: targetKey, lead: `Makes ${countText(edits.length, 'edit', 'edits')} in ${targetKey}`, rest }];
+      : `; ${CountTextUtil.countedPhrase(replacedGates.length, 'gate', 'gates')} ${replaces} ${targetKey}’s own ${replacedGates.join(', ')}.`;
+    return [{ entityKey: targetKey, lead: `Makes ${CountTextUtil.countedPhrase(edits.length, 'edit', 'edits')} in ${targetKey}`, rest }];
   });
 }
 
 function gateCountTextOf(entity: BoardPipelineEntityDocument): string {
-  return entity.gates.length === 0 ? 'no gates' : countText(entity.gates.length, 'gate', 'gates');
+  return entity.gates.length === 0 ? 'no gates' : CountTextUtil.countedPhrase(entity.gates.length, 'gate', 'gates');
 }
 
 /** Every entity but the source, in the draft's order, with its kind and gates; the root says it is kept for a person. */
@@ -169,7 +166,7 @@ function targetOptionsOf(draft: BoardPipelineDefinitionDocument, fromEntityKey: 
 
 /** "Copy 4 edits". */
 function copyLabelOf(editCount: number): string {
-  return `Copy ${countText(editCount, 'edit', 'edits')}`;
+  return `Copy ${CountTextUtil.countedPhrase(editCount, 'edit', 'edits')}`;
 }
 
 /** The set as one move, marked as a copy so the draft stores it as one batch; null with nothing to send. */

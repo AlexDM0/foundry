@@ -70,8 +70,4 @@ describe('ChatTurnWordingUtil.toolUseOf', () => {
   test('a call the turn ended without answering reads as an error with no result, a running one with none yet', () => {
     expect(ChatTurnWordingUtil.toolUseOf(fold, false).calls.map((call) => [call.outcome, call.resultText])).toEqual([['ok', 'ok'], ['error', 'no result'], ['running', null]]);
   });
-
-  test('counts read singular for one', () => {
-    expect([ChatTurnWordingUtil.countTextOf(1, 'turn', 'turns'), ChatTurnWordingUtil.countTextOf(0, 'turn', 'turns')]).toEqual(['1 turn', '0 turns']);
-  });
 });

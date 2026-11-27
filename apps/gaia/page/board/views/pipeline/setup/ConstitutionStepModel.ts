@@ -15,7 +15,7 @@ import type {
   BoardPipelineSetupDocument
 } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import type { BoardEntityAgentRole, BoardPipelineAgentRole, BoardSetupMode } from '../../../../@types/board/BoardVocabulary.ts';
-import { ChatTurnWordingUtil }                                               from '../../../conversation/ChatTurnWordingUtil.ts';
+import { CountTextUtil }                                                     from '../../../../shared/utils/CountTextUtil.ts';
 import type { PanelStatus }                                                  from '../PipelinePanel.tsx';
 import { NOT_LAUNCHED_PANEL_STATUS, type AgentSessionState }                 from '../agent-panel/AgentSessionModel.ts';
 import type { ConstitutionState }                                            from '../entities/ConstitutionStateTagModel.ts';
@@ -120,8 +120,8 @@ function readerLabelsOf(roles: readonly BoardPipelineAgentRole[]): string[] {
 /** "4 sections · 9 rules"; `null` with no constitution yet. */
 function outlineTextOf(outline: BoardConstitutionOutlineDocument | null): string | null {
   if (outline === null) return null;
-  const sections = ChatTurnWordingUtil.countTextOf(outline.sectionCount, 'section', 'sections');
-  const rules = ChatTurnWordingUtil.countTextOf(outline.ruleCount, 'rule', 'rules');
+  const sections = CountTextUtil.countedPhrase(outline.sectionCount, 'section', 'sections');
+  const rules = CountTextUtil.countedPhrase(outline.ruleCount, 'rule', 'rules');
   return `${sections} · ${rules}`;
 }
 

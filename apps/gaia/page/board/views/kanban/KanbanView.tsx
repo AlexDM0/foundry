@@ -27,6 +27,7 @@ import {
   TextButton
 } from '../../../lib/design-system/DesignSystemInterface.ts';
 
+import { CountTextUtil }                                                  from '../../../shared/utils/CountTextUtil.ts';
 import { CARD_EPIC_CHIP_LIMIT }                                           from '../../chips/EpicChipUtil.ts';
 import { EpicChips }                                                      from '../../chips/EpicChips.tsx';
 import { PriorityMark, TypeMark, WaitingOnMark }                          from '../../chips/TicketMarks.tsx';
@@ -124,7 +125,7 @@ function detailItemOf(card: KanbanCardModel): DetailItem | null {
 
 /** `1 draft waits on you`, `3 drafts wait on you`. */
 function draftsWaitingTextOf(count: number): string {
-  return count === 1 ? '1 draft waits on you' : `${count} drafts wait on you`;
+  return CountTextUtil.countedPhrase(count, 'draft waits on you', 'drafts wait on you');
 }
 
 /** A crossing ticket's five stages in a row, a package's stages dashed, then where it is in words. */

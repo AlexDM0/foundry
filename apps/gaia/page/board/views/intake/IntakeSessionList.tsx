@@ -1,7 +1,7 @@
 /** The Intake list: every product-owner session, the selected one marked, under a head that counts them and opens a new chat. */
 import { Button, Tag } from '../../../lib/design-system/DesignSystemInterface.ts';
 
-import { ChatTurnWordingUtil }          from '../../conversation/ChatTurnWordingUtil.ts';
+import { CountTextUtil }                from '../../../shared/utils/CountTextUtil.ts';
 import { useBoardHrefOf }               from '../../shared/routing/BoardRouteLinks.ts';
 import type { IntakeSession }           from '../../shared/tickets/IntakeSessionsModel.ts';
 import { INTAKE_NEW_CHAT_ITEM }         from './IntakeModel.ts';
@@ -26,7 +26,7 @@ export function IntakeSessionList({ sessions, selectedJobId, newChatIsOpen }: In
     <IntakePane
       label="Product-owner sessions"
       title="Intake"
-      besideTitle={<Tag tone="neutral" text={ChatTurnWordingUtil.countTextOf(sessions.length, 'session', 'sessions')} />}
+      besideTitle={<Tag tone="neutral" text={CountTextUtil.countedPhrase(sessions.length, 'session', 'sessions')} />}
       headEnd={(
         <Button
           label="New chat"

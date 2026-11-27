@@ -8,6 +8,7 @@
 import type { BoardDocument }                                  from '../../../../@types/board/BoardDocument.ts';
 import type { BoardPipelineEntityDocument }                    from '../../../../@types/board/BoardPipelineDocuments.ts';
 import type { BoardEntityKind, BoardProfileRunState }          from '../../../../@types/board/BoardVocabulary.ts';
+import { CountTextUtil }                                       from '../../../../shared/utils/CountTextUtil.ts';
 import { EntityGroupUtil }                                     from '../../../utils/EntityGroupUtil.ts';
 import { PipelineViewModel }                                   from '../PipelineViewModel.ts';
 import { FORGE_LEVEL, PipelineLevelModel, type PipelineLevel } from './PipelineLevelModel.ts';
@@ -75,10 +76,6 @@ const STATUS_TEXTS: Readonly<Record<Exclude<PipelineLevelRailStatus, 'checked'>,
 
 const RUNNING_PROFILE_STATES: readonly BoardProfileRunState[] = ['queued', 'running'];
 
-function countedText(count: number, singular: string, plural: string): string {
-  return `${count} ${count === 1 ? singular : plural}`;
-}
-
 function statusOf(entityKey: string, entity: BoardPipelineEntityDocument, facts: PipelineLevelRailFacts): PipelineLevelRailStatus {
   const { profileRuns } = facts.pipeline;
   if (profileRuns.some((run) => run.entity === entityKey && RUNNING_PROFILE_STATES.includes(run.state))) return 'gate-running';
@@ -98,8 +95,8 @@ function accessibleNameOf(row: Omit<PipelineLevelRailRowView, 'accessibleName'>)
   const parts = [row.name, row.kindText];
   if (row.statusText !== null) parts.push(row.statusText);
   if (row.activityText !== null) parts.push(row.activityText);
-  if (row.openQuestionCount > 0) parts.push(countedText(row.openQuestionCount, 'open question', 'open questions'));
-  if (row.pendingEditCount > 0) parts.push(countedText(row.pendingEditCount, 'pending edit', 'pending edits'));
+  if (row.openQuestionCount > 0) parts.push(CountTextUtil.countedPhrase(row.openQuestionCount, 'open question', 'open questions'));
+  if (row.pendingEditCount > 0) parts.push(CountTextUtil.countedPhrase(row.pendingEditCount, 'pending edit', 'pending edits'));
   return parts.join(', ');
 }
 
@@ -128,7 +125,7 @@ function openQuestionCountOf(entityKey: string, facts: PipelineLevelRailFacts): 
 }
 
 function gatesStatusTextOf(status: PipelineLevelRailStatus, entity: BoardPipelineEntityDocument): string {
-  return status === 'checked' ? countedText(entity.gates.length, 'gate', 'gates') : STATUS_TEXTS[status];
+  return status === 'checked' ? CountTextUtil.countedPhrase(entity.gates.length, 'gate', 'gates') : STATUS_TEXTS[status];
 }
 
 function entityRowOf(
@@ -169,8 +166,8 @@ function attentionTextOf(entities: ShownEntities): string | null {
   const withoutGates = checkedEntities.filter((entity) => entity.gates.length === 0).length;
   const withDefaultConstitution = checkedEntities.filter((entity) => entity.constitutionPath === null).length;
   const parts: string[] = [];
-  if (withoutGates > 0) parts.push(`${countedText(withoutGates, 'entity has', 'entities have')} no gates`);
-  if (withDefaultConstitution > 0) parts.push(`${countedText(withDefaultConstitution, 'entity has', 'entities have')} the default constitution`);
+  if (withoutGates > 0) parts.push(`${CountTextUtil.countedPhrase(withoutGates, 'entity has', 'entities have')} no gates`);
+  if (withDefaultConstitution > 0) parts.push(`${CountTextUtil.countedPhrase(withDefaultConstitution, 'entity has', 'entities have')} the default constitution`);
   return parts.length === 0 ? null : parts.join(' · ');
 }
 

@@ -10,6 +10,7 @@ import type { BoardLaunchSlotsDocument }           from '../../../@types/board/B
 import type { BoardConcurrencyBoundsDocument }     from '../../../@types/board/BoardFactDocuments.ts';
 import type { BoardDisplayState, BoardResumeWait } from '../../../@types/board/BoardVocabulary.ts';
 import type { IconName }                           from '../../../lib/design-system/DesignSystemInterface.ts';
+import { CountTextUtil }                           from '../../../shared/utils/CountTextUtil.ts';
 import { DisplayStateWordingUtil }                 from '../../utils/DisplayStateWordingUtil.ts';
 import { JobStateUtil }                            from '../../utils/JobStateUtil.ts';
 import { TimeUtil, type TimestampSlices }          from '../../utils/TimeUtil.ts';
@@ -157,7 +158,7 @@ function slotMeterOf(launchSlots: BoardLaunchSlotsDocument): SlotMeterFacts {
     limit:         launchSlots.limit,
     countedJobIds: launchSlots.slotJobIds,
     overLimit:     counted > launchSlots.limit,
-    label:         `${counted} worker ${counted === 1 ? 'job' : 'jobs'} against a limit of ${launchSlots.limit}`,
+    label:         `${CountTextUtil.countedPhrase(counted, 'worker job', 'worker jobs')} against a limit of ${launchSlots.limit}`,
   };
 }
 
@@ -169,7 +170,7 @@ function isCounted(jobId: string, launchSlots: BoardLaunchSlotsDocument): boolea
 function budgetMeterOf(job: BudgetedJob): BudgetMeterFacts {
   const { calls, callBudget } = job.live;
   if (callBudget === null) return {
-    used: calls, limit: null, near: false, label: `${calls} ${calls === 1 ? 'call' : 'calls'}, no budget`
+    used: calls, limit: null, near: false, label: `${CountTextUtil.countedPhrase(calls, 'call', 'calls')}, no budget`
   };
   return {
     used:  calls,
@@ -195,7 +196,7 @@ function subagentSquaresOf(job: JobWithSubagents): SubagentSquares {
   if (subagents.length === 0) return { squares: [], figureText: 'none', ariaLabel: 'no subagents' };
   const squares = subagents.map((subagent) => {
     const running = subagent.state === 'running';
-    const toolCallsText = `${subagent.toolCalls} ${subagent.toolCalls === 1 ? 'tool call' : 'tool calls'}`;
+    const toolCallsText = CountTextUtil.countedPhrase(subagent.toolCalls, 'tool call', 'tool calls');
     return {
       key:       subagent.parentToolUseId,
       running,
@@ -214,14 +215,14 @@ function subagentSquaresOf(job: JobWithSubagents): SubagentSquares {
 
 function quietTextOf(silentSweeps: number): string | null {
   if (silentSweeps <= 0) return null;
-  return `quiet ${silentSweeps} ${silentSweeps === 1 ? 'sweep' : 'sweeps'}`;
+  return `quiet ${CountTextUtil.countedPhrase(silentSweeps, 'sweep', 'sweeps')}`;
 }
 
 /** The Agents card's count: `3 jobs · 2 ask User · 1 quiet`, a part left out at zero, the jobs always named. */
 function cardCountTextOf(jobCount: number, askingCount: number, quietCount: number): string {
   const parts = [
-    `${jobCount} ${jobCount === 1 ? 'job' : 'jobs'}`,
-    askingCount > 0 ? `${askingCount} ${askingCount === 1 ? 'asks' : 'ask'} User` : null,
+    CountTextUtil.countedPhrase(jobCount, 'job', 'jobs'),
+    askingCount > 0 ? `${CountTextUtil.countedPhrase(askingCount, 'asks', 'ask')} User` : null,
     quietCount > 0 ? `${quietCount} quiet` : null,
   ];
   return parts.filter((part) => part !== null).join(' · ');
@@ -238,29 +239,29 @@ function sessionTalliesOf(jobs: readonly Pick<AgentJobDocument, 'id' | 'role'>[]
 
 /** The project line of Sessions: `3 sessions · 1 waits on User`, the waiting part left out at zero. */
 function sessionsLineTextOf(sessionCount: number, waitingOnUserCount: number): string {
-  const sessionsText = `${sessionCount} ${sessionCount === 1 ? 'session' : 'sessions'}`;
+  const sessionsText = CountTextUtil.countedPhrase(sessionCount, 'session', 'sessions');
   return waitingOnUserCount === 0 ? sessionsText : `${sessionsText} · ${waitsOnUserTextOf(waitingOnUserCount)}`;
 }
 
 /** `1 waits on User`, `2 wait on User`. */
 function waitsOnUserTextOf(waitingOnUserCount: number): string {
-  return `${waitingOnUserCount} ${waitingOnUserCount === 1 ? 'waits' : 'wait'} on User`;
+  return `${CountTextUtil.countedPhrase(waitingOnUserCount, 'waits', 'wait')} on User`;
 }
 
 /** The worker card's project line: `3 jobs here · 4 tickets in progress have no job`, the second part left out at zero. */
 function workersLineTextOf(jobCount: number, joblessTicketCount: number): string {
-  const jobsText = `${jobCount} ${jobCount === 1 ? 'job' : 'jobs'} here`;
+  const jobsText = `${CountTextUtil.countedPhrase(jobCount, 'job', 'jobs')} here`;
   return joblessTicketCount === 0 ? jobsText : `${jobsText} · ${joblessTicketsTextOf(joblessTicketCount)}`;
 }
 
 /** `1 ticket in progress has no job`, `4 tickets in progress have no job`. */
 function joblessTicketsTextOf(joblessTicketCount: number): string {
-  return joblessTicketCount === 1 ? '1 ticket in progress has no job' : `${joblessTicketCount} tickets in progress have no job`;
+  return CountTextUtil.countedPhrase(joblessTicketCount, 'ticket in progress has no job', 'tickets in progress have no job');
 }
 
 /** The Assistant's tally: `0 incidents open`, `1 incident open`. */
 function incidentsOpenTextOf(openIncidentCount: number): string {
-  return `${openIncidentCount} ${openIncidentCount === 1 ? 'incident' : 'incidents'} open`;
+  return `${CountTextUtil.countedPhrase(openIncidentCount, 'incident', 'incidents')} open`;
 }
 
 /** What a session is about: an intake's title, else its request; the Assistant's open incidents; a pipeline agent. */
@@ -268,7 +269,7 @@ function sessionAboutTextOf(job: AboutJob, openIncidentCount: number): string {
   if (job.role === 'product-owner') return job.intake?.title ?? job.intake?.text ?? 'intake';
   if (job.role === 'assistant') {
     if (openIncidentCount === 0) return 'no open incident';
-    return `${openIncidentCount} open ${openIncidentCount === 1 ? 'incident' : 'incidents'}`;
+    return CountTextUtil.countedPhrase(openIncidentCount, 'open incident', 'open incidents');
   }
   return 'pipeline agent';
 }
@@ -284,7 +285,7 @@ function takesMessages(job: Pick<AgentJobDocument, 'offers'>): boolean {
 
 /** "followed live · 11 entries": the transcript head says it follows the job and how much it holds. */
 function transcriptCountTextOf(entryCount: number): string {
-  return `followed live · ${entryCount} ${entryCount === 1 ? 'entry' : 'entries'}`;
+  return `followed live · ${CountTextUtil.countedPhrase(entryCount, 'entry', 'entries')}`;
 }
 
 /** The head of the job panel: the job's state, then how long ago it launched where the log holds its launch. */

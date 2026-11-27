@@ -14,7 +14,7 @@ import type {
   BoardSetupEditDocument
 } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import { BOARD_GATE_PHASES }                                 from '../../../../@types/board/BoardVocabulary.ts';
-import { ChatTurnWordingUtil }                               from '../../../conversation/ChatTurnWordingUtil.ts';
+import { CountTextUtil }                                     from '../../../../shared/utils/CountTextUtil.ts';
 import type { PanelStatus }                                  from '../PipelinePanel.tsx';
 import type { FlowPageWords }                                from '../PipelineViewModel.ts';
 import { NOT_LAUNCHED_PANEL_STATUS, type AgentSessionState } from '../agent-panel/AgentSessionModel.ts';
@@ -71,7 +71,7 @@ function applyAvailabilityOf(openQuestionCount: number): ApplyAvailability {
 
 /** "Changes, 10 changes": what the tab's count means. */
 function changesTabNameOf(changeCount: number): string {
-  return `Changes, ${ChatTurnWordingUtil.countTextOf(changeCount, 'change', 'changes')}`;
+  return `Changes, ${CountTextUtil.countedPhrase(changeCount, 'change', 'changes')}`;
 }
 
 function discardCommandOf(setupId: string): BoardCommandDocument {

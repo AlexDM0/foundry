@@ -13,6 +13,7 @@ import type { BoardTicketDocumentSummaryDocument }                             f
 import type { BoardDisplayState, BoardInterruptionCause, BoardTicketPriority } from '../../../@types/board/BoardVocabulary.ts';
 import type { BoardDocumentStanding, BoardTicketDocumentKind }                 from '../../../@types/board/BoardVocabulary.ts';
 import { BoardRouter, type BoardRoute }                                        from '../../../shared/BoardRouter.ts';
+import { CountTextUtil }                                                       from '../../../shared/utils/CountTextUtil.ts';
 import type { FlintSlotCue }                                                   from '../../flint/FlintSlotCues.ts';
 import { DisplayStateWordingUtil }                                             from '../../utils/DisplayStateWordingUtil.ts';
 import { FlintSlotCueUtil }                                                    from '../../utils/FlintSlotCueUtil.ts';
@@ -445,7 +446,7 @@ function dependentPartsOf(forecast: BoardTicketForecastDocument, tickets: readon
 function customsPartsOf(gateCount: number, jobId: string | null): TextPartModel[] {
   const handoff = jobId === null ? 'the handoff' : `${jobId}'s handoff`;
   if (gateCount === 0) return [textOf(`Customs checks ${handoff}.`)];
-  return [textOf(`Customs checks ${handoff} and runs ${gateCount === 1 ? 'the gate' : 'the gates'}.`)];
+  return [textOf(`Customs checks ${handoff} and runs ${CountTextUtil.agreeingPhrase(gateCount, 'the gate', 'the gates')}.`)];
 }
 
 function landingPartsOf(verb: string, target: string | null): TextPartModel[] {

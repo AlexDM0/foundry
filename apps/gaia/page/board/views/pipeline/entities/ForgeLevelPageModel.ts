@@ -9,6 +9,7 @@ import type { BoardCommandDocument }                                            
 import type { BoardConcurrencyBoundsDocument, BoardLimitsDocument }                            from '../../../../@types/board/BoardFactDocuments.ts';
 import type { BoardDraftEditDocument, BoardFlowNodeDocument, BoardPipelineDefinitionDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import type { BoardPipelineApproval, BoardPipelineNodeKind, BoardTicketWritingRoute }          from '../../../../@types/board/BoardVocabulary.ts';
+import { CountTextUtil }                                                                       from '../../../../shared/utils/CountTextUtil.ts';
 
 export interface ApprovalView {
   readonly approval: BoardPipelineApproval;
@@ -42,10 +43,6 @@ const TICKET_PHASE_APPROVALS: Readonly<Record<BoardTicketWritingRoute, readonly 
 
 /** The steps that write a ticket: one ticket's, or the spec's and then the plan's. */
 const TICKET_WRITING_NODE_KINDS: ReadonlySet<BoardPipelineNodeKind> = new Set(['ticket-creation', 'spec-writing', 'plan-writing']);
-
-function countText(count: number, singular: string, plural: string): string {
-  return `${count} ${count === 1 ? singular : plural}`;
-}
 
 function approvalViewOf(draft: Pick<BoardPipelineDefinitionDocument, 'approvals'> | null, approval: BoardPipelineApproval, defaults: ApprovalDefaults): ApprovalView {
   const isOn = draft?.approvals?.[approval] ?? defaults.defaultApprovals[approval];
@@ -85,13 +82,13 @@ function airlockMergeNodeOf(nodes: readonly BoardFlowNodeDocument[]): BoardFlowN
 
 /** "2 jobs at once". */
 function jobsAtOnceTextOf(limit: number): string {
-  return `${countText(limit, 'job', 'jobs')} at once`;
+  return `${CountTextUtil.countedPhrase(limit, 'job', 'jobs')} at once`;
 }
 
 /** Each entity with a cap of its own, under the board limit: "web: a cap of 1 job". */
 function entityCapLinesOf(draft: Pick<BoardPipelineDefinitionDocument, 'entities'> | null): string[] {
   return Object.entries(draft?.entities ?? {}).flatMap(([entityKey, entity]) => (
-    entity.concurrency === null ? [] : [`${entityKey}: a cap of ${countText(entity.concurrency, 'job', 'jobs')}`]
+    entity.concurrency === null ? [] : [`${entityKey}: a cap of ${CountTextUtil.countedPhrase(entity.concurrency, 'job', 'jobs')}`]
   ));
 }
 
@@ -107,8 +104,8 @@ function footerSummaryOf(draft: Pick<BoardPipelineDefinitionDocument, 'entities'
   const entities = Object.values(draft?.entities ?? {});
   const gateCount = entities.reduce((sum, entity) => sum + entity.gates.length, 0);
   const withoutGates = entities.filter((entity) => entity.kind !== 'root' && entity.gates.length === 0).length;
-  const parts = [countText(entities.length, 'entity', 'entities'), countText(gateCount, 'gate', 'gates')];
-  if (withoutGates > 0) parts.push(`${countText(withoutGates, 'entity', 'entities')} without gates`);
+  const parts = [CountTextUtil.countedPhrase(entities.length, 'entity', 'entities'), CountTextUtil.countedPhrase(gateCount, 'gate', 'gates')];
+  if (withoutGates > 0) parts.push(`${CountTextUtil.countedPhrase(withoutGates, 'entity', 'entities')} without gates`);
   return parts.join(' · ');
 }
 

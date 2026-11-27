@@ -18,6 +18,7 @@ import {
   View
 } from '../../../lib/design-system/DesignSystemInterface.ts';
 
+import { CountTextUtil }                      from '../../../shared/utils/CountTextUtil.ts';
 import { PriorityMark, TypeMark }             from '../../chips/TicketMarks.tsx';
 import { SandboxedHtmlFrame }                 from '../../sandboxed-html/SandboxedHtmlFrame.tsx';
 import { useBoardHrefOf, useBoardNavigation } from '../../shared/routing/BoardRouteLinks.ts';
@@ -71,7 +72,7 @@ function TicketHead({ model }: { readonly model: TicketDetailModel }) {
 }
 
 function logLinesText(count: number): string {
-  return count === 1 ? '1 log line' : `${String(count)} log lines`;
+  return CountTextUtil.countedPhrase(count, 'log line', 'log lines');
 }
 
 function SectionTabs({ model }: { readonly model: TicketDetailModel }) {
