@@ -18,6 +18,7 @@ import {
 } from 'bun:test';
 
 import { Button }  from './Button.tsx';
+import { Icon }    from './Icon.tsx';
 import { Tooltip } from './Tooltip.tsx';
 
 afterEach(() => {
@@ -108,6 +109,12 @@ describe('the button', () => {
     render(<Button label="New chat" leading={<span data-leading="">+</span>} accessibleName="Start a new example chat" />);
     const button = screen.getByRole('button', { name: 'Start a new example chat' });
     expect([button.firstElementChild?.firstElementChild?.hasAttribute('data-leading'), button.textContent]).toEqual([true, '+New chat']);
+  });
+
+  test('an Icon given as a glyph sits straight in its box, which holds it at the glyph size of a button', () => {
+    render(<Button label="Open the example" trailing={<Icon name="arrow-out-of-square" label={null} />} />);
+    const glyphBox = screen.getByRole('button').lastElementChild;
+    expect([glyphBox?.className, glyphBox?.firstElementChild?.getAttribute('class')]).toEqual(['design-system-button-trailing', 'design-system-icon']);
   });
 
   test('the trailing glyph shows in its box after the label, on a button and on a link drawn as one', () => {

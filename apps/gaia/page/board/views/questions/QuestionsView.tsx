@@ -11,26 +11,27 @@ import type { BoardDecisionDocument } from '../../../@types/board/BoardDecisionD
 import type { BoardDocument }         from '../../../@types/board/BoardDocument.ts';
 import {
   Button,
+  type ListItemPresence,
   ListSection,
   MonoId,
+  PageHead,
+  presenceAttributeOf,
   Row,
   Stamp,
   StateBadge,
-  Text
+  Text,
+  useListPresence
 } from '../../../lib/design-system/DesignSystemInterface.ts';
-import { BoardRouter }                          from '../../../shared/BoardRouter.ts';
-import type { BoardTabViewProps }               from '../../@types/BoardTabViewProps.ts';
-import type { QuestionNotifier }                from '../../@types/QuestionNotifier.ts';
-import { DecisionCard }                         from '../../conversation/DecisionCard.tsx';
-import type { QuestionsFacts }                  from '../../flint/QuestionsSpriteModel.ts';
-import { useQuestionsHabitat }                  from '../../flint/UseQuestionsHabitat.ts';
-import { useBoardHrefOf }                       from '../../shared/routing/BoardRouteLinks.ts';
-import { useQuestionPanelOpener }               from '../../shared/routing/QuestionPanelOpener.ts';
-import { presenceAttributeOf, useItemPresence } from '../../shell/ItemPresence.ts';
-import type { ItemPresence }                    from '../../utils/ItemPresenceUtil.ts';
-import { StateToneUtil }                        from '../../utils/StateToneUtil.ts';
-import { ViewTitle }                            from '../ViewTitle.tsx';
-import { NotificationAllowanceControl }         from './NotificationAllowanceControl.tsx';
+import { BoardRouter }                  from '../../../shared/BoardRouter.ts';
+import type { BoardTabViewProps }       from '../../@types/BoardTabViewProps.ts';
+import type { QuestionNotifier }        from '../../@types/QuestionNotifier.ts';
+import { DecisionCard }                 from '../../conversation/DecisionCard.tsx';
+import type { QuestionsFacts }          from '../../flint/QuestionsSpriteModel.ts';
+import { useQuestionsHabitat }          from '../../flint/UseQuestionsHabitat.ts';
+import { useBoardHrefOf }               from '../../shared/routing/BoardRouteLinks.ts';
+import { useQuestionPanelOpener }       from '../../shared/routing/QuestionPanelOpener.ts';
+import { StateToneUtil }                from '../../utils/StateToneUtil.ts';
+import { NotificationAllowanceControl } from './NotificationAllowanceControl.tsx';
 import {
   QuestionsModelUtil,
   type AnsweredDecision,
@@ -46,7 +47,7 @@ export interface QuestionsViewProps {
   readonly selectedDecisionId?: string | null;
 }
 
-function AnsweredDecisionItem({ answered, presence }: { readonly answered: AnsweredDecision; readonly presence: ItemPresence }) {
+function AnsweredDecisionItem({ answered, presence }: { readonly answered: AnsweredDecision; readonly presence: ListItemPresence }) {
   return (
     <li className="board-card" data-state="answered" data-presence={presenceAttributeOf(presence)} aria-label={`Answered ${answered.decisionId}`}>
       <Row between centerY>
@@ -106,11 +107,13 @@ export function QuestionsView({ board, notifier, selectedDecisionId = null }: Qu
   }), [board, selectedDecisionId]);
   useQuestionsHabitat(viewElement, questionsFacts);
   // An asked question rises in and an answered one fades out of the open list as its answer rises into the answered one.
-  const presentDecisions = useItemPresence(model.openDecisions, ({ decision }) => decision.id);
-  const presentAnswers = useItemPresence(model.answeredDecisions, answeredKeyOf);
+  const openDecisionList = useRef<HTMLUListElement>(null);
+  const answeredDecisionList = useRef<HTMLUListElement>(null);
+  const presentDecisions = useListPresence(model.openDecisions, ({ decision }) => decision.id, openDecisionList);
+  const presentAnswers = useListPresence(model.answeredDecisions, answeredKeyOf, answeredDecisionList);
   return (
     <div className="board-view" ref={viewElement} data-flint-workplace="" data-question-open={selectedDecisionId === null ? undefined : ''}>
-      <ViewTitle title="Questions" lead="Agents stop here when they need User's answer." />
+      <PageHead titleElement="h2" title="Questions" lead="Agents stop here when they need User's answer." />
       <ListSection
         label="Open questions"
         title="Open questions"
@@ -118,6 +121,7 @@ export function QuestionsView({ board, notifier, selectedDecisionId = null }: Qu
         headEnd={<NotificationAllowanceControl notifier={notifier} />}
         emptyText="No question waits on User."
         items={presentDecisions}
+        listRef={openDecisionList}
         keyOf={({ key }) => key}
         renderItem={({ item: { decision, escalated }, presence }) => (
           <DecisionCard
@@ -139,6 +143,7 @@ export function QuestionsView({ board, notifier, selectedDecisionId = null }: Qu
         title="Answered"
         emptyText="No answered question yet."
         items={presentAnswers}
+        listRef={answeredDecisionList}
         keyOf={({ key }) => key}
         renderItem={({ item, presence }) => <AnsweredDecisionItem answered={item} presence={presence} />}
       />

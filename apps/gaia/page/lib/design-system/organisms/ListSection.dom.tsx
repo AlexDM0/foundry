@@ -11,6 +11,8 @@ import {
   test
 } from 'bun:test';
 
+import { createRef } from 'react';
+
 import { ListSection } from './ListSection.tsx';
 
 interface ExampleItem {
@@ -49,6 +51,22 @@ describe('the list section', () => {
     const section = renderedSection([{ id: 'E1', title: 'First example' }, { id: 'E2', title: 'Second example' }]);
     expect([...section.querySelectorAll('.design-system-list > li')].map((entry) => entry.textContent)).toEqual(['First example', 'Second example']);
     expect([section.querySelector('.design-system-empty'), screen.getByRole('list', { name: 'Example list' }).className]).toEqual([null, 'design-system-list']);
+  });
+
+  test('the list hands its element through listRef, such as for useListPresence', () => {
+    const list = createRef<HTMLUListElement>();
+    render(
+      <ListSection
+        label="Example decisions"
+        title="Open questions"
+        emptyText="No question waits on User."
+        items={['First example']}
+        keyOf={(item) => item}
+        renderItem={(item) => <li>{item}</li>}
+        listRef={list}
+      />,
+    );
+    expect(list.current?.className).toBe('design-system-list');
   });
 
   test('the count shows only when given, and what the head adds sits in the head', () => {

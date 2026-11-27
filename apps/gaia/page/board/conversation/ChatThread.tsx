@@ -14,18 +14,19 @@ import {
 } from 'react';
 import type { BoardDisplayState } from '../../@types/board/BoardVocabulary.ts';
 import {
+  type ListItemPresence,
+  presenceAttributeOf,
   Stamp,
   type StampProps,
   StateDot,
   Tag,
   type TagProps,
-  TextButton
+  TextButton,
+  useListPresence
 } from '../../lib/design-system/DesignSystemInterface.ts';
 import { useFlintHabitat } from '../../lib/flint/FlintInterface.ts';
 
 import { useCueOnChange }                          from '../flint/UseCueOnChange.ts';
-import { presenceAttributeOf, useItemPresence }    from '../shell/ItemPresence.ts';
-import type { ItemPresence }                       from '../utils/ItemPresenceUtil.ts';
 import { StateToneUtil }                           from '../utils/StateToneUtil.ts';
 import { chatCueOccasionOf }                       from './ChatCueOccasion.ts';
 import { ChatCueRelayContext, createChatCueRelay } from './ChatCueRelay.ts';
@@ -100,7 +101,7 @@ export interface ChatThreadProps {
 /** A turn and whether it arrived after the history, so it rises in. */
 interface TurnProps<Turn> {
   readonly turn:     Turn;
-  readonly presence: ItemPresence;
+  readonly presence: ListItemPresence;
 }
 
 function SystemLine({ turn, presence }: TurnProps<SystemChatTurn>) {
@@ -168,7 +169,7 @@ export function ChatThread({
   const cueRelay = useContext(ChatCueRelayContext);
   useEffect(() => cueRelay?.connect(sendCue), [cueRelay, sendCue]);
   // A turn that goes is replaced at once, such as a queued message by the delivered one, so no turn lingers as it leaves.
-  const presentTurns = useItemPresence(turns, ({ key }) => key, historyKey).filter(({ presence }) => presence !== 'leaving');
+  const presentTurns = useListPresence(turns, ({ key }) => key, threadElement, historyKey).filter(({ presence }) => presence !== 'leaving');
   return (
     <ol className="board-chat-thread" aria-label={label} ref={threadElement}>
       {presentTurns.map(({ item: turn, presence }) => {

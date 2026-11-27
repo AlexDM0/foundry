@@ -19,6 +19,9 @@
 /* A leading or trailing glyph sits in a 16px box, which sizes a drawing that fills its holder and centres a smaller one. */
 .design-system-button-leading,
 .design-system-button-trailing { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 16px; height: 16px; }
+/* The box holds an Icon at 13px, the size a button draws a glyph at; an inline SVG of the caller's keeps its own size. */
+.design-system-button-leading,
+.design-system-button-trailing { --icon-size: var(--space-13); }
 
 /* A filled orange shape is always a primary button; danger is the one filled shape in the failure colour. */
 .design-system-button[data-primary] { font-weight: 600; color: var(--accent-ink-on); background: var(--button); border-color: var(--button); }

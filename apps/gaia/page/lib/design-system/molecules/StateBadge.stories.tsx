@@ -1,13 +1,13 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import type { StateTone } from '../@types/StateTone.ts';
+import { View }           from '../atoms/View.tsx';
 import { StateBadge }     from './StateBadge.tsx';
-import { View }           from './View.tsx';
 
 const STATE_TONES: readonly StateTone[] = ['neutral', 'accent', 'accent-outline', 'info', 'info-outline', 'info-deep', 'success', 'error', 'ink', 'muted'];
 
 const meta = {
-  title:     'Atoms/StateBadge',
+  title:     'Molecules/StateBadge',
   component: StateBadge,
   args:      { tone: 'accent', label: 'Running', pulsing: true },
 } satisfies Meta<typeof StateBadge>;

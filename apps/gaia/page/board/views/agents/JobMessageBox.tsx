@@ -5,7 +5,7 @@
 import { useState } from 'react';
 
 import { PAGE_CONTRACT_VERSIONS } from '../../../../src/shared/constants/PageContractVersions.ts';
-import { SendButton }             from '../../conversation/SendButton.tsx';
+import { Icon, IconButton }       from '../../../lib/design-system/DesignSystemInterface.ts';
 import { useControlCommand }      from '../../shared/commands/ControlCommandSender.ts';
 
 export function JobMessageBox({ jobId }: { readonly jobId: string }) {
@@ -24,7 +24,13 @@ export function JobMessageBox({ jobId }: { readonly jobId: string }) {
           value={message}
           onChange={(event) => setMessage(event.target.value)}
         />
-        <SendButton accessibleName="Send message" enabled={sender.enabled} onPress={() => void sender.send()} />
+        <IconButton
+          drawing={<Icon name="paper-plane" label={null} />}
+          accessibleName="Send message"
+          accent
+          disabled={!sender.enabled}
+          onPress={() => void sender.send()}
+        />
       </div>
       {sender.refusal === null ? null : <span className="board-refusal" role="status">{sender.refusal}</span>}
     </div>

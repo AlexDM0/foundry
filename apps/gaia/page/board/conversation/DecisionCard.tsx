@@ -6,12 +6,16 @@
  */
 import { useState, type ReactNode } from 'react';
 
-import { PAGE_CONTRACT_VERSIONS }                from '../../../src/shared/constants/PageContractVersions.ts';
-import type { BoardDecisionDocument }            from '../../@types/board/BoardDecisionDocuments.ts';
-import { ChoiceInput, ChoiceMark, ChoiceOption } from '../../lib/design-system/DesignSystemInterface.ts';
-import { CommandButton }                         from '../shared/commands/CommandButton.tsx';
-import { presenceAttributeOf }                   from '../shell/ItemPresence.ts';
-import type { ItemPresence }                     from '../utils/ItemPresenceUtil.ts';
+import { PAGE_CONTRACT_VERSIONS }     from '../../../src/shared/constants/PageContractVersions.ts';
+import type { BoardDecisionDocument } from '../../@types/board/BoardDecisionDocuments.ts';
+import {
+  ChoiceInput,
+  ChoiceMark,
+  ChoiceOption,
+  type ListItemPresence,
+  presenceAttributeOf
+} from '../../lib/design-system/DesignSystemInterface.ts';
+import { CommandButton } from '../shared/commands/CommandButton.tsx';
 import {
   CardHead,
   JobLink,
@@ -32,8 +36,8 @@ export interface DecisionCardProps {
   readonly questionLayout?: 'stack' | 'columns';
   /** A control beside Answer, such as the inbox's way to open the question beside the board. */
   readonly besideAnswer?:   ReactNode;
-  /** Where the card stands in its list's coming and going (`useItemPresence`); settled by default. */
-  readonly presence?:       ItemPresence;
+  /** Where the card stands in its list's coming and going (`useListPresence`); settled by default. */
+  readonly presence?:       ListItemPresence;
   /** The question panel shows this decision beside the board: the card takes the decision tint and says so. */
   readonly isOpenBeside?:   boolean;
 }
@@ -46,7 +50,7 @@ const OPEN_BESIDE_PILL: CardPill = { state: 'in-progress', label: 'open beside t
 interface DecisionFrameProps {
   readonly decision:     BoardDecisionDocument;
   readonly placement:    'card' | 'docked';
-  readonly presence:     ItemPresence;
+  readonly presence:     ListItemPresence;
   readonly isOpenBeside: boolean;
   readonly children:     ReactNode;
 }

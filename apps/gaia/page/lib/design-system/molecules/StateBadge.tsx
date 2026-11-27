@@ -5,6 +5,8 @@
  */
 import type { StateDotShape, StateTone } from '../@types/StateTone.ts';
 
+import { Icon } from '../atoms/Icon.tsx';
+
 export interface StateBadgeProps {
   readonly tone:        StateTone;
   readonly label:       string;
@@ -46,9 +48,7 @@ export function StateBadge({
       <span className="design-system-state-badge-label">{label}</span>
       {checked
         ? (
-          <svg className="design-system-state-badge-check" viewBox="0 0 12 12" aria-hidden="true">
-            <path d="M2 6.5 L5 9 L10 3" />
-          </svg>
+          <span className="design-system-state-badge-check"><Icon name="check" label={null} /></span>
         )
         : null}
     </span>

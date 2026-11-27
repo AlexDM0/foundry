@@ -21,6 +21,10 @@ const ICON_NAMES: readonly IconName[] = [
   'caret-down',
   'chevron-down',
   'chevron-up',
+  'check',
+  'plus',
+  'exclamation-triangle',
+  'stopwatch',
 ];
 
 /** An icon fills its holder, so each story holds it in a box of a size a host gives it. */
@@ -51,5 +55,15 @@ export const EveryIcon: Story = {
         </View>
       ))}
     </View>
+  ),
+};
+
+/** A holder sets the stroke through `--icon-stroke-width`: the check at 12px with a 2px line, as a toast and a question card hold it. */
+export const HoldersStroke: Story = {
+  args:   { name: 'check', label: 'Example done' },
+  render: (args) => (
+    <span style={{
+      display: 'inline-flex', width: 12, height: 12, ['--icon-stroke-width' as string]: '2.67'
+    }}><Icon {...args} /></span>
   ),
 };

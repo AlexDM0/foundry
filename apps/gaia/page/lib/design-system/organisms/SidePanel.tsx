@@ -19,8 +19,7 @@ import {
 
 import { IconButton }             from '../atoms/IconButton.tsx';
 import { Text, type TextElement } from '../atoms/Text.tsx';
-
-const MILLISECONDS_PER_SECOND = 1000;
+import { CssDurationUtil }        from '../utils/CssDurationUtil.ts';
 
 const SIDE_PANEL_TOP_PROPERTY = '--side-panel-top';
 
@@ -80,7 +79,7 @@ function useDockedTop(dockBelow: () => Element | null): number {
 }
 
 function slideDurationMillisecondsOf(element: HTMLElement): number {
-  return (Number.parseFloat(getComputedStyle(element).transitionDuration) || 0) * MILLISECONDS_PER_SECOND;
+  return CssDurationUtil.millisecondsOf(getComputedStyle(element).transitionDuration) ?? 0;
 }
 
 /** Mounted out of view and slid in once laid out; slid out on close and reported gone when the slide ends, at once without motion. */

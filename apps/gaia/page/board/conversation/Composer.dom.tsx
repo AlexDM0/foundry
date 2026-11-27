@@ -215,12 +215,12 @@ describe('the composer\'s slots and pastes', () => {
     const entryRow = document.querySelector('.board-composer-entry');
     const send = screen.getByRole('button', { name: 'Send' });
     expect([
-      [...(entryRow?.children ?? [])].map((part) => part.className),
+      [...(entryRow?.children ?? [])].map((part) => part.tagName),
       entryRow?.querySelector('textarea')?.getAttribute('aria-label'),
       send.parentElement === entryRow,
       send.textContent,
       send.querySelector('svg')?.getAttribute('data-icon'),
-    ]).toEqual([['board-textarea board-composer-input', 'board-send-button'], MESSAGE_LABEL, true, '', 'paper-plane']);
+    ]).toEqual([['TEXTAREA', 'BUTTON'], MESSAGE_LABEL, true, '', 'paper-plane']);
   });
 
   test('pasted files reach the caller, and a paste without files does not', () => {

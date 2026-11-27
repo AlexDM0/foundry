@@ -6,6 +6,8 @@
  */
 import { useId, type ReactNode } from 'react';
 
+import { Icon } from '../atoms/Icon.tsx';
+
 export type StepperStatus = 'done' | 'current' | 'upcoming' | 'recheck';
 
 export interface StepperStep {
@@ -32,11 +34,7 @@ function reopens(step: StepperStep): step is StepperStep & { readonly href: stri
 }
 
 function CheckGlyph() {
-  return (
-    <svg className="design-system-stepper-check" viewBox="0 0 12 12" aria-hidden="true">
-      <path d="M2 6.5L5 9L10 3" />
-    </svg>
-  );
+  return <span className="design-system-stepper-check"><Icon name="check" label={null} /></span>;
 }
 
 interface StepperRowProps {

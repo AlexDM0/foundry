@@ -2,8 +2,8 @@
  * The pipeline agent panel's model. What matters: Hephaestus's chats, its step prompts among them, are its system lines with the prompt
  * on User's ask, never User bubbles, which are User's own messages alone; the activity line shows only while a turn runs, and says the
  * newest line the agent wrote or its last tool call; a step's questions become cards, an answered one with its confirmation; an answer
- * sends the chosen letters or the Other text and nothing while it is incomplete; a multiple question toggles its letters and starts with
- * every recommended one, a single one keeps one letter, and Other excludes the letters, since the control contract takes either letters or
+ * sends the chosen letters or the Other text and nothing while it is incomplete; a multiple question toggles its letters (nothing starts
+ * chosen), a single one keeps one letter, and Other excludes the letters, since the control contract takes either letters or
  * a text; a message goes to the agent's job; a flow node's question cards are only its open ones; the agent strip waits on User with the
  * ask cue on any step whose own question is open, then reads on research, proposes on the entities step, drafts on the constitution and
  * designs or has its proposal ready on the design, and once the agent's job stopped it shows no work at all.
@@ -113,7 +113,6 @@ describe('the question cards', () => {
     });
     expect(PipelineAgentPanelModel.answerCommandOf('S1', card, ['c'], '  ')).toBeNull();
     expect(PipelineAgentPanelModel.answerCommandOf('S1', card, [], '')).toBeNull();
-    expect(PipelineAgentPanelModel.initialChoiceOf(card)).toEqual(['a']);
   });
 
   test('a single question keeps the one letter chosen last', () => {
@@ -124,15 +123,16 @@ describe('the question cards', () => {
       .toEqual([false, ['b'], ['c']]);
   });
 
-  test('a multiple question toggles its letters in option order, starts with every recommended one and sends them all', () => {
+  test('a multiple question toggles its letters in option order and sends them all', () => {
     const record = researchRecord();
     const multipleQuestions: BoardSetupQuestionDocument[] = record.questions.map((question) => ({ ...question, multiple: true, recommended: ['b', 'a'] }));
     const [card] = PipelineAgentPanelModel.questionCardsOf(multipleQuestions, 'research', record.findings);
     if (card === undefined) throw new Error('no card');
-    const initial = PipelineAgentPanelModel.initialChoiceOf(card);
-    const withoutA = PipelineAgentPanelModel.choiceAfterChoosing(card, initial, 'a');
+    const withB = PipelineAgentPanelModel.choiceAfterChoosing(card, [], 'b');
+    const withAAndB = PipelineAgentPanelModel.choiceAfterChoosing(card, withB, 'a');
+    const withoutA = PipelineAgentPanelModel.choiceAfterChoosing(card, withAAndB, 'a');
     const withAAgain = PipelineAgentPanelModel.choiceAfterChoosing(card, withoutA, 'a');
-    expect([card.isMultiple, initial, withoutA, withAAgain]).toEqual([true, ['a', 'b'], ['b'], ['a', 'b']]);
+    expect([card.isMultiple, withB, withAAndB, withoutA, withAAgain]).toEqual([true, ['b'], ['a', 'b'], ['b'], ['a', 'b']]);
     expect(PipelineAgentPanelModel.answerCommandOf('S1', card, withAAgain, '')).toEqual({
       boardCommandVersion: 3, kind: 'pipeline-setup-answer', setupId: 'S1', questionId: 'Q1', answer: { form: 'letters', choices: ['a', 'b'] }
     });

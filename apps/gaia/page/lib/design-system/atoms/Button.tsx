@@ -16,9 +16,9 @@ type ButtonSizeFlags = { readonly compact?: boolean; readonly dense?: never } | 
 
 export type ButtonProps = ButtonSizeFlags & {
   readonly label:               string;
-  /** A glyph or inline SVG before the label. */
+  /** A glyph or inline SVG before the label; an `Icon` is held at the 13px a button draws a glyph at. */
   readonly leading?:            ReactNode;
-  /** A glyph or inline SVG after the label, such as an arrow out of the view or the caret of a menu. */
+  /** A glyph or inline SVG after the label, such as an arrow out of the view or the caret of a menu; an `Icon` is held at 13px. */
   readonly trailing?:           ReactNode;
   readonly emphasis?:           ButtonEmphasis;
   /** Rings a primary button now and then, the next step a view waits on. */

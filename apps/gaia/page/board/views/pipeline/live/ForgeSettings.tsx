@@ -10,6 +10,7 @@ import type { BoardBillingDocument }       from '../../../../@types/board/BoardP
 import {
   Button,
   Card,
+  PageHead,
   Row,
   Tag,
   Text,
@@ -18,7 +19,6 @@ import {
 } from '../../../../lib/design-system/DesignSystemInterface.ts';
 import { CommandButton }                                                  from '../../../shared/commands/CommandButton.tsx';
 import { useBoardHrefOf }                                                 from '../../../shared/routing/BoardRouteLinks.ts';
-import { ViewTitle }                                                      from '../../ViewTitle.tsx';
 import { PipelineViewModel, type PipelineViewFacts }                      from '../PipelineViewModel.ts';
 import { AgentChoiceModel }                                               from '../agent/AgentChoiceModel.ts';
 import { AgentProgramPanel, useProgramChoice, WhereForgeLooked }          from '../agent/AgentProgramPanel.tsx';
@@ -129,7 +129,7 @@ export function ForgeSettings({ facts }: ForgeSettingsProps) {
   const billingNotOffered = ForgeBillingModel.billingNotOfferedOf(facts);
   return (
     <div className="board-forge-settings">
-      <ViewTitle title="Forge settings" lead="The agent every job of this forge runs, the program forge starts for it, and the tools its agents may run." />
+      <PageHead titleElement="h2" title="Forge settings" lead="The agent every job of this forge runs, the program forge starts for it, and the tools its agents may run." />
       <div className="board-forge-settings-columns">
         <View gap="sixteen">
           <AgentCard facts={facts} />

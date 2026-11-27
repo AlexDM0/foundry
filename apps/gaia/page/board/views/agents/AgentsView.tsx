@@ -13,11 +13,11 @@ import {
 } from 'react';
 
 import type { BoardDocument }             from '../../../@types/board/BoardDocument.ts';
+import { PageHead }                       from '../../../lib/design-system/DesignSystemInterface.ts';
 import type { TranscriptFollower }        from '../../@types/BoardServices.ts';
 import { useBoardClock, type BoardClock } from '../../shared/BoardClock.ts';
 import { useBoardNavigation }             from '../../shared/routing/BoardRouteLinks.ts';
 import { TimeUtil }                       from '../../utils/TimeUtil.ts';
-import { ViewTitle }                      from '../ViewTitle.tsx';
 import type { AgentJobDocument }          from './AgentJobDocument.ts';
 import type { PanelConcurrency }          from './AgentPanelSpriteModel.ts';
 import { AgentsModel }                    from './AgentsModel.ts';
@@ -86,7 +86,7 @@ export function AgentsView({ board, selectedJobId, followTranscript }: AgentsVie
 
   return (
     <div className="agents-view" ref={viewElement} data-job-open={selectedJob === null ? undefined : ''}>
-      <ViewTitle title="Agents" lead="The agents at work on this board. Select a job to read its transcript and steer it." />
+      <PageHead titleElement="h2" title="Agents" lead="The agents at work on this board. Select a job to read its transcript and steer it." />
       <WorkerCard
         project={project}
         jobs={workerJobs}

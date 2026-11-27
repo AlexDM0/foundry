@@ -6,14 +6,20 @@
  * `pipeline-assistant-set`; a refusal reads as the forge's sentence under the head. While the switch is off the head says so and that each
  * incident takes its default; while it is on and no session is up the thread says a fresh one is booting.
  */
+import { useRef } from 'react';
+
 import { PAGE_CONTRACT_VERSIONS } from '../../../../src/shared/constants/PageContractVersions.ts';
 import {
+  type ListItemPresence,
   ListSection,
+  PageHead,
+  presenceAttributeOf,
   Row,
   Stamp,
   Switch,
   Tag,
   Text,
+  useListPresence,
   View
 } from '../../../lib/design-system/DesignSystemInterface.ts';
 
@@ -37,11 +43,8 @@ import { useBoardClock }                                              from '../.
 import { useCoveringPanelHoldsTheFlintSlot }                          from '../../shared/CoveringPanel.ts';
 import { useControlCommand }                                          from '../../shared/commands/ControlCommandSender.ts';
 import { useBoardHrefOf }                                             from '../../shared/routing/BoardRouteLinks.ts';
-import { presenceAttributeOf, useItemPresence }                       from '../../shell/ItemPresence.ts';
 import { IncidentTrailUtil, type IncidentEntry }                      from '../../utils/IncidentTrailUtil.ts';
-import type { ItemPresence }                                          from '../../utils/ItemPresenceUtil.ts';
 import { TimeUtil }                                                   from '../../utils/TimeUtil.ts';
-import { ViewTitle }                                                  from '../ViewTitle.tsx';
 import { AssistantModelUtil, type AssistantBoard, type AssistantJob } from './AssistantModel.ts';
 
 export interface AssistantViewProps {
@@ -61,7 +64,7 @@ const SWITCHED_OFF_TURN: ChatTurn = {
 
 interface IncidentItemProps {
   readonly incident:          IncidentEntry;
-  readonly presence:          ItemPresence;
+  readonly presence:          ListItemPresence;
   readonly todayCalendarDate: string;
 }
 
@@ -163,11 +166,13 @@ export function AssistantView({ board, followTranscript }: AssistantViewProps) {
     : AssistantModelUtil.chatTurnsOf(ChatThreadModelUtil.threadItemsOf(entries, queued), { jobId: job.id, todayCalendarDate });
   const messageLabel = job === null ? 'Message the Assistant' : `Message Assistant ${job.id}`;
   // An incident that opens rises in; once handled it fades out of the open list and rises into the handled one.
-  const presentOpenIncidents = useItemPresence(model.openIncidents, incidentKeyOf);
-  const presentSettledIncidents = useItemPresence(model.settledIncidents, incidentKeyOf);
+  const openIncidentList = useRef<HTMLUListElement>(null);
+  const settledIncidentList = useRef<HTMLUListElement>(null);
+  const presentOpenIncidents = useListPresence(model.openIncidents, incidentKeyOf, openIncidentList);
+  const presentSettledIncidents = useListPresence(model.settledIncidents, incidentKeyOf, settledIncidentList);
   return (
     <div className="board-view">
-      <ViewTitle title="Assistant" lead="Hephaestus's Assistant. Talk to it here; its incidents are on the right." />
+      <PageHead titleElement="h2" title="Assistant" lead="Hephaestus's Assistant. Talk to it here; its incidents are on the right." />
       <div className="board-assistant-layout">
         <ChatCard label="Assistant session">
           <ChatHead assistantIsOn={model.assistantIsOn} job={job} turnCount={ChatThreadModelUtil.turnCountOf(entries)} askingDecisionCount={model.askingDecisionCount} />
@@ -191,6 +196,7 @@ export function AssistantView({ board, followTranscript }: AssistantViewProps) {
             count={model.openIncidents.length}
             emptyText="No open incident."
             items={presentOpenIncidents}
+            listRef={openIncidentList}
             keyOf={({ key }) => key}
             renderItem={({ item, presence }) => <IncidentItem incident={item} presence={presence} todayCalendarDate={todayCalendarDate} />}
           />
@@ -200,6 +206,7 @@ export function AssistantView({ board, followTranscript }: AssistantViewProps) {
             count={model.settledIncidents.length}
             emptyText="No handled incident yet."
             items={presentSettledIncidents}
+            listRef={settledIncidentList}
             keyOf={({ key }) => key}
             renderItem={({ item, presence }) => <IncidentItem incident={item} presence={presence} todayCalendarDate={todayCalendarDate} />}
           />

@@ -1,6 +1,7 @@
 /**
  * The question card, in a happy-dom document. What matters: it is a fieldset named by its legend, eyebrow and question, asking while no
- * answer was given; its options, given as children, are radios of one group, the recommended ones marked by the word in
+ * answer was given, described by its context line while it asks; its options, given as children, are radios of one group, each named by
+ * its letter and label, the recommended ones marked by the word in
  * `.design-system-choice-mark`; a multiple question draws checkboxes that show every chosen letter and hand on the letter toggled; choosing
  * an option hands its letter on, and choosing Other moves the focus into Other's text field; Answer waits for a choice, and for words when
  * Other is chosen; `columns` sets `data-layout`; once answered the green confirmation takes the place of the options and the answer button,
@@ -8,6 +9,7 @@
  * text, never markup.
  */
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -87,14 +89,34 @@ function HeldQuestion({ onAnswer }: { readonly onAnswer: (answer: string) => voi
 afterEach(cleanup);
 
 describe('the question card', () => {
-  test('it is a fieldset named by its eyebrow and question, asking, its options radios of one group', () => {
+  test('it is a fieldset named by its eyebrow and question, asking, its options radios of one group, each named by its letter and label', () => {
     render(<ExampleQuestion />);
     const card = screen.getByRole('group', { name: 'Question e2e needs a running database. How should the run handle it?' });
     const radios = screen.getAllByRole('radio');
     expect([card.tagName, card.className, card.getAttribute('data-state'), card.getAttribute('data-layout')])
       .toEqual(['FIELDSET', 'design-system-question-card', 'asking', 'columns']);
-    expect(radios.map((radio) => radio.getAttribute('aria-label'))).toEqual(['Start the database in a container', 'Leave e2e out', 'Other']);
+    expect(radios.map((radio) => radio.getAttribute('aria-label'))).toEqual(['A. Start the database in a container', 'B. Leave e2e out', 'C. Other']);
     expect(new Set(radios.map((radio) => radio.getAttribute('name'))).size).toBe(1);
+  });
+
+  test('a context line sits under the question and describes the card while it asks, and goes once it is answered', () => {
+    render(<ExampleQuestion context="Example finding: the run starts no database today." />);
+    const card = screen.getByRole('group');
+    const context = document.getElementById(card.getAttribute('aria-describedby') ?? '');
+    expect([context?.textContent, context?.previousElementSibling?.tagName]).toEqual(['Example finding: the run starts no database today.', 'LEGEND']);
+    cleanup();
+    render(<ExampleQuestion context="Example finding: the run starts no database today." answeredText="Answered: Leave e2e out" />);
+    expect([screen.getByRole('group').hasAttribute('aria-describedby'), screen.queryByText(/Example finding/u)]).toEqual([false, null]);
+  });
+
+  test('the focus in the field of Other chooses it, and choosing another option afterwards chooses that one', () => {
+    const answers: string[] = [];
+    render(<HeldQuestion onAnswer={(answer) => answers.push(answer)} />);
+    act(() => screen.getByRole('textbox', { name: 'Other answer' }).focus());
+    const otherIsChosen = (screen.getByRole('radio', { name: 'C. Other' }) as HTMLInputElement).checked;
+    fireEvent.click(screen.getByRole('radio', { name: 'B. Leave e2e out' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Answer' }));
+    expect([otherIsChosen, answers]).toEqual([true, ['B']]);
   });
 
   test('a recommended option carries the word in .design-system-choice-mark, and the others carry none', () => {
@@ -108,8 +130,8 @@ describe('the question card', () => {
   test('choosing an option hands its letter on, and choosing Other moves the focus into its text field', () => {
     const chosenLetters: string[] = [];
     render(<ExampleQuestion onChoose={(letter) => chosenLetters.push(letter)} />);
-    fireEvent.click(screen.getByRole('radio', { name: 'Leave e2e out' }));
-    fireEvent.click(screen.getByRole('radio', { name: 'Other' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'B. Leave e2e out' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'C. Other' }));
     expect([chosenLetters, document.activeElement === screen.getByRole('textbox', { name: 'Other answer' })]).toEqual([['B', 'C'], true]);
   });
 
@@ -117,7 +139,7 @@ describe('the question card', () => {
     const chosenLetters: string[] = [];
     render(<ExampleQuestion multiple chosen={['A', 'B']} onChoose={(letter) => chosenLetters.push(letter)} />);
     const checkboxes = screen.getAllByRole('checkbox') as HTMLInputElement[];
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Start the database in a container' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'A. Start the database in a container' }));
     expect([screen.queryAllByRole('radio'), checkboxes.map((checkbox) => checkbox.checked), chosenLetters])
       .toEqual([[], [true, true, false], ['A']]);
     expect(screen.getByRole('button', { name: 'Answer' }).matches(':disabled')).toBe(false);
@@ -128,7 +150,7 @@ describe('the question card', () => {
     render(<HeldQuestion onAnswer={(answer) => answers.push(answer)} />);
     const answer = (): HTMLButtonElement => screen.getByRole('button', { name: 'Answer' });
     const disabledStates = [answer().disabled];
-    fireEvent.click(screen.getByRole('radio', { name: 'Other' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'C. Other' }));
     disabledStates.push(answer().disabled);
     fireEvent.change(screen.getByRole('textbox', { name: 'Other answer' }), { target: { value: 'Run e2e nightly' } });
     disabledStates.push(answer().disabled);

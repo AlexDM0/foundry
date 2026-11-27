@@ -1,3 +1,3 @@
-/* A line drawing in its holder's colour; its holder sets its size. */
-.design-system-icon { display: block; flex: none; width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+/* A line drawing in its holder's colour; it fills its holder unless the holder sets --icon-size, and takes --icon-stroke-width. */
+.design-system-icon { display: block; flex: none; width: var(--icon-size, 100%); height: var(--icon-size, 100%); fill: none; stroke: currentColor; stroke-width: var(--icon-stroke-width, 1.5); stroke-linecap: round; stroke-linejoin: round; }
 .design-system-icon:is([data-icon="dot"], [data-icon="caret-down"]) { fill: currentColor; }
