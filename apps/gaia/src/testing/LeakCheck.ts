@@ -1,8 +1,7 @@
 /**
- * What a test run leaves behind, found after its last spec: an entry in the run's scratch folder, its scratch home or its scratch temporary
- * folder, an entry put straight in the scratch root or in the scratch forges' link root, a new line in the git status of Gaia's folder,
- * a child process still running, and a Gaia or forge path that appeared in the account's real home. A change inside a guarded home path
- * that was already there is only a warning, since a live Gaia or forge on the machine writes there too.
+ * What a test run leaves behind, found after its last spec: an entry in its scratch folders, root or link root, a new line in the git status of
+ * Gaia's folder, a child still running, or a Gaia or forge path in the real home. A change in a guarded home path that already existed only warns,
+ * since a live Gaia or forge writes there too.
  */
 import { existsSync, lstatSync, readdirSync } from 'node:fs';
 import { join }                               from 'node:path';

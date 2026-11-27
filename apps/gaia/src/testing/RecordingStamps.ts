@@ -1,9 +1,7 @@
 /**
- * The judgement of the recording-stamp check: from the recordings of one OS and the installed versions, which recordings are stale (a
- * failure, naming the command that records them again), which boundaries have no recording for the OS (not finished, listed), which
- * recordings are authored by hand (a failure for a forge recording, a warning for the rest), and which recordings it cannot judge because
- * the installed version of their system is read only by running it (listed with the command that records them again). It makes no real
- * call.
+ * The judgement of the recording-stamp check over one OS's recordings and the installed versions: stale recordings and hand-authored forge
+ * recordings fail, missing ones are not finished, other hand-authored ones warn, and those whose system version only a run reads are unchecked,
+ * each with the command to record again. No real call.
  */
 import {
   boundaryRecordingReadingOf,

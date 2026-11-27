@@ -592,17 +592,6 @@ const LONG_COMMENTS_AWAITING_THE_SWEEP: Readonly<Record<string, number>> = {
   'page/views/forges/GaiaPanelModel.spec.ts':                                     1,
   'page/views/forges/GaiaPanelModel.ts':                                          1,
   'page/views/forges/WhatNotifiesDialog.tsx':                                     1,
-  'src/testing/BoundaryRecordings.spec.ts':                                       1,
-  'src/testing/LeakCheck.spec.ts':                                                1,
-  'src/testing/LeakCheck.ts':                                                     1,
-  'src/testing/RecordedAnswers.spec.ts':                                          1,
-  'src/testing/RecordedAnswers.ts':                                               3,
-  'src/testing/RecordedRuns.spec.ts':                                             1,
-  'src/testing/RecordingStamps.spec.ts':                                          1,
-  'src/testing/RecordingStamps.ts':                                               1,
-  'src/testing/ScratchForge.spec.ts':                                             1,
-  'src/testing/ScratchForge.ts':                                                  1,
-  'src/testing/SupportedForgeRecording.ts':                                       1,
 };
 
 /** Files whose comments name a reference, each with its count of such comments; it only shrinks. */

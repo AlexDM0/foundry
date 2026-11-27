@@ -1,13 +1,7 @@
 /**
- * The real-system suite of hephaestus-fetch against a forge, which the recording spec of `hephaestus-fetch-supported-forge` runs: a forge at the
- * one system version Gaia supports, recorded with `GAIA_RECORDING_FORGE_PROGRAM=<program> bun run record <name>` and the program of such a
- * forge. It starts that forge under a scratch home in scratch repositories and records `GET /api/versions` and each endpoint at the
- * versioned path Gaia calls: as Example Project, serving, a token it refuses, and stopped; as Example Storefront, each situation a running
- * forge can be brought into: serving, a token it refuses, a command it refuses or finds already done, the machine limit lowered, a board
- * file it cannot read, suspended so it accepts and never answers, a restart, killed under an open stream, and starting. Each forge runs on the
- * agent its board offers, which starts a setup record left at its billing step, since a forge with no agent chosen launches no job. The values the
- * run draws (paths, tracker ids, ports, process ids) are recorded as example values; the forge's install and code versions stamp the
- * recording. Test-only.
+ * The real-system suite of hephaestus-fetch against a forge at the one system version Gaia supports, run by the `hephaestus-fetch-supported-forge`
+ * recording spec: it records `GET /api/versions` and each endpoint at its versioned path for Example Project and Example Storefront in every
+ * situation a running forge can be brought into. Test-only.
  */
 
 import { readFileSync, writeFileSync } from 'node:fs';

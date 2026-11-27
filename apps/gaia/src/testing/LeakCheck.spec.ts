@@ -1,11 +1,7 @@
 /**
- * The leak check must fail a run that leaves a file in the scratch root, name each other place it guards when a spec leaves something
- * there, fail a run that leaves a child process running, and pass a run that cleans up. A change inside a guarded home folder that was
- * already there is named as a warning and fails no run, since a live Gaia or forge on the machine writes there too. Each case runs a planted
- * spec in a child `bun test` under the same preload, since the check judges a whole run and this run must stay clean. The child's real home
- * is this run's scratch home, so the real-home cases never reach the real one. Gaia shares its repository with forge, so the git status
- * it judges is its own folder's: a file a forge run leaves beside it is no leak of Gaia's, planted in a scratch repository of the same shape.
- * A scratch forge's short home link lives outside the scratch root, so its link root is judged too; a scratch folder stands in for it.
+ * The leak check fails a run that leaves a file in the scratch root or a child running, names each other guarded place, warns on a change in a
+ * guarded home folder, and passes a clean run. Each case runs a planted spec in a child `bun test` under the same preload, since the check judges
+ * a whole run; the child's real home is this run's scratch home, so no case reaches the real one.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';

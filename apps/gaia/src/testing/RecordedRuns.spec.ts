@@ -1,8 +1,6 @@
 /**
- * The recorded-runs mock must answer exactly what the real process-run recorded, and fail the spec on everything it cannot answer from a
- * recording: a call with no recorded answer, a working directory the real run would refuse or a recorded refusal of one that exists, a
- * recording that is absent for an OS, and an answer set that holds two answers or a misfitting answer for one call shape. A missing working
- * directory is answered when its answer was recorded, so a flow spec can drive a root that is gone.
+ * The recorded-runs mock answers exactly what the real process-run recorded and fails the spec on anything it cannot answer from a recording. A
+ * missing working directory is answered when its answer was recorded, so a flow spec can drive a root that is gone.
  */
 import { join }                   from 'node:path';
 import { describe, expect, test } from 'bun:test';

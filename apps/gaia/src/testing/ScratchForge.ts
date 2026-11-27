@@ -1,9 +1,7 @@
 /**
- * A forge for the forge recording specs: the program `GAIA_RECORDING_FORGE_PROGRAM` names, run under a scratch home in scratch
- * repositories, never anywhere else. Every run pins `FORGE_ROOT` to its own working directory, so the forge's walk up for a tracker never
- * reaches a board above the scratch root, and launches the forge's scripted fake agent, so nothing spends a subscription. What a recording
- * keeps passes through `exampleTextOf`, which replaces the scratch paths and the values each run draws afresh with fixed example values.
- * Test-only.
+ * A forge for the recording specs: `GAIA_RECORDING_FORGE_PROGRAM` run under a scratch home in scratch repositories, `FORGE_ROOT` pinned so its walk
+ * up never reaches a board above the scratch root, with its scripted fake agent so nothing spends a subscription. `exampleTextOf` replaces drawn
+ * values with fixed examples. Test-only.
  */
 import {
   existsSync,

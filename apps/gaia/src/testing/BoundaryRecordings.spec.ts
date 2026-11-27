@@ -1,8 +1,6 @@
 /**
- * A recording is read only at the format version Gaia knows and only with a whole stamp; anything else is unreadable and maps nothing.
- * The list of recorded boundaries names exactly the recording specs in the repository, so no real-system spec runs unrecorded and no
- * listed one is missing. A recording spec run outside `bun run record` refuses to record
- * an answer or a system version.
+ * A recording is read only at the format version Gaia knows and with a whole stamp, else it maps nothing. The list of recorded boundaries names
+ * exactly the repository's recording specs, and a recording spec run outside `bun run record` refuses to record.
  */
 import { existsSync }             from 'node:fs';
 import { join }                   from 'node:path';

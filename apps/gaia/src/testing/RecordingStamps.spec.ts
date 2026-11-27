@@ -1,9 +1,7 @@
 /**
- * The stamp check fails only on a stale recording: one stamped with another version than the installed one, one stamped for another
- * boundary, OS or system, one that cannot be read, one that records no listed boundary, and a forge recording authored by hand. A boundary
- * with no recording for the OS is listed as not finished, an authored recording of another system as a warning, and a recording of a system
- * whose installed version only a run reads as unchecked; none of those fails the check. Each stale and unchecked line names the command to
- * record again.
+ * The stamp check fails only on a stale recording: stamped for another version, boundary, OS or system, unreadable, unlisted, or a forge recording
+ * authored by hand. Unrecorded boundaries, other authored recordings and versions only a run reads are listed without failing; each stale and
+ * unchecked line names the command to record again.
  */
 import { describe, expect, test } from 'bun:test';
 

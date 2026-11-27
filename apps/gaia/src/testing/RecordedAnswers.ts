@@ -1,8 +1,7 @@
 /**
- * The hephaestus-fetch mock every spec uses in place of the real boundary. It answers from the answers recorded from a real forge, or from
- * a program that is no forge, for one situation of the forge, and fails the spec on a call with no answer. It keeps the
- * real boundary's demands on the caller: an address that parses, a bound above zero, and a stream left open is counted until closed.
- * Test-only.
+ * The hephaestus-fetch mock every spec uses: it answers what was recorded from a real forge, or a program that is no forge, for one situation,
+ * fails the spec on a call with no answer, and keeps the real boundary's demands: an address that parses, a bound above zero, an open stream
+ * counted until closed. Test-only.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';
@@ -53,13 +52,9 @@ export const HEPHAESTUS_SITUATIONS = [
 export type HephaestusSituation = typeof HEPHAESTUS_SITUATIONS[number];
 
 /**
- * Example Storefront's board as the relay reads it, each situation holding one outcome of a call whose shape another one shares:
- * `board-at-work` the board document and its event stream, from its start and from the first event's id; both refused another's token;
- * a board command applied, refused, of an unknown kind and held for an install change, the board document read in that hold too; a picture
- * accepted and read back, refused as too large and refused as no picture; a product owner's conversation the fake agent plays, after a
- * picture was uploaded for it; a gate profile run's output; the Assistant switched off and on again, each with the command's answer
- * and the board document read after it; a first setup record open at its agent step with no agent chosen; and an intake's product owner
- * standing not launched once the program its agent was pinned to is gone, with User's look again and the board after it.
+ * Example Storefront's board as the relay reads it, each situation one outcome of a call whose shape another shares: the board and its stream, a
+ * refused token, board commands and pictures applied or refused, an intake conversation, a gate profile run, the Assistant switched off and on, a
+ * first setup record, and a job not launched.
  */
 export const BOARD_SITUATIONS = [
   'board-at-work',
@@ -90,11 +85,8 @@ export const PRESENCE_SITUATIONS = [
 export type PresenceSituation = typeof PRESENCE_SITUATIONS[number];
 
 /**
- * Example Bookshop's board in the spec-then-plan route: `ticket-documents-saved` the save of a draft's spec, which opens its documents, then
- * the board's events up to the `documents` event, the documents and the board read after it; `ticket-documents-absent` a ticket with no
- * documents; `ticket-documents-unknown-ticket` a reference that names no ticket; `ticket-documents-question-open` the board while the spec
- * agent's question on a line of the spec is open, and the spec's approval it refuses; `ticket-documents-question-answered` the answer, an
- * option with a note, then the documents and the board read after it.
+ * Example Bookshop's board in the spec-then-plan route: a draft's spec saved, which opens its documents; a ticket with no documents and an unknown
+ * ticket; and the spec agent's question on a line of the spec, open with the spec's approval refused, then answered with an option and a note.
  */
 export const TICKET_DOCUMENTS_SITUATIONS = [
   'ticket-documents-saved',

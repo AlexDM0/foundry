@@ -1,8 +1,6 @@
 /**
- * The scratch forge's clean-up after a recording: one repository whose Hephaestus will not stop must not leave every later repository's
- * Hephaestus running, and the one that failed stays listed so a second clean-up can retry it. The stop is stood in for, so no forge runs.
- * Its short home link goes with it, and the link root too once no other scratch forge's link is left there, so nothing stays outside the
- * scratch root; a scratch folder stands in for the link root.
+ * The scratch forge's clean-up after a recording: one Hephaestus that will not stop leaves no later one running and stays listed for a retry, and
+ * its short home link goes with it, the link root too once empty. The stop and the link root are stood in for, so no forge runs.
  */
 import { existsSync, mkdirSync }  from 'node:fs';
 import { join }                   from 'node:path';

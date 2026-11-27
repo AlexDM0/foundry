@@ -1,11 +1,7 @@
 /**
- * The hephaestus-fetch mock must answer exactly what was recorded for a situation, and fail the spec on everything it cannot
- * answer from a recording: a call with no answer, an address the real boundary throws on, a bound of zero, an answer set with two answers
- * or a misfitting answer for one call shape, and an OS with no recording. A recorded stream is replayed chunk by chunk, and a stream left
- * open is counted until it is closed or read to its end, as the real connection stays open. Every forge situation is a forge at a system
- * version: at the one Gaia supports, which answers its versions first and every endpoint at its versioned path, at the monitor and control
- * contracts Gaia reads and sends; and forges ahead of the one Gaia
- * supports, newer, older, or serving none.
+ * The hephaestus-fetch mock answers exactly what was recorded for a situation and fails the spec on anything it cannot answer from a recording. A
+ * recorded stream replays chunk by chunk and stays counted until closed or read to its end; every forge situation is a forge at a system version,
+ * the supported one or ahead, newer, older or none.
  */
 import { describe, expect, test } from 'bun:test';
 
