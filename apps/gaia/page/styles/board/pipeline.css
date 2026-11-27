@@ -779,8 +779,6 @@ button.board-pipeline-gate-time:hover { filter: brightness(0.94); }
 
 .board-pipeline-agent-question { display: flex; flex-direction: column; gap: 6px; }
 
-.board-pipeline-agent-question-context { margin: 0; font-size: var(--fs-small); color: var(--ink-4); }
-
 /* The constitution step (A3bConstitution), as FlowConstitution draws it: the status line over the title row with Edit or Preview, the
    document in a card on the surface with the board's strong line and its 40 px head; in the panel, who reads it as quiet pills and the
    sources as outlined checkbox rows. The editor is the board's Markdown editor (markdown-editor.css). */

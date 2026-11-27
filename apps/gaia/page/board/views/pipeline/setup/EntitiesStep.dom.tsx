@@ -241,6 +241,7 @@ describe('the agent\'s question', () => {
 
     expect(within(panel).queryByRole('group', { name: /Do the tests need the network/u })).toBeNull();
     const card = within(panel).getByRole('group', { name: /Is docs an entity of its own/u });
+    fireEvent.click(within(card).getByRole('radio', { name: /^a\. /u }));
     await clickSettled(within(card).getByRole('button', { name: 'Answer' }));
     expect(controls.sent).toEqual([{
       ...SENT_COMMAND_VERSION, kind: 'pipeline-setup-answer', setupId: 'S1', questionId: 'Q2', answer: { form: 'letters', choices: ['a'] }

@@ -50,3 +50,4 @@ export const Columns: Story = { args: { columns: true } };
 export const Chosen: Story = { args: { chosen: ['A'] } };
 export const Answered: Story = { args: { chosen: ['A'], answeredText: 'Example answer sent.' } };
 export const Disabled: Story = { args: { disabled: true } };
+export const WithContext: Story = { args: { context: 'Example finding: the run starts no database today.' } };

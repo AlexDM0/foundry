@@ -111,6 +111,7 @@ describe('a node that waits on a question', () => {
     const dialog = screen.getByRole('dialog', { name: 'Gates' });
     expect(within(dialog).getByText('Should the example browser tests run before every merge?')).toBeDefined();
     expect(asking.querySelector('.design-system-card')?.hasAttribute('data-selected')).toBe(true);
+    fireEvent.click(within(dialog).getByRole('radio', { name: /^a\. /u }));
     await clickSettled(within(dialog).getByRole('button', { name: 'Answer' }));
     expect(controls.sent).toEqual([{
       ...SENT_COMMAND_VERSION, kind: 'pipeline-setup-answer', setupId: 'S1', questionId: 'Q3', answer: { form: 'letters', choices: ['a'] },
