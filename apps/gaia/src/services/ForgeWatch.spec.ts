@@ -1,13 +1,7 @@
 /**
- * The forge watch over a registry in the scratch root, recorded Hephaestus answers, and timers the spec fires by hand. The flow spec walks
- * one forge through every stage of `docs/architecture.md`, "A reading, from forge to screen", one answer set per stage: dormant, started,
- * live, stream lost, unreachable and back. Around it: a missing repository, a forge read as counts, another program or another forge on the
- * port, an open stream of snapshots Gaia cannot read, a hidden forge, an unchanged registry, look again, a readings listener that throws,
- * and a stop at any moment leaves no timer and no open stream. Every round asks the forge's versions first: each of the four verdicts
- * follows from what a forge answers there, a forge that serves no versions is older, a forge Gaia can talk to is read at the versioned
- * paths, one Gaia cannot talk to is asked nothing more, and an answer that is no versions document is a failed try. The installed program's
- * versions are read when the watch follows a forge and at look again, never at a registry check that finds nothing changed. No spec waits a
- * real interval.
+ * The forge watch over a scratch registry, recorded Hephaestus answers and timers fired by hand. The flow spec walks one forge through every stage
+ * of `docs/architecture.md`, "A reading, from forge to screen"; around it the edge cases, each version verdict from what a forge's `/api/versions`
+ * answers, and a stop that leaves no timer or stream.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -61,7 +55,7 @@ const SUMMARY_POLL_MILLISECONDS = INTERVALS.summaryPollIntervalMilliseconds;
 const SHORT_BOUND_MILLISECONDS = 200;
 const EXAMPLE_TOKEN = 'example-token-0123456789abcdef';
 
-/** The forge the answers of a forge serving every contract were recorded as, and the one the answers of a forge before F1 came from. */
+/** The forge the answers of a forge serving every contract were recorded as, and the one the answers of an unversioned forge came from. */
 const STOREFRONT_TRACKER_ID = 'example-storefront-7c41';
 /** The limit the recorded serving stream's second snapshot reports. */
 const RAISED_CONCURRENCY_LIMIT = 3;

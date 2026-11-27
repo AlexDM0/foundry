@@ -110,7 +110,7 @@ function startingReadingOf(forge: RegisteredForge, lastWholeReading: ForgeReadin
   };
 }
 
-/** The last whole reading stays, marked unreachable, and its `lastReportedAt` says when the forge last reported it (artboard B3). */
+/** The last whole reading stays, marked unreachable, and its `lastReportedAt` says when the forge last reported it. */
 function unreachableReadingOf(forge: RegisteredForge, lastWholeReading: ForgeReading | null): ForgeReading {
   if (lastWholeReading === null) return registryOnlyReadingOf(forge, 'unreachable', 'unreachable');
   return {

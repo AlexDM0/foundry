@@ -1,8 +1,7 @@
 /**
  * Finds and reads every forge the registry names (`docs/architecture.md`, "A reading, from forge to screen"): one watch per forge asks its
- * Hephaestus's versions, identifies it, follows its monitor stream or polls its summary, and opens a lost stream again. The forge's system
- * version decides whether Gaia can talk to it at all; a forge that serves no versions is older than Gaia supports. A forge that is down is
- * an ordinary reading, never a throw. Every interval is a schedule on injected timers, never a decision.
+ * versions, which decide whether Gaia can talk to it at all, identifies it, follows its monitor stream or polls its summary, and reopens a lost
+ * stream. A forge that is down is an ordinary reading, never a throw; every interval is a schedule on injected timers, never a decision.
  */
 import { createHash } from 'node:crypto';
 import { stat }       from 'node:fs/promises';

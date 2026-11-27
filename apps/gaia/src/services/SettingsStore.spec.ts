@@ -1,8 +1,7 @@
 /**
- * The settings store over the real settings file and writer under a scratch home: it runs on the defaults until it has read the file and
- * whenever the file cannot be read, says which state the file is in, and keeps a change in memory only once it is written, so a newer
- * file or an unwritable folder leaves Gaia on what it ran on before. Updates started at once are made one after another, each from what the
- * one before it wrote, so none is lost.
+ * The settings store over the real settings file under a scratch home: it runs on the defaults until the file is read or whenever it cannot be,
+ * keeps a change only once written, so a newer file or unwritable folder changes nothing, and makes updates started at once one after another, so
+ * none is lost.
  */
 import {
   existsSync,

@@ -1,8 +1,7 @@
 /**
- * The readings of a forge the watch cannot read now, held against the five-forge fixture: a forge stopped in this run keeps what it last
- * reported about its board, log and limits and loses what only a running Hephaestus knows; an unreachable forge keeps its
- * whole last reading; a forge never read shows only what the registry says, and no fact stands in as zero. A Hephaestus is starting while
- * it refuses as starting or not ready, and for no other failure.
+ * The readings of a forge the watch cannot read now, against the five-forge fixture: a stopped forge keeps its board, log and limits, an
+ * unreachable one its whole last reading, a never-read one only the registry's facts, with no zero standing in. A Hephaestus is starting only while
+ * it refuses as starting or not ready.
  */
 import { describe, expect, test } from 'bun:test';
 
