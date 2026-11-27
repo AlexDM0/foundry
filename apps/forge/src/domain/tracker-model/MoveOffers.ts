@@ -6,6 +6,7 @@
 import type { Job }                    from './@types/Job.ts';
 import type { Ticket, TicketPriority } from './@types/Ticket.ts';
 import type { BoardRecords }           from './BoardRecords.ts';
+import { BoardRefusal }                from './BoardRefusal.ts';
 import type { Jobs }                   from './Jobs.ts';
 import type { MergeQueueMarks }        from './MergeQueueMarks.ts';
 import type { TicketMoves }            from './TicketMoves.ts';
@@ -84,6 +85,11 @@ export class MoveOffers {
       takesFresh:   JobControlRuleUtil.freshAgentIsOpenTo(job),
       takesMessage: JobControlRuleUtil.messageIsOpenTo(job),
     };
+  }
+
+  refuseAMergeUpdateOfATicketNotWaiting(ticketId: string): void {
+    if (this.mergeUpdateIsOpenTo(ticketId)) return;
+    throw new BoardRefusal({ reason: 'merge-update-of-a-ticket-not-waiting', ticketId, status: this.records.requireTicket(ticketId).frontmatter.status });
   }
 
   private openTicketKindsOf(ticket: Readonly<Ticket>, priorityChoices: readonly TicketPriority[], mergeWait: MergeForecast | null): Record<TicketOfferKind, boolean> {

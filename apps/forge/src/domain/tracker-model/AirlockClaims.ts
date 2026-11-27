@@ -103,6 +103,13 @@ export class AirlockClaims {
       .filter((candidate) => !this.mergeQueueMarks.ticketIsMergeAccepted(candidate.ticketId));
   }
 
+  /** Only a ticket waiting for merge, its green current on its branch's tree, is accepted. */
+  refuseAMergeAcceptOfATicketNotWaiting(ticketId: string, target: string, targetOf: MergeTargetOf, branchTreeOf: BranchTreeOf): void {
+    const waiting = this.ticketsWaitingForMergeOf(target, targetOf, branchTreeOf);
+    if (waiting.some((candidate) => candidate.ticketId === ticketId)) return;
+    throw new BoardRefusal({ reason: 'merge-accept-of-a-ticket-not-waiting', ticketId, status: this.records.requireTicket(ticketId).frontmatter.status });
+  }
+
   private queuedGreenTicketsOf(
     target: string, targetOf: MergeTargetOf, branchTreeOf: BranchTreeOf, readinessByTicketId: ReadonlyMap<string, number>
   ): MergeCandidate[] {

@@ -1,6 +1,6 @@
 /**
  * What a ticket is set to run with, outside its moves: its priority, which gives or takes its row, its agent pair, its network, the entity
- * it is built in, and its hold.
+ * it is built in, its group, and its hold.
  */
 import type { AgentChoice, EntityAssignment, TicketChanged } from './@types/BoardChanges.ts';
 import type {
@@ -13,6 +13,7 @@ import type { BoardRecords }                                               from 
 import { BoardRefusal }                                                    from './BoardRefusal.ts';
 import { INTERRUPTED_HOLD_PREFIX }                                         from './constants/DecisionAndIncidentVocabulary.ts';
 import { SETTLED_TICKET_STATUSES, TICKET_STATUSES_NO_AGENT_HAS_PICKED_UP } from './constants/Statuses.ts';
+import { GroupNameUtil }                                                   from './utils/GroupNameUtil.ts';
 import { NetworkDomainUtil }                                               from './utils/NetworkDomainUtil.ts';
 import { TicketChartUtil }                                                 from './utils/TicketChartUtil.ts';
 import { TicketDefaultsUtil }                                              from './utils/TicketDefaultsUtil.ts';
@@ -171,6 +172,29 @@ export class TicketSettings {
     delete ticket.frontmatter.hold;
     this.records.markChanged(ticket);
     return { logged: [this.records.logger.log({ kind: 'ticket-interrupted-hold-lifted', ticketId, fields: { hold } }, at)], ticket };
+  }
+
+  /**
+   * Puts a ticket that has no group into one, a started ticket too: refused as a filing's group is, and for a delivered or abandoned ticket.
+   * Its next landing goes to the group's branch.
+   */
+  setTicketGroup(ticketId: string, group: string, at: string): TicketChanged {
+    const ticket = this.records.requireTicket(ticketId);
+    const { status, group: currentGroup } = ticket.frontmatter;
+    if (SETTLED_TICKET_STATUSES.includes(status)) throw new BoardRefusal({ reason: 'group-of-a-settled-ticket', ticketId, status });
+    if (currentGroup !== undefined) throw new BoardRefusal({ reason: 'ticket-already-in-a-group', ticketId, group: currentGroup });
+    this.refuseAnUnportableGroup(group);
+    ticket.frontmatter.group = group;
+    this.records.markChanged(ticket);
+    return { logged: [this.records.logger.log({ kind: 'ticket-grouped', ticketId, fields: { group } }, at)], ticket };
+  }
+
+  refuseAnUnportableGroup(group: string | undefined): void {
+    if (group === undefined) return;
+    if (!GroupNameUtil.groupNameIsWellFormed(group)) throw new BoardRefusal({ reason: 'malformed-group-name', group });
+    const existingGroups = this.records.ticketRecords.flatMap(({ frontmatter }) => frontmatter.group ?? []);
+    const existingGroup  = GroupNameUtil.caseFoldedTwinOf(group, existingGroups);
+    if (existingGroup !== null) throw new BoardRefusal({ reason: 'group-name-case-twin', group, existingGroup });
   }
 }
 

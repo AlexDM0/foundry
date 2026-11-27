@@ -2,11 +2,16 @@
  * `gate-profiles.json` beside the progress file: the gate profiles User started, each one gate in one phase, run once. A profile only
  * informs: it never records a green or a gate run, and nothing waits on it.
  */
-import type { GatePhase }               from './GatePhase.ts';
-import type { GateProfilesProblem }     from './GateProfilesProblem.ts';
-import type { GateCacheReport }         from './Job.ts';
-import type { EntityKey, PipelineStep } from './Pipeline.ts';
-import type { GateProfileRunState }     from './PipelineFacts.ts';
+import type { GatePhase }           from './GatePhase.ts';
+import type { GateProfilesProblem } from './GateProfilesProblem.ts';
+import type { GateCacheReport }     from './Job.ts';
+import type {
+  Pipeline,
+  PipelineGate,
+  EntityKey,
+  PipelineStep
+} from './Pipeline.ts';
+import type { GateProfileRunState } from './PipelineFacts.ts';
 
 /** How a run that started ended by itself; a stop is `stopped`, which has no result. */
 export type GateProfileRunEnding = 'passed' | 'red' | 'cannot-run' | 'timed-out';
@@ -74,4 +79,11 @@ export interface GateProfileRequest {
   phase:   GatePhase;
   gate:    ProfiledGate;
   prepare: readonly PipelineStep[];
+}
+
+/** The gate a profile runs, the pipeline it is read from, and its entity's first home; `null` for a pipeline without entities. */
+export interface GateToProfile {
+  pipeline:  Readonly<Pipeline>;
+  gate:      Readonly<PipelineGate>;
+  firstHome: string | null;
 }

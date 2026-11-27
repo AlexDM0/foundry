@@ -106,6 +106,11 @@ export class MergeQueueMarks {
     return this.rowOf(ticketId)?.greenPhase ?? null;
   }
 
+  /** `merge accept` and `merge update` are User's merge approval moves, refused while merge approval is off. */
+  refuseAMergeMoveWithApprovalOff(ticketId: string): void {
+    if (!this.records.mergeApprovalIsOn()) throw new BoardRefusal({ reason: 'merge-approval-off', ticketId });
+  }
+
   private rowOf(ticketId: string): Readonly<Task> | undefined {
     const ticket = this.records.ticketRecordById(ticketId);
     return ticket === undefined ? undefined : this.records.linkedTaskRecordOf(ticket);

@@ -4,9 +4,9 @@
  */
 import type { DecisionOpened }                                                         from '../../domain/tracker-model/@types/BoardChanges.ts';
 import type { DecisionQuestionOption }                                                 from '../../domain/tracker-model/@types/Decision.ts';
+import type { LiveDocumentAgent }                                                      from '../../domain/tracker-model/@types/Job.ts';
 import type { LogRecord }                                                              from '../../domain/tracker-model/@types/LogRecord.ts';
 import type { DocumentProposal, LineEdit, LineRange }                                  from '../../domain/tracker-model/@types/TicketDocument.ts';
-import type { LiveDocumentAgent }                                                      from '../../domain/tracker-model/Board.ts';
 import type { ProposalSubmission }                                                     from '../../domain/tracker-model/TicketDocuments.ts';
 import { CommentAnchorUtil }                                                           from '../../domain/tracker-model/utils/CommentAnchorUtil.ts';
 import { DocumentAgentJobUtil }                                                        from '../../domain/tracker-model/utils/DocumentAgentJobUtil.ts';

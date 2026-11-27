@@ -2,14 +2,16 @@
  * A crossing ticket's stage and seals on its row (strategy 4.2): the stage its next launch comes from, and the seal of each package that a
  * package review sealed. A ticket whose row stores no stage is in `build`, and a stage job never moves the ticket's status. Each stage
  * start, seal and package return is logged; a package return lifts the returned package's seal and counts on the row (E41, E65). The owner
- * agreed to one way back: a second return is not a move but the decision `second-return`, which the Board opens (E45).
+ * agreed to one way back: a second return is not a move but the decision `second-return`, which `returnTicketToThePackage` opens (E45).
  */
-import type { Logged }            from './@types/BoardChanges.ts';
-import type { LogRecord }         from './@types/LogRecord.ts';
-import type { Task, TicketStage } from './@types/Task.ts';
-import type { BoardRecords }      from './BoardRecords.ts';
-import type { ReviewBars }        from './ReviewBars.ts';
-import { TicketStageUtil }        from './utils/TicketStageUtil.ts';
+import type { Logged }                         from './@types/BoardChanges.ts';
+import type { LogRecord }                      from './@types/LogRecord.ts';
+import type { DecisionDraft, DecisionWording } from './@types/PlaybookStep.ts';
+import type { Task, TicketStage }              from './@types/Task.ts';
+import type { BoardRecords }                   from './BoardRecords.ts';
+import type { Decisions }                      from './Decisions.ts';
+import type { ReviewBars }                     from './ReviewBars.ts';
+import { TicketStageUtil }                     from './utils/TicketStageUtil.ts';
 
 /** The stage of a ticket whose row stores none: stage 1 of its own entity. */
 const STAGE_OF_A_ROW_WITHOUT_ONE = 'build';
@@ -18,7 +20,7 @@ const STAGE_OF_A_ROW_WITHOUT_ONE = 'build';
 const PACKAGE_RETURNS_AGREED = 1;
 
 export class TicketStageRows {
-  constructor(private readonly records: BoardRecords, private readonly reviewBars: ReviewBars) {}
+  constructor(private readonly records: BoardRecords, private readonly reviewBars: ReviewBars, private readonly decisionRules: Decisions) {}
 
   /** `null` for a ticket that crosses into no package, and for a ticket with no row. */
   ticketStageOf(ticketId: string): TicketStage | null {
@@ -40,7 +42,7 @@ export class TicketStageRows {
 
   /**
    * A move the stage table does not allow is a programming error: Hephaestus moves a ticket only along the table. A second package
-   * return is one too: it goes through the Board's `returnTicketToThePackage`, which opens `second-return` instead.
+   * return is one too: it goes through `returnTicketToThePackage`, which opens `second-return` instead.
    */
   moveTicketStage(ticketId: string, stage: TicketStage, at: string): Logged {
     const ticket = this.records.requireTicket(ticketId);
@@ -101,6 +103,24 @@ export class TicketStageRows {
   /** A package review that ends moves no ticket status, so its bar is closed here, as a move of the ticket closes the bar of a home review. */
   closeStageReviewBars(ticketId: string, at: string): Logged {
     return { logged: this.reviewBars.closeInProgressReviewBars([ticketId], at).logged };
+  }
+
+  /**
+   * A crossing ticket goes back into the package build of `packageEntity` (E41, E65) once. A second return opens `second-return` instead,
+   * which holds the ticket at its stage until User answers (E45); one already open is not opened again.
+   */
+  returnTicketToThePackage(ticketId: string, packageEntity: string, decisionWordingOf: (draft: DecisionDraft) => DecisionWording, at: string): Logged {
+    const packageBuild: TicketStage = { name: 'package-build', entity: packageEntity };
+    if (!this.stageMoveIsASecondPackageReturn(ticketId, packageBuild)) return this.moveTicketStage(ticketId, packageBuild, at);
+    const draft: DecisionDraft = {
+      kind: 'second-return', ticketIds: [ticketId], jobId: null, subject: { packageEntity }
+    };
+    if (this.decisionRules.decisions().some((decision) => decision.kind === draft.kind && decision.ticketIds.includes(ticketId))) return { logged: [] };
+    return {
+      logged: this.decisionRules.openDecision({
+        ...draft, askedBy: 'hephaestus', requestId: null, ...decisionWordingOf(draft), context: packageEntity
+      }, at).logged
+    };
   }
 
   /** The row keeps `seals` once set, also when the lifted seal was its last, so a row is never rewritten back to one that never crossed. */
