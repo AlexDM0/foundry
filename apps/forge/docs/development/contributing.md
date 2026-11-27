@@ -3,7 +3,7 @@
 > **Question:** How do I get this running, try a change safely and get it past every check?
 > **Time:** 15 minutes.
 > **Read first:** [README](../../README.md).
-> **Next:** [Guards and testing](guards-and-testing.md), [CLI reference](../cli.md), [Rule book](../../../../.claude/rules/forge.md).
+> **Next:** [Architecture tests and testing](architecture-tests-and-testing.md), [CLI reference](../cli.md), [Rule book](../../../../.claude/rules/forge.md).
 
 ## In one screen
 
@@ -19,8 +19,9 @@ matter:
    repository.
 2. **Run `bun run verify` before you call a change done.** The commit and edit hooks are a fast partial check. Only
    `verify` runs the tests.
-3. **Find the home of your change** in the table under [Where does my change go](#where-does-my-change-go). A guard is
-   a spec or lint rule that fails when a repository rule is broken. Each row names the guards for that change. They do
+3. **Find the home of your change** in the table under [Where does my change go](#where-does-my-change-go). An
+   [architecture test](../glossary.md#architecture-test) is a spec in `architecture/` that fails when a structural rule
+   is broken; with the lint rules and the specs that hold a rule, it is what each row names for that change. They do
    not catch everything: docs and other follow-ups are on you.
 4. **Commit one plain subject line**, with no AI attribution.
 
@@ -190,18 +191,20 @@ loud; a typo in the name is not.
 
 ## The checks
 
-**`bun run verify` is the only check that runs the tests. Run it after any TypeScript change.** It runs three stages from
+**`bun run verify` is the only check that runs the tests. Run it after any TypeScript change.** It runs four stages from
 `apps/forge/package.json`, in order, and stops at the first failure. The first stage runs the type-check and lint side by side;
 the test files themselves never run in parallel. forge has no page, so it has no DOM spec.
 
 | Stage | Command | What it proves | Time |
 | --- | --- | --- | --- |
 | 1 Type-check and lint | `bun run typecheck`, `bun run lint` | `tsc` over `tsconfig.json`; ESLint over the app. | 14 s |
-| 2 Tests | `bun test` | Every `.spec.ts`, under the preloads in `bunfig.toml`. | 15 min |
-| 3 Stamp check | `bun src/testing/CheckRecordingStamps.ts` | No recording is stale for the installed system versions. | 1 s |
+| 2 Tests | `bun test` | Every `.spec.ts` outside `architecture/`, under the preloads in `bunfig.toml`. | 15 min |
+| 3 Architecture tests | `bun run test:architecture` | Every `.spec.ts` in `architecture/`: the structure of the code and the repository. | not timed |
+| 4 Stamp check | `bun src/testing/CheckRecordingStamps.ts` | No recording is stale for the installed system versions. | 1 s |
 
 At the repository root, `bun run verify` runs these stages, and those of each package, for every workspace through
-Turborepo, which replays a task whose inputs have not changed from its cache.
+Turborepo, which replays a task whose inputs have not changed from its cache. `bun run test:architecture` at the root
+runs the architecture tests of every workspace, and in `apps/forge/` those of forge alone.
 
 `tsc` keeps its build info in the git-ignored `node_modules/.cache/typecheck/`, so a later type-check reads again only
 what changed. ESLint keeps no cache: `import/no-extraneous-dependencies` reads `package.json`, which a cache never
@@ -227,8 +230,8 @@ A spec that needs a tool the machine lacks, such as Chrome, skips and is counted
 An agent can write hooks, so a passing hook proves nothing about an agent's commit. The verdict comes from Customs, the
 gates and the [Airlock](../glossary.md#airlock): see Confinement.
 
-When a guard fails and you do not know why, open the spec: its header says what it holds, and
-[Guards and testing](guards-and-testing.md) says how to fix each one.
+When an architecture test or another spec fails and you do not know why, open the spec: its header says what it holds, and
+[Architecture tests and testing](architecture-tests-and-testing.md) says how to fix each one.
 
 ## Where does my change go
 
@@ -245,7 +248,7 @@ tracked file.
 | Word a refusal | `src/adapters/utils/OperationRefusalWordingUtil.ts` | A new detail kind in `src/shared/OperationRefusal.ts`; [Refusals](../reference/refusals.md) | `src/adapters/utils/OperationRefusalWordingUtil.spec.ts` |
 | Add a change to the board that a job or a client can ask for | A kind in `src/shared/@types/ControlCommand.ts`, a function in `src/services/control/` that applies it | Its verb in `cli/constants/JobVerbs.ts` | `cli/ControlContract.spec.ts`, `cli/HatchUnderJob.spec.ts` |
 | Change a domain rule | A module in `src/lib/tracker-model/` that the `Board` class delegates to | Nothing outside the package | `src/lib/tracker-model/Board.*.spec.ts`, `architecture/ImportDirection.spec.ts` |
-| Change what runs next | The [Playbook](../glossary.md#playbook), `src/lib/tracker-model/Playbook.ts` | A test in its spec, and a source mutant that proves the test fails without your change: see [Guards and testing](guards-and-testing.md) | `src/lib/tracker-model/Playbook.spec.ts`, `src/lib/tracker-model/Playbook.interleavings.spec.ts` |
+| Change what runs next | The [Playbook](../glossary.md#playbook), `src/lib/tracker-model/Playbook.ts` | A test in its spec, and a source mutant that proves the test fails without your change: see [Architecture tests and testing](architecture-tests-and-testing.md) | `src/lib/tracker-model/Playbook.spec.ts`, `src/lib/tracker-model/Playbook.interleavings.spec.ts` |
 | Change a stored format | `src/adapters/<store>/`: its reader, writer and `utils/` mapping (`*Ingestion` and `*Writer` for most stores, `PipelineFile.ts` for the [pipeline](../glossary.md#pipeline)) | The format in `docs/cli.md` | The adapter's specs, `cli/OlderTrackerRefusal.spec.ts` |
 | Share a tunable | A named constant in `src/shared/constants/`; a constant with one consumer stays beside it | Nothing | `@typescript-eslint/no-magic-numbers` in `eslint.config.js` forces a name, not a home; `src/shared/constants/Limits.spec.ts` holds relations between constants, not their presence |
 | Change what an installed file names | `resources/templates/`, `resources/prompts/` or `skills/` | Bump the [install version](../glossary.md#install-version), `INSTALL_VERSION` in `cli/constants/InstallVersion.ts`, by hand, in the same commit | `cli/InstalledSurface.spec.ts` against `cli/FrozenInstalledSurface.json` |
@@ -274,7 +277,7 @@ runs older code than your checkout: restart it. See [code version](../glossary.m
 
 **Each fact has one home.** State it there and link it elsewhere. [The documentation map](../README.md) lists each
 document and the question it answers. [CLI reference](../cli.md) rows and three of its sections are held by specs; read
-[Guards and testing](guards-and-testing.md) before you restructure it.
+[Architecture tests and testing](architecture-tests-and-testing.md) before you restructure it.
 
 **A figure** is a rendered PNG in `docs/figures/<doc-slug>/`, a folder named after the document, such as
 `contributing`. `docs/figures/` holds rendered PNGs only; no SVG source is kept.
@@ -311,7 +314,7 @@ tracked file, `.svg` and `.html` included. It reads
 `git ls-files`, so an unstaged new file passes until it is added. Run it after `git add`:
 
 ```sh
-bun test architecture/ComponentNames.spec.ts
+bun test --path-ignore-patterns='**/*.integration.spec.ts' ./architecture/ComponentNames.spec.ts
 ```
 
 ## Committing

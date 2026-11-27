@@ -146,7 +146,7 @@ interfaces changed and corrects this schedule to match. WP0.2's baseline of the 
 | 2-J | WP2.20 | Alone |
 | 2-K | WP2.15 | Alone |
 | 2-L | WP2.16 | Alone |
-| 2-L2 | WP2.22 | Alone: the agent boundary guard over code, comments and testing helpers, today's reaches allowlisted; each package to WP2.32 removes its own entries |
+| 2-L2 | WP2.22 | Alone: the agent boundary architecture test over code, comments and testing helpers, today's reaches allowlisted; each package to WP2.32 removes its own entries |
 | 2-L3 | WP2.23 | Alone: the adapter reads its own transcripts |
 | 2-L4 | WP2.24 | Alone: the adapter's variables, credentials and repair |
 | 2-L5 | WP2.25 | Alone: live answers, the quit act (Talos protocol 2), the bundle line, the start folder |
@@ -156,7 +156,7 @@ interfaces changed and corrects this schedule to match. WP0.2's baseline of the 
 | 2-L9 | WP2.29 | Alone: the retired install goes |
 | 2-L10 | WP2.30 | Alone: the adapter installs into a repository |
 | 2-L11 | WP2.31 | Alone: a session is confined by its agent's sandbox or by forge's, as the port declares |
-| 2-L12 | WP2.32 | Alone, last of the agent port packages: the guard's allowlist holds only its permanent entries |
+| 2-L12 | WP2.32 | Alone, last of the agent port packages: the architecture test's allowlist holds only its permanent entries |
 | 2-M | WP2.17 | Alone |
 | 2-N | WP2.18 | Alone, last: recordings and the end-to-end check on a scratch forge |
 

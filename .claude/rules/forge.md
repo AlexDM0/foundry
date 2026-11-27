@@ -18,23 +18,27 @@ repository root (`packages/forge-contracts/…`).
 
 ## Verify
 
-`bun run verify` (typecheck and lint at the same time, then the default suite and the recording stamp check) after
-any TypeScript change, before calling it done. It makes no real call: it runs no real-system spec.
+`bun run verify` (typecheck and lint at the same time, then the default suite, the architecture tests and the
+recording stamp check) after any TypeScript change, before calling it done. It makes no real call: it runs no
+real-system spec.
 When you build or change a boundary of `src/testing/BoundarySpecs.ts`, run `bun run record <boundary>`. It runs the
 real-system specs of that boundary and writes their recorded answers to `src/testing/recordings/<os>/`, stamped with
 the system version and the OS. Commit the recording.
 `bun run verify:integration` runs every `*.integration.spec.ts` file. Run it only when a person asks for it. To run
 one spec, use `bun test --path-ignore-patterns='.claude/**' ./<path>`: a plain `bun test` finds no
 `*.integration.spec.ts` file, also when its path is given.
-At the repository root, `bun run verify` runs these tasks for every workspace through Turborepo.
+`bun run test:architecture` runs the architecture tests alone: every spec in `architecture/` except its
+`*.integration.spec.ts` files. At the repository root, `bun run verify` runs these tasks for every workspace through
+Turborepo, and `bun run test:architecture` runs every workspace's architecture tests.
 `.githooks/pre-commit` (wired by `setup.ts`) refuses a commit failing the root's lint or typecheck; never bypass it
 with `--no-verify`.
 
 ## Rules
 
 The owner's coding conventions (`~/coding-conventions-new.md`) hold for forge. This file holds only forge's own rules,
-the guards that hold a convention, and the Deviations from it, each with why. A rule a guard spec holds is one line
-naming the guard: the spec is the full statement.
+the architecture tests and specs that hold a convention, and the Deviations from it, each with why. A rule an
+architecture test or a spec holds is one line naming that spec: the spec is the full statement. The architecture tests
+are the specs in `architecture/`; `bun run test:architecture` runs them, and `bun run verify` runs them too.
 
 ### Files and naming
 
@@ -57,11 +61,11 @@ packages/forge-contracts/, packages/system-versions/  →  src/shared/ and every
 packages/forge-contracts/  →  src/adapters/board-document/ (the board document's mappers), src/adapters/board-commands/ (the commands')
 ```
 
-- `architecture/ImportDirection.spec.ts` holds the direction, cycles, barrels, sibling-command and command-set isolation, the bin
-  shim, the `testing/` allowlist (`TESTING_FOLDER_IMPORTERS`), a lib package's declared "depends on" packages and
-  the tracker model's isolation. What two commands share is hoisted to the level above both, or passed as a
-  structurally typed parameter. No command set (a folder directly under `cli/` but its shared folders) imports
-  another, and the `cli/` root imports a set only in `cli/CommandTable.ts`, which composes them, and in test code.
+- `architecture/ImportDirection.spec.ts` holds the direction, cycles, barrels, sibling-command and command-set
+  isolation, the bin shim, the `testing/` allowlist (`TESTING_FOLDER_IMPORTERS`), a lib package's declared "depends on"
+  packages and the tracker model's isolation. What two commands share is hoisted to the level above both, or passed as a
+  structurally typed parameter. No command set (a folder directly under `cli/` but its shared folders) imports another,
+  and the `cli/` root imports a set only in `cli/CommandTable.ts`, which composes them, and in test code.
 - A `src/lib/` package knows nothing about its callers: no forge names, file names, wording or exit codes.
   App values arrive as parameters; a refusal leaves as a verdict (except the `Board`, see Deviations).
 - A package in `packages/` imports no file of an app. forge imports a package only by its name and only when
@@ -104,9 +108,9 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
   record); an adapter util words the records, the collector gathers them, the writer stores
   `.forge/log.jsonl`.
 - The core reaches a stored record only through the store port, `BoardStore` in `src/services/store/BoardStore.ts`:
-  commands through its command face, Hephaestus's pass through its transaction face, every read through its read
-  side. Its one adapter, `LocalFilesBoardStore`, is the only code that names a record's path or judges a stored
-  pipeline; `architecture/StoreBoundary.spec.ts` holds it, and `src/services/store/BoardStore.contract.spec.ts` is what any
+  commands through its command face, Hephaestus's pass through its transaction face, every read through its read side.
+  Its one adapter, `LocalFilesBoardStore`, is the only code that names a record's path or judges a stored pipeline;
+  `architecture/StoreBoundary.spec.ts` holds it, and `src/services/store/BoardStore.contract.spec.ts` is what any
   adapter must pass.
 - Every name the product goes by on a machine (program, data, worktrees and monitor folders, skills, storage and
   environment prefixes, Hephaestus port) is `PRODUCT_NAMES` in `src/shared/constants/ProductNames.ts`; every
@@ -143,15 +147,16 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
   `PLATFORM_HOST_FACTS` (`src/shared/PlatformHostFacts.ts`).
 - `architecture/PlatformBoundary.spec.ts` holds that no shipping code outside the adapters reads the platform or names a
   platform primitive.
-- `architecture/AgentBoundary.spec.ts` holds that no shipping code outside the agent port's adapter (`src/lib/claude-code/` and
-  the fake agent's files), comments included, names the vendor, and that no testing helper names it but on its listed
-  lines; `architecture/ImportDirection.spec.ts` holds that only `cli/CommandContext.ts` and the fake agent import it.
+- `architecture/AgentBoundary.spec.ts` holds that no shipping code outside the agent port's adapter
+  (`src/lib/claude-code/` and the fake agent's files), comments included, names the vendor, and that no testing helper
+  names it but on its listed lines; `architecture/ImportDirection.spec.ts` holds that only `cli/CommandContext.ts` and
+  the fake agent import it.
 - Keep the adapter layer thin. A portable Bun or Node call stays in the core. Make an adapter only for code that is
   truly specific to a platform.
 - `src/lib/platform-ports/PlatformPortsFor.spec.ts` holds that on darwin, linux and win32 each port is an adapter, and
-  that an unknown platform gets the ports that refuse. `architecture/PlatformBoundary.spec.ts` also holds that a contract spec
-  (`*.contract.spec.ts`) names each Linux, Windows and POSIX adapter and runs it on fakes; its list of exceptions is
-  exact.
+  that an unknown platform gets the ports that refuse. `architecture/PlatformBoundary.spec.ts` also holds that a
+  contract spec (`*.contract.spec.ts`) names each Linux, Windows and POSIX adapter and runs it on fakes; its list of
+  exceptions is exact.
 - Confinement: on macOS and Linux, no gate and no session runs unconfined, and `start` refuses where confinement is
   unavailable. On Windows, gates and sessions run unconfined by design, and no text says that a sandbox refuses
   something there.
@@ -200,16 +205,18 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 - Bun runs the TypeScript; `tsc` only type-checks, under `tsconfig.json`'s strict options. Write for them:
   `process.env['NAME']`, a written fallback, conditional objects instead of spreading `undefined`.
 - `eslint.config.js` holds no `!` non-null assertion, type-only imports as `type` and LF on every platform.
-- The root's `.gitattributes` keeps every text file LF on every checkout, held by `architecture/LineEndingPolicy.spec.ts`; the
-  root's `.bun-version` pins Bun to the `@types/bun` version that `bun.lock` locks, held by
-  `architecture/BunVersionPin.spec.ts`.
+- The root's `.gitattributes` keeps every text file LF on every checkout, held by
+  `architecture/LineEndingPolicy.spec.ts`; the root's `.bun-version` pins Bun to the `@types/bun` version that
+  `bun.lock` locks, held by `architecture/BunVersionPin.spec.ts`.
 - ESLint 9 through `@reliquary/eslint-config`, extended in `eslint.config.js`; `bun run lint` is its statement. The
   testing folders may import devDependencies.
 
 ### Tests
 
 - There are two suites. The default suite is every `*.spec.ts` file, and `bun run verify` runs it. The
-  real-system suite is every `<Module>.integration.spec.ts` file; `bunfig.toml` keeps it out of `bun test`.
+  real-system suite is every `<Module>.integration.spec.ts` file; `bunfig.toml` keeps it out of `bun test`. The
+  architecture tests in `architecture/` are default specs that `bunfig.toml` keeps out of `bun test` too:
+  `bun run test:architecture` runs them, and `bun run verify` with them.
 - `bun run verify` and the release run no real-system spec. `BOUNDARY_SPECS` in `src/testing/BoundarySpecs.ts`
   lists the real-system specs of each boundary, and `bun run record <boundary>` runs them (with the integration specs
   beside the boundary module) and writes the recording.
@@ -217,25 +224,25 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
   versions. A stale stamp fails `verify`, and the check names the boundary and its record command.
   `SYSTEM_OF_BOUNDARY` in `src/testing/BoundaryRecordings.ts` gives the system of each boundary.
 - A boundary with no recording for an OS is not finished for that OS. `bun run verify` lists each of them.
-- `architecture/RealSystemSpecs.spec.ts` holds that a default spec makes no real process, git or socket call, that its allowlist
-  is exact, and that `BOUNDARY_SPECS` lists every real-system spec and every shipping call site.
-- Real git runs only in the git boundary specs (`src/lib/git/*.integration.spec.ts`); every other spec and spec
-  helper uses mocks of recorded git responses. `architecture/RealSystemSpecs.spec.ts` holds it, with an exact allowlist. A spec
+- `architecture/RealSystemSpecs.spec.ts` holds that a default spec makes no real process, git or socket call, that its
+  allowlist is exact, and that `BOUNDARY_SPECS` lists every real-system spec and every shipping call site.
+- Real git runs only in the git boundary specs (`src/lib/git/*.integration.spec.ts`); every other spec and spec helper
+  uses mocks of recorded git responses. `architecture/RealSystemSpecs.spec.ts` holds it, with an exact allowlist. A spec
   whose commands run in a folder with no repository uses `useRecordedGitOutsideAnyRepository`.
 - A default spec gets its platform ports from `src/testing/DefaultSpecPlatformPorts.ts`. Its process table and its gate
   confinement give the recorded answers, not the answers of the real system. The preload
   `src/testing/RecordedBoundariesGuard.ts` fails a case of a default spec that starts git or a program of
   `src/testing/RecordedBoundaryPrograms.ts`, or that makes a call that has no recorded answer.
 - A wait in a spec is on the state itself, through `src/testing/WaitUntil.ts` or an injected clock or event, never a
-  fixed sleep before an assertion; `architecture/SpecSleeps.spec.ts` holds it, its allowlist exact. Every spec file runs on the
-  one case deadline, through the preload `src/testing/SharedCaseDeadlinePreload.ts`.
-  `docs/development/guards-and-testing.md` holds the audit.
+  fixed sleep before an assertion; `architecture/SpecSleeps.spec.ts` holds it, its allowlist exact. Every spec file runs
+  on the one case deadline, through the preload `src/testing/SharedCaseDeadlinePreload.ts`.
+  `docs/development/architecture-tests-and-testing.md` holds the audit.
 - A test needing a tool the machine may lack skips through `src/testing/ToolGuard.ts`, its title saying what is
   missing; the preload `src/testing/TestRunReport.ts` counts and names every skip, and
   `EVERY_TOOL_REQUIRED_VARIABLE` (`src/shared/Environment.ts`, built from `ENVIRONMENT_PREFIX`) set to 1 fails them.
   End-to-end suites spawning the binary sit at the layer root.
-- `architecture/SpecSkips.spec.ts` holds that no spec skips a test other than through `src/testing/ToolGuard.ts`, and holds the
-  exact list of the specs that skip when the run is root.
+- `architecture/SpecSkips.spec.ts` holds that no spec skips a test other than through `src/testing/ToolGuard.ts`, and
+  holds the exact list of the specs that skip when the run is root.
 - Tests never touch live data: every spec works under the scratch root, checked by `src/testing/TrackerIsolation.ts`;
   the binary is spawned only through `cli/testing/CliProcess.ts`.
 - No spec starts a real agent session or reaches the host GnuPG: the preload `src/testing/ProgramTrapGuard.ts` puts a
@@ -244,11 +251,11 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
   spec that `BOUNDARY_SPECS` lists under a boundary of the `gpg` system removes the `gpgconf` trap, for its own file,
   through `releaseTrappedProgramForThisSpecFile` (`src/testing/ProgramTraps.ts`, held by its spec).
 - A spec never opens a page, a tab or a window, and never makes the operating system act. When a run cannot get an
-  answer without this action, write the answer from the documentation of that system and name the source in a
-  comment. `architecture/SpecsOpenNoPage.spec.ts` holds that no spec or spec helper starts a program that opens the default
+  answer without this action, write the answer from the documentation of that system and name the source in a comment.
+  `architecture/SpecsOpenNoPage.spec.ts` holds that no spec or spec helper starts a program that opens the default
   browser (`open`, `xdg-open`, the Windows handler).
-- `architecture/TestFileConventions.spec.ts` holds that no `.test.ts`, `.spec.tsx` or `.dom.tsx` file exists, since forge has
-  no page and runs no DOM spec, and that no spec or test helper creates the real process context.
+- `architecture/TestFileConventions.spec.ts` holds that no `.test.ts`, `.spec.tsx` or `.dom.tsx` file exists, since
+  forge has no page and runs no DOM spec, and that no spec or test helper creates the real process context.
 
 ### Documentation and commits
 

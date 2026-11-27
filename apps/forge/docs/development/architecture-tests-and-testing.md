@@ -1,4 +1,4 @@
-# Guards and testing
+# Architecture tests and testing
 
 > **Question:** Which spec holds which rule, and how is this codebase tested without ever touching live data?
 > **Time:** 20 minutes; the catalogue is lookup.
@@ -9,36 +9,36 @@
 ## In one screen
 
 Rules here are code. Many rules in [forge's rules](../../../../.claude/rules/forge.md) name a spec or a lint rule that fails the build, and
-that guard states the rule in full. If a spec failed, find it in the [guard catalogue](#guard-catalogue): the
-last column says what to change.
+that spec states the rule in full. If a spec failed, find it in the [catalogue](#catalogue): the last column says
+what to change.
 
-![A four-row diagram of architecture/ImportDirection.spec.ts. Three blue rows, the floor, the planted violations and the exact-both-ways check, are bracketed together, and each rules out a false green: green on nothing, a blind finder, a stale exception. Only after all three does the green row, every violation list empty, count as a finding.](../figures/guards-and-testing/guard-anatomy.png)
+![A four-row diagram of architecture/ImportDirection.spec.ts. Three blue rows, the floor, the planted violations and the exact-both-ways check, are bracketed together, and each rules out a false green: green on nothing, a blind finder, a stale exception. Only after all three does the green row, every violation list empty, count as a finding.](../figures/architecture-tests-and-testing/architecture-test-anatomy.png)
 
-*Three parts make an empty list mean something; read any guard by finding them.*
+*Three parts make an empty list mean something; read any architecture test by finding them.*
 
-A guard reads the real tree, so a green result could mean the tree obeys or that the guard stopped looking. Each guard
-rules out the second reading first. All guards share this shape.
+An architecture test reads the real tree, so a green result could mean the tree obeys or that the test stopped looking.
+Each architecture test rules out the second reading first. All of them share this shape.
 
 Tests follow one law: no spec reaches live data, meaning a real [tracker](../glossary.md#tracker), the real home
 folder, a real [board](../glossary.md#board) port or a real `claude` session. Every door to it that a spec helper
 controls has a lock, and a bare `claude` on the run's `PATH` is a stub that fails the test. A
 [session](../glossary.md#session) under test is a scripted fake agent.
 
-`bun run verify` runs `tsc` and ESLint side by side, then `bun test` and the recording stamp check; forge has no page
-and so no DOM spec. [Changing the code](contributing.md) says when to run what.
+`bun run verify` runs `tsc` and ESLint side by side, then `bun test`, the architecture tests (`bun run
+test:architecture`) and the recording stamp check; forge has no page and so no DOM spec. [Changing the code](contributing.md) says when to run what.
 
-## How to read a guard
+## How to read an architecture test
 
-A guard has three parts before its real assertion. `architecture/ImportDirection.spec.ts` shows each, and its `describe` titles
+An architecture test has three parts before its real assertion. `architecture/ImportDirection.spec.ts` shows each, and its `describe` titles
 are the map.
 
 **The floor proves the scan read the tree.** `describe('the scan itself')` requires at least 1500 repository edges, at
 least five files and five imports under each top folder, at least ten command folders and
 four `src/lib/` packages. It also fails while any scanned file is `unplaced`, so a folder no rule covers cannot escape
-judgement. The floors are round numbers well under the real counts, so a guard pointed at the wrong tree fails.
+judgement. The floors are round numbers well under the real counts, so an architecture test pointed at the wrong tree fails.
 
 **The planted violation proves the finder still fires.** The block
-`describe('the guard still names each violation, planted in memory')`
+`describe('the test still names each violation, planted in memory')`
 hands `graphWithPlantedFiles` a source text, and no file is written. `plantedFindingsOf` keeps only findings
 that touch the planted file, so a real violation elsewhere cannot sway a self-test. Each case asserts the exact
 sentence, and most also plant the legal neighbour and expect an empty list.
@@ -62,14 +62,19 @@ When any spec fails, read its opening docblock first: [forge's rules](../../../.
 > **Careful.** A file counts as inside a command folder only at `cli/<set>/<command>/<file>`, and the
 > `CLI_SET_SHARED_FOLDERS` never count. A file directly in a flat set such as `cli/tickets/` may import its neighbours.
 
-## Guard catalogue
+## Catalogue
 
 Find the failing spec by its path; the group tells where it sits, and the last column tells what to change.
 
-### Repository guards, `src/*.spec.ts`
+### Architecture tests, `architecture/*.spec.ts`
 
-A spec directly in `src/` is the `repository-guard` layer: it imports nothing of the tree but a `testing/` folder. That
-is why `architecture/ProductNames.spec.ts` and `architecture/ProductNameLiterals.spec.ts` read the constant from source text.
+An architecture test holds the structure of the code or the repository, not a behaviour. All of forge's sit in
+`architecture/`, and `bun run test:architecture` runs them; `bun run verify` runs them after the default suite, and at
+the repository root `bun run test:architecture` runs every workspace's. The default `bun test` leaves the folder out
+(`bunfig.toml`), and `test:architecture` leaves out its two `*.integration.spec.ts` files, which run with the
+real-system suite. A spec in `architecture/` is the `architecture` layer of `architecture/ImportDirection.spec.ts`: it
+imports nothing of the tree but a `testing/` folder. That is why `architecture/ProductNames.spec.ts` and
+`architecture/ProductNameLiterals.spec.ts` read the constant from source text.
 
 Two programs can share a machine: the released `agent-progress` and this build, `forge`. Each reads its own
 root override variable, which names the repository to use; [cli.md](../cli.md) holds the variables.
@@ -90,13 +95,28 @@ root override variable, which names the repository to use; [cli.md](../cli.md) h
 | `architecture/ProductNames.spec.ts` | `package.json`'s `name` and sole `bin` key equal the constants; the setup in `setup.ts` and `cli/setup/` imports them itself. | Align the file with `PRODUCT_NAMES`. |
 | `architecture/LineEndingPolicy.spec.ts` | The root's `.gitattributes` holds the LF policy, git applies it to every tracked file, and no tracked text file holds a carriage return. | Restore the policy, or rewrite the named file with LF. |
 | `architecture/BunVersionPin.spec.ts` | The root's `.bun-version` equals the `@types/bun` version the root's `bun.lock` locks. | Change the pin with the lock. |
+| `architecture/SpecSkips.spec.ts` | Every skip goes through `src/testing/ToolGuard.ts`; the specs that skip when the run is root are an exact list. | Skip through `src/testing/ToolGuard.ts`, or list the spec with why root breaks its proof. |
+| `architecture/SpecsOpenNoPage.spec.ts` | No spec or spec helper starts a program that opens the default browser. | Write the answer from the system's documentation, naming the source, instead of opening the page. |
+| `architecture/PlatformBoundary.spec.ts` | No shipping line outside an adapter reads the platform or names a platform primitive; each Linux, Windows and POSIX adapter has a contract spec. | Move the read into the port's adapter, or add the contract spec. |
+| `architecture/AgentBoundary.spec.ts` | No shipping line outside the agent port's adapter, comments included, names the vendor; testing helpers only on their listed lines. | Move the code into `src/lib/claude-code/`, or word it through the port. |
+| `architecture/StoreBoundary.spec.ts` | No shipping line outside the store's adapter names where a record is kept. | Reach the record through `BoardStore`. |
+| `architecture/StoredFileParsing.spec.ts` | No service parses a stored file itself; the JSON parses left in `src/services/` are an exact list. | Hand the location to the format's ingestion class in `src/adapters/`. |
+| `architecture/GitRunsAtAToplevel.spec.ts` | Git runs at a toplevel only: no source hands a tracker's folder to a git entry point or to `ceilingOf`, and only listed sources name the project folder in a checkout. | Run git at `repositoryRoot` or `worktreeRoot`, or list the source with its reason. |
+| `architecture/ClientNames.spec.ts` | No shipped source or doc of the program names a client. | Speak of a monitor or a host. |
+| `architecture/ForgeRunsByName.spec.ts` | No package script and no source of the program starts `forge` by name, since that name is this checkout's source. | Start the program by its path, or not at all. |
+| `architecture/TalosClosure.spec.ts` | `talos.ts`'s import closure, its synchronous-calls thread's included, stays in its package and declared packages, with no product or vendor name. | Remove the import or the name. |
+| `architecture/TalosMainThread.spec.ts` | No module Talos's main thread loads calls a synchronous primitive, but an exact allowlist. | Use the asynchronous call, or move the work to the synchronous-calls thread. |
+| `architecture/PlatformProbes.spec.ts` | `.platform-probes/` holds a script for every unknown and numbered probe, and says how it runs. | Add the script, or the line saying how it runs. |
+| `architecture/LintRules.integration.spec.ts` | The line-ending rule, which the shared config picks by platform, resolved in a child that reads as win32. Real-system suite. | Restore the rule's condition in `eslint.config.js`. |
+| `architecture/PlatformProbes.integration.spec.ts` | Every script of `.platform-probes/`, run as the folder is run, yields one line of the agreed shape. Real-system suite. | Fix the script the failure names. |
 
-### Surface and behaviour guards, `cli/*.spec.ts`
+### Surface and behaviour specs, `cli/*.spec.ts`
 
-These specs hold what the CLI prints and accepts.
+These specs hold a rule about what the CLI prints and accepts. They test behaviour, so they are no architecture tests
+and run in the default suite.
 
 <details>
-<summary>The 24 surface and behaviour guards</summary>
+<summary>The 24 surface and behaviour specs</summary>
 
 | spec | holds | how to fix a failure |
 | --- | --- | --- |
@@ -125,18 +145,17 @@ These specs hold what the CLI prints and accepts.
 
 </details>
 
-### Guards beside their subject
+### Specs beside their subject
 
-These sit next to the code they guard.
+These specs hold a rule and sit next to the code whose behaviour they hold; they run in the default suite.
 
 <details>
-<summary>The 18 guards beside their subject</summary>
+<summary>The specs beside their subject</summary>
 
 | spec | holds | how to fix a failure |
 | --- | --- | --- |
 | `cli/hephaestus/HephaestusBuildJob.spec.ts` (the root tracker's git) | A tracker at its repository's root, with no gate and with one gate in every phase, asks git from the launch to the landing exactly the distinct calls of `cli/hephaestus/FrozenRootTrackerGitCalls.json`, taken from forge before a tracker could sit in a folder. | Make the root tracker's calls what they were. Retake the table only from the commit before a change meant to move them; see the test's docblock. |
 | `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` | A Claude `init` and the `update` after it write exactly the files and report lines of `cli/adoption/FrozenClaudeInstall.json`, per opt-out flag. | Retake only in a commit meant to change an installed text; see its header. Otherwise restore the text. |
-| `architecture/TalosClosure.spec.ts` | `talos.ts`'s import closure, its synchronous-calls thread's included, stays in its package and declared packages, with no product or vendor name. | Remove the import or the name. |
 | `src/lib/claude-code/ClaudeStreamFixtures.spec.ts` | Each recorded stream fixture still shows what it was recorded to show. | Re-record per [the probe](hephaestus-claude-probe.md). |
 | `src/lib/tracker-model/Playbook.spec.ts` | Every [Playbook](../glossary.md#playbook) rule holds as written and fails under the mutant of its line. | Fix the rule, or update the claim's mutant text. |
 | `src/lib/tracker-model/Playbook.interleavings.spec.ts` | No seeded order of events breaks a lifecycle invariant. | The failure lists each `{ seed, violations }`. Reproduce with `new LifecycleWorld(seed + 1).run(TURNS_PER_SEED)`. |
@@ -155,7 +174,7 @@ without writing a file.
 `CONFINED_REACHES` lists the reaches, each with the exact files allowed to make it. `confinedReachRules` turns the list
 into config blocks that bind the same rule ids, so a later block replaces an earlier block's list.
 
-![A grid of two ESLint config blocks against three reaches. Block one forbids process.env, process.cwd and homedir for every file. Block two, for one site, lists process.env alone. cli/tickets/TicketCommand.ts matches block one and ends with all three forbidden. cli/CommandContext.ts matches both, block two wins, and it may reach process.cwd and homedir while process.env stays forbidden.](../figures/guards-and-testing/confined-reach-blocks.png)
+![A grid of two ESLint config blocks against three reaches. Block one forbids process.env, process.cwd and homedir for every file. Block two, for one site, lists process.env alone. cli/tickets/TicketCommand.ts matches block one and ends with all three forbidden. cli/CommandContext.ts matches both, block two wins, and it may reach process.cwd and homedir while process.env stays forbidden.](../figures/architecture-tests-and-testing/confined-reach-blocks.png)
 
 *Read a row of the lower pair: a change to `allowedIn` or to block order changes exactly these cells.*
 
@@ -197,7 +216,8 @@ Some text is a build input: rewording it can fail a spec. Check this table befor
 
 ## What specs require of docs
 
-Four specs read documentation, so a docs change can fail `bun test`, or `bun run verify:integration` for the first.
+Four specs read documentation, so a docs change can fail `bun run test:architecture` for the first two, or `bun test`
+for the last two.
 
 | spec | what it requires |
 | --- | --- |
@@ -208,11 +228,13 @@ Four specs read documentation, so a docs change can fail `bun test`, or `bun run
 
 ## The two suites
 
-The tests split in two, so that an ordinary change does not pay for every real process, git call and socket.
+The tests split in two, so that an ordinary change does not pay for every real process, git call and socket. The
+architecture tests run beside the default suite, on every change.
 
 | suite | files | command | when it runs |
 | --- | --- | --- | --- |
-| Default | every `*.spec.ts`, but no `*.integration.spec.ts` | `bun run verify` | On every change. |
+| Default | every `*.spec.ts` outside `architecture/`, but no `*.integration.spec.ts` | `bun run verify` | On every change. |
+| Architecture | every `*.spec.ts` in `architecture/`, but no `*.integration.spec.ts` | `bun run test:architecture`, also in `bun run verify` | On every change. |
 | Real-system | every `*.integration.spec.ts` | `bun run record <boundary>`, per boundary | While somebody builds or changes that boundary; never in `verify` or at a release. |
 
 `bunfig.toml`'s `pathIgnorePatterns` keeps the real-system specs out of a plain `bun test`. A later
@@ -261,7 +283,7 @@ process or socket module, and may not import a helper export that does, such as 
 Its `REAL_SYSTEM_ALLOWLIST` is empty, and a case holds it empty. An integration spec that
 makes no real call, a real-system spec under no boundary and a shipping call site that is no boundary all fail it.
 
-The guard reads what a spec names, not where its calls end up. A command run in-process still reaches git through
+The architecture test reads what a spec names, not where its calls end up. A command run in-process still reaches git through
 `GitProcess`, and `InitializedScratchRepository` still runs git to build its template. Those default specs pass: a real
 call inside the code under test is not a call in the spec.
 
@@ -286,14 +308,14 @@ added to its stage and recorded again with `bun run record src/lib/git/GitProces
 Add a test at the lowest tier that can prove the claim. At commit 70ce56de the repository held 348 `.spec.ts` files
 and 58 helper files, beside the DOM specs of a browser client that has since left the app.
 
-A higher tier costs more and proves more of the real system. From the bottom, at that commit: static guards, 158 tests
+A higher tier costs more and proves more of the real system. From the bottom, at that commit: architecture tests, 158 tests
 in 13 files; pure logic, 2,024 in 176; mutants and seeds, 118 in 2; scratch disk, 768 in 85; in-process commands, 551 in
 49; spawned processes, 255 in 22; and a manual smoke that is no spec. The tiers stack by cost, not by count: pure logic
 carries the most tests, and few claims need a real process.
 
 | tier | tests | how a spec works there | example |
 | --- | --- | --- | --- |
-| Static guards | 158 | Read the tree or the repository's own files, usually through `ImportGraph` or `RepositorySources` | `architecture/ImportDirection.spec.ts` |
+| Architecture tests | 158 | Read the tree or the repository's own files, usually through `ImportGraph` or `RepositorySources` | `architecture/ImportDirection.spec.ts` |
 | Pure logic | 2,024 | Model, util or decider, no disk | `src/lib/tracker-model/Board.spec.ts` |
 | Mutants and seeds | 118 | `SourceMutant`, `LifecycleWorld` | `src/lib/tracker-model/Playbook.spec.ts` |
 | Scratch disk | 768 | Real directories and real git under the scratch root | `src/lib/git/Worktrees.integration.spec.ts` |
@@ -325,7 +347,7 @@ planted source object for the others.
 **Source mutants.** `src/testing/SourceMutant.ts` rewrites one text in one module as Bun bundles it, so a claim can be
 watched failing without the line it pins.
 
-![Two independent tests for one Playbook claim. Test one runs the claim on the source: if it fails, the rule is wrong. Test two builds the mutant, whose text must occur exactly once or the build throws, and runs the claim on it: if the claim still holds, it pins nothing. A rule is watched failing only when the claim holds on the source and fails on the mutant.](../figures/guards-and-testing/source-mutant.png)
+![Two independent tests for one Playbook claim. Test one runs the claim on the source: if it fails, the rule is wrong. Test two builds the mutant, whose text must occur exactly once or the build throws, and runs the claim on it: if the claim still holds, it pins nothing. A rule is watched failing only when the claim holds on the source and fails on the mutant.](../figures/architecture-tests-and-testing/source-mutant.png)
 
 *The build's exit is the point: a mutant whose text went stale cannot pass by changing nothing.*
 
@@ -335,7 +357,7 @@ claim pins, update that claim's `find` text. `mutatedModuleOf` bundles into a sc
 **Seeded interleavings.** `src/lib/tracker-model/Playbook.interleavings.spec.ts` runs `LifecycleWorld` for `SEEDS` (200)
 seeds of `TURNS_PER_SEED` (60) turns.
 
-![A loop inside a loop. For each seed, and for each turn, the world follows the Playbook on one in-memory Board, checks the invariants, then a fake agent or User acts at random, and the next turn starts. Any violation is listed under its seed, which replays exactly. A second row runs the same world on a mutated policy and requires violations above zero, proving the world notices a broken policy.](../figures/guards-and-testing/seeded-interleavings.png)
+![A loop inside a loop. For each seed, and for each turn, the world follows the Playbook on one in-memory Board, checks the invariants, then a fake agent or User acts at random, and the next turn starts. Any violation is listed under its seed, which replays exactly. A second row runs the same world on a mutated policy and requires violations above zero, proving the world notices a broken policy.](../figures/architecture-tests-and-testing/seeded-interleavings.png)
 
 *The lower row tests the test: a world that never saw a violation under a broken policy would prove nothing.*
 
@@ -425,7 +447,7 @@ Every door a spec helper controls has a lock that forbids, refuses or replaces t
 none, as the Careful note below says. The helpers refuse before a command runs, because a throw inside a command
 becomes an exit code a spec cannot tell from the command's own.
 
-![Three nested bands around live data, sorted by when each lock acts. Before the run, a lint rule or guard forbids changing directory, the real process context, a board's real port and setting the root override in-process. At the helper, a command's directory, discovery walking up and the root override's value are refused. In the context or child, the real home, the monitor registry, a real agent session and a worktree's placement are replaced by scratch. Each door a helper controls is locked before the centre.](../figures/guards-and-testing/isolation-doors.png)
+![Three nested bands around live data, sorted by when each lock acts. Before the run, a lint rule or architecture test forbids changing directory, the real process context, a board's real port and setting the root override in-process. At the helper, a command's directory, discovery walking up and the root override's value are refused. In the context or child, the real home, the monitor registry, a real agent session and a worktree's placement are replaced by scratch. Each door a helper controls is locked before the centre.](../figures/architecture-tests-and-testing/isolation-doors.png)
 
 *Each door a helper controls is locked at the moment its band names; the three helper doors share
 `trackerIsolationVerdictFor`, so one defect there opens all three.*
@@ -449,7 +471,7 @@ becomes an exit code a spec cannot tell from the command's own.
 > cannot tell from the command's own.
 
 > **Careful.** Every helper a spec drives a command through has a lock. A spec calling a library or service directly
-> relies on using `src/testing/ScratchWorkspace.ts`, which no guard enforces.
+> relies on using `src/testing/ScratchWorkspace.ts`, which no architecture test enforces.
 
 The scratch root is `/tmp/agent-progress-tests` (`SHARED_SCRATCH_ROOT`), short so a Unix socket path under it fits,
 and away from macOS's crowded `tmpdir()`, which slows every process started in it. Each run makes its own `run-…` folder
@@ -470,7 +492,7 @@ through `gpgconf`. The `claude` trap catches what the fake adapter does not; the
 player that forgot to answer gpgconf as missing. Both are one guard over `TRAPPED_PROGRAMS`, each program in a folder of
 its own; the figure shows `claude`, and `gpgconf` takes the same routes.
 
-![A three-lane sequence. In the test run, the bunfig preload writes a stub claude into the trap folder and puts that folder first on PATH. CliProcess then builds a child environment with the trap and the fake switch, so the binary picks the fake adapter. Separately, the spawn wrap gives a spawn with no env the trap alone. If either child still runs claude, the stub records one line in attempts.log and exits at TRAPPED_EXIT_CODE, and afterEach reads the log and fails the test.](../figures/guards-and-testing/claude-trap.png)
+![A three-lane sequence. In the test run, the bunfig preload writes a stub claude into the trap folder and puts that folder first on PATH. CliProcess then builds a child environment with the trap and the fake switch, so the binary picks the fake adapter. Separately, the spawn wrap gives a spawn with no env the trap alone. If either child still runs claude, the stub records one line in attempts.log and exits at TRAPPED_EXIT_CODE, and afterEach reads the log and fails the test.](../figures/architecture-tests-and-testing/claude-trap.png)
 
 *The green box is the normal path; the coral box exists so that a mistake fails loudly instead of spending a session.*
 
@@ -532,7 +554,7 @@ Two harnesses cover what a plain spec cannot: a scripted agent and real sessions
 **The fake agent.** `fakeAgentAdapter` in `src/testing/FakeAgentAdapter.ts` is an `AgentAdapter`, the same interface
 `CLAUDE_CODE_ADAPTER` implements, and its session is `src/testing/fake-agent/FakeAgentChild.ts`.
 
-![Two routes from a spec to a command. In-process, runCommandLine with the captured context always carries fakeAgentAdapter. Spawned, CliProcess starts the binary, and agentAdapterOfThisProcess picks fakeAgentAdapter under the fake-agent switch. Both end at FakeAgentChild. The CLAUDE_CODE_ADAPTER branch is dashed, unreachable under test. Only the spawned route shows the shebang, the exit status, a child's environment or a command running beside another.](../figures/guards-and-testing/two-routes-to-a-command.png)
+![Two routes from a spec to a command. In-process, runCommandLine with the captured context always carries fakeAgentAdapter. Spawned, CliProcess starts the binary, and agentAdapterOfThisProcess picks fakeAgentAdapter under the fake-agent switch. Both end at FakeAgentChild. The CLAUDE_CODE_ADAPTER branch is dashed, unreachable under test. Only the spawned route shows the shebang, the exit status, a child's environment or a command running beside another.](../figures/architecture-tests-and-testing/two-routes-to-a-command.png)
 
 *Spawn only for what the bottom line names; everything else is cheaper in-process, with the same fake agent.*
 
@@ -556,7 +578,7 @@ its judgement, `cli/testing/CutoverSmokeUtil.ts`, has a spec.
 A test helper is reachable only from where `TESTING_FOLDER_IMPORTERS` says. A folder entry admits only specs and helpers
 there; a file entry admits that one shipping module.
 
-![A thin strip of layers, lib to features. A src/lib/ spec importing src/shared/ directly is refused by LAYER_REACH. The permitted route runs from that spec through TESTING_FOLDER_IMPORTERS to src/testing/ToolGuard.ts, which may import src/shared/Environment.ts because src/testing/ reaches every source layer, never a feature.](../figures/guards-and-testing/testing-side-door.png)
+![A thin strip of layers, lib to features. A src/lib/ spec importing src/shared/ directly is refused by LAYER_REACH. The permitted route runs from that spec through TESTING_FOLDER_IMPORTERS to src/testing/ToolGuard.ts, which may import src/shared/Environment.ts because src/testing/ reaches every source layer, never a feature.](../figures/architecture-tests-and-testing/testing-side-door.png)
 
 *The route runs against the import direction, which is why the gate is an exact list. Only `src/testing/` has a reach
 of its own; every other testing folder keeps the layer of its parent.*
@@ -566,7 +588,7 @@ of its own; every other testing folder keeps the layer of its parent.*
 
 | folder | admits specs of | what lives there |
 | --- | --- | --- |
-| `src/testing/` | `src/`, `cli/`, and the file `cli/CommandContext.ts` | `ScratchWorkspace`, `TrackerIsolation`, `ToolGuard`, `TestRunReport`, the program traps, the fake agent, `ImportGraph`, `RepositorySources`, `SourceMutant`, Talos protocol clients, planted children, Board and tracker fixtures |
+| `src/testing/` | `src/`, `cli/`, `architecture/`, and the file `cli/CommandContext.ts` | `ScratchWorkspace`, `TrackerIsolation`, `ToolGuard`, `TestRunReport`, the program traps, the fake agent, `ImportGraph`, `RepositorySources`, `SourceMutant`, Talos protocol clients, planted children, Board and tracker fixtures |
 | `src/lib/tracker-model/testing/` | `src/lib/tracker-model/` | `LifecycleFixtures`, `LifecycleWorld`, `TupleCoversTheUnion` |
 | `src/adapters/progress/testing/` | `src/adapters/` | `ProgressFileFixtures` |
 | `src/services/tracker/testing/` | `src/services/tracker/` | `ThrownFailure` |
@@ -579,7 +601,7 @@ of its own; every other testing folder keeps the layer of its parent.*
 
 ## Invariants
 
-1. A guard's green result counts only after its floor holds and each form it claims has been watched failing.
+1. An architecture test's green result counts only after its floor holds and each form it claims has been watched failing.
 2. An allowlist in a spec is exact both ways. ESLint's are not, as the [As built note](#what-eslint-holds) says.
 3. A command run through `createCapturedCommandContext`, `runAgentProgress` or `startAgentProgress` starts in a scratch
    directory with a scratch home, and a spec starting a Hephaestus passes `--port 0`.
@@ -596,7 +618,7 @@ of its own; every other testing folder keeps the layer of its parent.*
 | concept | path | symbol | held by |
 | --- | --- | --- | --- |
 | Import scan | `src/testing/ImportGraph.ts` | `createImportGraphScanner`, `graphWithPlantedFiles` | `src/testing/ImportGraph.spec.ts` |
-| Source scan | `src/testing/RepositorySources.ts` | `repositoryTypeScriptSources` | the guards using it |
+| Source scan | `src/testing/RepositorySources.ts` | `repositoryTypeScriptSources` | the architecture tests using it |
 | Layer table | `architecture/ImportDirection.spec.ts` | `LAYER_REACH`, `TESTING_FOLDER_IMPORTERS` | itself |
 | Confined reaches | `eslint.config.js` | `CONFINED_REACHES`, `confinedReachRules` | `architecture/LintRules.spec.ts` |
 | Scratch directories | `src/testing/ScratchWorkspace.ts` | `createScratchDirectory`, `createScratchGitRepository`, `addWorktree` | used by every disk spec |

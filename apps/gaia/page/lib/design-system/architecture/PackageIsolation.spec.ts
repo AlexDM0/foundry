@@ -1,8 +1,8 @@
 /**
- * The guard that keeps `design-system/` a package that can move to its own repository unchanged: no import leaves the folder, no
- * stylesheet `@import` or `url()` leaves it, nothing that ships imports a `bun:` or `node:` module or a package other than React, a spec
- * imports only its listed test packages, a story only React and Storybook, and no file, the constitution and the README among them, names
- * a word of the host from `HOST_WORDS`. The scan first proves it read the package, and each form is planted.
+ * The architecture test that keeps `design-system/` a package that can move to its own repository unchanged: no import leaves the folder,
+ * no stylesheet `@import` or `url()` leaves it, nothing that ships imports a `bun:` or `node:` module or a package other than React, a
+ * spec imports only its listed test packages, a story only React and Storybook, and no file, the constitution and the README among them,
+ * names a word of the host from `HOST_WORDS`. The scan first proves it read the package, and each form is planted.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -140,7 +140,7 @@ test('no source, stylesheet or document of the package names a word of the host'
   expect(hostWordSentencesOf([...SOURCES, ...STYLESHEETS, ...DOCUMENTS])).toEqual([]);
 });
 
-describe('the guard still names each form, planted in memory', () => {
+describe('the test still names each form, planted in memory', () => {
   test.each([
     ['an import leaving the folder', 'import { PRODUCT_NAMES } from \'../../src/shared/ProductNames.ts\';', 'imports ../../src/shared/ProductNames.ts, outside the package'],
     ['a type import leaving the folder', 'import type { DisplayState } from \'../../src/lib/Task.ts\';', 'imports ../../src/lib/Task.ts, outside the package'],

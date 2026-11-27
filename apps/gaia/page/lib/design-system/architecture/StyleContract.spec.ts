@@ -225,7 +225,7 @@ describe('the components and their stylesheets', () => {
   });
 });
 
-describe('the guard still names each form, planted in memory', () => {
+describe('the test still names each form, planted in memory', () => {
   const component = (path: string, text: string): ComponentClasses => emittedClassesOf({ path, text });
   const stylesheet = (path: string, text: string): PackageFile => ({ path, text });
 

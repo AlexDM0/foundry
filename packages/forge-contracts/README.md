@@ -76,5 +76,5 @@ entry, and the code in forge it stands for, is removed, or its entry corrected.
 bun run verify
 ```
 
-typechecks, lints and runs the specs: the contract versions hold together, the registry agrees with forge's versions, and no file of
-the package names a client.
+typechecks, lints and runs the specs: the contract versions hold together and the registry agrees with forge's versions; then
+the architecture test in `architecture/` (`bun run test:architecture`) holds that no file of the package names a client.

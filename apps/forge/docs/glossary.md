@@ -206,6 +206,12 @@ The vendor's tool through which a session asks a question. Calling it is a [ques
 [decision](#decision) or an [incident](#incident) (`QuestionRouting`). Roles that may not ask have it removed through
 `--disallowedTools`.
 
+### architecture test
+
+A spec in an `architecture/` folder that reads the real tree and fails when a structural rule is broken, proving first
+that its scan found something. `bun run test:architecture` runs them, and `bun run verify` too. Home:
+[Architecture tests and testing](development/architecture-tests-and-testing.md).
+
 ### Assistant
 
 The agent session of the one long-lived job of kind `assistant`, which a board has while its switch is on
@@ -298,8 +304,8 @@ Five different things share this word. See [Words that mean several things](#wor
 ### `claude` trap
 
 A stub `claude` first on `PATH` during a test run, which records where it ran and exits non-zero, so no spec starts a
-real session. One of the program traps, beside the `gpgconf` one (`src/testing/ProgramTraps.ts`). Home: [Guards and
-testing](development/guards-and-testing.md).
+real session. One of the program traps, beside the `gpgconf` one (`src/testing/ProgramTraps.ts`). Home: [Architecture tests and
+testing](development/architecture-tests-and-testing.md).
 
 ### clean quit
 
@@ -450,8 +456,8 @@ ticket. A review that sends a finished build back counts toward the [handoff cyc
 ### fake agent
 
 `FakeAgentAdapter`, an [adapter](#vendor-seam) that scripts a session for specs. It lives in `src/testing/` yet ships,
-because `agentAdapterOfThisProcess` chooses it when `fakeAgentIsOn`. Home: [Guards and
-testing](development/guards-and-testing.md).
+because `agentAdapterOfThisProcess` chooses it when `fakeAgentIsOn`. Home: [Architecture tests and
+testing](development/architecture-tests-and-testing.md).
 
 ### fence
 
@@ -541,11 +547,6 @@ created exclusively and never rewritten, so the newest number decides.
 ### group
 
 Tickets sharing a `group` field that land on a `group-<name>` branch and reach the main line together.
-
-### guard
-
-A spec that reads the real tree and fails when a rule is broken, proving first that its scan found something. Home:
-[Guards and testing](development/guards-and-testing.md).
 
 ### guard hook
 
@@ -834,7 +835,7 @@ differs from an event, and no publish depends on the one before.
 ### reach
 
 One use of a process-wide API such as `process.env`. `CONFINED_REACHES` in `eslint.config.js` confines each to its
-allowed files. Home: [Guards and testing](development/guards-and-testing.md).
+allowed files. Home: [Architecture tests and testing](development/architecture-tests-and-testing.md).
 
 ### readiness position
 
@@ -966,8 +967,8 @@ The instruction file for one [role](#role), by default `<data>/briefs/defaults/<
 ### root override
 
 The environment variable `FORGE_ROOT`, which names the repository to use with no walk up from the working
-directory. Each program reads only its own. Variables: [CLI reference](cli.md). Home: [Guards and
-testing](development/guards-and-testing.md).
+directory. Each program reads only its own. Variables: [CLI reference](cli.md). Home: [Architecture tests and
+testing](development/architecture-tests-and-testing.md).
 
 ### round verdict
 
@@ -983,7 +984,7 @@ that is abandoned before it started stays without one. Code says `task`.
 ### scratch root
 
 The canonical `tmpdir()`, the only place specs may work; `src/testing/TrackerIsolation.ts` refuses every way out of it.
-Home: [Guards and testing](development/guards-and-testing.md).
+Home: [Architecture tests and testing](development/architecture-tests-and-testing.md).
 
 ### seam
 
@@ -1040,7 +1041,7 @@ job's attempt.
 ### source mutant
 
 One text rewritten in one module as Bun bundles it (`src/testing/SourceMutant.ts`), so a claim can be watched failing. A
-text not found exactly once fails the build. Home: [Guards and testing](development/guards-and-testing.md).
+text not found exactly once fails the build. Home: [Architecture tests and testing](development/architecture-tests-and-testing.md).
 
 ### stale lock
 

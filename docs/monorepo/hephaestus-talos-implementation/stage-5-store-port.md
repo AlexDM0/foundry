@@ -6,7 +6,7 @@ The forge reaches its stored board through one port, `BoardStore`, with two face
 command endpoint apply `ControlCommand`s through, and a board transaction face that Hephaestus's pass (still the
 Overseer in code) changes the board through inside one exclusive write, with git inside it as today. Both faces share a
 lock-free read side. One adapter exists, `LocalFilesBoardStore`, which wraps today's tracker stores, the tracker lock
-and the single hold of `writeTracker`; a contract spec states what any adapter must do, and a guard spec,
+and the single hold of `writeTracker`; a contract spec states what any adapter must do, and an architecture test,
 `architecture/StoreBoundary.spec.ts`, refuses every shipping line outside the adapter that names the path of a record.
 
 The adapter judges a stored pipeline once, in the one reading every read and every write takes. Hand-editing of ticket
@@ -139,7 +139,7 @@ The run settles these for this stage:
   record no process can be read from is refused for a repair, never taken over by its file's age.
 - **What stays outside the port:** stage 3's presence, heartbeat and crash-log files and the Baton under
   `<data>/overseer/`, which describe a local process and its boot; Talos's files; job folders; gate profile output;
-  pictures (`src/services/tracker/PictureStore.ts`). Each is a place, read and written as today; the guard names none of
+  pictures (`src/services/tracker/PictureStore.ts`). Each is a place, read and written as today; the architecture test names none of
   them.
 
 ## Today's code
@@ -206,8 +206,8 @@ The run settles these for this stage:
 | The rule that tickets are hand-edited between runs | `apps/forge/CLAUDE.md:387-388` | Replaced: a ticket changes only through a command (WP5.13) |
 | Installed text that sends an agent to the ticket file: the session instructions, the reference's ticket file section and its invitation to add a field by hand, the two skills' pointer to the ticket file's format | `resources/templates/SessionInstructions.md:24-25`, `resources/templates/Reference.md:7`, `:13-17`, `:90-93`, `skills/agent-po/SKILL.md:20`, `skills/agent-progress-orchestrate/SKILL.md:24`; `docs/cli.md:3042`, `:3117-3120` | Changed (WP5.13) |
 | The install version, 36 | `cli/constants/InstallVersion.ts:1` | Raised by one over what earlier stages left (WP5.13) |
-| The port convention: one frozen record of ports, a contract spec per adapter, a boundary guard with an exact allowlist | `src/lib/platform-ports/PlatformPortsFor.ts:43`, `src/testing/PortContract.ts:14`, `architecture/PlatformBoundary.spec.ts:1-471` | Followed by `BoardStore`, its contract and `architecture/StoreBoundary.spec.ts` (WP5.1, WP5.4) |
-| The service layers of the import guard | `architecture/ImportDirection.spec.ts:39-59`, `:79-107`, `:236-241` | Changed: `store-service` between `control-service` and `overseer-service` (WP5.4) |
+| The port convention: one frozen record of ports, a contract spec per adapter, a boundary architecture test with an exact allowlist | `src/lib/platform-ports/PlatformPortsFor.ts:43`, `src/testing/PortContract.ts:14`, `architecture/PlatformBoundary.spec.ts:1-471` | Followed by `BoardStore`, its contract and `architecture/StoreBoundary.spec.ts` (WP5.1, WP5.4) |
+| The service layers of the import architecture test | `architecture/ImportDirection.spec.ts:39-59`, `:79-107`, `:236-241` | Changed: `store-service` between `control-service` and `overseer-service` (WP5.4) |
 | The rule that every mutating command writes through `writeTracker` | `apps/forge/CLAUDE.md:379-383` | Changed: through the store port (WP5.12) |
 | The import direction diagram | `apps/forge/CLAUDE.md:58-63` | Changed: `control → store → overseer` (WP5.12) |
 | The Deviations table | `apps/forge/CLAUDE.md:321-352` | Changed: a row for the port with one adapter (WP5.12) |
@@ -230,7 +230,7 @@ Order and parallelism:
 
 | Package | Runs after | May run in parallel with | Must run alone |
 | --- | --- | --- | --- |
-| WP5.1 The store boundary guard, today's leaks allowlisted | stages 1 to 3 | none | yes |
+| WP5.1 The store boundary architecture test, today's leaks allowlisted | stages 1 to 3 | none | yes |
 | WP5.2 The generation lock apart from the tracker lock | WP5.1 | none | no |
 | WP5.3 `BoardTransaction`, record allocation and keyed unreadable records | WP5.2 | none | no |
 | WP5.4 The port, the local-files adapter, the contract spec and the one pipeline reading | WP5.2, WP5.3 | WP5.5, WP5.6 | no |
@@ -241,7 +241,7 @@ Order and parallelism:
 | WP5.8 The CLI and the command endpoint write through the store | WP5.13 | none | yes |
 | WP5.9 The CLI reads through the read side | WP5.8 | WP5.10 | no |
 | WP5.10 The Overseer's pass, server and reads through the store | WP5.8 | WP5.9 | no |
-| WP5.11 The record paths leave `Workspace`; the guard's final form | WP5.9, WP5.10 | WP5.12 | no |
+| WP5.11 The record paths leave `Workspace`; the architecture test's final form | WP5.9, WP5.10 | WP5.12 | no |
 | WP5.12 Rules, docs and the Deviations row | WP5.10 | WP5.11 | no |
 | WP5.14 Committed: `pending` takes the name | WP5.11, WP5.12, stage 4 | none | yes |
 | WP5.15 The store's lock passes only from a holder whose process is gone | WP5.14, stage 4 | none | yes |
@@ -271,16 +271,16 @@ fixed sleep in a spec (`architecture/SpecSleeps.spec.ts`); every spec under the 
 no `!` assertion; no work at module load; a refusal from `src/` carries a wordless detail, worded only by
 `src/adapters/utils/OperationRefusalWordingUtil.ts`.
 
-### WP5.1 The store boundary guard, today's leaks allowlisted
+### WP5.1 The store boundary architecture test, today's leaks allowlisted
 
-**Purpose.** Make the boundary measurable before anything moves: a guard spec that finds every shipping line outside the
+**Purpose.** Make the boundary measurable before anything moves: an architecture test that finds every shipping line outside the
 adapter that names a record's path, with an exact allowlist of today's leaks, each entry naming the package that removes
 it. Every later package is done when its entries are gone.
 
 **Files.**
 
-- Create `architecture/StoreBoundary.spec.ts`. Beside `architecture/PlatformBoundary.spec.ts`, because it is a repository guard of the
-  same kind (`repository-guard` layer in `architecture/ImportDirection.spec.ts:228`).
+- Create `architecture/StoreBoundary.spec.ts`. Beside `architecture/PlatformBoundary.spec.ts`, because it is an architecture test of the
+  same kind (`architecture` layer in `architecture/ImportDirection.spec.ts:228`).
 
 **What to do.**
 
@@ -342,7 +342,7 @@ it. Every later package is done when its entries are gone.
      `ALLOWED_LINES = Object.keys(ALLOWED_STORE_LINES)` as `PlatformBoundary.spec.ts:122` does.
    - "the allowlist is exact both ways": removing an entry leaves its line a violation; an unused entry is named; a
      second copy of an allowed line in the same file is a violation; an allowed line in another file is a violation.
-   - "the guard names each form, planted in memory", one planted line per form and per pattern, at the path
+   - "the test names each form, planted in memory", one planted line per form and per pattern, at the path
      `src/services/overseer/Planted.ts`, and a test that every form is planted.
    - "what the boundary exempts is exact": a planted form in each adapter file and folder passes; the same line in
      `src/services/tracker/PlantedHelper.ts`, `src/services/store/PlantedStore.ts` and `cli/Planted.ts` fails; a
@@ -351,7 +351,7 @@ it. Every later package is done when its entries are gone.
 **Specs.** `architecture/StoreBoundary.spec.ts` itself proves: the scan found the adapter and the leaks; each form is caught when
 planted; the allowlist is exact both ways; the exemptions are exact.
 
-**Done when.** In `apps/forge`: `bun test --path-ignore-patterns='.claude/**' ./src/StoreBoundary.spec.ts` passes. At
+**Done when.** In `apps/forge`: `bun test --path-ignore-patterns='.claude/**' ./architecture/StoreBoundary.spec.ts` passes. At
 the root: `bun install --frozen-lockfile` then `bun run verify` is green. No source file outside the new spec changed.
 
 ### WP5.2 The generation lock apart from the tracker lock
@@ -603,7 +603,7 @@ pipeline in one reading that its reads and its writes share. Nothing calls the p
 `TrackerPipeline.entitiesInAFolder.spec.ts` passes with its assertions unchanged.
 
 **Done when.** In `apps/forge`: `bun test --path-ignore-patterns='.claude/**' ./src/services/store/
-./src/services/tracker/ ./src/ImportDirection.spec.ts ./src/StoreBoundary.spec.ts` passes; `grep -n
+./src/services/tracker/ ./architecture/ImportDirection.spec.ts ./architecture/StoreBoundary.spec.ts` passes; `grep -n
 "pipelineReadingInPlaceOf" src/services/tracker/TrackerPipeline.ts` prints nothing; the root's `bun run verify` is
 green.
 
@@ -916,7 +916,7 @@ board records go through `transactions.transact`. `cli/OpenTrackerForWriting.ts`
    runs `store.transactions.transact({ at: context.now() formatted as today, mutate })`, then `registerWrittenTracker`.
    It sends no nudge: the writer is the Overseer itself.
 7. `cli/testing/OverseerTicketMoves.ts`: applies its Overseer moves through `transactions.transact` of a store from
-   `boardStoreOf`. It is testing code; the guard does not scan it.
+   `boardStoreOf`. It is testing code; the architecture test does not scan it.
 8. Remove the allowlist entries of every switched file; add the one entry `cli/BoardStoreOf.ts: store-internal-import:
    <its import line>` with the reason "The CLI's composition root picks the store's adapter."
 
@@ -1029,7 +1029,7 @@ the composition-root import of `OverseerForeground.ts` and the entries WP5.9 own
 `cli/overseer/StartCommand.ts`) while WP5.9 has not landed; the root's `bun run verify` is green; the end-to-end check of
 the whole stage passes in full.
 
-### WP5.11 The record paths leave `Workspace`; the guard's final form
+### WP5.11 The record paths leave `Workspace`; the architecture test's final form
 
 **Purpose.** No type outside the adapter carries a record path. `Workspace` is the board's place; the record layout is
 the adapter's. The allowlist holds only the composition roots.
@@ -1073,7 +1073,7 @@ the adapter's. The allowlist holds only the composition roots.
 5. Testing helpers (`src/testing/TrackerFileFixtures.ts`, `src/testing/TrackerIsolation.ts`, `cli/testing/Stored*.ts`,
    `bridge/testing/HeadlessBridgeCheck.ts`) and specs that seed or read record files use `localStoreLayoutOf`; they may
    import the adapter, as testing code.
-6. Tighten the guard: add `/\b(?:localStoreLayoutOf|LocalStoreLayout|boardIsStoredAt)\b/` and
+6. Tighten the architecture test: add `/\b(?:localStoreLayoutOf|LocalStoreLayout|boardIsStoredAt)\b/` and
    `/\b\w+(?:RecordPath|RecordsFolder)\b|\bstoreLockFolder\b|\bholdJournalPath\b/` to `record-path-name`; check first
    with `grep -rnE "\w+(RecordPath|RecordsFolder)\b" src cli bridge ../../packages` that no other identifier ends so.
    The allowlist now holds exactly the two composition-root lines (`cli/BoardStoreOf.ts`,
@@ -1945,7 +1945,7 @@ The verb `ticket unready <id> [--at <stamp>] [--json]`; the log record `ticket-u
 The ticket becomes `draft`, loses `contentHash` and its row, and keeps everything else. `INSTALL_VERSION` rises by
 one.
 
-### Guard and contract
+### Architecture test and contract
 
 - `architecture/StoreBoundary.spec.ts`: the forms `record-file-name`, `record-folder-join`, `record-path-name`,
   `record-constant`, `store-internal-import`, `stored-record-read`; the exact `STORE_ADAPTER_FILES` and
@@ -2049,7 +2049,7 @@ one.
   stored text, for display. The judgement reads `projectLocationOf` (`src/services/tracker/ProjectLocation.ts:37`)
   only for a pipeline that holds entities, and that reading runs no git, so judging on every pass costs nothing new.
 - **`logFilePath` and `lockDirectoryPath` are ambiguous names.** The Overseer's own log (`OverseerFiles.ts:9`), the
-  registry lock and the landing lock use the same words. The guard matches them only on a workspace until WP5.11 renames
+  registry lock and the landing lock use the same words. The architecture test matches them only on a workspace until WP5.11 renames
   the record fields.
 - **The step value of an unreadable pipeline is stored on the board.** `UnreadablePipelineGate.ts:12` writes
   `pipeline.json` as the gate step into what the merge records; changing it is allowed (decision 32) but every reader of
@@ -2059,8 +2059,8 @@ one.
 - **Specs that build a `Workspace` by hand** break at WP5.11. Find them with the grep of WP5.11 before starting it, and
   move them to `localStoreLayoutOf`.
 - **`programTypeScriptSources` scans declared workspace packages too** (`src/testing/RepositorySources.ts:195`). The
-  guard's forms do not match a `.filePath` read, by design: the hold journal's `file.filePath` and the refusal details'
-  `filePath` are no record path the guard should see.
+  architecture test's forms do not match a `.filePath` read, by design: the hold journal's `file.filePath` and the refusal details'
+  `filePath` are no record path the architecture test should see.
 
 ## Verification of the whole stage
 

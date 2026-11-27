@@ -222,7 +222,7 @@ describe('the libraries of the page', () => {
   });
 });
 
-describe('the guard still names each form, planted in memory', () => {
+describe('the test still names each form, planted in memory', () => {
   const plantedModule = (path: string, text: string): ScannedFile => ({ path, text });
 
   test('a library with no interface file, a second one, a wrongly named one, no README, no spec, and a manifest', () => {

@@ -2,7 +2,7 @@
  * Every workspace package Gaia's code names by a bare specifier is declared in Gaia's `package.json`, or neither the workspace install nor
  * turbo knows Gaia depends on it, and a change to that package would leave Gaia's cached checks green. What matters: the scan reads the
  * imports, re-exports and dynamic imports of `src/` and `page/` and the stylesheets `page/index.html` links, sees the workspace's packages
- * from its manifest, and each form is planted to prove the guard names it. The libraries under `page/lib/` are no workspace packages: a
+ * from its manifest, and each form is planted to prove the test names it. The libraries under `page/lib/` are no workspace packages: a
  * bare specifier that names one is a finding, since a library is reached by a relative path to its interface file or a linked file.
  */
 import { readFileSync }           from 'node:fs';
@@ -116,7 +116,7 @@ describe('the workspace packages Gaia reaches', () => {
   });
 });
 
-describe('the guard on undeclared workspace packages', () => {
+describe('the test on undeclared workspace packages', () => {
   const plantedWorkspaceNames = new Set(['example-package', '@example-scope/example-package']);
   const plantedDeclaredNames = new Set(['react']);
   const plantedForms: readonly (readonly [string, string])[] = [

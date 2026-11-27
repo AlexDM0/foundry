@@ -45,7 +45,7 @@ packages/system-versions/   version comparison, for both apps and the contract
 - `design-system`, `flint` and `brand` leave `packages/` once the Bridge is deleted, when Gaia is their only consumer.
   Each becomes a top-level folder of Gaia's page `lib/`, with no `package.json`, kept independent of the others and of
   Gaia's features, with its own specs and description. Code outside a library imports only that library's interface
-  file; inside a library a file imports exactly what it needs, with no barrels. A guard holds this.
+  file; inside a library a file imports exactly what it needs, with no barrels. An architecture test holds this.
 
 ## Answers about behaviour
 

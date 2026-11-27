@@ -2,7 +2,7 @@
  * Every import edge of the program's TypeScript, over the files the root program and each workspace package the program declares
  * compile, read syntactically with the compiler API so no type checking is paid for. A declared package's files sit under a virtual folder
  * named after it (`forge-contracts/constants/ForgeSystemVersions.ts`), and a specifier naming it resolves through its `exports`, as Bun
- * and TypeScript resolve it. Planted sources add or replace files in memory, so a guard can prove it still fires. The tree is read once
+ * and TypeScript resolve it. Planted sources add or replace files in memory, so an architecture test can prove it still fires. The tree is read once
  * per run and shared frozen: `bun test` runs every spec file in one process.
  */
 import { existsSync, readFileSync } from 'node:fs';
@@ -66,7 +66,7 @@ function isBelow(folder: string, absolutePath: string): boolean {
   return relativePath !== '' && !relativePath.startsWith('..') && !isAbsolute(relativePath);
 }
 
-/** A path as the guards name it: under a declared package's virtual folder when it lies in the package, else relative to the program root. */
+/** A path as the architecture tests name it: under a declared package's virtual folder when it lies in the package, else relative to the program root. */
 function programPathOf(programRoot: string, workspacePackages: readonly DeclaredWorkspacePackage[], absolutePath: string): string {
   const owningPackage = workspacePackages.find((workspacePackage) => isBelow(workspacePackage.folder, absolutePath));
   return owningPackage === undefined
@@ -74,7 +74,7 @@ function programPathOf(programRoot: string, workspacePackages: readonly Declared
     : posix.join(owningPackage.name, forwardSlashed(relative(owningPackage.folder, absolutePath)));
 }
 
-/** The path the guards name for a file at this absolute location, under a declared package's virtual folder when it lies in one. */
+/** The path the architecture tests name for a file at this absolute location, under a declared package's virtual folder when it lies in one. */
 export function programPathOfLocation(programRoot: string, location: string): string {
   return programPathOf(programRoot, declaredWorkspacePackagesOf(programRoot), location);
 }
@@ -85,7 +85,7 @@ function fileLocationOf(programRoot: string, workspacePackages: readonly Declare
   return owningPackage === undefined ? join(programRoot, path) : join(owningPackage.folder, ...rest);
 }
 
-/** Where a path the guards name is read: a virtual package path in the package's real folder, any other path under the program root. */
+/** Where a path the architecture tests name is read: a virtual package path in the package's real folder, any other path under the program root. */
 export function programFileLocationOf(programRoot: string, path: string): string {
   return fileLocationOf(programRoot, declaredWorkspacePackagesOf(programRoot), path);
 }

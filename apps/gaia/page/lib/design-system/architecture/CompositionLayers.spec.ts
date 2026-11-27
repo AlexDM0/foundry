@@ -73,7 +73,7 @@ test('every component sits in a layer and imports only the components of a lower
   expect(compositionSentencesOf(SOURCES)).toEqual([]);
 });
 
-describe('the guard still names each form, planted in memory', () => {
+describe('the test still names each form, planted in memory', () => {
   const importing = (path: string, specifier: string): PackageFile => ({ path, text: `import { Planted } from '${specifier}';\n` });
 
   test('an atom importing an atom, a molecule importing a molecule or an organism, and an organism importing an organism', () => {

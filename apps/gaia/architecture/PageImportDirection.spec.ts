@@ -9,7 +9,7 @@
  * `page/components/` import no shell, view or board. The Flint library is imported only from `page/board/`; that every import of a library
  * names its interface file is `LibraryBoundaries.spec.ts`'s to hold. No page module imports Gaia by its package name, which would slip
  * past every rule that reads relative paths. What matters: the rules read every shipping module, specs aside, since a spec may render the
- * whole shell; and each guard is first proved on a planted case, in memory.
+ * whole shell; and each check is first proved on a planted case, in memory.
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, relative }               from 'node:path';
@@ -252,7 +252,7 @@ const ALLOWED_BOARD_BREAKS: Readonly<Record<string, readonly string[]>> = {};
 
 const ALLOWED_BOARD_BREAK_LINES = Object.values(ALLOWED_BOARD_BREAKS).flat();
 describe('the page\'s import direction', () => {
-  test('the guard catches a view that imports the shell and a shared module that imports a view', () => {
+  test('the test catches a view that imports the shell and a shared module that imports a view', () => {
     expect(forbiddenImportsOf('views', join(PAGE_FOLDER, 'views', 'agents', 'Planted.ts'), 'import { RailModel } from \'../../shell/RailModel.ts\';'))
       .toEqual(['views/agents/Planted.ts imports page/shell']);
     expect(forbiddenImportsOf('shared', join(PAGE_FOLDER, 'shared', 'utils', 'Planted.ts'), 'import type { AgentsContent } from \'../../views/agents/AgentsModel.ts\';'))
@@ -262,7 +262,7 @@ describe('the page\'s import direction', () => {
     expect(forbiddenImportsOf('views', join(PAGE_FOLDER, 'views', 'agents', 'Planted.ts'), 'import { HashRouter } from \'../../shared/HashRouter.ts\';')).toEqual([]);
   });
 
-  test('the guard catches a board module that imports the shell or a view, and passes a view that imports the board', () => {
+  test('the test catches a board module that imports the shell or a view, and passes a view that imports the board', () => {
     expect(forbiddenImportsOf('board', join(PAGE_FOLDER, 'board', 'shell', 'Planted.ts'), 'import { RailModel } from \'../../shell/RailModel.ts\';'))
       .toEqual(['board/shell/Planted.ts imports page/shell']);
     expect(forbiddenImportsOf('board', join(PAGE_FOLDER, 'board', 'Planted.tsx'), 'import { AgentsView } from \'../views/agents/AgentsView.tsx\';'))
@@ -270,7 +270,7 @@ describe('the page\'s import direction', () => {
     expect(forbiddenImportsOf('views', join(PAGE_FOLDER, 'views', 'forge', 'Planted.tsx'), 'import { BoardRoot } from \'../../board/shell/BoardRoot.tsx\';')).toEqual([]);
   });
 
-  test('the guard catches a component of Gaia that imports the shell, a view or the board, and passes one that imports a library', () => {
+  test('the test catches a component of Gaia that imports the shell, a view or the board, and passes one that imports a library', () => {
     const plantedComponent = join(PAGE_FOLDER, 'components', 'Planted.tsx');
     expect(forbiddenImportsOf('components', plantedComponent, 'import { RailModel } from \'../shell/RailModel.ts\';')).toEqual(['components/Planted.tsx imports page/shell']);
     expect(forbiddenImportsOf('components', plantedComponent, 'import { BoardRoot } from \'../board/shell/BoardRoot.tsx\';'))
@@ -290,7 +290,7 @@ describe('the board\'s isolation', () => {
   const plantedKanbanModule = join(PAGE_FOLDER, 'board', 'views', 'kanban', 'cards', 'Planted.tsx');
   const plantedBoardSharedModule = join(PAGE_FOLDER, 'board', 'shared', 'routing', 'Planted.ts');
 
-  test('the guard names a view, nested or not, that imports another view, and passes its own folder and a module of views/ outside every view', () => {
+  test('the test names a view, nested or not, that imports another view, and passes its own folder and a module of views/ outside every view', () => {
     expect(boardImportBreaksOf(plantedKanbanModule, 'import { MergeQueueView } from \'../../merge-queue/MergeQueueView.tsx\';'))
       .toEqual(['page/board/views/kanban/cards/Planted.tsx imports page/board/views/merge-queue/MergeQueueView.tsx (a view imports another view)']);
     expect(boardImportBreaksOf(join(PAGE_FOLDER, 'board', 'views', 'tickets', 'Planted.ts'), 'import type { IntakeModel } from \'../intake/model/IntakeModel.ts\';'))
@@ -299,7 +299,7 @@ describe('the board\'s isolation', () => {
     expect(boardImportBreaksOf(plantedKanbanModule, 'import { PlantedPart } from \'../../PlantedPart.tsx\';')).toEqual([]);
   });
 
-  test('the guard names board/shared/ importing a view or the shell, and passes it importing the board\'s utils', () => {
+  test('the test names board/shared/ importing a view or the shell, and passes it importing the board\'s utils', () => {
     expect(boardImportBreaksOf(plantedBoardSharedModule, 'import { QuestionsModelUtil } from \'../../views/questions/QuestionsModel.ts\';'))
       .toEqual(['page/board/shared/routing/Planted.ts imports page/board/views/questions/QuestionsModel.ts (board/shared/ imports a view)']);
     expect(boardImportBreaksOf(plantedBoardSharedModule, 'import { HeaderModel } from \'../../shell/HeaderModel.ts\';'))
@@ -307,7 +307,7 @@ describe('the board\'s isolation', () => {
     expect(boardImportBreaksOf(plantedBoardSharedModule, 'import { TimeUtil } from \'../../utils/TimeUtil.ts\';')).toEqual([]);
   });
 
-  test('the guard names the shell imported from a view, a board folder or the page, and passes Board.tsx, board/testing/ and the shell itself', () => {
+  test('the test names the shell imported from a view, a board folder or the page, and passes Board.tsx, board/testing/ and the shell itself', () => {
     const shellImport = (depth: number): string => `import { HeaderModel } from '${'../'.repeat(depth)}board/shell/HeaderModel.ts';`;
     expect(boardImportBreaksOf(plantedKanbanModule, shellImport(4)))
       .toEqual(['page/board/views/kanban/cards/Planted.tsx imports page/board/shell/HeaderModel.ts (only Board.tsx and board/testing/ import the shell)']);
@@ -320,7 +320,7 @@ describe('the board\'s isolation', () => {
     expect(boardImportBreaksOf(join(PAGE_FOLDER, 'board', 'shell', 'Planted.tsx'), 'import { HeaderModel } from \'./HeaderModel.ts\';')).toEqual([]);
   });
 
-  test('the guard names page/shared/ importing anything under page/board/, and passes it importing the page\'s types', () => {
+  test('the test names page/shared/ importing anything under page/board/, and passes it importing the page\'s types', () => {
     const plantedPageSharedModule = join(PAGE_FOLDER, 'shared', 'Planted.ts');
     expect(boardImportBreaksOf(plantedPageSharedModule, 'import { HeaderModel } from \'../board/shell/HeaderModel.ts\';'))
       .toEqual(['page/shared/Planted.ts imports page/board/shell/HeaderModel.ts (page/shared/ imports the board)']);
@@ -329,7 +329,7 @@ describe('the board\'s isolation', () => {
     expect(boardImportBreaksOf(plantedPageSharedModule, 'import type { BoardTab } from \'../@types/board/BoardVocabulary.ts\';')).toEqual([]);
   });
 
-  test('the guard reads a re-export, a namespace re-export, a dynamic import, a require and an import type query alike', () => {
+  test('the test reads a re-export, a namespace re-export, a dynamic import, a require and an import type query alike', () => {
     const importFormsOf = (path: string): string[] => [
       `export { HeaderModel } from '${path}';`,
       `export type { HeaderContent } from '${path}';`,
@@ -383,39 +383,39 @@ describe('the page\'s reach past its boundary', () => {
   const plantedSharedFiles: ReadonlySet<string> = new Set(['src/shared/constants/PageContractVersions.ts']);
   const plantedBoardModule = join(PAGE_FOLDER, 'board', 'Planted.ts');
 
-  test('the guard names a page module that imports forge-contracts, by its package or by one of its exports', () => {
+  test('the test names a page module that imports forge-contracts, by its package or by one of its exports', () => {
     expect(forgeReachesOf(plantedBoardModule, 'import type { ForgeBoardDocument } from \'forge-contracts/ForgeBoardDocument\';', plantedSharedFiles))
       .toEqual(['page/board/Planted.ts imports forge-contracts/ForgeBoardDocument']);
     expect(forgeReachesOf(plantedBoardModule, 'export * from \'forge-contracts\';', plantedSharedFiles)).toEqual(['page/board/Planted.ts imports forge-contracts']);
   });
 
-  test('the guard names a module that imports a path under apps/forge/, relative or by a package path', () => {
+  test('the test names a module that imports a path under apps/forge/, relative or by a package path', () => {
     expect(forgeReachesOf(plantedBoardModule, 'import { Board } from \'../../../forge/src/shared/model/Board.ts\';', plantedSharedFiles))
       .toEqual(['page/board/Planted.ts imports ../../../forge/src/shared/model/Board.ts, under apps/forge/']);
     expect(forgeReachesOf(plantedBoardModule, 'import { Board } from \'forge-monorepo/apps/forge/src/shared/model/Board.ts\';', plantedSharedFiles))
       .toEqual(['page/board/Planted.ts imports forge-monorepo/apps/forge/src/shared/model/Board.ts']);
   });
 
-  test('the guard names a shared file the page includes that imports forge-contracts', () => {
+  test('the test names a shared file the page includes that imports forge-contracts', () => {
     const plantedSharedModule = join(GAIA_FOLDER, 'src', 'shared', 'constants', 'PageContractVersions.ts');
     expect(forgeReachesOf(plantedSharedModule, 'import { HEPHAESTUS_CONTRACT_VERSIONS } from \'forge-contracts/HephaestusContractVersions\';', plantedSharedFiles))
       .toEqual(['src/shared/constants/PageContractVersions.ts imports forge-contracts/HephaestusContractVersions']);
   });
 
-  test('the guard names a page module that reaches a file outside page/ the tsconfig does not name, and passes one it names', () => {
+  test('the test names a page module that reaches a file outside page/ the tsconfig does not name, and passes one it names', () => {
     expect(forgeReachesOf(plantedBoardModule, 'import { CONTRACT_VERSIONS } from \'../../src/shared/constants/ContractVersions.ts\';', plantedSharedFiles))
       .toEqual(['page/board/Planted.ts imports src/shared/constants/ContractVersions.ts, which page/tsconfig.json does not name']);
     expect(forgeReachesOf(plantedBoardModule, 'import { PAGE_CONTRACT_VERSIONS } from \'../../src/shared/constants/PageContractVersions.ts\';', plantedSharedFiles)).toEqual([]);
   });
 
-  test('the guard names a shared file the page includes that imports a file outside page/ the tsconfig does not name', () => {
+  test('the test names a shared file the page includes that imports a file outside page/ the tsconfig does not name', () => {
     const plantedSharedModule = join(GAIA_FOLDER, 'src', 'shared', 'constants', 'PageContractVersions.ts');
     expect(forgeReachesOf(plantedSharedModule, 'import { CONTRACT_VERSIONS } from \'./ContractVersions.ts\';', plantedSharedFiles))
       .toEqual(['src/shared/constants/PageContractVersions.ts imports src/shared/constants/ContractVersions.ts, which page/tsconfig.json does not name']);
     expect(forgeReachesOf(plantedSharedModule, 'import { PAGE_CONTRACT_VERSIONS } from \'./PageContractVersions.ts\';', plantedSharedFiles)).toEqual([]);
   });
 
-  test('the compiled-file guard names an unnamed Gaia file, a file under apps/forge/ and every forge-contracts file', () => {
+  test('the compiled-file test names an unnamed Gaia file, a file under apps/forge/ and every forge-contracts file', () => {
     const namedSharedFile = join(GAIA_FOLDER, 'src', 'shared', 'constants', 'PageContractVersions.ts');
     const plantedCompiledFiles = [
       join(PAGE_FOLDER, 'Main.tsx'),
@@ -434,7 +434,7 @@ describe('the page\'s reach past its boundary', () => {
     ]);
   });
 
-  test('the guard names any page module that imports forge-contracts, none excepted', () => {
+  test('the test names any page module that imports forge-contracts, none excepted', () => {
     const plantedForgeViewPath = join(PAGE_FOLDER, 'views', 'forge', 'ForgeView.tsx');
     expect(forgeReachesOf(plantedForgeViewPath, 'import type { ForgeBoardDocument } from \'forge-contracts/ForgeBoardDocument\';', plantedSharedFiles))
       .toEqual(['page/views/forge/ForgeView.tsx imports forge-contracts/ForgeBoardDocument']);
@@ -463,7 +463,7 @@ describe('the page\'s reach past its boundary', () => {
 });
 
 describe('Gaia by its package name', () => {
-  test('the guard names a page module that imports Gaia by its package name, and passes a relative import and a package of another name', () => {
+  test('the test names a page module that imports Gaia by its package name, and passes a relative import and a package of another name', () => {
     const plantedViewModule = join(PAGE_FOLDER, 'board', 'views', 'agents', 'Planted.tsx');
     expect(selfReferencesOf(plantedViewModule, `import { useBoardClock } from '${GAIA_PACKAGE_NAME}/page/board/shared/BoardClock.ts';`))
       .toEqual([`page/board/views/agents/Planted.tsx imports ${GAIA_PACKAGE_NAME}/page/board/shared/BoardClock.ts, Gaia by its package name; use a relative path`]);
@@ -486,7 +486,7 @@ describe('Gaia by its package name', () => {
 describe('Flint on the page', () => {
   const flintInterfaceImport = 'import { Flint } from \'../../lib/flint/FlintInterface.ts\';';
 
-  test('the guard names Flint imported outside page/board/, and passes a board module and Flint\'s own', () => {
+  test('the test names Flint imported outside page/board/, and passes a board module and Flint\'s own', () => {
     expect(flintReachesOf(join(PAGE_FOLDER, 'views', 'agents', 'Planted.tsx'), flintInterfaceImport))
       .toEqual(['page/views/agents/Planted.tsx imports page/lib/flint/FlintInterface.ts outside page/board/']);
     expect(flintReachesOf(join(PAGE_FOLDER, 'Planted.tsx'), 'import { mindOf } from \'./lib/flint/mind/Mind.ts\';'))

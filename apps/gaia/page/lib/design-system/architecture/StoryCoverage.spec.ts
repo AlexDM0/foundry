@@ -95,7 +95,7 @@ test('every exported component has a story beside it, and every story shows an e
   expect(coverageSentencesOf(EXPORTED_COMPONENT_PATHS, STORIES)).toEqual([]);
 });
 
-describe('the guard still names each form, planted in memory', () => {
+describe('the test still names each form, planted in memory', () => {
   const story = (path: string, title: string): PackageFile => ({
     path,
     text: `const meta = { title: '${title}', component: Planted };\nexport default meta;\n`,

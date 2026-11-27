@@ -79,8 +79,8 @@ TypeScript source directly.
   `.githooks/pre-commit` runs the root's `bun run lint` and `typecheck`. Agents' forced hooks path is another matter (Part B rule 10).
 - **`CodeVersion`** hashes the program folders, each workspace package forge depends on, and the root `bun.lock`. A change to a
   shared package therefore shows a running forge newer code on disk; the restart notice says so.
-- **Guards:** those that read the program root keep working because their files moved along (`ProseWrap`, `DocumentSpecCitations`,
-  `ProductNames`). `BunVersionPin`, `LineEndingPolicy` and the `.claude/rules/` readers read the workspace root. The guards that walk the
+- **Architecture tests:** those that read the program root keep working because their files moved along (`ProseWrap`, `DocumentSpecCitations`,
+  `ProductNames`). `BunVersionPin`, `LineEndingPolicy` and the `.claude/rules/` readers read the workspace root. The architecture tests that walk the
   program root also walk each workspace package forge declares, each asserting it found files. The source walk skips `.forge/` and
   `.forge-worktrees/` at any depth, since a project tracker's ticket worktrees sit under its program root.
 - **Package boundaries:** `ImportGraph` already resolved workspace packages from the program root's `package.json`; it now reads each
@@ -125,7 +125,7 @@ Not shared: `ProductNames`, `Limits`, `AtomicFile`, the recording harness. Small
   with, not the repository's commit.
 - At runtime a forge and a Gaia meet only on the wire, through system versions:
   - Forge never knows Gaia. Nothing forge serves, and nothing in a package forge depends on, names Gaia; `forge-contracts` and `brand`
-    each hold this with a guard spec.
+    each hold this with an architecture test.
   - Each system has one system version, major.minor by interoperability, never its package version: a minor only adds; a major may break
     a client of an older major.
   - A server answers its current system version and its minimum supported, which it alone decides, at `GET /api/versions`, unversioned

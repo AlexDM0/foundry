@@ -1,7 +1,7 @@
 /**
- * Test-only: the style guards of the board's stylesheets under `page/styles/board/`. It reads a stylesheet's rules and token blocks and
- * words what breaks a guard: an animation that reduced motion does not stop, a hover or press that moves something, a token a theme
- * leaves unset. `StyleContract.spec.ts` plants a case for each guard and runs them on the board's sheets.
+ * Test-only: the style checks of the board's stylesheets under `page/styles/board/`. It reads a stylesheet's rules and token blocks and
+ * words what breaks a check: an animation that reduced motion does not stop, a hover or press that moves something, a token a theme
+ * leaves unset. `StyleContract.spec.ts` plants a case for each check and runs them on the board's sheets.
  */
 
 export interface StylesheetDeclaration {

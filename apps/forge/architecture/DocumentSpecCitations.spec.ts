@@ -3,7 +3,7 @@
  * in `README.md`, the rule files under the workspace root's `.claude/rules/` and the files under `docs/` (but the untracked
  * `docs/design/`) exists, read from the program root, the workspace root or a declared package's folder (`forge-contracts/…`): a spec
  * rename or split corrects its citations in the same change. A bare file name, a glob and a relative link are no
- * citation. The scan first proves it read citations, and each form is planted to prove the guard names it and passes what it skips.
+ * citation. The scan first proves it read citations, and each form is planted to prove the test names it and passes what it skips.
  */
 import {
   existsSync,
@@ -24,9 +24,9 @@ const OUT_OF_SCOPE_FOLDERS = ['docs/design/'];
 
 const CITES = ' cites ';
 
-const CONFINED_REACH_TABLE_CITATION = 'docs/development/guards-and-testing.md cites src/lib/claude-code/WorkflowScriptBundle.spec.ts';
+const CONFINED_REACH_TABLE_CITATION = 'docs/development/architecture-tests-and-testing.md cites src/lib/claude-code/WorkflowScriptBundle.spec.ts';
 
-/** A citation of a missing file that the document makes on purpose, keyed as the guard names it, each with its reason. */
+/** A citation of a missing file that the document makes on purpose, keyed as the test names it, each with its reason. */
 const DELIBERATELY_ABSENT_CITATIONS: Readonly<Record<string, string>> = { [CONFINED_REACH_TABLE_CITATION]: 'its confined-reach table says "(no such file)"' };
 
 interface CitingDocument {

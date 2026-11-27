@@ -2,7 +2,7 @@
  * The Tests rule in the root `CLAUDE.md` that a spec never opens a page, a tab or a window: no spec or spec helper starts a program that
  * opens the default browser (`open`, `xdg-open`, `cmd /c start`, the Windows protocol handler). A start is a process start or a shell tag
  * whose arguments hold such a program, or a name bound to one. The scan proves it saw the specs, and each form is planted to prove the
- * guard names it.
+ * test names it.
  */
 import { describe, expect, test } from 'bun:test';
 import ts                         from 'typescript';
@@ -153,7 +153,7 @@ describe('a planted spec is named', () => {
   });
 });
 
-describe('what the guard leaves alone', () => {
+describe('what the test leaves alone', () => {
   test.each([
     ['an opener argv that is only recorded', 'const opener = [\'open\'];\nrecordCommandAnswer({ argv: [...opener, url] }, placeholders, answer);'],
     ['a missing opener', 'realCommandAnswerOf([join(scratch, \'missing-opener\'), url]);'],

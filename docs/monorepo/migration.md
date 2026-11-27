@@ -39,7 +39,7 @@ The gate records are in the main checkout's `.claude/.evidence/monorepo-migratio
 
 - [x] P1A: `apps/forge`, `packages/design-system`, `packages/flint`; the root workspace, Turborepo 2.11.10, the root scripts
       `typecheck`, `lint`, `verify` and `verify:<app>`.
-- [x] L5 setup and runtime (`BunStep`, `CodeVersion` hashing the packages and the root `bun.lock`), L2 root guards, L3 lint per
+- [x] L5 setup and runtime (`BunStep`, `CodeVersion` hashing the packages and the root `bun.lock`), L2 root architecture tests, L3 lint per
       workspace, L4 a DOM spec runner per package, L7 forge's docs, L8 the Claude Code probes in a subfolder session.
 - [x] L1 import graph: the graph reads the declared packages; the include-list contracts live in
       `packages/*/ProjectIncludeList.spec.ts`, and an import that leaves forge's program by a path or names a workspace package it does

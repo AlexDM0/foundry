@@ -550,7 +550,7 @@ describe('every entry names its package', () => {
   });
 });
 
-describe('the guard names each form, planted in memory', () => {
+describe('the test names each form, planted in memory', () => {
   const servicePath = 'src/services/hephaestus/Planted.ts';
   const talosPath = 'src/lib/talos/Planted.ts';
   const promptPath = 'resources/prompts/Planted.md';
@@ -632,7 +632,7 @@ describe('the seam reaches no helper that starts or traps the program', () => {
   });
 });
 
-describe('what the guard exempts is exact', () => {
+describe('what the test exempts is exact', () => {
   const plantedLine = 'const program = \'claude\';';
   const plantedComment = '// Starts claude.';
 

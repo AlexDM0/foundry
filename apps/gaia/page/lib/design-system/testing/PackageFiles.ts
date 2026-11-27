@@ -1,7 +1,7 @@
 /**
- * The files of the package as its own guards read them: each path relative to the package folder, with forward slashes. The module
- * specifiers of a source come from its syntax tree, so a comment, a string or JSX text that names an import is not one, while `import type`,
- * a re-export, `import(…)` and `require(…)` are. Test-only.
+ * The files of the package as its own architecture tests read them: each path relative to the package folder, with forward slashes. The
+ * module specifiers of a source come from its syntax tree, so a comment, a string or JSX text that names an import is not one, while
+ * `import type`, a re-export, `import(…)` and `require(…)` are. Test-only.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';

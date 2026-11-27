@@ -116,7 +116,7 @@ Read at `b4174bd9`.
 | The readings: attention entries, today's figures, notice, draft and open-decision utils, the Bridge fragment util | `apps/forge/src/shared/monitor/` | Kept; `AttentionEntries.ts` gains a typed target (WP4.10) |
 | The monitor document already serves attention entries, notices, warnings and today's figures, worded and computed from the board state | `apps/forge/src/services/overseer/MonitorSnapshotAssembly.ts:352-356`; `packages/forge-contracts/@types/MonitorSnapshotDocument.ts:151-170` | Kept; the board document serves the same readings (WP4.10) |
 | The monitor's attention entries carry a Bridge fragment as `route` | `MonitorSnapshotDocument.ts:60`; `src/shared/monitor/utils/BridgeFragmentUtil.ts:7-9` | Kept until stage 8; the board document carries a typed target |
-| `forge-contracts` at package version `1.0.0`: 9 command kinds, the identity, summary and monitor documents, versions and registry; its modules import only `system-versions/` | `packages/forge-contracts/package.json:3`, `:8-19`; `architecture/PackageIsolation.spec.ts:18`, `:31-38` | Gains the board document, the board commands and the refusal document; the isolation guard already refuses an import of forge's model |
+| `forge-contracts` at package version `1.0.0`: 9 command kinds, the identity, summary and monitor documents, versions and registry; its modules import only `system-versions/` | `packages/forge-contracts/package.json:3`, `:8-19`; `architecture/PackageIsolation.spec.ts:18`, `:31-38` | Gains the board document, the board commands and the refusal document; the isolation architecture test already refuses an import of forge's model |
 | The README: "Types, versions and the registry only" | `packages/forge-contracts/README.md:21-24` | Widened to the value lists of the wire's unions (WP4.6) |
 | forge's system version 1.18, before stages 2 and 3 | `packages/forge-contracts/constants/ForgeSystemVersions.ts:41` | Raised one minor over what stage 3 left (WP4.4) |
 | The registry's endpoints, each at 1.0 | `packages/forge-contracts/constants/ForgeCompatibilityRegistry.ts:38-49` | Gains `board` at version 1 (WP4.8) |
@@ -212,7 +212,7 @@ in a typed adapter. Parallel with WP4.6, WP4.7 and WP4.12; ordered with stage 5'
   command to forge's.
 - Create `apps/forge/cli/overseer/routes/CommandRoute.boardContract.spec.ts`: the pin of the board kinds, beside
   `CommandRoute.controlContract.spec.ts`.
-- Create `apps/forge/bridge/CommandKindsInContract.spec.ts`: a guard at the Bridge's root, like
+- Create `apps/forge/bridge/CommandKindsInContract.spec.ts`: an architecture test at the Bridge's root, like
   `bridge/StyleContract.spec.ts`, since it reads the Bridge's sources.
 - Change: `packages/forge-contracts/package.json` (`exports`) and `README.md`;
   `apps/forge/src/shared/@types/ControlCommand.ts` (`pipeline-draft-edit`'s `edits`);
@@ -481,8 +481,8 @@ live, and that the model, the readings and the wording stay in forge. Documents 
 
 **Specs to write or change.** None. `DocumentSpecCitations.spec.ts` and `ProseWrap.spec.ts` must stay green.
 
-**Done when.** `cd apps/forge && bun test --path-ignore-patterns='.claude/**' ./src/DocumentSpecCitations.spec.ts
-./src/ProseWrap.spec.ts` passes, and `bun install --frozen-lockfile && bun run verify` is green at the root.
+**Done when.** `cd apps/forge && bun test --path-ignore-patterns='.claude/**' ./architecture/DocumentSpecCitations.spec.ts
+./architecture/ProseWrap.spec.ts` passes, and `bun install --frozen-lockfile && bun run verify` is green at the root.
 
 ### WP4.10: The board document serves the facts the views recompute
 
@@ -940,7 +940,7 @@ is one higher, its draft read without the entities' set check.
   not (`PipelineFacts.ts` has no `readonly`). Copy arrays in the command mapper; never cast and never drop `readonly`
   from the contract.
 - **Two vocabularies drift silently.** A status added to the model and not to the contract compiles in one direction
-  only; the parity spec of WP4.6 is the guard. Run it before relying on the typecheck.
+  only; the parity spec of WP4.6 is the check. Run it before relying on the typecheck.
 - **The Bridge keeps running on its own documents.** It reads `/api/state` and the unversioned `board` event with its
   own types and computes its readings on the client until stage 8. Nothing in this stage changes what it reads, but the
   typed draft edits of WP4.5 and the stored draft of WP4.11 reach it. Its DOM specs are out of the gates (the old
@@ -1025,7 +1025,7 @@ Repository state: `git status --porcelain` prints nothing; `apps/forge/src/lib/t
 - The documents of the event stream at a versioned path, the job transcript stream, the gate-profile stream and the
   pictures: stage 6 versions them, carrying this stage's part documents.
 - Command kinds the Bridge does not send today (filing, drafts, incidents, epics, `ticket-add`): stage 6 or 7 adds each
-  with the view that sends it; the Bridge guard of WP4.5 asks for it.
+  with the view that sends it; the Bridge architecture test of WP4.5 asks for it.
 - The committed ticket's rules (decision 48): its content fixed and kept by content hash, and the move back into
   draft, are stage 5's WP5.16 and WP5.17. The content edit `ticket-edit` exists and stays off `ForgeBoardCommand`, as
   does `ticket-unready`; Gaia's editing screen, after this run, adds both under a system minor.

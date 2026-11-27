@@ -1,7 +1,7 @@
 /**
  * The Imports rules of the root `CLAUDE.md`, held over every file the root program and each workspace package forge declares compile.
  * Every violation list is empty in a tree that obeys them, so the scan first proves it saw the tree (the program, every file placed in a
- * layer, every allowlist entry still used), and each kind of violation is planted once in memory to prove the guard still names the edge.
+ * layer, every allowlist entry still used), and each kind of violation is planted once in memory to prove the test still names the edge.
  * No package imports anything of the forge. Every declared package sits in one workspace-package layer: forge reaches it by an exported
  * specifier from `src/shared/` up, never by a file path, and a package reaches another only by name, once its own `package.json` declares
  * it. No import leaves the program and the packages it declares by a path, into
@@ -616,7 +616,7 @@ describe('the scan itself', () => {
   });
 });
 
-describe('the guard still names each violation, planted in memory', () => {
+describe('the test still names each violation, planted in memory', () => {
   test('a layer importing upward, and not one importing below itself', () => {
     expect(plantedSentencesOf({ 'src/adapters/log/PlantedWording.ts': importing('../../services/render/BoardFacts.ts') })).toEqual([
       'layer-imports-upward — src/adapters/log/PlantedWording.ts:1 imports src/services/render/BoardFacts.ts: '

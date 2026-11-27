@@ -10,11 +10,11 @@
  * ready and stops under reduced motion, never an entry fade, which is a `@starting-style` transition; Gaia defines no keyframe and names
  * only the package's; and every motion token Gaia reads is zeroed by the package before motion is ready and under reduced motion, or is an
  * exception only a gated animation reads. The board's views under `page/board/` are styled apart, by the stylesheets `BOARD_STYLESHEETS`
- * lists under `page/styles/board/`, and held by the Bridge's own guards (`page/testing/BoardStyleGuards.ts`): no hover or press that
+ * lists under `page/styles/board/`, and held by the Bridge's own style checks (`page/testing/BoardStyleChecks.ts`): no hover or press that
  * moves, a winning reduced-motion rule for each animation outside the no-preference query, a dark value for each literal colour token but
  * one the same in both themes, set once; beside them classes emitted and styled both ways, balanced braces, only defined tokens and no
  * colour value, the board's text pairs at 4.5:1, no `gaia-` board class and no `board-` Gaia class, and every keyframe named `board-` and
- * kept in a board stylesheet. Each guard is first proved on a planted case, in memory.
+ * kept in a board stylesheet. Each check is first proved on a planted case, in memory.
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join }                         from 'node:path';
@@ -37,7 +37,7 @@ import {
   unusedGuaranteeSentencesOf,
   type AllowedMovement,
   type StylesheetRule
-} from '../page/testing/BoardStyleGuards.ts';
+} from '../page/testing/BoardStyleChecks.ts';
 
 const PAGE_FOLDER = join(import.meta.dir, '..', 'page');
 const BOARD_FOLDER_NAME = 'board';
@@ -678,7 +678,7 @@ function classContractSentencesOf(emitted: EmittedClasses, styled: ReadonlySet<s
   ];
 }
 
-/** The board's stylesheets as listed and as found in their folder must be the same, so no stylesheet escapes the board's guards. */
+/** The board's stylesheets as listed and as found in their folder must be the same, so no stylesheet escapes the board's style checks. */
 function boardStylesheetListSentencesOf(listed: readonly string[], present: readonly string[]): string[] {
   return [
     ...present.filter((name) => !listed.includes(name)).map((name) => `styles/board/${name} is not in BOARD_STYLESHEETS`),
@@ -778,7 +778,7 @@ const BOARD_EMITTED = emittedClassesOf(BOARD_SOURCES);
 const BOARD_STYLED: ReadonlySet<string> = new Set(BOARD_RULE_STYLESHEET_TEXTS.flatMap((text) => [...styledClassesOf(text)]));
 const BOARD_STYLESHEET_NAME = 'a board stylesheet';
 const BOARD_STYLESHEET_FOLDER_PATH = 'page/styles/board';
-/** The board's rules as the Bridge's guards read them, each named by its path under `apps/gaia/`. */
+/** The board's rules as the Bridge's style checks read them, each named by its path under `apps/gaia/`. */
 const BOARD_RULES: readonly StylesheetRule[] = [...BOARD_STYLESHEET_TEXTS].flatMap(([name, text]) => stylesheetRulesOf(`${BOARD_STYLESHEET_FOLDER_PATH}/${name}`, text));
 /** The package's rules, read beside the board's so a reduce rule of the package's may stop a board animation, as it may the Bridge's. */
 const PACKAGE_FOLDER = DESIGN_SYSTEM_LIBRARY_FOLDER;
@@ -1055,7 +1055,7 @@ describe('the readers, on known and planted values', () => {
   });
 });
 
-describe('the board\'s guards, on planted stylesheets and components', () => {
+describe('the board\'s style checks, on planted stylesheets and components', () => {
   test('a stylesheet in styles/board/ the list leaves out, and a listed one that is not there, are each named', () => {
     expect(boardStylesheetListSentencesOf(['kanban.css', 'waves.css'], ['kanban.css', 'tokens.css'])).toEqual([
       'styles/board/tokens.css is not in BOARD_STYLESHEETS',

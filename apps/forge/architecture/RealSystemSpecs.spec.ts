@@ -3,7 +3,7 @@
  * does is an allowlist entry for the ticket that moves it; a real-system spec is a `*.integration.spec.ts` file that `BOUNDARY_SPECS`
  * lists. A call is found in the syntax tree of the spec itself, so a sentence or a planted string is not a use, and a helper counts by
  * the export a spec imports. A production module a spec calls in-process is not followed: nearly every command reaches git that way.
- * The scan first proves it saw the specs and the shipping call sites, and each form is planted to prove the guard names it.
+ * The scan first proves it saw the specs and the shipping call sites, and each form is planted to prove the test names it.
  * Real git is held tighter: only the git boundary specs run it. A spec helper counts by each export that reaches git, followed through
  * its siblings and the helpers it imports, so a new git-running helper needs no list entry. A spec reaches a helper by a named import,
  * by a member of a namespace import, or by a default import. The helper exports that reach the real system are found the same way, and the
@@ -687,7 +687,7 @@ describe('a planted spec is named', () => {
   });
 });
 
-describe('what the guard leaves alone', () => {
+describe('what the test leaves alone', () => {
   test('a sentence, a string, a type-only import, a stub\'s name and a shipping module pass', () => {
     expect(suiteViolationsOf([
       {

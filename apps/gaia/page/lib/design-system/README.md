@@ -138,7 +138,7 @@ content security policy without `font-src data:` blocks it. In a spec, pass a fa
 The folder sits in the host page's `lib/` folder. `DesignSystemInterface.ts` names, one by one, each export a host may
 import: each component, the helpers a host uses, `StateTone`, `ThemeChoice`, the font loader and `SPACING`. A host
 module imports from the interface file by a relative path, never from another file of the library, and the host holds
-this with a guard of its own:
+this with an architecture test of its own:
 
 ```tsx
 import { Button } from './lib/design-system/DesignSystemInterface.ts';
@@ -191,8 +191,8 @@ The host's `storybook:design-system` script starts it on port 6006, with `--conf
 
 The host's scripts run the library's tooling. Its typecheck compiles `tsconfig.json` (the DOM library, no Bun or Node
 types) and `tsconfig.spec.json` (the specs, with Bun types); its lint runs ESLint from this folder, under
-`eslint.config.js`; its `bun test` runs the guard specs, which are listed in the constitution, section 12; and its DOM
-task runs `testing/RunDomSpecs.ts`.
+`eslint.config.js`; its `bun test` runs the unit specs; its `test:architecture` runs the architecture tests in
+`architecture/`, which are listed in the constitution, section 12; and its DOM task runs `testing/RunDomSpecs.ts`.
 
 ## Split it off
 

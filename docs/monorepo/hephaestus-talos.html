@@ -242,7 +242,7 @@ contract of its own. The page imports no forge code and no <code>forge-contracts
 <li><code>design-system</code>, <code>flint</code> and <code>brand</code> are libraries of Gaia&#39;s page, since Gaia is their only consumer once the Bridge
 is deleted. Each is a top-level folder of <code>page/lib/</code> with no <code>package.json</code>, independent of the others and of
 Gaia&#39;s features, with its own specs and description. Code outside a library imports only its interface file; inside
-a library a file imports exactly what it needs, with no barrels. A guard holds this.</li>
+a library a file imports exactly what it needs, with no barrels. An architecture test holds this.</li>
 </ul>
 </section>
 <section id="section-2" data-section="2"><h2><span class="section-number">2</span>Decisions</h2>
@@ -363,7 +363,7 @@ the views recomputing them (section 4).</li>
 <li>Gaia maps each forge document into its own model at its boundary and serves its page a contract of its own. The
 page imports no forge code and no <code>forge-contracts</code> type.</li>
 <li><code>design-system</code>, <code>flint</code> and <code>brand</code> leave <code>packages/</code> once the Bridge is deleted and become libraries in Gaia&#39;s
-page <code>lib/</code>, each behind its interface file and guarded as section 1 says.</li>
+page <code>lib/</code>, each behind its interface file and held by an architecture test as section 1 says.</li>
 </ol>
 </section>
 <section id="section-3" data-section="3"><h2><span class="section-number">3</span>The forge</h2>
@@ -1480,7 +1480,7 @@ end to end on a scratch board.</p>
 </tr>
 <tr>
 <td>8. Shrink the HTTP surface</td>
-<td>Delete the Bridge, the sessions, the bundle build, the embed machinery and Flint&#39;s ask route; the reads and the command endpoint stay. <code>forge open</code> and the <code>progress.html</code> stub go. Make the Assistant a switch per board, off by default; remove Flint&#39;s brain. Fold <code>design-system</code>, <code>flint</code> and <code>brand</code> into Gaia&#39;s page <code>lib/</code> as libraries, each behind its interface file, with the guard of section 1. A major change of the system version; Gaia records again</td>
+<td>Delete the Bridge, the sessions, the bundle build, the embed machinery and Flint&#39;s ask route; the reads and the command endpoint stay. <code>forge open</code> and the <code>progress.html</code> stub go. Make the Assistant a switch per board, off by default; remove Flint&#39;s brain. Fold <code>design-system</code>, <code>flint</code> and <code>brand</code> into Gaia&#39;s page <code>lib/</code> as libraries, each behind its interface file, with the architecture test of section 1. A major change of the system version; Gaia records again</td>
 <td>forge and Gaia</td>
 <td>M</td>
 </tr>

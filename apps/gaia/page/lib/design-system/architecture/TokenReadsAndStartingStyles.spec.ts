@@ -119,7 +119,7 @@ describe('the stylesheets of the package', () => {
   });
 });
 
-describe('the guard still names each form, planted in memory', () => {
+describe('the test still names each form, planted in memory', () => {
   test('a property no stylesheet or component defines is named, and a declared token and an inline property are not', () => {
     const plantedDefined = definedPropertiesOf([':root { --ink: #000; }'], ['const style = { \'--planted-count\': 3 };']);
     const planted = '.a { color: var(--planted-ink); } .b { color: var(--ink); grid-template-columns: repeat(var(--planted-count), 1fr); }';

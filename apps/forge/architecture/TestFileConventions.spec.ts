@@ -3,7 +3,7 @@
  * no page and runs no DOM suite, and no spec or test helper creates the real
  * process context, whose working directory, clock and home are the live ones. The context is found by its factory's name as an identifier
  * in the syntax tree, so a sentence naming it is not a use. The scan first proves it saw the specs and the factory's real callers, and
- * each form is planted to prove the guard names it.
+ * each form is planted to prove the test names it.
  */
 import { describe, expect, test } from 'bun:test';
 import ts                         from 'typescript';

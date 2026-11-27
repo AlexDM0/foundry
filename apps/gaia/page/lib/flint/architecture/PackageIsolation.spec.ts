@@ -1,8 +1,9 @@
 /**
- * The guard that keeps `flint/` a package that can move to its own repository unchanged: no import leaves the folder, nothing that ships
- * imports a `bun:` or `node:` module, only the React layer imports React, and a spec imports only its listed test packages. It reads the
- * folder itself, with no import of its own beyond the test runner, and lexes each file so that a comment or a string that names an import
- * is not one, while `import type` and a type's `import('…')` are. The scan first proves it read the package, and each form is planted.
+ * The architecture test that keeps `flint/` a package that can move to its own repository unchanged: no import leaves the folder, nothing
+ * that ships imports a `bun:` or `node:` module, only the React layer imports React, and a spec imports only its listed test packages. It
+ * reads the folder itself, with no import of its own beyond the test runner, and lexes each file so that a comment or a string that names
+ * an import is not one, while `import type` and a type's `import('…')` are. The scan first proves it read the package, and each form is
+ * planted.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -225,7 +226,7 @@ test('no file of the package imports outside it, and only the React layer and th
   expect(isolationSentencesOf(SOURCES)).toEqual([]);
 });
 
-describe('the guard still names each form, planted in memory', () => {
+describe('the test still names each form, planted in memory', () => {
   test.each([
     ['an import leaving the folder', 'import { PRODUCT_NAMES } from \'../src/shared/ProductNames.ts\';', 'imports ../src/shared/ProductNames.ts, outside the package'],
     ['a type import leaving the folder', 'import type { Board } from \'../src/lib/Board.ts\';', 'imports ../src/lib/Board.ts, outside the package'],

@@ -1,7 +1,7 @@
 /**
  * The root `CLAUDE.md` rule that a util groups a domain and is never a util holding one function: every exported `*Util` object, in
  * every file the checkout holds, has at least two members. The scan first proves it read the utils, and each form a util is written in
- * (`{ … } as const`, `Object.freeze({ … })`, a bare literal) is planted with one member to prove the guard names it.
+ * (`{ … } as const`, `Object.freeze({ … })`, a bare literal) is planted with one member to prove the test names it.
  */
 import { describe, expect, test } from 'bun:test';
 import ts                         from 'typescript';
@@ -11,7 +11,7 @@ import { programTypeScriptSources }     from '../src/testing/RepositorySources.t
 
 interface UtilShape {
   readonly name:        string;
-  /** Null when the initializer is not an object literal the scan can count, which the guard reports rather than passes. */
+  /** Null when the initializer is not an object literal the scan can count, which the test reports rather than passes. */
   readonly memberCount: number | null;
 }
 

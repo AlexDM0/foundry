@@ -1,6 +1,6 @@
 /**
- * The checkout's files, read once per run: `bun test` runs every spec file in one process, so each guard shares the one frozen read
- * rather than walking the tree again. A guard plants its own sources beside the shared ones, never into them.
+ * The checkout's files, read once per run: `bun test` runs every spec file in one process, so each architecture test shares the one frozen read
+ * rather than walking the tree again. An architecture test plants its own sources beside the shared ones, never into them.
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import { join }                      from 'node:path';
@@ -107,7 +107,7 @@ export function repositoryFilePaths(repositoryRoot: string): readonly string[] {
 }
 
 /**
- * `compute` answered once per source: a guard asking twice of a shared source reads it once, and a planted source, a new object, is
+ * `compute` answered once per source: an architecture test asking twice of a shared source reads it once, and a planted source, a new object, is
  * answered on its own. Keep the answer free of syntax trees, which a run would otherwise hold for every source.
  */
 export function memoisedPerSource<Answer>(compute: (source: RepositorySource) => Answer): (source: RepositorySource) => Answer {
@@ -159,7 +159,7 @@ export function declaredWorkspacePackagesOf(programRoot: string): readonly Decla
   });
 }
 
-/** A file of the program or of a package it declares: `path` as the guards name it, `location` where it is read. */
+/** A file of the program or of a package it declares: `path` as the architecture tests name it, `location` where it is read. */
 export interface ProgramFile {
   readonly path:     string;
   readonly location: string;
@@ -189,7 +189,7 @@ const programSourcesByRoot = new Map<string, readonly RepositorySource[]>();
 
 /**
  * Every TypeScript source of the program and of each workspace package it declares, the package's under a folder named after it
- * (`forge-contracts/constants/ForgeSystemVersions.ts`), so a guard holds a package as it held the folder the package once was.
+ * (`forge-contracts/constants/ForgeSystemVersions.ts`), so an architecture test holds a package as it held the folder the package once was.
  */
 export function programTypeScriptSources(programRoot: string): readonly RepositorySource[] {
   const known = programSourcesByRoot.get(programRoot);

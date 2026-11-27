@@ -51,7 +51,7 @@ If something is wrong right now, start here.
 | Document | Its question |
 | --- | --- |
 | [Changing the code](development/contributing.md) | How do I get this running, try a change safely and get it past every check? |
-| [Guards and testing](development/guards-and-testing.md) | Which spec holds which rule, and how is this codebase tested without ever touching live data? |
+| [Architecture tests and testing](development/architecture-tests-and-testing.md) | Which spec holds which rule, and how is this codebase tested without ever touching live data? |
 | [The Claude Code contract](development/hephaestus-claude-probe.md) | What does this system depend on from Claude Code, and what was observed to justify each choice? |
 | [Platform status](development/platform-status.md) | Which behaviour has never run on which OS, per port? |
 

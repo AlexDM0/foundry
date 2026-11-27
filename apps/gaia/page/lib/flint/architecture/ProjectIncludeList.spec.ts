@@ -43,7 +43,7 @@ test('tsconfig.spec.json lists the package\'s own folder and nothing outside it'
   expect(includeListSentencesOf(SPEC_CONFIGURATION, await includeEntriesOf(SPEC_CONFIGURATION))).toEqual([]);
 });
 
-describe('the guard still names each form, planted in memory', () => {
+describe('the test still names each form, planted in memory', () => {
   test('a file outside the package added to the list, by a relative or an absolute path', () => {
     expect(includeListSentencesOf(SHIPPING_CONFIGURATION, [...OWN_FOLDER_GLOBS, '../../apps/host/PlantedValue.ts', '/planted/PlantedValue.ts'])).toEqual([
       'tsconfig.json lists ../../apps/host/PlantedValue.ts, outside the package\'s folder: the package compiles nothing of another',

@@ -66,4 +66,4 @@ there has no P12, so no script has that number. `host-stream-fixture` saves a se
 - `claude-pNN-*.js`: one numbered probe of `docs/development/hephaestus-claude-probe.md` each.
 - `support/`: the verdict line, program runs, scratch folders, pipes and the scripted session.
 
-Plain `.js`, as in `.readme-graphics/`, so typecheck, lint and the layer guards stay out of this folder.
+Plain `.js`, as in `.readme-graphics/`, so typecheck, lint and the architecture tests stay out of this folder.

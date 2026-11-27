@@ -1,8 +1,8 @@
 /**
- * The guard that keeps the brand a package that can move to any repository unchanged. What matters: no import leaves the folder; what ships
- * imports React and nothing else; a spec, a DOM spec, a story or a test helper only its listed tools; no stylesheet reference leaves the
- * folder; no colour is written outside `styles/tokens.css`; and no file names a word of a host, its name, its views or its domain, since
- * Forge's brand alone is the package's subject. The scan first proves it read the package, and each form is planted.
+ * The architecture test that keeps the brand a package that can move to any repository unchanged. What matters: no import leaves the
+ * folder; what ships imports React and nothing else; a spec, a DOM spec, a story or a test helper only its listed tools; no stylesheet
+ * reference leaves the folder; no colour is written outside `styles/tokens.css`; and no file names a word of a host, its name, its views
+ * or its domain, since Forge's brand alone is the package's subject. The scan first proves it read the package, and each form is planted.
  */
 import { dirname, join, normalize } from 'node:path';
 import { describe, expect, test }   from 'bun:test';

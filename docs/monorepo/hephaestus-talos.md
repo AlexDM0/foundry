@@ -53,7 +53,7 @@ packages/system-versions/   version comparison, for both apps and the contract
 - `design-system`, `flint` and `brand` are libraries of Gaia's page, since Gaia is their only consumer once the Bridge
   is deleted. Each is a top-level folder of `page/lib/` with no `package.json`, independent of the others and of
   Gaia's features, with its own specs and description. Code outside a library imports only its interface file; inside
-  a library a file imports exactly what it needs, with no barrels. A guard holds this.
+  a library a file imports exactly what it needs, with no barrels. An architecture test holds this.
 
 ## 2. Decisions
 
@@ -177,7 +177,7 @@ packages/system-versions/   version comparison, for both apps and the contract
 51. Gaia maps each forge document into its own model at its boundary and serves its page a contract of its own. The
     page imports no forge code and no `forge-contracts` type.
 52. `design-system`, `flint` and `brand` leave `packages/` once the Bridge is deleted and become libraries in Gaia's
-    page `lib/`, each behind its interface file and guarded as section 1 says.
+    page `lib/`, each behind its interface file and held by an architecture test as section 1 says.
 
 ## 3. The forge
 
@@ -634,7 +634,7 @@ end to end on a scratch board.
 | 5. Store port | The port's two faces and the local adapter with its contract spec, around today's stores, lock and hold. The CLI and Hephaestus go through it; nothing else names a record path. Then the committed ticket (decision 48): `pending` takes the name, its content is fixed and kept by content hash, it can be put back into draft, and the lock is taken over only from a holder whose process is gone | forge | L |
 | 6. Gaia hosts the views | The Bridge is about 525 tracked files with 67 DOM specs, more code than the Overseer's services. Move it one view at a time into Gaia's own design under `page/board/`, each shipped alone, reading the forge's documents and sending commands to it through Gaia's server, which maps each document into Gaia's own model; the page imports no forge code. The Bridge keeps running beside it until the last view has moved | Gaia | XL |
 | 7. Conversations with hosted agents | Intake and pipeline setup in Gaia: the `job-message` command in, the job stream out, pictures through the upload route. A skill for pipeline setup, as intake has one | forge and Gaia | M |
-| 8. Shrink the HTTP surface | Delete the Bridge, the sessions, the bundle build, the embed machinery and Flint's ask route; the reads and the command endpoint stay. `forge open` and the `progress.html` stub go. Make the Assistant a switch per board, off by default; remove Flint's brain. Fold `design-system`, `flint` and `brand` into Gaia's page `lib/` as libraries, each behind its interface file, with the guard of section 1. A major change of the system version; Gaia records again | forge and Gaia | M |
+| 8. Shrink the HTTP surface | Delete the Bridge, the sessions, the bundle build, the embed machinery and Flint's ask route; the reads and the command endpoint stay. `forge open` and the `progress.html` stub go. Make the Assistant a switch per board, off by default; remove Flint's brain. Fold `design-system`, `flint` and `brand` into Gaia's page `lib/` as libraries, each behind its interface file, with the architecture test of section 1. A major change of the system version; Gaia records again | forge and Gaia | M |
 | 9. Rename | Overseer to Hephaestus as the component's name in identifiers, wording, docs and every stored and installed name: about 835 tracked files in both apps, the contract package and the root's rules, in one commit; existing boards are set up anew. The `oversee` verb goes: `forge start` starts Hephaestus, and the other lifecycle verbs sit beside it at the top level, `pause` undone by `unpause`; no verb is named after Hephaestus. The Watcher's name goes with its code in stage 2: Talos is Talos from its first line | The repository | M |
 
 **The rename takes the stored and installed names with it.** Nothing that exists has to be kept, so these change in

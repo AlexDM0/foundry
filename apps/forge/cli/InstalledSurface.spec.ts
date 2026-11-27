@@ -101,7 +101,7 @@ describe('the retired verbs', () => {
   });
 });
 
-describe('the guard, planted in memory', () => {
+describe('the spec, planted in memory', () => {
   test('a flag the brief names, renamed in the CLI and the brief without a bump, fails naming the rule', () => {
     const renamedCli = cliSurfaceWithHelpReplaced('--depends-on', '--waits-on');
     const renamedTexts = withTextReplaced(INSTALLED_TEXTS, 'resources/templates/Reference.md', '--depends-on', '--waits-on');

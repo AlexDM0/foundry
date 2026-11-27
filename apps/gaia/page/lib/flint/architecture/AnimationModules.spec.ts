@@ -1,5 +1,5 @@
 /**
- * The guard of the animation modules, the behaviours included. First: a core file names no gesture,
+ * The architecture test of the animation modules, the behaviours included. First: a core file names no gesture,
  * intent, emote, prop, mark, attendant or behaviour (as a string, a property, or a piece of a string built from parts), and imports from
  * an animation root only a catalog or a contract: it reads the catalogs. The core is the files `CORE_FILES` lists, the mind and sleep;
  * the core's own sleep layer is the one word a behaviour shares with it. Second:
@@ -8,7 +8,7 @@
  * such folder is registered in its catalog, and every catalog entry has its folder; every prop module is registered in the prop catalog.
  * So one more behaviour is one more folder and one catalog line. And each catalog the frame capture joins keeps that form. It reads the
  * package itself and lexes each core file, so a name in a comment is not a use; the scan first proves it found what it holds, and each form
- * is planted in memory to watch the guard fail.
+ * is planted in memory to watch the test fail.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -402,7 +402,7 @@ test('no core file names an animation or reaches into one, every animation folde
   expect(findingsOf(SOURCES_WITH_SPECS, NAMES)).toEqual([]);
 });
 
-describe('the guard still names each form, planted in memory', () => {
+describe('the test still names each form, planted in memory', () => {
   const INSIDE = ', inside an animation';
   const plantedIn = (path: string, line: string): readonly string[] => findingsOf(withPlanted(path, `${textOf(path)}\n${line}\n`), NAMES);
   const plantedInCore = (line: string): readonly string[] => plantedIn('PoseEasing.ts', line);

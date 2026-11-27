@@ -1,7 +1,7 @@
 # Design system conventions
 
 These are rules, not preferences. Where a linter or type checker can hold a rule, it does; everything else is checked
-in review. A rule that a guard spec holds names the guard; the spec is the full statement.
+in review. A rule that an architecture test holds names the test; the spec is the full statement.
 
 ## 1. Principles
 
@@ -57,7 +57,7 @@ design-system/
   holds this.
 - **A host imports only the interface file.** `import { Button } from './lib/design-system/DesignSystemInterface.ts'`
   by its relative path, never `atoms/Button.tsx` or another file of the folder, and never a name the interface file
-  does not export. The host holds this with a guard of its own.
+  does not export. The host holds this with an architecture test of its own.
 - **The interface file is a facade, not a barrel to grow.** It names each export one by one and holds nothing else.
   Inside the library a file imports exactly the module it needs: no file imports the interface file, and no other
   file re-exports.
@@ -256,9 +256,10 @@ design-system/
   rendered DOM and its roles, never a frozen markup table. A pure util has a `.spec.ts` against its own contract.
 - **Each exported component has a story** in the library's Storybook (Storybook 10), showing its variants in both
   themes. A new prop or flag gets a story.
-- **A guard proves its scan found something and plants each form it claims.** An allowlist is exact both ways.
+- **An architecture test proves its scan found something and plants each form it claims.** An allowlist is exact
+  both ways. The architecture tests live in `architecture/`, and the host's `bun run test:architecture` runs them.
 
-| Guard | Holds |
+| Architecture test | Holds |
 | --- | --- |
 | `CompositionLayers.spec.ts` | Every component sits in a layer and imports only components of a lower layer |
 | `architecture/PackageIsolation.spec.ts` | Nothing imports outside the library; what ships imports only React; no file, the constitution and the README among them, names a host word |
@@ -294,4 +295,4 @@ None.
 - [ ] Every new token has a light and a dark value; no colour literal outside `styles/tokens.css`.
 - [ ] Hover moves nothing; reduced motion stops every new animation.
 - [ ] Every control has an accessible name and works from the keyboard; headings have an explicit level.
-- [ ] The component has a DOM spec and a story; a new guard proves its scan and plants each form.
+- [ ] The component has a DOM spec and a story; a new architecture test proves its scan and plants each form.

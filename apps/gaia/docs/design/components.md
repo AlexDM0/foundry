@@ -47,7 +47,7 @@ sets before the first paint. A page links the library's stylesheets first, so Ga
   `README.md` ("Theming") says how to read it. The values are not copied here.
 - **The brand's** `page/lib/brand/styles/tokens.css` holds Forge's mark's colours, every one named `--brand-…`, in both themes.
 - **The board's** `page/styles/board/tokens.css` holds only the values the board's classes read that the design system does not
-  define (the epic slots, the board's pulses, Flint's palette), under the board's own guards (section 4.3).
+  define (the epic slots, the board's pulses, Flint's palette), under the board's own style checks (section 4.3).
 
 ### 2.2 Gaia's own tokens
 
@@ -294,8 +294,8 @@ The board's views under `page/board/` are styled by `page/styles/board/*.css` an
 board's tokens together, at 4.5:1 in both themes: the refusal's `--err-ink` on `--bg` and `--surface`; a chip's, a card's and a
 chat bubble's `--ink`, `--ink-muted` and `--ink-4` on `--surface` and on `--wash` over `--surface`; `--link` on `--surface` and on
 `--link-tint` over `--surface`, and `--ink` on that tint; each of the six epic slots' ink on its tint over `--surface`; a warning
-card's `--warn-ink` and a failed tool call's `--err-ink` on their tints over `--surface`. The board's other guards are in
-`page/testing/BoardStyleGuards.ts`.
+card's `--warn-ink` and a failed tool call's `--err-ink` on their tints over `--surface`. The board's other style checks are in
+`page/testing/BoardStyleChecks.ts`.
 
 ### 4.4 What else the style contract holds
 
@@ -317,4 +317,4 @@ card's `--warn-ink` and a failed tool call's `--err-ink` on their tints over `--
   and no colour value; each literal colour token has a dark value, but those the same in both themes (Flint's palette), set once
   in the light block; no `gaia-` board class and no `board-` Gaia class; every board keyframe is `board-` and only in a board
   stylesheet.
-- Every guard is first proved on a planted case, in memory.
+- Every architecture test is first proved on a planted case, in memory.

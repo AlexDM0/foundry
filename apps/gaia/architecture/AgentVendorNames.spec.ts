@@ -144,7 +144,7 @@ describe('the allowlist is exact both ways', () => {
   });
 });
 
-describe('the guard names each form, planted in memory', () => {
+describe('the test names each form, planted in memory', () => {
   const plantedPath = 'page/views/Planted.tsx';
 
   const plantedForms: readonly (readonly [string, readonly VendorForm[]])[] = [
@@ -171,7 +171,7 @@ describe('the guard names each form, planted in memory', () => {
   });
 });
 
-describe('what the guard exempts is exact', () => {
+describe('what the test exempts is exact', () => {
   const plantedLine = 'const program = \'claude\';';
 
   test('a spec, a .dom.tsx, a testing folder and a recording are not scanned', () => {

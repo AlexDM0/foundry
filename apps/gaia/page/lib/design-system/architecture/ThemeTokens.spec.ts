@@ -366,7 +366,7 @@ describe('the tokens of the package', () => {
   });
 });
 
-describe('the guard, planted in memory', () => {
+describe('the test, planted in memory', () => {
   test('a literal light value with no dark value fails, naming the token', () => {
     const planted = tokenBlocksOf(':root { --planted-fill: oklch(0.9 0 0); --planted-alias: var(--bg); --planted-size: 12px; }');
     expect(themeSentencesOf(planted, ['--planted-fill', '--planted-alias', '--planted-size'])).toEqual([

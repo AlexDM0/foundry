@@ -23,7 +23,7 @@ const PRODUCT_NAMES_PATH = 'src/shared/constants/ProductNames.ts';
 
 const REPOSITORY_SOURCES = programTypeScriptSources(repositoryRootOfThisCheckout());
 
-/** Read from the constant's source, since a guard at the repository root imports nothing of the tree; the released name comes first. */
+/** Read from the constant's source, since an architecture test at the repository root imports nothing of the tree; the released name comes first. */
 const PROGRAM_NAMES = [...(REPOSITORY_SOURCES.find(({ path }) => path === PRODUCT_NAMES_PATH)?.text ?? '').matchAll(/\bPROGRAM: +'([^']+)'/g)]
   .map(([, name = '']) => name);
 
@@ -106,7 +106,7 @@ describe('the scan itself', () => {
   });
 });
 
-describe('the guard, planted in memory', () => {
+describe('the test, planted in memory', () => {
   const findingsIn = (sourceText: string): string[] => literalFindingsOf([{ path: 'cli/Example.ts', text: sourceText }]).map(({ literal }) => literal);
 
   test('a usage line, a suggested command in a template and a bare name in prose are each found', () => {

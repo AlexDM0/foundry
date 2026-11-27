@@ -21,7 +21,9 @@ Whose rules a package follows beside its own `README.md`:
 ## Rules for the whole repository
 
 - **Verify at the root:** `bun install --frozen-lockfile`, then `bun run verify`. Turborepo is how everything here verifies: `verify`
-  runs every workspace's `typecheck`, `lint`, `test`, `test:dom` and `check`, each in its own folder. The root never runs `bun test`: a
+  runs every workspace's `typecheck`, `lint`, `test`, `test:architecture`, `test:dom` and `check`, each in its own folder.
+  `bun run test:architecture` runs every workspace's architecture tests: the specs in its `architecture/` folder, a portable
+  library's inside the library's folder. The root never runs `bun test`: a
   workspace's `bunfig.toml` preload, which moves `HOME` into scratch, applies only in its own folder. `verify:forge` and `verify:gaia`
   run one app and the packages it depends on.
 - **A workspace that imports another declares it** in its `package.json` at `workspace:^`, so Turborepo reruns it when the package

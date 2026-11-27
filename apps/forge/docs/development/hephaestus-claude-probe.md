@@ -2,7 +2,7 @@
 
 > **Question:** What does this system depend on from Claude Code, and what was observed to justify each choice?
 > **Time:** 10 minutes for the contract, 30 with the probe record.
-> **Next:** [Guards and testing](guards-and-testing.md), [Platform status](platform-status.md).
+> **Next:** [Architecture tests and testing](architecture-tests-and-testing.md), [Platform status](platform-status.md).
 
 ## In one screen
 

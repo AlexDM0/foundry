@@ -2,7 +2,7 @@
  * The root `CLAUDE.md` rule that an inline comment is one or two lines, a why and never a wall: outside a docblock (a file header, or a
  * `/** *\/` directly leading a declaration or a `test`, `describe` or `it` call), no run of adjacent `//` lines and no other
  * `/* … *\/` block spans more than two lines, in any file the checkout holds. Comments are read from the syntax tree, so `//` inside a
- * string or template is not one. The scan first proves it read runs of both sizes, and each form is planted to prove the guard names it
+ * string or template is not one. The scan first proves it read runs of both sizes, and each form is planted to prove the test names it
  * or lets it pass.
  */
 import { describe, expect, test } from 'bun:test';

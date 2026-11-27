@@ -1,9 +1,9 @@
 /**
- * `reachablePathsFrom`, the walk the guards share, and the resolution of each specifier. What matters: it follows imports through each
+ * `reachablePathsFrom`, the walk the architecture tests share, and the resolution of each specifier. What matters: it follows imports through each
  * other, keeps the entries, ignores package imports and stops at a cycle; on the real graph the binary reaches its command surface; and
  * a workspace package's specifier resolves through its `exports` as Bun and TypeScript resolve it, which
- * the import-direction guard relies on to tell an import by name from one by path; and each workspace package the program declares is read
- * from its own folder under a virtual folder named after it, so the guards hold it as they held the folder it once was; a relative path
+ * the import-direction test relies on to tell an import by name from one by path; and each workspace package the program declares is read
+ * from its own folder under a virtual folder named after it, so the architecture tests hold it as they held the folder it once was; a relative path
  * resolves from the importer's real folder, a package with no spec project is read through its one project, and a member of the
  * workspace the program does not declare is named apart.
  */

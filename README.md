@@ -181,8 +181,10 @@ at `workspace:^`; nothing is linked by hand.
 bun run verify
 ```
 
-runs every workspace's `typecheck`, `lint`, `test`, `test:dom` and `check` through Turborepo, each in its own folder, replaying a task
-whose inputs have not changed from the cache in `.turbo/cache`. `bun run typecheck` and `bun run lint` run those tasks alone;
+runs every workspace's `typecheck`, `lint`, `test`, `test:architecture`, `test:dom` and `check` through Turborepo, each in its own
+folder, replaying a task whose inputs have not changed from the cache in `.turbo/cache`. `bun run typecheck`, `bun run lint` and
+`bun run test:architecture` run those tasks alone; the architecture tests are the specs in each workspace's `architecture/` folder,
+which hold the structure of the code rather than its behaviour;
 `bun run verify:forge` and `bun run verify:gaia` run one app and the packages it depends on. Never run `bun test` at the root: each
 workspace's test preload applies only in its own folder.
 

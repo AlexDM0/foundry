@@ -39,5 +39,5 @@ endpoint that one client version would both call.
 bun run verify
 ```
 
-typechecks, lints and runs the specs: the registry logic on an example registry, and the guard that keeps the package naming no system
-that uses it.
+typechecks, lints and runs the specs: the registry logic on an example registry, then the architecture test in `architecture/`
+(`bun run test:architecture`) that keeps the package naming no system that uses it.

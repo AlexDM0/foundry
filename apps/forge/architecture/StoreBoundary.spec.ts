@@ -199,7 +199,7 @@ describe('the allowlist is exact both ways', () => {
   });
 });
 
-describe('the guard names each form, planted in memory', () => {
+describe('the test names each form, planted in memory', () => {
   const plantedPath = 'src/services/hephaestus/Planted.ts';
 
   const plantedForms: readonly (readonly [string, string, readonly StoreForm[]])[] = [

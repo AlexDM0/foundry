@@ -1,7 +1,7 @@
 /**
- * The guard that keeps this a package any server can use, unchanged in any repository. What matters: no module imports anything outside
- * the package, and no file, its README included, names a system that uses it. The scan first proves it read the package, and each form is
- * planted.
+ * The architecture test that keeps this a package any server can use, unchanged in any repository. What matters: no module imports anything
+ * outside the package, and no file, its README included, names a system that uses it. The scan first proves it read the package, and each
+ * form is planted.
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, normalize }  from 'node:path';
@@ -14,7 +14,7 @@ interface PackageFile {
 }
 
 const PACKAGE_FOLDER = join(import.meta.dir, '..');
-const THIS_SPEC_PATH = join('architecture', 'architecture/PackageIsolation.spec.ts');
+const THIS_SPEC_PATH = join('architecture', 'PackageIsolation.spec.ts');
 const SPEC_PACKAGES: readonly string[] = ['bun:test', 'node:fs', 'node:path', 'typescript'];
 /** The systems that use the package. This spec is the one file that names them. */
 const USER_WORDS = /\b(forge|forges|gaia|hephaestus|bridge)\b/gi;

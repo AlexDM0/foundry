@@ -100,7 +100,7 @@ Decisions the run takes here:
 - **The board's specs keep a document.** The Bridge's views are held by 77 DOM specs. `page/board/` keeps them under a
   `test:dom` task, and Gaia's rule 10 says so for that folder; Gaia's own views keep the rule that their specs have no
   document (WP6.4, WP6.5).
-- **The board's stylesheets.** `page/styles/board/*.css` with `board-` names, held by the Bridge's four style guards
+- **The board's stylesheets.** `page/styles/board/*.css` with `board-` names, held by the Bridge's four style architecture tests
   plus Gaia's class and contrast checks in a board section of `architecture/StyleContract.spec.ts`; a board `@keyframes` is
   named `board-` and lives only there (WP6.4). Unifying them with `gaia.css` is later design work.
 - **The forge route's header.** Gaia's forge bar keeps the forge's controls, versions and alerts; the board header keeps
@@ -209,7 +209,7 @@ changes nothing under `apps/` or `packages/` since `0a648b2b`, when `entities/in
 | No shipped forge file names a client | `apps/forge/architecture/ClientNames.spec.ts:24` | Kept: every forge change here names no client |
 | Retired component names | `apps/forge/architecture/ComponentNames.spec.ts:28-63` | Kept: every new name checked against it |
 | The Overseer's server is a recorded boundary | `apps/forge/src/testing/BoundarySpecs.ts:139` | Recorded again after WP6.1 |
-| Forge guards that name the Bridge: DOM specs only under `bridge/`, its include list | `apps/forge/architecture/TestFileConventions.spec.ts:108`, `:122`; the include list's guard is deleted, and the Bridge's tsc projects, lint and DOM specs are out of the gates | Kept: the Bridge stays until stage 8 |
+| Forge architecture tests that name the Bridge: DOM specs only under `bridge/`, its include list | `apps/forge/architecture/TestFileConventions.spec.ts:108`, `:122`; the include list's architecture test is deleted, and the Bridge's tsc projects, lint and DOM specs are out of the gates | Kept: the Bridge stays until stage 8 |
 
 ## Work packages
 
@@ -280,7 +280,7 @@ WP6.5 to WP6.20 and WP7.1 move Bridge code by these steps. Each package names it
    The behaviour a moved spec holds stays; where a spec fed a forge rule its input, it now feeds the served fact, and
    the case keeps its expected view. Every value import of `src/` a package moves is listed in it; after the package,
    `grep -rnE "apps/forge|forge-contracts|\.\./forge/" page/board/<folder>` prints no import (imports of Gaia's
-   own `src/shared` and `src/lib/api-paths` are allowed; the page import guard holds the rest).
+   own `src/shared` and `src/lib/api-paths` are allowed; the page import architecture test holds the rest).
 4. Rename what names the Bridge. Identifiers: `BridgeApp` → `BoardApp`, `BridgeClock` → `BoardClock`,
    `BridgeClockContext` → `BoardClockContext`, `BridgeFlint` → `BoardFlint`, `BridgeTab` → `BoardTab`,
    `BRIDGE_TABS` → `BOARD_TABS`, `BridgeRoute` → `BoardRoute`, `BridgeErrorBoundary` → `BoardErrorBoundary`, and
@@ -356,7 +356,7 @@ that Gaia can build on, and gives forge and Gaia one list of every kind a client
    `id:` line, so it never moves a client's `Last-Event-ID`. Pass the system version into each response the way
    `monitorEventsResponse` receives it (`:437`).
 6. Add no kind to `ForgeControlCommand.ts` here; `talos-restart` joins it in WP6.22. Re-measure the kinds a Bridge view
-   sends with stage 4's guard (`bridge/CommandKindsInContract.spec.ts` or the name stage 4 gave it); a kind it names
+   sends with stage 4's architecture test (`bridge/CommandKindsInContract.spec.ts` or the name stage 4 gave it); a kind it names
    outside both lists stops this package and is reported (adding a kind with its payload and its mapping is stage 4's).
 7. `ForgeControlCommandKinds.ts` exports `FORGE_CONTROL_COMMAND_KINDS`, a frozen list of every kind of
    `ForgeControlCommand | ForgeBoardCommand`, typed `readonly (ForgeControlCommand | ForgeBoardCommand)['kind'][]`, with
@@ -661,10 +661,10 @@ src/lib/local-http-guards` passes, and `src/WholeFlow.spec.ts` passes.
 
 **Parallel.** Alone in `apps/gaia/src/`; WP6.4 and WP7.2 may run beside it.
 
-### WP6.4 Gaia's page gets a home for the board: dependencies, guards and rules
+### WP6.4 Gaia's page gets a home for the board: dependencies, architecture tests and rules
 
 **Purpose.** Prepare `apps/gaia/page/board/` so every later package only adds files: the dependency on `flint`, the
-compiler and lint setup, the import-direction and style guards, a page that reaches no `forge-contracts`, and the rules
+compiler and lint setup, the import-direction and style architecture tests, a page that reaches no `forge-contracts`, and the rules
 the move changes. The rule files change with this code (decision 34); no approval gate stands before them.
 
 **Files.**
@@ -692,15 +692,15 @@ the move changes. The rule files change with this code (decision 34); no approva
 **What to do.**
 
 1. Add the dependency, `bun install`, and prove `architecture/WorkspaceDependencies.spec.ts` accepts it.
-2. Add `board` to the page's tsconfig include and to the import-direction guard: `FORBIDDEN_IMPORTS` gains
+2. Add `board` to the page's tsconfig include and to the import-direction architecture test: `FORBIDDEN_IMPORTS` gains
    `board: ['shell', 'views']` (`views` may import `board`), with a planted case for `board → shell` and
    `board → views`, proved failing then passing.
-3. The guard also reads every module the page project compiles, the shared files its tsconfig names among them, and
+3. The architecture test also reads every module the page project compiles, the shared files its tsconfig names among them, and
    refuses an import specifier that starts with `forge-contracts` or names a path under `apps/forge/`. Until WP6.23
    deletes it, `page/views/forge-frame/EmbedChannel.ts` is the one listed exception, named in the spec with that
    reason. Plant a case of each and prove it fails.
 4. The board section of the style contract reads every stylesheet in a list `BOARD_STYLESHEETS` (initially empty; the
-   planted cases prove each guard until real stylesheets arrive) and holds, as the Bridge's guards do for the Bridge:
+   planted cases prove each architecture test until real stylesheets arrive) and holds, as the Bridge's architecture tests do for the Bridge:
    every class a shipping component under `page/board/` emits is styled in a board stylesheet and every styled class is
    emitted (`apps/forge/bridge/StyleContract.spec.ts`); no `:hover` or `:active` rule moves or resizes anything
    (`apps/forge/bridge/HoverMovesNothing.spec.ts`); a `prefers-reduced-motion: reduce` rule stops each animation
@@ -1895,7 +1895,7 @@ forge, `interrupted-work-resume` with the outage target. The answer of `fleet-ou
   files. Copying it with a rewritten relative path to `apps/forge/`, or with `forge-contracts` in place of the model,
   compiles and breaks decision 51. The page also reaches `forge-contracts` through `CONTRACT_VERSIONS` today
   (`ContractVersions.ts:8-9`), which the page project includes: WP6.4 splits it before any board file lands, and the
-  import guard reads the shared files the page includes.
+  import architecture test reads the shared files the page includes.
 - **A forge rule copied into a view.** About 50 status comparisons, the status sets, the review-round fallback, the
   default priority and the stop holds decide what a view offers today. Copied, Gaia shows the rules of the forge
   whose code it copied, not of the forge it reads. Read the served fact; where a view seems to need a rule the forge
@@ -1974,7 +1974,7 @@ forge, `interrupted-work-resume` with the outage target. The answer of `fleet-ou
 - **Overseer stays Overseer in words.** The rename is stage 9's. A Gaia word "Hephaestus" now is a second rename later.
   Talos is Talos from its first line.
 - **The frame header hide changes the Bridge.** It is the only Bridge change in stage 6 (WP6.9). Keep the Bridge's own
-  style guards green (`apps/forge/bridge/StyleContract.spec.ts` and the three others) and do not hide the head outside
+  style architecture tests green (`apps/forge/bridge/StyleContract.spec.ts` and the three others) and do not hide the head outside
   frame mode: `forge open` still opens the full Bridge until stage 8.
 - **An unmoved tab in the frame and a moved tab natively hold two event streams** to the same forge while the
   migration runs: the frame's own and the relay's. That is expected until WP6.23; do not share them.
@@ -2004,7 +2004,7 @@ The specs that matter most, each in its workspace folder:
 
 - `apps/forge/`: `bun test --path-ignore-patterns='.claude/**' ./src/services/overseer/OverseerServer.spec.ts
   ./src/shared/constants/OverseerApiContracts.parity.spec.ts ./cli/InstalledSurface.spec.ts
-  ./cli/overseer/OverseerWording.pipelineAgent.spec.ts ./src/ClientNames.spec.ts ./src/ComponentNames.spec.ts`.
+  ./cli/overseer/OverseerWording.pipelineAgent.spec.ts ./architecture/ClientNames.spec.ts ./architecture/ComponentNames.spec.ts`.
 - `packages/system-versions/` and `packages/forge-contracts/`: `bun test`.
 - `apps/gaia/`: `bun test src/lib/forge-client src/adapters src/features src/WholeFlow.spec.ts page`, then
   `bun run test:dom` (every DOM spec of `page/board/`, at least the 77 the Bridge has minus the brain's cases, plus the

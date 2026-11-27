@@ -1,7 +1,7 @@
 /**
- * The guard that keeps forge's contracts free of any client: forge never knows who calls it, so no file of the package, its README and
- * manifest included, names a client's word, and nothing imports from outside the package but the version model it is built on. The scan
- * first proves it read the package, and each form is planted.
+ * The architecture test that keeps forge's contracts free of any client: forge never knows who calls it, so no file of the package, its
+ * README and manifest included, names a client's word, and nothing imports from outside the package but the version model it is built on.
+ * The scan first proves it read the package, and each form is planted.
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, normalize }  from 'node:path';
@@ -14,7 +14,7 @@ interface PackageFile {
 }
 
 const PACKAGE_FOLDER = join(import.meta.dir, '..');
-const THIS_SPEC_PATH = join('architecture', 'architecture/PackageIsolation.spec.ts');
+const THIS_SPEC_PATH = join('architecture', 'PackageIsolation.spec.ts');
 const MODULE_PACKAGE_PREFIX = 'system-versions/';
 const SPEC_PACKAGES: readonly string[] = ['bun:test', 'node:fs', 'node:path', 'typescript'];
 /** The words of a client that sits on top of forge: its name and its own domain. This spec is the one file that names them. */

@@ -93,7 +93,7 @@ describe('the scan itself', () => {
   });
 });
 
-describe('the guard, planted in memory', () => {
+describe('the test, planted in memory', () => {
   const sentencesOfPlanted = (stylesheetText: string, allowedMovements: readonly AllowedMovement[] = []): string[] =>
     movementSentencesOf(rulesOf('planted.css', stylesheetText), allowedMovements);
 

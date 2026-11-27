@@ -2,7 +2,7 @@
  * Talos runs from the program on disk for as long as its board, so what it may reach is held here: the static import closure of `talos.ts`
  * and of its synchronous-calls thread's entry stays inside `src/lib/talos/`, the packages its main module declares and the packages theirs
  * declare, which never reach the board, the tickets or git, and its shipped files, the declared packages' files it reaches among them, name no
- * product and no vendor. A planted import of another lib package, one of a forbidden builtin and a planted vendor name prove the guards fire.
+ * product and no vendor. A planted import of another lib package, one of a forbidden builtin and a planted vendor name prove the tests fire.
  */
 import { describe, expect, test } from 'bun:test';
 

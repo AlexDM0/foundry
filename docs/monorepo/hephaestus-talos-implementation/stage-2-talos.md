@@ -13,7 +13,7 @@ facts. An agent that ended on a network outage, a provider overload after its sp
 fields of its closing result line and served under a cause of its own in the monitor document Gaia reads. The Watcher
 fleet, its pinned bundles and the legacy reader are gone from the repository. Nothing outside the agent port's adapter
 starts the vendor's program, reads its transcripts or stream, writes its settings or hooks, or knows its endings, flags,
-variables or file layout (the owner's rule of 2026-11-18), and a guard holds it.
+variables or file layout (the owner's rule of 2026-11-18), and an architecture test holds it.
 
 ## Depends on
 
@@ -177,7 +177,7 @@ Paths are from `apps/forge/` unless they start with `packages/` or `docs/`.
 | The `LocalEndpoint` port and its adapters, sockets under `<monitor>/watchers/` | `src/lib/watcher/LocalEndpoint.ts:18-30`, `LocalEndpointFor.ts:31-36`, `PosixSocketEndpoint.ts:36` | Moved to `src/lib/talos/`; the folder becomes `<monitor>/private/` |
 | The frozen socket paths of the endpoint extraction | `src/lib/watcher/LocalEndpoint.frozen.spec.ts`, `FrozenLocalEndpoint.json` | Deleted: socket paths change outright |
 | The owner-only folder `<monitor>/watchers/<trackerId>/`, holding the API token and every secret | `src/lib/watcher/WatcherFiles.ts:6-8`, `src/services/overseer/OverseerFiles.ts:20-22`; the registry hands Gaia the token's path (`tokenPath`), so no Gaia code names the folder | Changed: `<monitor>/private/<trackerId>/` |
-| The bundle closure guard | `src/lib/watcher/WatcherBundleClosure.spec.ts` | Replaced by `architecture/TalosClosure.spec.ts` and `TalosMainThread.spec.ts` |
+| The bundle closure architecture test | `src/lib/watcher/WatcherBundleClosure.spec.ts` | Replaced by `architecture/TalosClosure.spec.ts` and `TalosMainThread.spec.ts` |
 | The fleet: liveness by the Watcher's identity, `eventsAfter`, launch files, per-call socket send, reap, stop of process Watchers | `src/services/overseer/WatcherFleet.ts:89-97`, `:100-111`, `:134-192`, `:196-247`, `:262-272`, `:300-366` | Deleted; replaced by the `BoardChildren` port and its Talos adapter `TalosChildren.ts` |
 | The per-call frame send with no acknowledgement and a 2-second timeout | `src/services/overseer/WatcherFleet.ts:66`, `:196-233` | Replaced by one persistent connection with a `done` per frame |
 | The pinned Watcher bundle `<data>/overseer/watcher-<code>.js` | `src/services/overseer/WatcherBundle.ts:18-35`, `cli/overseer/OverseerForeground.ts:379-383` | Deleted |
@@ -214,8 +214,8 @@ Paths are from `apps/forge/` unless they start with `packages/` or `docs/`.
 | The stop grace and the regroup hello timeout | `src/shared/constants/OverseerLimits.ts:51`, `:54` | The grace is kept; the hello timeout becomes `TALOS_FRAME_TIMEOUT_MILLISECONDS` |
 | Boundary specs and recordings of the Watcher | `src/testing/BoundarySpecs.ts:16-136`; `src/testing/BoundaryRecordings.ts:85-97` | Replaced by Talos boundaries |
 | The fake agent: a child that prints only lines of its recording (`src__testing__fake-agent.json`, one session per `CLAUDE_WIRE_SCENARIOS` entry), the steps it plays chosen from switches | `src/testing/fake-agent/FakeAgentChild.ts:1-43`, `RecordedClaudeLines.ts:15-24`, `:63-77`; `src/testing/FakeAgentAdapter.ts:73-82`, `:118-137`; `cli/CommandContext.ts:71-75`; `src/shared/Environment.ts:26-47` | Changed: a network outage scenario (WP2.2) |
-| Guards naming the Watcher | `architecture/ImportDirection.spec.ts:68-69`, `:221`, `:334`; `architecture/PlatformBoundary.spec.ts:90-91`, `:211`, `:243`, `:247`; `architecture/SpecSleeps.spec.ts:30-45`; `architecture/RealSystemSpecs.spec.ts:41-45`; `eslint.config.js:27`, `:38`, `:47-48`, `:116-117` | Changed to name `talos.ts` and `src/lib/talos/` |
-| The retired names guard | `architecture/ComponentNames.spec.ts:27-63` | Changed in WP2.17: the Watcher's code names are added, after the documents stop naming them |
+| Architecture tests naming the Watcher | `architecture/ImportDirection.spec.ts:68-69`, `:221`, `:334`; `architecture/PlatformBoundary.spec.ts:90-91`, `:211`, `:243`, `:247`; `architecture/SpecSleeps.spec.ts:30-45`; `architecture/RealSystemSpecs.spec.ts:41-45`; `eslint.config.js:27`, `:38`, `:47-48`, `:116-117` | Changed to name `talos.ts` and `src/lib/talos/` |
+| The retired names architecture test | `architecture/ComponentNames.spec.ts:27-63` | Changed in WP2.17: the Watcher's code names are added, after the documents stop naming them |
 | The rules naming the Watcher | `apps/forge/CLAUDE.md:46`, `:134-135`, `:161-163`, `:326`, `:328`, `:336-338`; `apps/gaia/CLAUDE.md:148` | Changed in WP2.17 |
 | The pass loop: `runOnePass` run by `drain` until no wake is left, one pass at a time | `src/services/overseer/DrivePass.ts:1330`, `:1552-1576` | Changed: passes are numbered, and the number in flight is the renewal's progress (WP2.13) |
 | The Airlock awaits a merged-tree gate inside the pass, its gate slot included | `src/services/overseer/Airlocks.ts:107`, `:703`, `:864-866`; `DrivePass.ts:1254-1277`; `src/services/lifecycle/GateRun.ts:346` | Changed: the gate runs beside the pass and a later pass settles it (WP2.19) |
@@ -223,9 +223,9 @@ Paths are from `apps/forge/` unless they start with `packages/` or `docs/`.
 | A gate profile's ending `timed-out`, declared and never produced; its time measured by the Overseer's clock | `src/lib/tracker-model/@types/GateProfile.ts:11`; `src/services/overseer/GateProfiling.ts:55-59`, `:162-170`; `src/services/lifecycle/GateLineRun.ts:120-124` | Changed: `timed-out` from an end `time-bound`; the time is the line's run time (WP2.14) |
 | A job's gate run and a merged-tree gate record `gate-ran` with each gate's cache report; the pipeline facts' cache marks are assembled from those records | `src/lib/tracker-model/constants/LogRecordSchema.ts:285-291`; `src/services/overseer/JobLaunch.ts:1523`, `:2052`; `Airlocks.ts:634`, `:868`; `src/services/render/PipelineFactsAssembly.ts:539`, `:608` | Kept; each step line's run time is recorded and assembled beside them (WP2.20) |
 | The install steps: the pipeline's prepare steps, one line each, judged outside the lock and acted on in the hold | `src/services/overseer/JobLaunch.ts:533-536`, `:575-586`, `:881-896` | Changed: bounded, and their run times recorded (WP2.13, WP2.20) |
-| 46 reaches past the agent port in shipping code, 2 borderline, 13 files that import the adapter's folder past the seam; `architecture/ImportDirection.spec.ts:420-423` guards `ClaudeCodeAdapter.ts` alone | measured at `710ae4f9` (`.claude/.evidence/hephaestus-talos/port-rule/reaches.md` in the main checkout); rechecked at `3274ac88`, where 2-A and WP2.4 landed: 29 shipping files outside the adapter hold a code line that names the vendor | Closed by WP2.21 to WP2.32, held by `architecture/AgentBoundary.spec.ts` |
-| Comments that name the vendor's program, flags, hook events, tools or wire fields, `src/lib/agent-launch/WorkerProfile.ts` among them (its field `bashNetworkDomains`, its "Edit and Write") | 82 comment lines in 40 shipping files at `3274ac88`, 3 of them WP2.21's (`AgentLaunchPlan.ts:27`, `StandingReplies.ts:3`, `:30`); `src/services/overseer/JobResumption.ts:2`, `ApiBillingStops.ts:3`, `src/lib/tracker-model/JobControls.ts:180` name vendor flags | Each line goes to the package that changes its file (WP2.22 item 5 lists every one), the rest to WP2.32; the guard scans comments with every form, and WP2.32's greps catch the two flags the forms leave out (WP2.22) |
-| Testing helpers that start or name the real `claude` | `src/testing/InstalledSystemVersion.ts:85` (`claude --version`), `ProgramTraps.ts:26`, `:36`, `RecordBoundary.ts:46-76`, `cli/testing/CutoverSmoke.ts:3`, `:38`, `:123`; 79 `vendor-name` lines in 19 helper files | Allowlisted line by line in a list of their own; a guard test holds that the seam's imports reach none of them (WP2.22) |
+| 46 reaches past the agent port in shipping code, 2 borderline, 13 files that import the adapter's folder past the seam; `architecture/ImportDirection.spec.ts:420-423` checks `ClaudeCodeAdapter.ts` alone | measured at `710ae4f9` (`.claude/.evidence/hephaestus-talos/port-rule/reaches.md` in the main checkout); rechecked at `3274ac88`, where 2-A and WP2.4 landed: 29 shipping files outside the adapter hold a code line that names the vendor | Closed by WP2.21 to WP2.32, held by `architecture/AgentBoundary.spec.ts` |
+| Comments that name the vendor's program, flags, hook events, tools or wire fields, `src/lib/agent-launch/WorkerProfile.ts` among them (its field `bashNetworkDomains`, its "Edit and Write") | 82 comment lines in 40 shipping files at `3274ac88`, 3 of them WP2.21's (`AgentLaunchPlan.ts:27`, `StandingReplies.ts:3`, `:30`); `src/services/overseer/JobResumption.ts:2`, `ApiBillingStops.ts:3`, `src/lib/tracker-model/JobControls.ts:180` name vendor flags | Each line goes to the package that changes its file (WP2.22 item 5 lists every one), the rest to WP2.32; the architecture test scans comments with every form, and WP2.32's greps catch the two flags the forms leave out (WP2.22) |
+| Testing helpers that start or name the real `claude` | `src/testing/InstalledSystemVersion.ts:85` (`claude --version`), `ProgramTraps.ts:26`, `:36`, `RecordBoundary.ts:46-76`, `cli/testing/CutoverSmoke.ts:3`, `:38`, `:123`; 79 `vendor-name` lines in 19 helper files | Allowlisted line by line in a list of their own; an architecture test holds that the seam's imports reach none of them (WP2.22) |
 
 ## Work packages
 
@@ -255,7 +255,7 @@ Order and parallelism:
 | WP2.20 Line run times recorded and served | WP2.14 | alone |
 | WP2.15 Removal of the fleet, the bundles and the legacy reader | WP2.20 | alone |
 | WP2.16 The Watcher's remaining names | WP2.15 | alone |
-| WP2.22 The agent boundary guard, today's reaches allowlisted | WP2.16 | alone |
+| WP2.22 The agent boundary architecture test, today's reaches allowlisted | WP2.16 | alone |
 | WP2.23 The adapter reads its own transcripts | WP2.22 | alone |
 | WP2.24 The adapter names its variables, its credentials and its repair | WP2.23 | alone |
 | WP2.25 Live answers, the quit act, the instruction bundle line and the start folder go through the port | WP2.24 | alone |
@@ -278,7 +278,7 @@ port rule came, and before WP2.8 (group 2-E). WP2.5 gives `src/lib/talos/Standin
 of `TALOS_PROTOCOL_VERSION`, and protocol 1 never ships with a vendor field.
 
 WP2.22 to WP2.32 each change the agent port, the Claude Code adapter and the fake agent (`AgentAdapter.ts`,
-`ClaudeCodeAdapter.ts`, `FakeAgentAdapter.ts`) and the guard's allowlist, so each runs alone. They come after WP2.16,
+`ClaudeCodeAdapter.ts`, `FakeAgentAdapter.ts`) and the architecture test's allowlist, so each runs alone. They come after WP2.16,
 when the Watcher's code and names are gone and the files they touch hold still, and before WP2.17 and WP2.18, so the
 documentation pass and the recordings cover them.
 
@@ -1141,7 +1141,7 @@ verify` is green.
   `JobLiveFactsReader.ts` (no `watcherProtocol`, `watchOnly`), `EventBroker.ts:75-76`,
   `bridge/views/agents/AgentJobDocument.ts:31-32`, `JobRow.tsx:62`, `:76`, `JobControls.tsx:33`,
   `bridge/@types/DetailBoardState.ts:103`, `bridge/testing/BoardStateFixture.ts:97-98`, and their DOM specs.
-- Change the guards: `architecture/ImportDirection.spec.ts` (no `watcher-binary`), `architecture/PlatformBoundary.spec.ts`,
+- Change the architecture tests: `architecture/ImportDirection.spec.ts` (no `watcher-binary`), `architecture/PlatformBoundary.spec.ts`,
   `architecture/SpecSleeps.spec.ts` (entries `:30-45` whose files are gone), `architecture/RealSystemSpecs.spec.ts` (`:41-45`),
   `src/testing/BoundarySpecs.ts`, `src/testing/BoundaryRecordings.ts`, `eslint.config.js`,
   `src/lib/process-identity/ProcessSupervision.ts` and `SpawnOptionsFor.ts` (no kind `watcher`;
@@ -1152,11 +1152,11 @@ verify` is green.
   once `apps/forge/CLAUDE.md` and `docs/` name them nowhere: `architecture/ComponentNames.spec.ts` scans those files too, so
   adding the names here turns `bun run verify` red.
 
-**What to do.** Delete, then follow the compiler and the guards until green. Words in comments that name the Watcher in
+**What to do.** Delete, then follow the compiler and the architecture tests until green. Words in comments that name the Watcher in
 files this package touches say Talos. The refusal kinds `watcher-bundle-failed` and `watcher-endpoint-does-not-fit`
 leave their union and their wording in `cli/`.
 
-**Specs.** The guard specs prove their planted cases with Talos paths.
+**Specs.** The architecture tests prove their planted cases with Talos paths.
 
 **Done when.** `git grep -n -i "watcherfleet\|watcherbundle\|legacywatcher\|lib/watcher\|watcher\.ts" apps/forge` finds
 nothing outside `docs/` and `apps/forge/CLAUDE.md`, which WP2.17 rewrites; the root `bun run verify` is green.
@@ -1224,7 +1224,7 @@ root `bun run verify` is green.
   are in no tracker's reach, and the run changes them (decision 34).
 - Change `docs/cli.md` (the Watcher passages, for example `:203`, `:268`, `:851`, `:870`, `:1094`; the files of a job
   folder; the new interruption causes, `lease-ended` and `network-outage` waiting), `docs/glossary.md`,
-  `docs/development/guards-and-testing.md`, `docs/development/platform-status.md` (Talos boundaries: macOS recorded,
+  `docs/development/architecture-tests-and-testing.md`, `docs/development/platform-status.md` (Talos boundaries: macOS recorded,
   Linux and Windows never ran), `docs/development/contributing.md` (the scratch isolation figure's words),
   `docs/operations/*.md`, `docs/concepts/*.md`, `docs/reference/overseer-api.md` (the identity key, the monitor job's
   `interruption`), `docs/reference/refusals.md`.
@@ -1245,7 +1245,7 @@ document line still to rewrite, or a dated record for the allowlist.
 
 **Done when.** `git grep -n -i watcher apps/forge/CLAUDE.md apps/forge/docs/cli.md apps/gaia/CLAUDE.md` finds only
 `watcher-lost`;
-`bun test --path-ignore-patterns='.claude/**' ./src/ComponentNames.spec.ts` in `apps/forge` passes with the new names;
+`bun test --path-ignore-patterns='.claude/**' ./architecture/ComponentNames.spec.ts` in `apps/forge` passes with the new names;
 the root `bun run verify` is green.
 
 ### WP2.18 Recordings and the end-to-end check
@@ -1386,10 +1386,10 @@ package's **Files** says so once.
   chooses the adapter.
 - **WP2.21 runs after WP2.7 and before WP2.8** (group 2-D2), so protocol 1 ships with no vendor field in
   `src/lib/talos/`.
-- **WP2.22 lands the guard first**, with today's reaches allowlisted line by line, each entry naming the package that
-  removes it. Every later package removes its own entries and is done only when the guard passes without them, so
-  WP2.32 leaves only the permanent entries. A guard first, not last: from WP2.22 on, no package of any stage (WP4.10,
-  WP7.2, the views stage 6 moves into Gaia) can add a reach without the guard naming it.
+- **WP2.22 lands the architecture test first**, with today's reaches allowlisted line by line, each entry naming the package that
+  removes it. Every later package removes its own entries and is done only when the architecture test passes without them, so
+  WP2.32 leaves only the permanent entries. An architecture test first, not last: from WP2.22 on, no package of any stage (WP4.10,
+  WP7.2, the views stage 6 moves into Gaia) can add a reach without the architecture test naming it.
 
 ### WP2.21 A standing reply names the path of its request identifier
 
@@ -1450,23 +1450,23 @@ specs and comments included; in `apps/forge`, `bun test --path-ignore-patterns='
 ./src/lib/watcher/WatcherLaunch.spec.ts` passes and `bun run typecheck` is green (it covers the Watcher's integration
 spec, whose reply only gains the field); at the root, `bun install --frozen-lockfile` and `bun run verify` are green.
 
-### WP2.22 The agent boundary guard, today's reaches allowlisted
+### WP2.22 The agent boundary architecture test, today's reaches allowlisted
 
-**Purpose.** Make the owner's rule measurable before any reach closes: a guard that finds every shipping line outside
+**Purpose.** Make the owner's rule measurable before any reach closes: an architecture test that finds every shipping line outside
 the adapter, comments included, that names the vendor's program, paths, variables, wire fields, hook protocol, flags,
 tool names or marks, and every testing helper line that names the program, with exact allowlists of today's reaches,
 each entry naming the package that removes it. This package also settles what the fake agent is.
 
 **Files.** Lines at `3274ac88`; reread on the tree you run on.
-- Create `apps/forge/architecture/AgentBoundary.spec.ts`, beside `architecture/PlatformBoundary.spec.ts`, a repository guard of the same
-  kind (`repository-guard` layer in `architecture/ImportDirection.spec.ts`).
+- Create `apps/forge/architecture/AgentBoundary.spec.ts`, beside `architecture/PlatformBoundary.spec.ts`, an architecture test of the same
+  kind (`architecture` layer in `architecture/ImportDirection.spec.ts`).
 - Create `apps/gaia/architecture/AgentVendorNames.spec.ts`, beside Gaia's other repository-wide specs in `src/`.
 - Change `apps/forge/architecture/ImportDirection.spec.ts`: the vendor seam constants (`:75-78`), `vendorSeamFinding`
   (`:420-423`) and the tests that name its sentence (`:875-878`, the Watcher binary's planted import, gone with
   `watcher.ts` in WP2.15; `:914-924`, the planted importers; `:1045-1048`, the tree's own).
 - Change `apps/forge/src/testing/FakeAgentAdapter.ts:1-6`: its header says it is an adapter of the agent port.
 - Change `apps/forge/CLAUDE.md` (a line beside `:146`, which names `architecture/PlatformBoundary.spec.ts`) and
-  `apps/gaia/CLAUDE.md` (a line in its guard rules, near `:435`).
+  `apps/gaia/CLAUDE.md` (a line in its architecture test rules, near `:435`).
 
 **What to do.**
 1. **The fake agent's status.** The fake agent is an adapter of the agent port, as the owner's rule says. It replays
@@ -1659,7 +1659,7 @@ each entry naming the package that removes it. This package also settles what th
      with `Removed by WP2.27:`; a planted key of another file under those folders fails.
    - "every entry names its package": each value starts with `Permanent:` or with `Removed by WP2.<number>:`, the
      number one of 23 to 32; `ALLOWED_AGENT_LINES` has exactly two `Permanent:` entries.
-   - "the guard names each form, planted in memory": one planted code line and one planted comment line per pattern at
+   - "the test names each form, planted in memory": one planted code line and one planted comment line per pattern at
      `src/services/overseer/Planted.ts`, one `port-tool-word` line at `src/lib/talos/Planted.ts`, one prose line per
      prose form at `resources/prompts/Planted.md` and `skills/planted/SKILL.md` (a `"/{{plantedSkill}}"` among them), a
      `Bun.which('claude')` line at `src/testing/PlantedHelper.ts`, `.platform-probes/planted.js` and
@@ -1670,12 +1670,12 @@ each entry naming the package that removes it. This package also settles what th
      records the program (`cli/testing/CutoverSmoke.ts`, `CutoverSmokeUtil.ts`, `src/testing/InstalledSystemVersion.ts`,
      `ProgramTraps.ts`, `RecordBoundary.ts`, `RecordingStamps.ts`, `BoundarySpecs.ts`); a planted import of
      `ProgramTraps.ts` from `src/testing/FakeAgentAdapter.ts` fails it, and every listed path exists.
-   - "what the guard exempts is exact": a planted form in `src/lib/claude-code/Planted.ts` and in
+   - "what the test exempts is exact": a planted form in `src/lib/claude-code/Planted.ts` and in
      `src/testing/fake-agent/Planted.ts` passes; the same line in `src/lib/agent-launch/Planted.ts`,
      `src/lib/talos/Planted.ts` and `cli/Planted.ts` fails, as a comment too; a spec and a `.dom.tsx` are not scanned;
      a comment saying a media type's `subtype`, `pipeline apply --resume` and a Bridge comment saying `Bash ×4` are no
      finding; `.claude/worktrees/x` in a line is no finding.
-7. **Gaia's guard** (`apps/gaia/architecture/AgentVendorNames.spec.ts`): the forms `vendor-name`, `vendor-wire-key`,
+7. **Gaia's architecture test** (`apps/gaia/architecture/AgentVendorNames.spec.ts`): the forms `vendor-name`, `vendor-wire-key`,
    `vendor-tool-name` (the first two patterns) and `vendor-mark` over the code and comment lines of Gaia's shipping
    files in `src/` and `page/` (no spec, no `.dom.tsx`, no testing folder, no recording), read as Gaia's repository
    specs read the tree; the same exact-both-ways allowlist, with one entry today:
@@ -1688,12 +1688,12 @@ each entry naming the package that removes it. This package also settles what th
    `cli/CommandContext.ts` and the fake agent import it." `apps/gaia/CLAUDE.md`: "`architecture/AgentVendorNames.spec.ts` holds
    that Gaia names no agent vendor; Gaia speaks to forge only."
 
-**Specs.** The two guards and the changed import rule prove themselves: the scan found the adapter and the reaches,
+**Specs.** The two architecture tests and the changed import rule prove themselves: the scan found the adapter and the reaches,
 each form is caught when planted, the allowlists are exact both ways, the exemptions are exact.
 
-**Done when.** In `apps/forge`: `bun test --path-ignore-patterns='.claude/**' ./src/AgentBoundary.spec.ts
-./src/ImportDirection.spec.ts` passes. In `apps/gaia`: `bun test architecture/AgentVendorNames.spec.ts` passes. At the root:
-`bun install --frozen-lockfile`, then `bun run verify` is green. No product code changed: only the three guard specs,
+**Done when.** In `apps/forge`: `bun test --path-ignore-patterns='.claude/**' ./architecture/AgentBoundary.spec.ts
+./architecture/ImportDirection.spec.ts` passes. In `apps/gaia`: `bun test architecture/AgentVendorNames.spec.ts` passes. At the root:
+`bun install --frozen-lockfile`, then `bun run verify` is green. No product code changed: only the three architecture tests,
 the fake adapter's header and the two rule files.
 
 ### WP2.23 The adapter reads its own transcripts
@@ -1771,7 +1771,7 @@ the planted lost subagents are listed and counted. `UsageCommand.transcripts.spe
 `--transcripts` folder handed to the adapter.
 
 **Done when.** In `apps/forge`: `bun test --path-ignore-patterns='.claude/**'
---path-ignore-patterns='**/*.integration.spec.ts' ./src/AgentBoundary.spec.ts ./src/ImportDirection.spec.ts
+--path-ignore-patterns='**/*.integration.spec.ts' ./architecture/AgentBoundary.spec.ts ./architecture/ImportDirection.spec.ts
 ./src/lib/claude-code/ ./src/services/overseer/JobLiveFactsReader.spec.ts ./src/services/overseer/JobTranscript.spec.ts
 ./cli/measurement/` passes with this package's entries removed from both allowlists; `git grep -n -i
 "claudeConfigFolder" -- apps/forge/cli apps/forge/src ':!apps/forge/src/lib/claude-code'` prints nothing; `git grep -n
@@ -1807,7 +1807,7 @@ reads a variable by the name the adapter gives.
    becomes `agentVariableIsSet(name: string): boolean`. Their doc comments say the agent adapter names the variable.
 2. The adapter reads its configuration folder variable itself: `claudeCodeAdapterFor(process.platform,
    agentVariableOf)` at the seam (`CommandContext.ts:79`), the adapter calling the reader with its own name. The seam's
-   two lines stay the guard's only permanent entries; rewrite the key of the `:79` entry to the line's new text. The
+   two lines stay the architecture test's only permanent entries; rewrite the key of the `:79` entry to the line's new text. The
    comments of `agentAdapter` (`:73`) and of `agentAdapterOfThisProcess` (`:77`) name no vendor: "the agent port's
    adapter, or the scripted fake agent under the fake-agent switch" and "the one place outside the agent port's
    adapter that chooses it"; the seam's code lines are the only lines of the file that name the vendor.
@@ -1833,7 +1833,7 @@ credentials and a planted repair. `OverseerDrivePass.apiBilling.spec.ts` passes 
 `BillingStepModel.spec.ts` and `BillingStep.dom.tsx`: the new sentences.
 
 **Done when.** In `apps/forge`: `bun test --path-ignore-patterns='.claude/**'
---path-ignore-patterns='**/*.integration.spec.ts' ./src/AgentBoundary.spec.ts ./src/ImportDirection.spec.ts
+--path-ignore-patterns='**/*.integration.spec.ts' ./architecture/AgentBoundary.spec.ts ./architecture/ImportDirection.spec.ts
 ./src/lib/claude-code/ ./src/shared/ ./cli/overseer/OverseerWording*.spec.ts
 ./cli/overseer/OverseerDrivePass.apiBilling.spec.ts` passes with this package's entries removed, and
 `bun run record src/shared/Environment.ts` passes (the boundary that runs the changed
@@ -1903,7 +1903,7 @@ answered `version-mismatch`. The delivery specs over recorded Talos stages: an e
 ':!*.dom.tsx' ':!*/testing/*' ':!*.json'` prints nothing: it leaves out the specs, the testing helpers and the recorded
 stages, which still hold the logged `close` entry, and `src/lib/talos/`, which logs it. In `apps/forge`,
 `bun test --path-ignore-patterns='.claude/**' --path-ignore-patterns='**/*.integration.spec.ts'
-./src/AgentBoundary.spec.ts ./src/lib/talos/ ./src/lib/claude-code/ ./src/services/overseer/ ./cli/overseer/` passes
+./architecture/AgentBoundary.spec.ts ./src/lib/talos/ ./src/lib/claude-code/ ./src/services/overseer/ ./cli/overseer/` passes
 with this package's entries removed, and `bun run record src/lib/talos/Talos.ts` passes (it runs the changed
 `Talos.agents.integration.spec.ts`); verification step 1 of the stage reads protocol 2 from here on; at the root,
 `bun install --frozen-lockfile` and `bun run verify` are green.
@@ -1973,7 +1973,7 @@ carries the flag. `QuestionPanelModel.spec.ts` and `HeaderModel.spec.ts`: the fl
 what they did before.
 
 **Done when.** In `apps/forge`: `bun test --path-ignore-patterns='.claude/**'
---path-ignore-patterns='**/*.integration.spec.ts' ./src/AgentBoundary.spec.ts ./src/lib/claude-code/
+--path-ignore-patterns='**/*.integration.spec.ts' ./architecture/AgentBoundary.spec.ts ./src/lib/claude-code/
 ./src/lib/tracker-model/ ./src/services/overseer/JobTranscript.spec.ts ./cli/decisions/ ./bridge/` passes with this
 package's entries removed; at the root, `bun install --frozen-lockfile` and
 `bun run verify` are green.
@@ -2025,14 +2025,14 @@ belongs with the guard.
 5. `UNSTARTABLE_GUARD_WORDS` names no vendor tool: "shell commands and web fetches" and "file edits". The wording of
    items 4 and 5 is assumption 6 of "Needs the owner".
 6. The port names no vendor tool: `WorkerProfile.shellNetworkDomains`, and its comments as listed. After this package
-   the guard's `port-tool-word` form finds nothing in `src/lib/agent-launch/` or `src/lib/talos/`.
+   the architecture test's `port-tool-word` form finds nothing in `src/lib/agent-launch/` or `src/lib/talos/`.
 
 **Specs.** `ClaudeHookInput.spec.ts` takes every vendor-JSON case of the two hook specs: each tool's call, malformed
 domains, a missing path, the denial line. `BashDomainsHook.spec.ts` and `StageEditsHook.spec.ts` drive the guards with
 planted neutral calls through a planted adapter: each verdict as before, and a deny on an unreadable input.
 
 **Done when.** In `apps/forge`: `bun test --path-ignore-patterns='.claude/**'
---path-ignore-patterns='**/*.integration.spec.ts' ./src/AgentBoundary.spec.ts ./src/lib/claude-code/ ./cli/hooks/
+--path-ignore-patterns='**/*.integration.spec.ts' ./architecture/AgentBoundary.spec.ts ./src/lib/claude-code/ ./cli/hooks/
 ./src/services/overseer/JobLaunch*.spec.ts ./src/services/overseer/WorkerProfiles*.spec.ts` passes with this package's
 entries removed, and `bun run record src/services/overseer/GuardCommand.ts` passes (it runs the changed
 `BashDomainsHook.emptySearchPath.integration.spec.ts`, `src/testing/BoundarySpecs.ts:170`, and starts no agent);
@@ -2075,7 +2075,7 @@ name and file name refused at the root and at any depth, a planted attribution p
 refused. `ClaudeCodeAdapter.spec.ts`: the two values.
 
 **Done when.** In `apps/forge`: `bun test --path-ignore-patterns='.claude/**'
---path-ignore-patterns='**/*.integration.spec.ts' ./src/AgentBoundary.spec.ts ./src/lib/claude-code/
+--path-ignore-patterns='**/*.integration.spec.ts' ./architecture/AgentBoundary.spec.ts ./src/lib/claude-code/
 ./src/services/overseer/WorkerProfiles*.spec.ts ./src/services/lifecycle/` passes with this package's entries removed;
 at the root, `bun install --frozen-lockfile` and `bun run verify` are green.
 
@@ -2140,7 +2140,7 @@ older install version is refused as any other mismatch. The pass specs: no notic
 **Done when.** This prints nothing:
 `git grep -n -i "managed block\|claude-md-block\|RetiredClaudeInstall\|RetiredSkillStep\|RetiredAgentHost" -- apps/forge/src apps/forge/cli apps/gaia/src`.
 In `apps/forge`, `bun test --path-ignore-patterns='.claude/**' --path-ignore-patterns='**/*.integration.spec.ts'
-./src/AgentBoundary.spec.ts ./src/ImportDirection.spec.ts ./cli/adoption/ ./cli/setup/ ./cli/InstallVersionCheck.spec.ts
+./architecture/AgentBoundary.spec.ts ./architecture/ImportDirection.spec.ts ./cli/adoption/ ./cli/setup/ ./cli/InstallVersionCheck.spec.ts
 ./cli/overseer/` passes with this package's entries removed (no integration spec of `cli/setup/` names the retired step
 or the step numbers at `3274ac88`); in `apps/gaia`, `bun test architecture/AgentVendorNames.spec.ts
 src/adapters/page-api/` passes with its one entry removed; at the root, `bun install --frozen-lockfile` and
@@ -2211,7 +2211,7 @@ installer and assert the same report. `InstalledFileGeneration.spec.ts`: a plant
 bundles; with Claude Code's the installed texts equal `cli/FrozenInstalledSurface.json`.
 
 **Done when.** In `apps/forge`: `bun test --path-ignore-patterns='.claude/**'
---path-ignore-patterns='**/*.integration.spec.ts' ./src/AgentBoundary.spec.ts ./src/ImportDirection.spec.ts
+--path-ignore-patterns='**/*.integration.spec.ts' ./architecture/AgentBoundary.spec.ts ./architecture/ImportDirection.spec.ts
 ./src/lib/claude-code/ ./cli/adoption/ ./cli/InstalledFiles.spec.ts ./cli/InstalledSurface.spec.ts
 ./cli/HelpText.spec.ts` passes with this package's entries removed, and `VENDOR_ADAPTER_IMPORTERS_UNTIL_CLOSED` is
 empty and deleted; `git grep -n -e '/{{' -e 'SKILL\.md' -- apps/forge/skills apps/forge/resources apps/forge/cli
@@ -2288,7 +2288,7 @@ passes; `bun run record src/lib/gate-confinement/` passes (the boundary that lis
 
 **Purpose.** The last reaches are words: refusals, help, prompts the sessions read, and comments (reaches H2 to H5, I1,
 I2, G3, the comment of `src/services/lifecycle/TokenCrediting.ts:47`, and every comment finding WP2.22 gave this
-package). After this package the guard's allowlist holds only its permanent entries, and no comment outside the adapter
+package). After this package the architecture test's allowlist holds only its permanent entries, and no comment outside the adapter
 names the vendor's program, flags, tools or hook events.
 
 **Files.** Lines at `3274ac88`; reread on the tree you run on.
@@ -2306,7 +2306,7 @@ names the vendor's program, flags, tools or hook events.
   `src/services/overseer/JobResumption.ts:2` (`--resume <id>`), `src/services/overseer/ApiBillingStops.ts:3`
   (`--max-budget-usd`) and `src/lib/tracker-model/JobControls.ts:180` (`--resume`); the program in
   `src/lib/tracker-model/@types/Ticket.ts:17`, `src/lib/data-folders/PosixDataFolders.ts:15` and
-  `src/services/lifecycle/TokenCrediting.ts:47`. Lines WP2.13 to WP2.16 rewrote are found again by the guard and by
+  `src/services/lifecycle/TokenCrediting.ts:47`. Lines WP2.13 to WP2.16 rewrote are found again by the architecture test and by
   the greps of "Done when".
 - Change the prompts and the template: `resources/prompts/AirlockReportMessage.md:1`, `AirlockReReviewMessage.md:16`,
   `HumanCodeReviewReReviewMessage.md:16`, `ProductOwnerPrompt.md:7`, `:12`, `ReviewPrompt.md:12`, `:18`, `:26`,
@@ -2350,7 +2350,7 @@ names the vendor's program, flags, tools or hook events.
 `architecture/ProseWrap.spec.ts` pass on the changed prompts.
 
 **Done when.** `ALLOWED_AGENT_LINES` holds only its `Permanent:` entries (the seam's two lines) and Gaia's allowlist is
-empty; the guard reads every comment line with every form (WP2.22 item 3), so a comment that names the vendor fails it.
+empty; the architecture test reads every comment line with every form (WP2.22 item 3), so a comment that names the vendor fails it.
 The greps below hold what the forms leave out (`--resume` and `--max-budget-usd`, forge's own option names too) and
 read the tree again by hand. They print, comment lines included:
 - `git grep -n -i -P "claude|anthropic" -- apps/forge/src apps/forge/cli apps/forge/bridge apps/forge/resources
@@ -2370,7 +2370,7 @@ read the tree again by hand. They print, comment lines included:
   "Bash ×4").
 
 In `apps/forge`, `bun test --path-ignore-patterns='.claude/**' --path-ignore-patterns='**/*.integration.spec.ts'
-./src/AgentBoundary.spec.ts ./src/ImportDirection.spec.ts ./src/ProseWrap.spec.ts ./cli/` passes; in `apps/gaia`,
+./architecture/AgentBoundary.spec.ts ./architecture/ImportDirection.spec.ts ./architecture/ProseWrap.spec.ts ./cli/` passes; in `apps/gaia`,
 `bun test architecture/AgentVendorNames.spec.ts` passes; at the root, `bun install --frozen-lockfile` and `bun run verify` are
 green.
 
@@ -3024,7 +3024,7 @@ export interface AgentAdapter {
 - The cohort maths is `cli/measurement/usage/utils/UsageCohortUtil.ts` (WP2.23), over `SubagentUsage`; the `usage`
   verb's own row keeps `bashEditScriptCount` and its `--json` key.
 - `WorkerProfile.bashNetworkDomains` becomes `shellNetworkDomains` (WP2.27); the port's comments name no vendor tool.
-- Guards (WP2.22): `apps/forge/architecture/AgentBoundary.spec.ts`, over code and comment lines (`ALLOWED_AGENT_LINES`,
+- Architecture tests (WP2.22): `apps/forge/architecture/AgentBoundary.spec.ts`, over code and comment lines (`ALLOWED_AGENT_LINES`,
   permanent at the end: the two lines of `cli/CommandContext.ts`), over the testing helpers (`ALLOWED_TESTING_LINES`,
   permanent at the end: the lines that record, stamp, trap or smoke-test the real program, this repository's own agent
   files and the fixtures the fake agent's adapter reads) and over the probe files by file (`AGENT_EVIDENCE_FILES`);
@@ -3110,7 +3110,7 @@ export interface AgentAdapter {
 - **Reading a Watcher's record as Talos's.** Old boards hold `watcher-<n>.json` and old event logs with origin
   `watcher`. Nothing reads them; a format-2 reader reports an old log as malformed, which is a verdict, not a throw.
   Boards are set up anew.
-- **The planted `watcher-lost` in the names guard.** `architecture/ComponentNames.spec.ts` plants `watcher-lost` as allowed.
+- **The planted `watcher-lost` in the names architecture test.** `architecture/ComponentNames.spec.ts` plants `watcher-lost` as allowed.
   Adding the bare word `watcher` to `RETIRED_NAMES` breaks stage 9's ownership of that value; add only the code names.
 - **A monitor key Gaia does not name.** Gaia's `ShapeOf` names every key of a document
   (`apps/gaia/src/adapters/forge-api/utils/DocumentShapeUtil.ts:24-25`), so `interruption` on `MonitorJobDocument`
@@ -3134,7 +3134,7 @@ export interface AgentAdapter {
 - **A closed input as the quit act.** Closing stdin ends a Claude Code session at the end of its turn; another agent
   may need a line. The Overseer sends `quit-at-turn-end`, and Talos applies the launch's own act (WP2.25). An `input`
   `close` sent to end a session brings the vendor's act back into the core.
-- **A word of the port read as a tool name.** The guard's `port-tool-word` form makes `src/lib/agent-launch/` and
+- **A word of the port read as a tool name.** The architecture test's `port-tool-word` form makes `src/lib/agent-launch/` and
   `src/lib/talos/` name no vendor tool, so a comment there that starts a sentence with "Read" or "Write" is a finding.
   Reword the sentence ("Reads the record"), never narrow the form or allowlist the line: no key may name these folders
   but the one carve-out, `src/lib/agent-launch/WorkerProfile.ts`, until WP2.27 renames `bashNetworkDomains`, rewords
@@ -3164,7 +3164,7 @@ bun test --path-ignore-patterns='.claude/**' ./src/lib/talos/
 bun test --path-ignore-patterns='.claude/**' ./src/services/overseer/TalosChildren.spec.ts ./src/services/overseer/TalosStart.spec.ts ./src/services/overseer/LeaseRenewal.spec.ts ./src/services/overseer/TalosLines.spec.ts ./src/services/overseer/MergedTreeGateRuns.spec.ts
 bun test --path-ignore-patterns='.claude/**' ./src/lib/tracker-model/ ./src/services/render/
 bun test --path-ignore-patterns='.claude/**' ./cli/overseer/
-bun test --path-ignore-patterns='.claude/**' --path-ignore-patterns='**/*.integration.spec.ts' ./src/AgentBoundary.spec.ts ./src/ImportDirection.spec.ts ./src/lib/claude-code/ ./cli/hooks/ ./cli/adoption/ ./cli/measurement/ ./cli/decisions/
+bun test --path-ignore-patterns='.claude/**' --path-ignore-patterns='**/*.integration.spec.ts' ./architecture/AgentBoundary.spec.ts ./architecture/ImportDirection.spec.ts ./src/lib/claude-code/ ./cli/hooks/ ./cli/adoption/ ./cli/measurement/ ./cli/decisions/
 (cd ../gaia && bun test architecture/AgentVendorNames.spec.ts)
 bun run record src/lib/talos/Talos.ts
 bun run record src/services/overseer/TalosStart.ts
@@ -3333,5 +3333,5 @@ Two acts are the owner's alone:
   labels as asked, so the round trip is expected to hold, but no recording of a recommended option's answer was read.
 - Whether bubblewrap on Linux refuses a nested sandbox as Seatbelt does: WP2.31 never nests, so it does not depend on
   it. The Seatbelt refusal was observed once by the planning session and is held by WP2.31's contract spec.
-- That every hit of the guard's forms is listed in WP2.22: the measurement at `710ae4f9` and the recheck at `3274ac88`
+- That every hit of the architecture test's forms is listed in WP2.22: the measurement at `710ae4f9` and the recheck at `3274ac88`
   were text searches; WP2.22's scan of the tree after WP2.16 is the list.

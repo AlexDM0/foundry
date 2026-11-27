@@ -122,7 +122,7 @@ test('every component over eight required props is one a reviewer accepted, and 
   expect(requiredPropsSentencesOf(COMPONENTS, COMPONENTS_REVIEWED_OVER_THE_LIMIT)).toEqual([]);
 });
 
-describe('the guard still counts and names each form, planted in memory', () => {
+describe('the test still counts and names each form, planted in memory', () => {
   const requiredPropNames = (count: number): string => Array.from({ length: count }, (_unused, i) => `readonly required${i}: string;`).join(' ');
   const PLANTED = componentsOf([
     {

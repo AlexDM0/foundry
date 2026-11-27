@@ -1,7 +1,8 @@
 /**
  * No spec or test helper sleeps a fixed time or counts tries before an assertion: its verdict would hang on how fast the machine is. A wait
  * goes through `src/testing/WaitUntil.ts`, on the state itself. Each form is planted and watched failing; the allowlist, each entry with why it
- * stays, is exact both ways. Comments are not scanned, so a docblock may name a sleep; `docs/development/guards-and-testing.md` holds the audit.
+ * stays, is exact both ways. Comments are not scanned, so a docblock may name a sleep;
+ * `docs/development/architecture-tests-and-testing.md` holds the audit.
  */
 import { expect, test } from 'bun:test';
 
@@ -26,7 +27,7 @@ const KEPT_FIXED_WAITS: Readonly<Record<string, string>> = {
   'src/lib/talos/LocalEndpoint.answers.integration.spec.ts: const timer = setTimeout(() => resolve(false), NEVER_ARRIVES_WAIT_MILLISECONDS);':
     'A negative recorded as an answer: the end of a connection never reaches a client that does not read, so there is no state to wait on.',
   'architecture/TalosMainThread.spec.ts: [\'a blocking sleep\', \'Bun.sleepSync(50);\', \'sleepSync\'],':
-    'A line planted in a scanned source text, never run: the main-thread guard must name it.',
+    'A line planted in a scanned source text, never run: the main-thread test must name it.',
   'architecture/TalosMainThread.spec.ts: [\'an atomics wait\', \'Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 50);\', \'Atomics.wait\'],':
     'The same planted form.',
   'src/services/store/LocalFilesBoardStore.integration.spec.ts: Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0);':

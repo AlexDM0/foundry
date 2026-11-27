@@ -2,7 +2,7 @@
  * Only process-run starts another program, and every spec reaches other programs through the recorded-runs mock. A direct start is
  * allowed only in the exact list below, and the real boundary only in shipping code, in a recording spec and in the record command; both
  * lists are exact both ways. A reach is found in a file's syntax tree, so a sentence or a string is not one. The scan first proves it saw
- * the repository, and each form is planted to prove the guard names it.
+ * the repository, and each form is planted to prove the test names it.
  */
 import { readFileSync }           from 'node:fs';
 import { join }                   from 'node:path';
@@ -187,7 +187,7 @@ describe('the programs a file may start', () => {
   });
 });
 
-describe('the guard on program starts', () => {
+describe('the test on program starts', () => {
   const plantedForms: readonly (readonly [string, string])[] = [
     ['Bun.spawn(["git", "status"]);', 'Bun.spawn'],
     ['Bun.spawnSync(["git", "status"]);', 'Bun.spawnSync'],

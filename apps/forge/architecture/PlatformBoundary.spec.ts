@@ -104,7 +104,7 @@ const ALLOWED_PLATFORM_LINES: Readonly<Record<string, string>> = {
   'src/lib/process-identity/ProcessSupervision.ts: detached-spawn: readonly detached:     boolean;':
     'The port\'s type, not a spawn.',
   'src/lib/process-identity/UnsupportedProcessSupervision.ts: detached-spawn: spawnOptionsFor:           () => ({ detached: false }),':
-    'The answer for a platform with no adapter; the guard reads this name as no adapter.',
+    'The answer for a platform with no adapter; the test reads this name as no adapter.',
   'src/lib/owner-only-files/PosixOwnerOnlyFiles.ts: mode-change: import { chmodSync, mkdirSync, statSync } from \'node:fs\';':
     'The real primitive the POSIX adapter of the OwnerOnlyFiles port runs on.',
   'src/lib/owner-only-files/PosixOwnerOnlyFiles.ts: mode-change: changeMode: chmodSync,':
@@ -268,7 +268,7 @@ describe('the allowlist is exact both ways', () => {
   });
 });
 
-describe('the guard names each form, planted in memory', () => {
+describe('the test names each form, planted in memory', () => {
   const plantedPath = 'src/services/hephaestus/Planted.ts';
 
   const plantedForms: readonly (readonly [string, string, readonly PlatformForm[]])[] = [

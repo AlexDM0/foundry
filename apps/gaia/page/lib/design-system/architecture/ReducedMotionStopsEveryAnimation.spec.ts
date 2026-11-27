@@ -3,7 +3,7 @@
  * other than `none` outside `@media (prefers-reduced-motion: no-preference)` is matched, for each selector of its list, by a rule inside
  * `@media (prefers-reduced-motion: reduce)` that sets an animation on the same subject and wins the cascade: a higher specificity,
  * or the same one later in the same stylesheet. A reduce rule of lower specificity loses to the rule it means to stop, which is
- * the case this guard was written for. The scan proves it found a floor of animated rules, and each form is planted in memory.
+ * the case this test was written for. The scan proves it found a floor of animated rules, and each form is planted in memory.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -233,7 +233,7 @@ describe('the scan itself', () => {
   });
 });
 
-describe('the guard, planted in memory', () => {
+describe('the test, planted in memory', () => {
   const sentencesOfPlanted = (stylesheetText: string, guaranteedAncestors: readonly string[] = []): string[] =>
     unstoppedAnimationSentencesOf(rulesOf('planted.css', stylesheetText), guaranteedAncestors);
 

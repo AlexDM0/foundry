@@ -1,4 +1,4 @@
-/** Test-only: the package's own files as the guard specs read them, by their path from the package folder, `node_modules` left out. */
+/** Test-only: the package's own files as the architecture tests read them, by their path from the package folder, `node_modules` left out. */
 import { readdirSync, readFileSync } from 'node:fs';
 import { join }                      from 'node:path';
 

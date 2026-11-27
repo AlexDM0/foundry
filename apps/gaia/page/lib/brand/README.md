@@ -51,5 +51,6 @@ names them.
 ## Verify
 
 The host's scripts run the library's tooling: its two TypeScript projects (`tsconfig.json`, the library that ships on the DOM library
-only, and `tsconfig.spec.json`, its specs), ESLint from this folder under `eslint.config.js`, the guard specs under `bun test`, and the
-mark's DOM spec under happy-dom through `testing/RunDomSpecs.ts`. Its Storybook runs with `--config-dir` on `.storybook/`.
+only, and `tsconfig.spec.json`, its specs), ESLint from this folder under `eslint.config.js`, the architecture tests in `architecture/`
+under `test:architecture`, and the mark's DOM spec under happy-dom through `testing/RunDomSpecs.ts`. Its Storybook runs with
+`--config-dir` on `.storybook/`.
