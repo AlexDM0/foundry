@@ -102,26 +102,21 @@ import { EntityFoldersUtil }                from '../../shared/utils/EntityFolde
 import { ProjectPathsUtil }                 from '../../shared/utils/ProjectPathsUtil.ts';
 import { StepProblemFactsUtil }             from '../../shared/utils/StepProblemFactsUtil.ts';
 import { AgentTools, type ToolNamingSteps } from '../control/AgentTools.ts';
-import {
-  agentConfigTouchedBeforeLaunch,
-  type CrossingStageScope,
-  type CustomsSubject,
-  launchSnapshotOf,
-  pathsTheBranchChangedPastTargetOf,
-  type ProjectScope,
-  reachPathsChangedSinceOf,
-  type RefMovesAllowed,
-  refMovesAllowedOf,
-  retriedFailedBuildJobIdOf,
-  sealOf,
-  sharedRepositoryRefsOf,
-  type CustomsVerdict,
-  type VerificationCheck,
-  watchedRefsOf,
-  type WritableFolders,
-  CUSTOMS_CHECKS,
-  clearCustoms
-} from '../lifecycle/Customs.ts';
+import type {
+  CrossingStageScope,
+  CustomsSubject,
+  ProjectScope,
+  WritableFolders
+} from '../lifecycle/@types/CustomsSubject.ts';
+import type { CustomsVerdict, VerificationCheck }                                from '../lifecycle/@types/CustomsVerdict.ts';
+import type { RefMovesAllowed }                                                  from '../lifecycle/@types/RefMoves.ts';
+import { clearCustoms, CUSTOMS_CHECKS }                                          from '../lifecycle/Customs.ts';
+import { agentConfigTouchedBeforeLaunch }                                        from '../lifecycle/CustomsAgentConfigCheck.ts';
+import { retriedFailedBuildJobIdOf }                                             from '../lifecycle/CustomsHistoryChecks.ts';
+import { launchSnapshotOf }                                                      from '../lifecycle/CustomsLaunchSnapshot.ts';
+import { pathsTheBranchChangedPastTargetOf }                                     from '../lifecycle/CustomsReadings.ts';
+import { refMovesAllowedOf, sharedRepositoryRefsOf, watchedRefsOf }              from '../lifecycle/CustomsRefMovesCheck.ts';
+import { reachPathsChangedSinceOf, sealOf }                                      from '../lifecycle/CustomsScopeCheck.ts';
 import { type GateConfinement, GateRun }                                         from '../lifecycle/GateRun.ts';
 import type { SharedRepositoryLanding }                                          from '../lifecycle/Landing.ts';
 import { CONFLICT_WITHOUT_ONE_OWNER_PARK_CAUSE, MergeRun, type ReReviewVerdict } from '../lifecycle/MergeRun.ts';

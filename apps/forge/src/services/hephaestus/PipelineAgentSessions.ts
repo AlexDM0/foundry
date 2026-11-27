@@ -33,25 +33,21 @@ import { GitWorktrees, REAL_WORKTREE_REMOVAL_PRIMITIVES, type WorktreeRemovalPri
 import type { ShellLineGrammar }                                                          from '../../lib/shell-line/ShellLine.ts';
 import type { BranchNames }                                                               from '../../shared/BranchNames.ts';
 import { PRODUCT_NAMES }                                                                  from '../../shared/constants/ProductNames.ts';
-import {
-  clearCustoms,
-  launchSnapshotOf,
-  refMovesAllowedOf,
-  sharedRepositoryRefsOf,
-  watchedRefsOf,
-  type AgentNaming,
-  type CustomsVerdict,
-  type RefMovesAllowed
-} from '../lifecycle/Customs.ts';
-import type { SharedRepositoryLanding }       from '../lifecycle/Landing.ts';
-import type { BoardTransaction }              from '../tracker/BoardTransaction.ts';
-import { projectLocationOf }                  from '../tracker/ProjectLocation.ts';
-import type { Workspace }                     from '../tracker/Workspace.ts';
-import { ConstitutionCommits }                from './ConstitutionCommits.ts';
-import { GroupWorktrees }                     from './GroupWorktrees.ts';
-import { jobFileInDataFolderOf, jobFolderIn } from './HephaestusFiles.ts';
-import { CONSTITUTION_DEFAULT_PATH }          from './InstructionFiles.ts';
-import { UnreadableJobFileIncident }          from './UnreadableJobFileIncident.ts';
+import type { AgentNaming }                                                               from '../lifecycle/@types/CustomsSubject.ts';
+import type { CustomsVerdict }                                                            from '../lifecycle/@types/CustomsVerdict.ts';
+import type { RefMovesAllowed }                                                           from '../lifecycle/@types/RefMoves.ts';
+import { clearCustoms }                                                                   from '../lifecycle/Customs.ts';
+import { launchSnapshotOf }                                                               from '../lifecycle/CustomsLaunchSnapshot.ts';
+import { refMovesAllowedOf, sharedRepositoryRefsOf, watchedRefsOf }                       from '../lifecycle/CustomsRefMovesCheck.ts';
+import type { SharedRepositoryLanding }                                                   from '../lifecycle/Landing.ts';
+import type { BoardTransaction }                                                          from '../tracker/BoardTransaction.ts';
+import { projectLocationOf }                                                              from '../tracker/ProjectLocation.ts';
+import type { Workspace }                                                                 from '../tracker/Workspace.ts';
+import { ConstitutionCommits }                                                            from './ConstitutionCommits.ts';
+import { GroupWorktrees }                                                                 from './GroupWorktrees.ts';
+import { jobFileInDataFolderOf, jobFolderIn }                                             from './HephaestusFiles.ts';
+import { CONSTITUTION_DEFAULT_PATH }                                                      from './InstructionFiles.ts';
+import { UnreadableJobFileIncident }                                                      from './UnreadableJobFileIncident.ts';
 
 const PIPELINE_AGENT_KIND = 'pipeline-agent';
 

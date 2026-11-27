@@ -39,7 +39,8 @@ import { useRecordedGit }                                    from '../../testing
 import { GIT_SCENARIOS }                                     from '../../testing/RecordedGitScenarios.ts';
 import { createScratchDirectory, removeScratchDirectory }    from '../../testing/ScratchWorkspace.ts';
 import { testWhenGitIsRecorded }                             from '../../testing/ToolGuard.ts';
-import { definitionFileMatcherOf, launchSnapshotOf }         from '../lifecycle/Customs.ts';
+import { definitionFileMatcherOf }                           from '../lifecycle/CustomsDefinitionFilesCheck.ts';
+import { launchSnapshotOf }                                  from '../lifecycle/CustomsLaunchSnapshot.ts';
 import type { BoardTransaction }                             from '../tracker/BoardTransaction.ts';
 import { createLocalRecordAllocation }                       from '../tracker/LocalRecordAllocation.ts';
 import { jobFolderIn }                                       from './HephaestusFiles.ts';

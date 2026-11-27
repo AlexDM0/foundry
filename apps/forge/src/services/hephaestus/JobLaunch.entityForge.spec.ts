@@ -46,7 +46,7 @@ import { NO_LISTED_TICKET_LOCATIONS, NO_UNREADABLE_RECORDS }                    
 import { useRecordedGit }                                                                  from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }                                  from '../../testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }                                                       from '../../testing/ToolGuard.ts';
-import { launchSnapshotOf }                                                                from '../lifecycle/Customs.ts';
+import { launchSnapshotOf }                                                                from '../lifecycle/CustomsLaunchSnapshot.ts';
 import type { BoardTransaction }                                                           from '../tracker/BoardTransaction.ts';
 import { createLocalRecordAllocation }                                                     from '../tracker/LocalRecordAllocation.ts';
 import { jobFolderIn }                                                                     from './HephaestusFiles.ts';

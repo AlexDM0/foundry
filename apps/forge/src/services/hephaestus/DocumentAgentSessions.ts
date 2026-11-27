@@ -27,7 +27,9 @@ import type { WorkerProfile }                                                   
 import { GitProcess }                                                                     from '../../lib/git/GitProcess.ts';
 import { GitWorktrees, REAL_WORKTREE_REMOVAL_PRIMITIVES, type WorktreeRemovalPrimitives } from '../../lib/git/GitWorktrees.ts';
 import type { ControlContext }                                                            from '../../shared/@types/ControlContext.ts';
-import { clearCustoms, launchSnapshotOf, type CustomsVerdict }                            from '../lifecycle/Customs.ts';
+import type { CustomsVerdict }                                                            from '../lifecycle/@types/CustomsVerdict.ts';
+import { clearCustoms }                                                                   from '../lifecycle/Customs.ts';
+import { launchSnapshotOf }                                                               from '../lifecycle/CustomsLaunchSnapshot.ts';
 import type { BoardTransaction }                                                          from '../tracker/BoardTransaction.ts';
 import { projectLocationOf }                                                              from '../tracker/ProjectLocation.ts';
 import type { BoardChildren }                                                             from './BoardChildren.ts';

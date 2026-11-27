@@ -14,7 +14,7 @@ import { ENTITY_FORGE_MAIN_LINE }                                               
 import { ENTITY_FORGE_SCENARIO_COMMITS, ENTITY_FORGE_SCENARIOS, type EntityForgeScenario } from '../../../testing/EntityForgeScenarios.ts';
 import { NO_LISTED_TICKET_LOCATIONS, NO_UNREADABLE_RECORDS }                               from '../../../testing/FixtureRecordAllocation.ts';
 import type { RecordedGit }                                                                from '../../../testing/RecordedGit.ts';
-import { launchSnapshotOf }                                                                from '../../lifecycle/Customs.ts';
+import { launchSnapshotOf }                                                                from '../../lifecycle/CustomsLaunchSnapshot.ts';
 import type { BoardTransaction }                                                           from '../../tracker/BoardTransaction.ts';
 import { createLocalRecordAllocation }                                                     from '../../tracker/LocalRecordAllocation.ts';
 import { jobFolderIn }                                                                     from '../HephaestusFiles.ts';

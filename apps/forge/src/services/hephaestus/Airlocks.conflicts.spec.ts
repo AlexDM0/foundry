@@ -22,7 +22,7 @@ import {
 import { useRecordedGit }            from '../../testing/RecordedGit.ts';
 import { GIT_SCENARIOS }             from '../../testing/RecordedGitScenarios.ts';
 import { describeWhenGitIsRecorded } from '../../testing/ToolGuard.ts';
-import type { ProjectScope }         from '../lifecycle/Customs.ts';
+import type { ProjectScope }         from '../lifecycle/@types/CustomsSubject.ts';
 import { AirlockAnswerSets }         from './testing/AirlockAnswerSets.ts';
 import {
   createRecordedAirlocksHarness,

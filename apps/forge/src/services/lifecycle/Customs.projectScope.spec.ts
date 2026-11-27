@@ -54,26 +54,21 @@ import {
   TWO_TRACKER_SHARED_PACKAGE_SOURCE_FILE
 } from '../../testing/TwoTrackerFixture.ts';
 import { TWO_TRACKER_SCENARIOS } from '../../testing/TwoTrackerScenarios.ts';
-import {
-  agentConfigPathsAmong,
-  CUSTOMS_CHECKS,
-  type ConstitutionOwnership,
-  type CustomsSubject,
-  dataFolderPathsAmong,
-  definitionFileMatcherOf,
-  definitionFilePatternExpressionOf,
-  foreignRefsMovedOf,
-  launchSnapshotOf,
-  pathsOutsideHomeAndReachOf,
-  type ProjectScope,
-  type RefMovesAllowed,
-  refMovesAllowedOf,
-  pathsOutsideWritableFoldersOf,
-  type VerificationCheck,
-  watchedRefsOf,
-  type WatchedRefs,
-  type WritableFolders
-} from './Customs.ts';
+import type {
+  ConstitutionOwnership,
+  CustomsSubject,
+  ProjectScope,
+  WritableFolders
+} from './@types/CustomsSubject.ts';
+import type { VerificationCheck }                                     from './@types/CustomsVerdict.ts';
+import type { RefMovesAllowed, WatchedRefs }                          from './@types/RefMoves.ts';
+import { CUSTOMS_CHECKS }                                             from './Customs.ts';
+import { agentConfigPathsAmong }                                      from './CustomsAgentConfigCheck.ts';
+import { dataFolderPathsAmong }                                       from './CustomsDataFolderCheck.ts';
+import { definitionFileMatcherOf, definitionFilePatternExpressionOf } from './CustomsDefinitionFilesCheck.ts';
+import { launchSnapshotOf }                                           from './CustomsLaunchSnapshot.ts';
+import { foreignRefsMovedOf, refMovesAllowedOf, watchedRefsOf }       from './CustomsRefMovesCheck.ts';
+import { pathsOutsideHomeAndReachOf, pathsOutsideWritableFoldersOf }  from './CustomsScopeCheck.ts';
 
 const { FORGE, GAIA } = TWO_TRACKER_PROJECTS;
 const { DATA_FOLDER } = PRODUCT_NAMES;

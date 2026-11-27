@@ -63,7 +63,7 @@ import { GIT_CALL_SHAPES, useRecordedGit }                  from '../../testing/
 import { createScratchDirectory, removeScratchDirectory }   from '../../testing/ScratchWorkspace.ts';
 import { talosChildReadingsWith }                           from '../../testing/TalosChildReadings.ts';
 import { describeWhenGitIsRecorded }                        from '../../testing/ToolGuard.ts';
-import { sealOf }                                           from '../lifecycle/Customs.ts';
+import { sealOf }                                           from '../lifecycle/CustomsScopeCheck.ts';
 import { CrossingStages }                                   from './CrossingStages.ts';
 import { DependentFixTickets }                              from './DependentFixTickets.ts';
 import { EntityDecisionAnswers }                            from './EntityDecisionAnswers.ts';

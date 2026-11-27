@@ -16,7 +16,7 @@ import type { Board }                                   from '../../domain/track
 import { ENTITY_DECISION_ANSWERS }                      from '../../domain/tracker-model/constants/EntityDecisionAnswers.ts';
 import { EntityOwnershipUtil, type PipelineEntities }   from '../../domain/tracker-model/utils/EntityOwnershipUtil.ts';
 import { TicketStageUtil }                              from '../../domain/tracker-model/utils/TicketStageUtil.ts';
-import type { CrossingStageScope, SealedChange }        from '../lifecycle/Customs.ts';
+import type { CrossingStageScope, SealedChange }        from '../lifecycle/@types/CustomsSubject.ts';
 import { jobFolderIn }                                  from './HephaestusFiles.ts';
 import { StoredFileUnreadable }                         from './StoredFileUnreadable.ts';
 

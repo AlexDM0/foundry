@@ -23,7 +23,7 @@ import { GitProcess }                                    from '../../lib/git/Git
 import { GitWorktrees }                                  from '../../lib/git/GitWorktrees.ts';
 import { TICKET_SECTION_PATTERNS }                       from '../../shared/constants/TicketSectionPatterns.ts';
 import { ReworkCountUtil }                               from '../../shared/rework/utils/ReworkCountUtil.ts';
-import { ticketIdFiledByRequest }                        from './Customs.ts';
+import { ticketIdFiledByRequest }                        from './CustomsReportChecks.ts';
 
 export interface ReviewPassRequest {
   board:             Board;

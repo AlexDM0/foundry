@@ -10,21 +10,17 @@ import { posix, win32 } from 'node:path';
 
 import { expect, test } from 'bun:test';
 
-import type { LogRecord }              from '../../domain/tracker-model/@types/LogRecord.ts';
-import { type GitPathStyle, GitPaths } from '../../lib/git/GitPaths.ts';
-import { fakeAgentAdapter }            from '../../testing/FakeAgentAdapter.ts';
-import {
-  agentConfigPathsAmong,
-  CHECKS_OF_ROLE,
-  commitMessageIsAttributed,
-  CUSTOMS_CHECKS,
-  type CustomsSubject,
-  definitionFilePatternExpressionOf,
-  foreignRefsMovedOf,
-  type RefMovesAllowed,
-  retriedFailedBuildJobIdOf,
-  type VerificationCheck
-} from './Customs.ts';
+import type { LogRecord }                                       from '../../domain/tracker-model/@types/LogRecord.ts';
+import { type GitPathStyle, GitPaths }                          from '../../lib/git/GitPaths.ts';
+import { fakeAgentAdapter }                                     from '../../testing/FakeAgentAdapter.ts';
+import type { CustomsSubject }                                  from './@types/CustomsSubject.ts';
+import type { VerificationCheck }                               from './@types/CustomsVerdict.ts';
+import type { RefMovesAllowed }                                 from './@types/RefMoves.ts';
+import { CHECKS_OF_ROLE, CUSTOMS_CHECKS }                       from './Customs.ts';
+import { agentConfigPathsAmong }                                from './CustomsAgentConfigCheck.ts';
+import { definitionFilePatternExpressionOf }                    from './CustomsDefinitionFilesCheck.ts';
+import { commitMessageIsAttributed, retriedFailedBuildJobIdOf } from './CustomsHistoryChecks.ts';
+import { foreignRefsMovedOf }                                   from './CustomsRefMovesCheck.ts';
 
 const AT = '2026-10-28T10:00:00+01:00';
 const TICKET_BODY = '## Report\nExample report.\n\n## Acceptance\nA1. The example page loads.\n';

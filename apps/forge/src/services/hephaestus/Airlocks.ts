@@ -55,7 +55,7 @@ import type { AirlockLimits }                                                  f
 import { RED_HANDOFF_RESUME_CALL_BUDGET }                                      from '../../shared/constants/HephaestusLimits.ts';
 import { EntityFoldersUtil }                                                   from '../../shared/utils/EntityFoldersUtil.ts';
 import { entityAssignmentRequestOf }                                           from '../control/EntityAssignmentRequest.ts';
-import type { AgentNaming }                                                    from '../lifecycle/Customs.ts';
+import type { AgentNaming }                                                    from '../lifecycle/@types/CustomsSubject.ts';
 import { LANDING_OUTCOME_OF_REFUSAL, Landing, type SharedRepositoryLanding }   from '../lifecycle/Landing.ts';
 import {
   MergeRun,

@@ -13,7 +13,7 @@ import { useRecordedGit }                                 from '../../testing/Re
 import { GIT_SCENARIOS }                                  from '../../testing/RecordedGitScenarios.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { testWhenGitIsRecorded }                          from '../../testing/ToolGuard.ts';
-import type { ProjectScope }                              from './Customs.ts';
+import type { ProjectScope }                              from './@types/CustomsSubject.ts';
 import { MergeRun }                                       from './MergeRun.ts';
 
 const PROJECT_PREFIX = 'apps/example';

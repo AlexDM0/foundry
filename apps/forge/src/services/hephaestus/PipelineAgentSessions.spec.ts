@@ -39,7 +39,7 @@ import { PIPELINE_AGENT_SNAPSHOT_FOLDER_NAME }                      from '../../
 import { GIT_SCENARIOS }                                            from '../../testing/RecordedGitScenarios.ts';
 import { createScratchDirectory, removeScratchDirectory }           from '../../testing/ScratchWorkspace.ts';
 import { testWhenGitIsRecorded }                                    from '../../testing/ToolGuard.ts';
-import { launchSnapshotOf }                                         from '../lifecycle/Customs.ts';
+import { launchSnapshotOf }                                         from '../lifecycle/CustomsLaunchSnapshot.ts';
 import type { BoardTransaction }                                    from '../tracker/BoardTransaction.ts';
 import type { Workspace }                                           from '../tracker/Workspace.ts';
 import { jobFolderIn }                                              from './HephaestusFiles.ts';

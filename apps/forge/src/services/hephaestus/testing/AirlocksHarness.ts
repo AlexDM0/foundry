@@ -27,7 +27,7 @@ import { queueOnCurrentGreen }                            from '../../../testing
 import { LIVE_HOLDERS_LOCK_TAKER }                        from '../../../testing/LockTakers.ts';
 import { createPlantedRepository }                        from '../../../testing/RecordedAirlockGit.ts';
 import { removeScratchDirectory }                         from '../../../testing/ScratchWorkspace.ts';
-import type { ProjectScope }                              from '../../lifecycle/Customs.ts';
+import type { ProjectScope }                              from '../../lifecycle/@types/CustomsSubject.ts';
 import type { SharedRepositoryLanding }                   from '../../lifecycle/Landing.ts';
 import {
   createAirlocks,

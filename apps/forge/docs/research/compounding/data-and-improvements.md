@@ -794,7 +794,7 @@ package from the repository root.
 | Committed content by hash, and the pictures | `src/adapters/tickets/CommittedContentFile.ts`, `src/domain/tracker-model/utils/TicketBodyHashUtil.ts`, `docs/cli.md` ("`<data>/committed-content/<hash>.json`", "`<data>/pictures/`") |
 | Shipped briefs rewritten on every refresh | `cli/adoption/TrackerRefresh.ts`, `cli/adoption/constants/AgentInstall.ts` |
 | What `advise` is given | `src/services/hephaestus/PipelineAgentSessions.ts` |
-| Customs checks | `src/services/lifecycle/Customs.ts` |
+| Customs checks | `src/services/lifecycle/Customs.ts` (the table) and its `Customs*Check.ts` and `Customs*Checks.ts` files beside it |
 | Job kinds and roles | `src/domain/tracker-model/@types/Job.ts` |
 | Decisions, incidents, notices | `src/domain/tracker-model/constants/DecisionAndIncidentVocabulary.ts`, `src/services/hephaestus/DrivePass.ts`, `docs/concepts/overview.md` |
 | The budget of a launch | `src/services/hephaestus/ApiBillingStops.ts` |

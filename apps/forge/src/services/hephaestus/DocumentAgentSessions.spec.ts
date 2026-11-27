@@ -49,7 +49,7 @@ import { GIT_SCENARIOS }                                                        
 import { createScratchDirectory, removeScratchDirectory }                               from '../../testing/ScratchWorkspace.ts';
 import { documentAgentJobFixture, documentMessageFixture, ticketDocumentRecordFixture } from '../../testing/TicketDocumentFixtures.ts';
 import { testWhenGitIsRecorded }                                                        from '../../testing/ToolGuard.ts';
-import { launchSnapshotOf }                                                             from '../lifecycle/Customs.ts';
+import { launchSnapshotOf }                                                             from '../lifecycle/CustomsLaunchSnapshot.ts';
 import type { BoardTransaction }                                                        from '../tracker/BoardTransaction.ts';
 import { workspacePathsFor }                                                            from '../tracker/Workspace.ts';
 import type { BoardChildren }                                                           from './BoardChildren.ts';

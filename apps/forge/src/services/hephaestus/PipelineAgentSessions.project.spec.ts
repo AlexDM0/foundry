@@ -29,7 +29,8 @@ import { createScratchDirectory, removeScratchDirectory }                     fr
 import { describeWhenGitIsRecorded }                                          from '../../testing/ToolGuard.ts';
 import { TWO_TRACKER_MAIN_LINE, TWO_TRACKER_PROJECTS, TWO_TRACKER_TICKET_ID } from '../../testing/TwoTrackerFixture.ts';
 import { TWO_TRACKER_SCENARIOS, type TwoTrackerScenario }                     from '../../testing/TwoTrackerScenarios.ts';
-import { CUSTOMS_CHECKS, launchSnapshotOf }                                   from '../lifecycle/Customs.ts';
+import { CUSTOMS_CHECKS }                                                     from '../lifecycle/Customs.ts';
+import { launchSnapshotOf }                                                   from '../lifecycle/CustomsLaunchSnapshot.ts';
 import type { SharedRepositoryLanding }                                       from '../lifecycle/Landing.ts';
 import type { Workspace }                                                     from '../tracker/Workspace.ts';
 import { PipelineAgentSessions, type TurnEndContext }                         from './PipelineAgentSessions.ts';

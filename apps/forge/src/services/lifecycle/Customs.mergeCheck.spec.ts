@@ -24,7 +24,8 @@ import {
 } from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }                      from '../../testing/ToolGuard.ts';
-import { CUSTOMS_CHECKS, type CustomsSubject }            from './Customs.ts';
+import type { CustomsSubject }                            from './@types/CustomsSubject.ts';
+import { CUSTOMS_CHECKS }                                 from './Customs.ts';
 
 const TICKET_BODY = '## Report\nExample report.\n';
 const BRANCH_TIP = '1'.repeat(40);

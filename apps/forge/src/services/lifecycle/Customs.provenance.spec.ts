@@ -27,14 +27,12 @@ import { useRecordedGit }                                      from '../../testi
 import { GIT_SCENARIOS }                                       from '../../testing/RecordedGitScenarios.ts';
 import { createScratchDirectory, removeScratchDirectory }      from '../../testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded, testWhenNotRunningAsRoot } from '../../testing/ToolGuard.ts';
-import {
-  agentConfigTouchedBeforeLaunch,
-  launchSnapshotOf,
-  refMovesAllowedOf,
-  CUSTOMS_CHECKS,
-  type CustomsSubject,
-  type VerificationCheck
-} from './Customs.ts';
+import type { CustomsSubject }                                 from './@types/CustomsSubject.ts';
+import type { VerificationCheck }                              from './@types/CustomsVerdict.ts';
+import { CUSTOMS_CHECKS }                                      from './Customs.ts';
+import { agentConfigTouchedBeforeLaunch }                      from './CustomsAgentConfigCheck.ts';
+import { launchSnapshotOf }                                    from './CustomsLaunchSnapshot.ts';
+import { refMovesAllowedOf }                                   from './CustomsRefMovesCheck.ts';
 
 const TICKET_BODY = '## Acceptance\nA1. The example holds.\n';
 /** The fake agent's naming, which is Claude Code's. */
