@@ -210,7 +210,7 @@ function recordingAdapter(scenario: SessionScenario): AgentAdapter {
       const isWorker = request.reportSchema !== null;
       if (isWorker) {
         launches.push({
-          jobId:            basename(request.jobFilesDirectory),
+          jobId:            basename(request.launchFilesDirectory),
           resume:           request.resume,
           firstMessage:     request.firstMessage,
           workingDirectory: request.workingDirectory,
@@ -1198,7 +1198,7 @@ describe('the session, Talos, Hephaestus and reboot rows', () => {
     const fresh = requireAssistant();
     expect(openIncidents().map((incident) => incident.deliveredInTurn)).toEqual([{ jobId: fresh.id, chatSequence: 1 }]);
     expect(launchFacts.find((launched) => launched.jobId === fresh.id)?.facts.assistant?.incidents.map((incident) => incident.kind)).toEqual(['blocked']);
-    const freshLaunch = assistantLaunches.find((request) => basename(request.jobFilesDirectory) === fresh.id);
+    const freshLaunch = assistantLaunches.find((request) => basename(request.launchFilesDirectory) === fresh.id);
     expect(freshLaunch).toMatchObject({
       resume: false, model: 'sonnet', effort: 'medium', reportSchema: null
     });
@@ -1269,7 +1269,7 @@ describe('the session, Talos, Hephaestus and reboot rows', () => {
       planOf(request) {
         if (request.profile.skills) {
           productOwnerLaunches.push({
-            jobId:            basename(request.jobFilesDirectory),
+            jobId:            basename(request.launchFilesDirectory),
             resume:           request.resume,
             firstMessage:     request.firstMessage,
             workingDirectory: request.workingDirectory,

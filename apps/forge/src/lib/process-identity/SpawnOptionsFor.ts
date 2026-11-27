@@ -11,9 +11,7 @@ const WINDOWS_BUN_PROGRAM_SPAWN: SupervisedSpawnOptions = Object.freeze({ detach
 
 const WINDOWS_SPAWN_OF_CHILD_KIND: Readonly<Record<SupervisedChildKind, SupervisedSpawnOptions>> = Object.freeze({
   'supervised-child': WINDOWS_SUPERVISED_CHILD_SPAWN,
-  'talos':            WINDOWS_BUN_PROGRAM_SPAWN,
-  'hephaestus':       WINDOWS_BUN_PROGRAM_SPAWN,
-  'successor':        WINDOWS_BUN_PROGRAM_SPAWN,
+  'detached-program': WINDOWS_BUN_PROGRAM_SPAWN,
 });
 
 export function windowsSpawnOptionsFor(childKind: SupervisedChildKind): SupervisedSpawnOptions {

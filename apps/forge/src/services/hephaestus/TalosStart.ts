@@ -137,7 +137,7 @@ export function spawnTalos({ processSupervision }: PlatformPorts, request: Talos
   try {
     const talosArguments = [...ToolRuntimeUtil.isolatingArgumentsOfThisCheckout(), TALOS_ENTRY_PATH, request.boardFolder, String(request.startNumber)];
     const talos = spawn(process.execPath, talosArguments, {
-      ...processSupervision.spawnOptionsFor('talos'),
+      ...processSupervision.spawnOptionsFor('detached-program'),
       cwd:   request.repositoryRoot,
       env:   outlivingProgramEnvironment(),
       stdio: ['ignore', logDescriptor, logDescriptor],

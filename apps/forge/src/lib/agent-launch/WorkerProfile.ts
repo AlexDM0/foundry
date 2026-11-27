@@ -21,7 +21,7 @@ export interface WorkerProfile {
    * Absent, they reach the working directory.
    */
   readonly writeRoot?:               string;
-  /** The folders and files a stage of a job of an entity may change; present, file changes reach these alone, not the write root. */
+  /** The folders and files one stage of the work may change; present, file changes reach these alone, not the write root. */
   readonly stageFolders?:            readonly string[];
   /** The checkout's paths outside `stageFolders` at launch, denied to file changes; a shell command still writes them, and Customs judges it. */
   readonly deniedEditRoots?:         readonly string[];

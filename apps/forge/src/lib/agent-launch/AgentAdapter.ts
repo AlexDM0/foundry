@@ -12,7 +12,7 @@ import type { AgentToolCall }                                            from '.
 import type { SubagentFacts, SubagentUsageAnswer, SubagentUsageRequest } from './AgentTranscripts.ts';
 import type { SandboxDenyShape }                                         from './WorkerProfile.ts';
 
-/** The names an adapter may give an ending in its plan's `endingPatterns`, each of which Hephaestus maps to a cause. */
+/** The names an adapter may give an ending in its plan's `endingPatterns`, each of which the caller maps to a cause. */
 export const AGENT_ENDING_NAMES = ['network-outage'] as const;
 
 export type AgentEndingName = typeof AGENT_ENDING_NAMES[number];
@@ -25,7 +25,7 @@ export interface AgentCapabilities {
   readonly usage:                      'tokens' | 'none';
   /** Whether a chat line carries pictures beside its text. */
   readonly pictures:                   boolean;
-  /** A live session takes an answer line; `false`: Hephaestus stops it and resumes it with the answer. */
+  /** A live session takes an answer line; `false`: the caller stops it and resumes it with the answer. */
   readonly takesLiveAnswers:           boolean;
   /** A resumed session is found by the folder it began in. */
   readonly resumeFindsSessionByFolder: boolean;
@@ -55,7 +55,7 @@ export interface AgentBillingOption {
   readonly capsEachLaunch:  boolean;
 }
 
-/** The folders and files of a checkout that configure the agent, by name: no job may write them, and Customs refuses a change of them. */
+/** The folders and files of a checkout that configure the agent, by name: no session may write them, and the caller refuses a change of them. */
 export interface AgentConfigurationNames {
   readonly folderNames: readonly string[];
   readonly fileNames:   readonly string[];
@@ -109,8 +109,8 @@ export interface AgentAdapter {
   /** How a refused program is repaired, as a code and the vendor's own values the caller words, or `null`. */
   programRepairOf(cause: ExecutableRefusalCause): AgentProgramRepair | null;
   planOf(request: AgentLaunchRequest): AgentLaunchPlan;
-  /** The session id a job keeps across every child instance and resume, derived from the board's scope and the job, never random. */
-  sessionIdOf(scope: string, jobId: string): string;
+  /** The session id one session key keeps across every child instance and resume, derived from the scope and the key, never random. */
+  sessionIdOf(scope: string, sessionKey: string): string;
   /** One stdout line, mapped; a line the adapter does not recognise maps to no event. */
   eventsOf(line: string): readonly AgentSessionEvent[];
   /** The pictures go before the text; an adapter whose `capabilities.pictures` is false is never given one. */

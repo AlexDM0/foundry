@@ -567,7 +567,7 @@ function recordingAdapter(scenario: SessionScenario): AgentAdapter {
       const isWorker = request.reportSchema !== null;
       if (isWorker) {
         launches.push({
-          jobId:            basename(request.jobFilesDirectory),
+          jobId:            basename(request.launchFilesDirectory),
           resume:           request.resume,
           firstMessage:     request.firstMessage,
           workingDirectory: request.workingDirectory,
@@ -931,7 +931,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
       planOf(request) {
         if (request.profile.skills) {
           productOwnerLaunches.push({
-            jobId:            basename(request.jobFilesDirectory),
+            jobId:            basename(request.launchFilesDirectory),
             resume:           request.resume,
             firstMessage:     request.firstMessage,
             workingDirectory: request.workingDirectory,
@@ -1032,7 +1032,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
     const adapter: AgentAdapter = {
       ...fakeAgentAdapter(),
       planOf(request) {
-        plans.set(basename(request.jobFilesDirectory), { reportTitle: (request.reportSchema as { title?: string } | null)?.title, askUser: request.profile.askUser });
+        plans.set(basename(request.launchFilesDirectory), { reportTitle: (request.reportSchema as { title?: string } | null)?.title, askUser: request.profile.askUser });
         return fakeAgentAdapter(WAITING_STEPS).planOf(request);
       },
     };
@@ -1057,7 +1057,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
     const adapter: AgentAdapter = {
       ...fakeAgentAdapter(),
       planOf(request) {
-        plans.set(basename(request.jobFilesDirectory), { reportTitle: (request.reportSchema as { title?: string } | null)?.title, askUser: request.profile.askUser });
+        plans.set(basename(request.launchFilesDirectory), { reportTitle: (request.reportSchema as { title?: string } | null)?.title, askUser: request.profile.askUser });
         return fakeAgentAdapter(WAITING_STEPS).planOf(request);
       },
     };
@@ -1119,7 +1119,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
     const adapter: AgentAdapter = {
       ...fakeAgentAdapter(),
       planOf(request) {
-        plans.set(basename(request.jobFilesDirectory), { reportTitle: (request.reportSchema as { title?: string } | null)?.title, askUser: request.profile.askUser });
+        plans.set(basename(request.launchFilesDirectory), { reportTitle: (request.reportSchema as { title?: string } | null)?.title, askUser: request.profile.askUser });
         return fakeAgentAdapter(WAITING_STEPS).planOf(request);
       },
     };
@@ -1157,7 +1157,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
     const adapter: AgentAdapter = {
       ...fakeAgentAdapter(),
       planOf(request) {
-        profiles.set(basename(request.jobFilesDirectory), request.profile);
+        profiles.set(basename(request.launchFilesDirectory), request.profile);
         return fakeAgentAdapter(WAITING_STEPS).planOf(request);
       },
     };
@@ -1306,7 +1306,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
           resume, firstMessage, workingDirectory, sessionId
         } = request;
         buildLaunches.push({
-          jobId: basename(request.jobFilesDirectory), resume, firstMessage, workingDirectory, sessionId
+          jobId: basename(request.launchFilesDirectory), resume, firstMessage, workingDirectory, sessionId
         });
         return scenario.planOf(request);
       },

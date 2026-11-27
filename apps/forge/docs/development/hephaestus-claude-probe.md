@@ -64,7 +64,7 @@ records that use or discuss the flag; "none" means no probe names it.
 | `--disable-slash-commands` | Unless the role's worker profile (`WorkerProfile`) has `skills` | Removes skills, keeps subagents | P3, P11 |
 | `--disallowedTools` | `WebSearch`, `WebFetch`, `AskUserQuestion` as the profile says | Removes a tool outright | none |
 
-All files sit in the job's folder. `CLAUDE_JOB_FILE_NAMES` names them: `settings.json`, `agents.json`, `mcp.json`,
+All files sit in the job's folder. `CLAUDE_LAUNCH_FILE_NAMES` names them: `settings.json`, `agents.json`, `mcp.json`,
 `role.md` and, only for a job kind with a report schema, `report.schema.json`.
 
 > **As built.** `report.schema.json` is written and never read, since the flag carries the schema inline. See

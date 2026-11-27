@@ -12,10 +12,10 @@ import type {
 export type ProcessStopStage = 'ask' | 'force';
 
 /**
- * `supervised-child` is a process Talos runs, an agent session or a line, `talos` a board's Talos, `hephaestus` a Hephaestus started in the
- * background and `successor` the one that takes over from it.
+ * `supervised-child` is a process a supervisor runs and watches, such as an agent session or a line; `detached-program` is a Bun program
+ * started to outlive its parent.
  */
-export type SupervisedChildKind = 'supervised-child' | 'talos' | 'hephaestus' | 'successor';
+export type SupervisedChildKind = 'supervised-child' | 'detached-program';
 
 /** Spread last over a spawn's own options, so `stderr` wins: a caller then reads the stream wherever it would have given a descriptor. */
 export interface SupervisedSpawnOptions {

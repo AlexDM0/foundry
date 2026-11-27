@@ -1,11 +1,11 @@
-/** The one selector of the `LaunchEnvironment` port; a platform with no adapter inherits nothing, so only the job's own variables reach a child. */
+/** The one selector of the `LaunchEnvironment` port; a platform with no adapter inherits nothing, so only the launch's own variables reach a child. */
 import type { LaunchEnvironment }         from './LaunchEnvironment.ts';
 import { createPosixLaunchEnvironment }   from './PosixLaunchEnvironment.ts';
 import { createWindowsLaunchEnvironment } from './WindowsLaunchEnvironment.ts';
 
 const INHERIT_NOTHING: LaunchEnvironment = Object.freeze<LaunchEnvironment>({
   inheritedVariableNames: [],
-  launchEnvironmentOf:    (_inherited, jobVariables) => ({ ...jobVariables }),
+  launchEnvironmentOf:    (_inherited, ownVariables) => ({ ...ownVariables }),
   searchFoldersOf:        () => [],
   withSearchFolders:      (environment) => ({ ...environment }),
 });

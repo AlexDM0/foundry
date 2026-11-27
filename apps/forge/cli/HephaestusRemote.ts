@@ -246,7 +246,7 @@ async function startDetached(
     stdin:  'ignore',
     stdout: 'ignore',
     stderr: 'ignore',
-    ...context.platformPorts.processSupervision.spawnOptionsFor('hephaestus'),
+    ...context.platformPorts.processSupervision.spawnOptionsFor('detached-program'),
   });
   child.unref();
   const schedule = hephaestusPollScheduleOf({ tries: HEPHAESTUS_READY_TRIES, intervalMilliseconds: HEPHAESTUS_READY_INTERVAL_MILLISECONDS }, hephaestusPollIntervalOverride());

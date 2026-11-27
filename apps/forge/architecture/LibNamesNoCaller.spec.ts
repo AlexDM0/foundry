@@ -11,28 +11,8 @@ import { programTypeScriptSources, type RepositorySource } from '../src/testing/
 const SCANNED_FOLDER = 'src/lib/';
 const CALLER_WORD_PATTERN = /hephaestus|ticket|tracker|job/i;
 
-/** The files that still name a caller, each listed until it no longer does. */
-const ALLOWED_FILES: readonly string[] = [
-  'src/lib/agent-launch/AgentAdapter.ts',
-  'src/lib/agent-launch/AgentLaunchRequest.ts',
-  'src/lib/agent-launch/LaunchEnvironment.ts',
-  'src/lib/agent-launch/LaunchEnvironmentFor.ts',
-  'src/lib/agent-launch/PosixLaunchEnvironment.ts',
-  'src/lib/agent-launch/WindowsLaunchEnvironment.ts',
-  'src/lib/agent-launch/WorkerProfile.ts',
-  'src/lib/atomic-file/FileReplaceFor.ts',
-  'src/lib/atomic-file/WindowsFileReplace.ts',
-  'src/lib/claude-code/ClaudeCodeAdapter.ts',
-  'src/lib/claude-code/ClaudeSessionSubagents.ts',
-  'src/lib/claude-code/ClaudeStreamLines.ts',
-  'src/lib/data-folders/DataFolders.ts',
-  'src/lib/gate-confinement/LinuxBubblewrap.ts',
-  'src/lib/gate-confinement/WindowsNoConfinement.ts',
-  'src/lib/git/RepositoryRootWithoutGit.ts',
-  'src/lib/process-identity/ProcessSupervision.ts',
-  'src/lib/process-identity/SpawnOptionsFor.ts',
-  'src/lib/process-identity/WindowsProcessIdentity.ts',
-];
+/** The files that still name a caller, each listed until it no longer does; none does. */
+const ALLOWED_FILES: readonly string[] = [];
 
 interface CallerNamesReport {
   /** `<path>:<line>: <trimmed line>`, one per line of a file the allowlist does not hold. */

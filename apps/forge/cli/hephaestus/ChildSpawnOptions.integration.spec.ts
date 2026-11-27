@@ -40,7 +40,7 @@ import { spawnSuccessor }                                 from './HephaestusFore
 
 const NATIVE_PORTS = nativePlatformPorts();
 const DESCENDANT_LINE = /^descendant (\d+)$/mu;
-const EVERY_CHILD_KIND: readonly SupervisedChildKind[] = ['supervised-child', 'talos', 'hephaestus', 'successor'];
+const EVERY_CHILD_KIND: readonly SupervisedChildKind[] = ['supervised-child', 'detached-program'];
 const START_NUMBER = 1;
 
 interface ChildStreams {
@@ -109,7 +109,7 @@ describe('the Windows answer per child kind', () => {
     expect(WINDOWS_SUPERVISED_CHILD_SPAWN).toEqual({ detached: false, windowsHide: true, stderr: 'pipe' });
   });
 
-  test.each(['talos', 'hephaestus', 'successor'] as const)('a %s, a Bun program, stays detached and hidden', (childKind) => {
+  test.each(['detached-program'] as const)('a %s, a Bun program, stays detached and hidden', (childKind) => {
     expect(supervision.spawnOptionsFor(childKind)).toEqual({ detached: true, windowsHide: true });
   });
 

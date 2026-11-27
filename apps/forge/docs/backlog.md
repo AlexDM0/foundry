@@ -6,11 +6,13 @@
 
 ## In one screen
 
-Three items are open: four internal moves around `src/services/tracker/TicketStore.ts` and
+Four items are open: four internal moves around `src/services/tracker/TicketStore.ts` and
 `src/services/tracker/TrackerPipeline.ts` that put [ticket](glossary.md#ticket) reading and writing on the
 [Board](glossary.md#board), which wait for the next change that touches them; two steps of an
 [incident](glossary.md#incident)'s trail that the log records nowhere, which wait for a log record of their own;
 and a pipeline gap the setup work left open, which waits for the next change to the `gate` writes.
+
+A lib package's specs lean on forge's test support, which waits for the day a package really leaves `src/lib/`.
 
 Two things stay out of the `code-lifecycle` [epic](glossary.md#epic), a Copilot worker adapter and a cross-project
 overview, and return only as a new decision of the owner's.
@@ -60,3 +62,13 @@ here: each returns only as a new decision of the owner's.
 - **A cross-project overview.** Each repository's Hephaestus serves only its own board. The view across boards stays
   a monitor's, a separate program; its contract with this build is under [The monitor
   contract](reference/hephaestus-api.md#the-monitor-contract). agent-progress keeps no machine-wide process.
+
+## A lib package's specs import forge's test support
+
+`src/lib/` holds building blocks only (`architecture/LibNamesNoCaller.spec.ts`), but 47 of its 72 spec files import
+`src/testing/` (the scratch root, the recorded git and process answers, the tool guard), so no lib package could move to
+`packages/` unchanged.
+
+| Change | Must keep | Waits for |
+| --- | --- | --- |
+| The package that leaves takes its own test support, or a shared testing package, so its specs import nothing of forge. | The specs' isolation: the scratch root, the recorded boundaries and the program traps every default spec runs under. | The day a lib package really leaves for `packages/` |

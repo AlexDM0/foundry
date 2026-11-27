@@ -431,7 +431,7 @@ export function spawnSuccessor(
       stdin:  'ignore',
       stdout: 'ignore',
       stderr: logFileDescriptor,
-      ...context.platformPorts.processSupervision.spawnOptionsFor('successor'),
+      ...context.platformPorts.processSupervision.spawnOptionsFor('detached-program'),
     });
     child.unref();
     return context.platformPorts.processSupervision.identityOf(child.pid);

@@ -1192,10 +1192,10 @@ async function launchAgentChild(
       ),
       agentSearchFoldersOf(request, board, job, program.programPath),
     ),
-    profile:           launchProfileOf(jobLaunchContext, board, job, place, hatchDirectory),
-    confinement:       launchFacts.confinement,
-    jobFilesDirectory: jobFolder,
-    reportSchema:      reportSchemaOf(board, job),
+    profile:              launchProfileOf(jobLaunchContext, board, job, place, hatchDirectory),
+    confinement:          launchFacts.confinement,
+    launchFilesDirectory: jobFolder,
+    reportSchema:         reportSchemaOf(board, job),
     ...(billing.billing === undefined ? {} : { billing: billing.billing }),
   };
   if (JobLaunch.isWorktreeJob(job) || job.kind === 'merge-agent') {
