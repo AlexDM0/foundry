@@ -1,8 +1,7 @@
 /**
- * The design-system package as Gaia's page uses it: imported by its export names, compiled under the page's own options, and rendered
- * without a document. What matters: a package component that holds hooks renders through `react-dom/server`, which runs its hooks but no
- * effect, as Gaia's hooked components do in their specs, so the linked package and the page share one React; and the words and variants
- * Gaia hands a part reach what it draws. How the package draws them is the package's own to hold, so nothing here reads its markup.
+ * The design-system package as Gaia's page uses it: a package component that holds hooks renders through `react-dom/server`, so the
+ * library and the page share one React, and the words and variants Gaia hands a part reach what it draws. How the package draws them is
+ * the package's own to hold, so nothing here reads its markup.
  */
 import { describe, expect, test } from 'bun:test';
 import { renderToStaticMarkup }   from 'react-dom/server';

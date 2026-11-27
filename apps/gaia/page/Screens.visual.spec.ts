@@ -1,22 +1,7 @@
 /**
- * The visual pass's screens (W7.3): each artboard the page builds, painted from its fixture as the page paints it, as a whole document a
- * browser opens at 1440 x 1016 to compare by eye with the artboard. What matters: no artboard is left out; both themes are the same markup
- * and differ only in the theme the root names and the theme button shows (B1 has no theme button), so a theme is the tokens' work alone; a screen
- * holds no colour of its own; and each screen shows the state its artboard draws, since a pass that compares an artboard with another state
- * compares nothing. C2 is its "What notifies" checklist, opened over Forges as the page opens it (the notifications wait for W5.6), and C3
- * is the launcher's own splash file, opened at both its steps and drawing the page's own mark. The restart an update left pending, which no
- * artboard draws, is painted over A1 and A4, the two artboards whose Update forge can leave it, under the same checks; so are the two
- * warnings of monitor contract 2, a failed restart as A1's look and an Assistant that cannot come up as a notice on A4, and B4's second
- * state, the forge program found. The Versions boards (U1 to U3) are painted over A1, A4 and B1 from the fleet-versions
- * fixture, one screen per board render, Example Billing's Update forge at each of its steps. Artboard 0, Tickets, is painted once per segment
- * on the spec-then-plan route and once more for In draft on the one-ticket route. The onboarding's three artboards, the welcome, the agent
- * step and the research step, are painted over B1 with Example Storefront in setup: the onboarding alone, the stepper in the forge's bar at
- * the step the page and the rail name, and none of the bar's status, controls or versions, no banner and no board header.
- *
- * The by-eye pass itself is not a spec: it writes `screenDocumentOf` for each screen and theme to a scratch folder, opens each at the
- * artboard's size in Chrome or Chromium, and compares the picture with the artboard; the splash opens at `splashScreenAddressOf`. A screen
- * leaves motion off, so none of Gaia's own motion runs; the browser is opened with reduced motion forced (`--force-prefers-reduced-motion`),
- * since the package's own pulse and dialog entry run whether or not motion is ready, and a shot must not land mid-way.
+ * The visual pass's screens: each artboard the page builds, painted from its fixture as a whole document a browser opens at 1440 x 1016,
+ * in both themes, with no artboard left out and each showing the state its artboard draws. The by-eye comparison itself is not a spec: it
+ * opens `screenDocumentOf` for each screen with reduced motion forced, since the package's pulse and dialog entry run even with motion off.
  */
 import { readFileSync }           from 'node:fs';
 import { join }                   from 'node:path';
