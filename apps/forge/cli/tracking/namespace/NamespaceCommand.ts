@@ -73,7 +73,7 @@ async function listTheBoard(context: CommandContext, branchNamespace: string): P
   if (list === null) return;
   const { trackerId } = boardStoreIn(context, workspace).reads.requireProgress();
   const tracker = { trackerId, prefix: projectLocationOf(workspace.rootDirectory).projectPrefix, branchNamespace };
-  const listing = await listTracker(list, tracker, context.now, lockTakerOf(context.platformPorts.processSupervision));
+  const listing = await listTracker(list, tracker, context.now, lockTakerOf(context.platformPorts.processSupervision, context.standardError));
   if (listing.verdict === 'not-listed') {
     context.standardError(`The repository's tracker list ${list.files.trackerListFilePath} was not written (${listing.reason}); another tracker could take this namespace.`);
   }

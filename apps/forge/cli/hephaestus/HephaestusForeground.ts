@@ -171,7 +171,8 @@ export function requireNoLiveHephaestus(ports: PlatformPorts, files: HephaestusF
 /** Hephaestus's own store of its board, built from its workspace: the context of a start names no current directory. */
 function hephaestusBoardStoreOf(request: StoppedHephaestusRequest): BoardStore {
   const { context, workspace } = request;
-  return createLocalFilesBoardStore({ workspace, now: context.now, lockTaker: lockTakerOf(context.platformPorts.processSupervision) });
+  const lockTaker = lockTakerOf(context.platformPorts.processSupervision, hephaestusLoggerOf(context, hephaestusFilesIn(workspace.trackerDirectory)));
+  return createLocalFilesBoardStore({ workspace, now: context.now, lockTaker });
 }
 
 async function registerHephaestus(request: StoppedHephaestusRequest, registration: BoardRegistration): Promise<void> {

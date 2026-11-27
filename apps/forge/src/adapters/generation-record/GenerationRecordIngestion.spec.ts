@@ -1,10 +1,11 @@
 /**
- * A lock generation record's stored format both ways. What matters: what the writer creates reads back as the same record and is created
- * only once; a missing record is absent, which a lock reads as removed by another holder; and any other record is unreadable, never
- * thrown, the record from before process identity and before the version among them, since a lock refuses rather than judge it.
+ * A lock generation record's stored format both ways. What matters: what the writer creates reads back as the same record, with the current
+ * version, and is created only once; a missing record is absent, which a lock reads as removed by another holder; a record of today's
+ * fields without that version, as older code wrote, reads as the same record, so its holder is judged; and any other record is
+ * unreadable, never thrown, the record from before process identity among them, which a lock takes over.
  */
-import { writeFileSync } from 'node:fs';
-import { join }          from 'node:path';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { join }                        from 'node:path';
 import {
   afterEach,
   beforeEach,
@@ -42,15 +43,22 @@ test('what the writer creates reads back as the same record, and a second create
   const writer = createGenerationRecordWriter(generationFilePath());
   expect(writer.create(RECORD)).toBe('created');
   expect(reading()).toEqual({ verdict: 'readable', record: RECORD });
+  expect(JSON.parse(readFileSync(generationFilePath(), 'utf8'))).toMatchObject({ version: GENERATION_RECORD_FORMAT_VERSION });
   expect(writer.create({ ...RECORD, state: 'released' })).toBe('already-exists');
+  expect(reading()).toEqual({ verdict: 'readable', record: RECORD });
+});
+
+test.each([
+  ['no version', RECORD],
+  ['another version', { ...DOCUMENT, version: GENERATION_RECORD_FORMAT_VERSION + 1 }],
+])('a record of today\'s fields with %s reads as the same record', (_case, document) => {
+  writeFileSync(generationFilePath(), JSON.stringify(document));
   expect(reading()).toEqual({ verdict: 'readable', record: RECORD });
 });
 
 test.each([
   ['not JSON', '{"state": "held", "hol'],
   ['not an object', '[]'],
-  ['no version', JSON.stringify(RECORD)],
-  ['another version', JSON.stringify({ ...DOCUMENT, version: GENERATION_RECORD_FORMAT_VERSION + 1 })],
   ['a holder named by process id alone', JSON.stringify({
     version: GENERATION_RECORD_FORMAT_VERSION, processId: 4242, acquiredAt: RECORD.acquiredAt, state: 'held'
   })],

@@ -33,7 +33,7 @@ export function monitorRegistrationRequestOf(context: CommandContext, workspace:
     command:              context.commandVerb,
     program:              context.programPath,
     now:                  context.now,
-    lockTaker:            lockTakerOf(context.platformPorts.processSupervision),
+    lockTaker:            lockTakerOf(context.platformPorts.processSupervision, context.standardError),
   };
 }
 

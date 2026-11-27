@@ -565,7 +565,6 @@ Words here: [tracker](../glossary.md#tracker), [lock hold](../glossary.md#lock-h
 | `which FORGE_ROOT names` | `no-tracker-at-override` | The variable names a directory with no tracker. | Run `init` there, or unset it. | |
 | `is holding <path> and did not release it` | `tracker-lock-held` | The lock stayed held through `LIMITS.LOCK_RETRY_COUNT` tries. **Exit 2.** | If nothing runs, remove that path and retry. | |
 | `command's process as gone and took <path> over` | `lock-taken-over` | Another command misjudged this one's process as gone. **Exit 2.** | Run it again. The next command finishes what was committed. | |
-| `The lock record <path> cannot be read` | `lock-record-unreadable` | A record of the store's lock, the monitor registry's lock, a repository's tracker list lock or its landing lock was damaged outside the tool, or an earlier release wrote it without the current `version`; no process can be judged from it. **Exit 2.** | If nothing runs, remove that file and retry. | |
 | `holds an unfinished write that cannot be read` | `malformed-hold-journal` | `hold-journal.json` is broken. **Exit 2.** | Repair it, or remove it and leave that write unfinished. | |
 | `could not be removed` | `hold-journal-unremovable` | The write finished, but something holds `hold-journal.json`. **Exit 2.** | Close what holds it and run a command; that command finishes it. | |
 

@@ -23,12 +23,12 @@ import {
 } from 'bun:test';
 
 
-import { HELD_CHECKOUT_RETRY_TRIES }                         from '../../lib/git/HeldCheckout.ts';
-import { RepositoryLandings }                                from '../../lib/git/RepositoryLandings.ts';
-import { PRODUCT_NAMES }                                     from '../../shared/constants/ProductNames.ts';
-import { ticketFixture }                                     from '../../testing/BoardFixtures.ts';
-import { heldFileGit, type CountingCheckoutWritePrimitives } from '../../testing/HeldFileGit.ts';
-import { GONE_HOLDERS_LOCK_TAKER, LIVE_HOLDERS_LOCK_TAKER }  from '../../testing/LockTakers.ts';
+import { HELD_CHECKOUT_RETRY_TRIES }                          from '../../lib/git/HeldCheckout.ts';
+import { RepositoryLandings }                                 from '../../lib/git/RepositoryLandings.ts';
+import { PRODUCT_NAMES }                                      from '../../shared/constants/ProductNames.ts';
+import { ticketFixture }                                      from '../../testing/BoardFixtures.ts';
+import { heldFileGit, type CountingCheckoutWritePrimitives }  from '../../testing/HeldFileGit.ts';
+import { LIVE_HOLDERS_LOCK_TAKER, lockTakerJudgingHoldersBy } from '../../testing/LockTakers.ts';
 import {
   GIT_CALL_SHAPES,
   RECORDED_PLACEHOLDERS,
@@ -272,18 +272,23 @@ describeWhenGitIsRecorded('the landing a tracker shares with its siblings', () =
     expect(LANDING_OUTCOME_OF_REFUSAL['landing-lock-held']).toBe('wait-for-the-landing-lock');
   });
 
-  test('an unreadable landing lock record is refused lock-record-unreadable, naming the record a repair removes, before git is asked anything', async () => {
+  test('an unreadable landing lock record is taken over and logged, with no refusal, and the landing goes on', async () => {
     const files = RepositoryLandings.landingFilesOf(join(repositoryDirectory, '.git'), PRODUCT_NAMES.PROGRAM);
     mkdirSync(files.lockDirectoryPath, { recursive: true });
     const recordPath = LockGenerationSteps.generationPathFor(files.lockDirectoryPath, 1);
     writeFileSync(recordPath, '{"state": "held", "hol');
+    const loggedLines: string[] = [];
     const sharedRepository = {
-      trackerId: 'tracker-example', files, now, lockTaker: GONE_HOLDERS_LOCK_TAKER
+      trackerId: 'tracker-example', files, now, lockTaker: lockTakerJudgingHoldersBy(() => false, (line) => loggedLines.push(line))
     };
+    const alreadyLandedRerun: RecordedGitStage = [
+      ...onBranch('main'),
+      resolved('refs/heads/main', MERGED_COMMIT),
+      { gitArguments: ['merge-base', '--is-ancestor', MERGED_COMMIT, MERGED_COMMIT], answeredAs: GIT_CALL_SHAPES.ANCESTOR_OF_THE_TIP },
+    ];
 
-    const landing = landedIn([], mainLanding({ sharedRepository }));
-
-    await expect(landing).rejects.toMatchObject({ status: 'unrepaired', detail: { kind: 'lock-record-unreadable', recordPath } });
+    expect(await landedIn(alreadyLandedRerun, mainLanding({ sharedRepository }))).toMatchObject({ verdict: 'already-landed' });
+    expect(loggedLines).toEqual([expect.stringContaining(`The lock record ${recordPath} was stale and is taken over: it could not be read (`)]);
   });
 
   test('an already-landed rerun appends the journal line a stop cut off once, with the slot\'s tip as the previous tip, and a second rerun none', async () => {

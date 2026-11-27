@@ -80,8 +80,8 @@ describe('this process as a holder', () => {
 
   test('is read once per supervision, at its first lock, however many takers and locks share it', () => {
     const supervision = supervisionSeeing(new Map([[process.pid, { processId: process.pid, startStamp: '1763370500', bootIdentity: 'example-boot' }]]));
-    const firstTaker  = lockTakerOf(supervision);
-    const secondTaker = lockTakerOf(supervision);
+    const firstTaker  = lockTakerOf(supervision, () => {});
+    const secondTaker = lockTakerOf(supervision, () => {});
     expect(supervision.identityReads()).toBe(0);
 
     expect(firstTaker.holderOfThisProcess()).toEqual(secondTaker.holderOfThisProcess());

@@ -46,7 +46,7 @@ function killedHolderSource(): string {
     const workspace = workspacePathsFor(${JSON.stringify(repositoryDirectory)});
     const at = '2026-09-18T22:12:00+02:00';
     await writeTracker({
-      workspace, at, now: () => new Date(), lockTaker: lockTakerOf(nativePlatformPorts().processSupervision),
+      workspace, at, now: () => new Date(), lockTaker: lockTakerOf(nativePlatformPorts().processSupervision, () => {}),
       mutate: (change) => {
         change.board.addTask({ name: 'Example row of the killed holder', startsNow: false, movesTheLink: false }, at);
         change.board.setTicketPriority('001', 'high', at);

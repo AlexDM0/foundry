@@ -3,7 +3,8 @@
  * records, each created exclusively and never rewritten: taking the lock is creating the generation after
  * the newest once that one is released or its holder's process is gone, and releasing is creating the next as
  * a released record, so no step ever removes or replaces a record another process may have just written.
- * A record's age frees nothing: a live holder keeps the lock however long it holds.
+ * A record's age frees nothing: a live holder keeps the lock however long it holds. A record is a holding judged by its process, whatever
+ * version wrote it; one whose holder is gone, or that cannot be read, is stale, taken over and logged.
  */
 import { mkdirSync, readdirSync, unlinkSync } from 'node:fs';
 import { join }                               from 'node:path';
@@ -28,17 +29,24 @@ type LockPayload = Omit<GenerationRecord, 'state'>;
 /** True only when the platform knows the recorded holder's process is gone; `false` whenever it cannot tell. */
 export type LockHolderIsGone = (holder: LockHolder) => boolean;
 
-/** Who takes a lock: the holder this process writes, read once when first needed, and how it judges a holder it finds. */
+/** Who takes a lock: the holder this process writes, read once when first needed, how it judges a holder it finds, and its log. */
 export interface LockTaker {
   holderOfThisProcess: () => LockHolder;
   holderIsGone:        LockHolderIsGone;
+  /** Where a stale record this taker took over is logged. */
+  log:                 (line: string) => void;
+}
+
+/** The newest record an acquisition took over: its holder gone, or the record unreadable. */
+export interface StaleLockRecordTakenOver {
+  recordPath: string;
+  reason:     string;
 }
 
 type AcquireAttempt =
-  | { verdict: 'acquired'; generation: number }
+  | { verdict: 'acquired'; generation: number; staleTakenOver?: StaleLockRecordTakenOver }
   | { verdict: 'held' }
-  | { verdict: 'contended' }
-  | { verdict: 'unreadable'; recordPath: string };
+  | { verdict: 'contended' };
 
 const ACQUIRE_STEPS = ['newest-judged-free', 'generation-created'] as const;
 type AcquireStep = typeof ACQUIRE_STEPS[number];
@@ -80,12 +88,16 @@ function generationsIn(lockDirectoryPath: string): number[] | null {
  * What judging the newest record needs: a released record is free without judging its holder, a held one names its holder. `removed` is a
  * record another holder removed after it moved past it, between the listing and this read.
  */
-type GenerationReading = { state: 'released' } | { state: 'held'; holder: LockHolder } | { state: 'removed' } | { state: 'unreadable' };
+type GenerationReading =
+  | { state: 'released' }
+  | { state: 'held'; holder: LockHolder }
+  | { state: 'removed' }
+  | { state: 'unreadable'; reason: string };
 
 function readGenerationRecord(generationPath: string): GenerationReading {
   const reading = new GenerationRecordIngestion(generationPath).read();
   if (reading.verdict === 'absent') return { state: 'removed' };
-  if (reading.verdict === 'unreadable') return { state: 'unreadable' };
+  if (reading.verdict === 'unreadable') return { state: 'unreadable', reason: reading.reason };
   const { record } = reading;
   return record.state === 'released' ? { state: 'released' } : { state: 'held', holder: record.holder };
 }
@@ -130,13 +142,14 @@ function attemptedAcquire(
   const generations = generationsIn(lockDirectoryPath);
   if (generations === null) return { verdict: 'held' };
   const newest = generations.at(-1);
+  let staleTakenOver: StaleLockRecordTakenOver | undefined;
   if (newest !== undefined) {
-    const newestPath = generationPathFor(lockDirectoryPath, newest);
-    const reading    = readGenerationRecord(newestPath);
-    // The tool creates every record whole, so only damage outside it, or another format's record, leaves one unreadable: no process can be judged from it.
-    if (reading.state === 'unreadable') return { verdict: 'unreadable', recordPath: newestPath };
+    const recordPath = generationPathFor(lockDirectoryPath, newest);
+    const reading    = readGenerationRecord(recordPath);
     if (reading.state === 'removed') return { verdict: 'contended' };
     if (reading.state === 'held' && !holderIsGone(reading.holder)) return { verdict: 'held' };
+    if (reading.state === 'held') staleTakenOver = { recordPath, reason: `the process ${reading.holder.processId} it names is gone` };
+    if (reading.state === 'unreadable') staleTakenOver = { recordPath, reason: `it could not be read (${reading.reason})` };
   }
   afterStep('newest-judged-free');
   const claimed = generationAfter(newest ?? 0);
@@ -145,7 +158,12 @@ function attemptedAcquire(
   afterStep('generation-created');
   if (newerGenerationExists(lockDirectoryPath, claimed)) return { verdict: 'contended' };
   removeGenerationsBelow(lockDirectoryPath, claimed);
-  return { generation: claimed, verdict: 'acquired' };
+  return staleTakenOver === undefined ? { generation: claimed, verdict: 'acquired' } : { generation: claimed, verdict: 'acquired', staleTakenOver };
+}
+
+/** The line a taker logs for a stale record it took over. */
+function staleTakeOverLineOf(staleTakenOver: StaleLockRecordTakenOver): string {
+  return `The lock record ${staleTakenOver.recordPath} was stale and is taken over: ${staleTakenOver.reason}.`;
 }
 
 /** A holder that was taken over finds its successor generation taken, and so changes nothing. */
@@ -171,6 +189,7 @@ export const LockGenerationSteps = {
   generationsIn,
   lockPayloadOf,
   release,
+  staleTakeOverLineOf,
 } as const;
 
 /** The hold `action` runs under: `requireStillHeld` refuses `lock-taken-over` (unrepaired) once a newer generation exists. */
@@ -184,8 +203,8 @@ function lockHoldOf(lockDirectoryPath: string, heldGeneration: number): HoldFenc
 
 /**
  * Run `action` with the lock at `lockDirectoryPath` held, releasing it however `action` ends. A held record is taken over only once the
- * taker judges its holder's process gone, never by its age. Throws `OperationRefusal('unrepaired')` — exit 2 — its detail
- * `tracker-lock-held` when the retry budget runs out, and `lock-record-unreadable` at once when the newest record cannot be read.
+ * taker judges its holder's process gone, never by its age; one that cannot be read is taken over too, and each take-over is logged.
+ * Throws `OperationRefusal('unrepaired')` — exit 2 — its detail `tracker-lock-held` when the retry budget runs out.
  */
 export async function withLockAt<ActionResult>(
   lockDirectoryPath: string,
@@ -199,9 +218,9 @@ export async function withLockAt<ActionResult>(
     const attemptResult = attemptedAcquire(lockDirectoryPath, lockPayloadOf(holder, now()), taker.holderIsGone);
     if (attemptResult.verdict === 'acquired') {
       heldGeneration = attemptResult.generation;
+      if (attemptResult.staleTakenOver !== undefined) taker.log(staleTakeOverLineOf(attemptResult.staleTakenOver));
       break;
     }
-    if (attemptResult.verdict === 'unreadable') throw new OperationRefusal('unrepaired', { kind: 'lock-record-unreadable', recordPath: attemptResult.recordPath });
     // Contention retries immediately rather than sleeping: another process just moved the lock, and its newest record decides.
     if (attemptResult.verdict === 'contended') continue;
     await Bun.sleep(LIMITS.LOCK_RETRY_INTERVAL_MILLISECONDS);

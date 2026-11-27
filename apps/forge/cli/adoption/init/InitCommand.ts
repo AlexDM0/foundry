@@ -139,7 +139,7 @@ export const initCommand: CommandHandler = async (commandArguments, context) => 
       placement.listToWrite,
       { trackerId, prefix: placement.location.projectPrefix, branchNamespace },
       context.now,
-      lockTakerOf(context.platformPorts.processSupervision),
+      lockTakerOf(context.platformPorts.processSupervision, context.standardError),
     );
     if (listing.verdict === 'not-listed') {
       throw new OperationRefusal(

@@ -524,7 +524,7 @@ async function recordTheCrash(serving: ForgeServing, component: CrashedComponent
 
 function sessionBoardReads(): StoreReadFace {
   const now = (): Date => new Date(Date.parse(SESSION_STAMP));
-  return createLocalFilesBoardStore({ workspace: sessionWorkspace, now, lockTaker: lockTakerOf(ports.processSupervision) }).reads;
+  return createLocalFilesBoardStore({ workspace: sessionWorkspace, now, lockTaker: lockTakerOf(ports.processSupervision, () => {}) }).reads;
 }
 
 /**

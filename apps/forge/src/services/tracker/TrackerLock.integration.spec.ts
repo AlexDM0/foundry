@@ -32,7 +32,7 @@ const { generationPathFor, generationsIn } = LockGenerationSteps;
 
 const SUPERVISION = nativePlatformPorts().processSupervision;
 
-const PLATFORM_TAKER = lockTakerOf(SUPERVISION);
+const PLATFORM_TAKER = lockTakerOf(SUPERVISION, () => {});
 
 const AN_HOUR_MILLISECONDS = 3_600_000;
 
@@ -174,16 +174,17 @@ test('a lock held by this live process is kept however old its record, and refus
   expect(refusalOf(caught)).toEqual({ status: 'unrepaired', detail: { kind: 'tracker-lock-held', lockDirectoryPath: localStoreLayoutOf(workspace).storeLockFolder } });
 });
 
-test('an unreadable record is refused lock-record-unreadable at once, and the record is left exactly as it was', async () => {
+test('an unreadable record is taken over at once, with no refusal, and the lock is held by a record of the current version', async () => {
   const workspace = scratchWorkspace('lock-unparseable');
   writeGeneration(localStoreLayoutOf(workspace).storeLockFolder, 1, '');
 
-  const { outcome, sleepMilliseconds } = await lockRetryWaitsDuring(() => withLock(workspace, () => 'must not run', realClock, PLATFORM_TAKER));
+  const { outcome, sleepMilliseconds } = await lockRetryWaitsDuring(() => withLock(workspace, () => 'taken', realClock, PLATFORM_TAKER));
 
-  const recordPath = generationPathFor(localStoreLayoutOf(workspace).storeLockFolder, 1);
-  expect(refusalOf(outcome.settled === 'rejected' ? outcome.reason : null)).toEqual({ status: 'unrepaired', detail: { kind: 'lock-record-unreadable', recordPath } });
+  expect(outcome).toEqual({ settled: 'fulfilled', value: 'taken' });
   expect(sleepMilliseconds).toEqual([]);
-  expect(readFileSync(recordPath, 'utf8'), 'the record it refused to take is left exactly as it was').toBe('');
+  const generations = generationsIn(localStoreLayoutOf(workspace).storeLockFolder) ?? [];
+  const newestRecordText = readFileSync(generationPathFor(localStoreLayoutOf(workspace).storeLockFolder, generations.at(-1) ?? 0), 'utf8');
+  expect(JSON.parse(newestRecordText)).toMatchObject({ version: GENERATION_RECORD_FORMAT_VERSION, state: 'released' });
 });
 
 // A plain file at the lock path, left by an older install, is never treated as free.

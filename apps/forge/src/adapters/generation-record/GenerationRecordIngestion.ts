@@ -1,4 +1,7 @@
-/** `<lock folder>/generation-<n>`, one generation of a lock folder (the store's, the monitor registry's, the tracker list's, a landing's). */
+/**
+ * `<lock folder>/generation-<n>`, one generation of a lock folder (the store's, the monitor registry's, the tracker list's, a landing's). It
+ * is a holding judged by its process, so a record of today's fields reads whatever its version.
+ */
 import { storedFileTextOf }       from '../StoredFileText.ts';
 import { StoredJsonDocumentUtil } from '../utils/StoredJsonDocumentUtil.ts';
 
@@ -50,7 +53,7 @@ export class GenerationRecordIngestion {
   read(): GenerationRecordReading {
     const storedText = storedFileTextOf(this.generationFilePath);
     if (storedText.verdict !== 'readable') return storedText;
-    const stored = StoredJsonDocumentUtil.documentOfText(storedText.text, GENERATION_RECORD_FORMAT_VERSION);
+    const stored = StoredJsonDocumentUtil.holdingDocumentOfText(storedText.text);
     if (stored.verdict === 'unreadable') return stored;
     const { document } = stored;
     const holder = lockHolderOfStored(document['holder']);

@@ -20,7 +20,7 @@ import { lockTakerOf }                                    from '../tracker/LockH
 import { workspacePathsFor, type Workspace }              from '../tracker/Workspace.ts';
 import { createLocalFilesBoardStore }                     from './LocalFilesBoardStore.ts';
 
-const PLATFORM_TAKER = lockTakerOf(nativePlatformPorts().processSupervision);
+const PLATFORM_TAKER = lockTakerOf(nativePlatformPorts().processSupervision, () => {});
 
 const AN_HOUR_MILLISECONDS = 3_600_000;
 
@@ -68,7 +68,7 @@ function holderInsideItsHoldSource(workspace: Workspace): string {
     const store = createLocalFilesBoardStore({
       workspace: ${JSON.stringify(workspace)},
       now: () => new Date(),
-      lockTaker: lockTakerOf(nativePlatformPorts().processSupervision),
+      lockTaker: lockTakerOf(nativePlatformPorts().processSupervision, () => {}),
       afterFileWritten: () => {
         console.log(${JSON.stringify(INSIDE_THE_HOLD_LINE)});
         Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0);

@@ -6,8 +6,9 @@ import { requireWorkspace, type Workspace } from '../src/services/tracker/Worksp
 import type { CommandContext }              from './CommandContext.ts';
 
 /** The store of a board whose workspace the command already resolved. */
-export function boardStoreIn(context: Pick<CommandContext, 'now' | 'platformPorts'>, workspace: Workspace): BoardStore {
-  return createLocalFilesBoardStore({ workspace, now: context.now, lockTaker: lockTakerOf(context.platformPorts.processSupervision) });
+export function boardStoreIn(context: Pick<CommandContext, 'now' | 'platformPorts' | 'standardError'>, workspace: Workspace): BoardStore {
+  const lockTaker = lockTakerOf(context.platformPorts.processSupervision, context.standardError);
+  return createLocalFilesBoardStore({ workspace, now: context.now, lockTaker });
 }
 
 export function boardStoreOf(context: CommandContext): { workspace: Workspace; store: BoardStore } {

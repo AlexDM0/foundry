@@ -13,7 +13,6 @@ import { RepositoryLandings, type RepositoryLandingFiles } from '../../lib/git/R
 import type { Ticket }                                     from '../../lib/tracker-model/@types/Ticket.ts';
 import type { Board }                                      from '../../lib/tracker-model/Board.ts';
 import { TicketDocumentReadingUtil }                       from '../../lib/tracker-model/utils/TicketDocumentReadingUtil.ts';
-import { OperationRefusal }                                from '../../shared/OperationRefusal.ts';
 import { LIMITS }                                          from '../../shared/constants/Limits.ts';
 import { PRODUCT_NAMES }                                   from '../../shared/constants/ProductNames.ts';
 import { LockGenerationSteps, type LockTaker }             from '../tracker/GenerationLock.ts';
@@ -139,8 +138,8 @@ function landAlone(request: LandingRequest): LandingVerdict {
 
 /**
  * Never waits: a lock a live sibling holds is `null` at once, so a tracker's own hold is never spent waiting on another tracker, and the
- * slot tries again on a later sweep. A contended attempt, a sibling taking the lock at the same moment, is tried again at once. An
- * unreadable lock record judges no process, so it is refused for a repair, `lock-record-unreadable`, as the store's lock refuses it.
+ * slot tries again on a later sweep. A contended attempt, a sibling taking the lock at the same moment, is tried again at once. A stale
+ * record, its holder gone or the record unreadable, is taken over and logged, as the store's lock takes it over.
  */
 function underTheLandingLock(sharedRepository: SharedRepositoryLanding, land: () => LandingVerdict): LandingVerdict | null {
   const { lockDirectoryPath } = sharedRepository.files;
@@ -148,9 +147,9 @@ function underTheLandingLock(sharedRepository: SharedRepositoryLanding, land: ()
   const holder = lockTaker.holderOfThisProcess();
   for (let attempt = 0; attempt < LIMITS.LOCK_RETRY_COUNT; attempt++) {
     const acquired = LockGenerationSteps.attemptedAcquire(lockDirectoryPath, LockGenerationSteps.lockPayloadOf(holder, now()), lockTaker.holderIsGone);
-    if (acquired.verdict === 'unreadable') throw new OperationRefusal('unrepaired', { kind: 'lock-record-unreadable', recordPath: acquired.recordPath });
     if (acquired.verdict === 'held') return null;
     if (acquired.verdict === 'contended') continue;
+    if (acquired.staleTakenOver !== undefined) lockTaker.log(LockGenerationSteps.staleTakeOverLineOf(acquired.staleTakenOver));
     try {
       return land();
     } finally {

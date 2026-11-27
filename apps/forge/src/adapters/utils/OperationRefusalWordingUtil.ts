@@ -839,11 +839,6 @@ function lockTakenOverText(lockDirectoryPath: string, channel: RefusalChannel): 
     + `The next command finishes whatever this one had committed to write; ${adviceFor(channel, 'run this one again', 'try again')} to make its change.`;
 }
 
-function lockRecordUnreadableText(recordPath: string): string {
-  return `The lock record ${recordPath} cannot be read, so no process can be judged from it and nothing was done. `
-    + 'If nothing else is running, remove that file to free the lock, and try again.';
-}
-
 function malformedHoldJournalText(journalFilePath: string, reason: string): string {
   return `${journalFilePath} holds an unfinished write that cannot be read (${reason}), so nothing was done. `
     + 'Repair that file, or remove it to leave that write unfinished, and try again.';
@@ -877,8 +872,6 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
       return trackerLockHeldText(detail.lockDirectoryPath);
     case 'lock-taken-over':
       return lockTakenOverText(detail.lockDirectoryPath, channel);
-    case 'lock-record-unreadable':
-      return lockRecordUnreadableText(detail.recordPath);
     case 'malformed-hold-journal':
       return malformedHoldJournalText(detail.journalFilePath, detail.reason);
     case 'hold-journal-unremovable':

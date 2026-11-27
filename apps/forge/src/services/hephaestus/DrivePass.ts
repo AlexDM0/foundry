@@ -1362,9 +1362,10 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   // Read once for Hephaestus's life: a project moved in its repository moves only while no Hephaestus runs.
   const projectLocation = projectLocationOf(request.workspace.rootDirectory);
   const { platformPorts } = request;
+  const landingLockTaker = lockTakerOf(platformPorts.processSupervision, request.log);
   const sharedRepository = projectLocation.projectPrefix === ''
     ? null
-    : Landing.sharedRepositoryLandingOf(projectLocation, request.boardStore.reads.requireProgress().trackerId, request.now, lockTakerOf(platformPorts.processSupervision));
+    : Landing.sharedRepositoryLandingOf(projectLocation, request.boardStore.reads.requireProgress().trackerId, request.now, landingLockTaker);
   const sessionStopGraceMilliseconds = request.sessionStopGraceMilliseconds ?? SESSION_STOP_GRACE_MILLISECONDS;
   const gateSlots = GateRunSlots.createGateRunSlots({
     ports:             platformPorts,

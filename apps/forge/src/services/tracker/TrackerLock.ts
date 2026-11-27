@@ -19,8 +19,8 @@ function replayingTheJournalFirst<ActionResult>(
 
 /**
  * Run `action` with this tracker's lock held, releasing it however `action` ends, after replaying any hold journal a cut-short hold left.
- * A held record is taken over only once the taker judges its holder's process gone, never by its age. Throws `OperationRefusal('unrepaired')`
- * — exit 2 — its detail `tracker-lock-held` when the retry budget runs out, and `lock-record-unreadable` when the newest record cannot be read.
+ * A held record is taken over only once the taker judges its holder's process gone, never by its age; an unreadable one is taken over too.
+ * Throws `OperationRefusal('unrepaired')` — exit 2 — its detail `tracker-lock-held` when the retry budget runs out.
  */
 export function withLock<ActionResult>(
   workspace: Workspace,
