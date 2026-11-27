@@ -1,10 +1,6 @@
 /**
- * The head of a ticket's documents page, pure: the document tabs in pipeline order (a tab is muted until the document before it is
- * approved, `✓ Spec v5` once approved, the plan out of date once the spec moved under it), `then Build` and whether the build is held,
- * the state line, the comment count, and the one primary button: approve the head version, worded for what it starts, locked while there
- * is nothing to approve or while the agent's questions on the document are open, saying how many beside it, and read-only `Approved by
- * pipeline` where the review is off. Approve names the head, so a head that moved since the page read it, or a question asked since, is the
- * forge's refusal to word.
+ * The head of a ticket's documents page, pure: the document tabs, the state line, the comment count and the one primary button.
+ * Approve names the head version, so a head that moved since the page read it, or a question asked since, is the forge's refusal to word.
  */
 import type { BoardCommandDocument }                                     from '../../../@types/board/BoardCommandDocument.ts';
 import type { BoardTicketDocument }                                      from '../../../@types/board/BoardTicketDocuments.ts';
@@ -162,7 +158,7 @@ function headOf(reading: DocumentsHeadReading): DocumentsHeadModel {
 
 export interface SpecChangeModel {
   readonly key:      string;
-  /** "Spec · A2", or "Spec · line 29" where the lines name no item. */
+  /** `Spec · A2`, or `Spec · line 29` where the lines name no item. */
   readonly label:    string;
   readonly removed:  string;
   readonly inserted: string;

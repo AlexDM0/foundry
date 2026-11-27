@@ -1,13 +1,7 @@
 /**
- * The board's Markdown editor: one textarea holds the whole text, so typing, selection, undo and paste are the browser's own. Its text is
- * transparent over a mirror that draws the same lines, `#` and `##` lines bold, quote and fence lines muted, the selected lines tinted, as
- * are the lines the caller holds, and the caller's markers after a line or in a gutter of line numbers; the mirror and the gutter follow
- * the textarea's scroll, and a line too long to show ends in an ellipsis until User scrolls sideways. A blur, Cmd/Ctrl+S or, where
- * the caller asks, a pause in typing saves the whole text with the revision User saw, only when it changed; a save asked for while the one
- * before it is on its way goes once that one is applied. A refused save keeps User's text until User saves again with Cmd/Ctrl+S or
- * discards it; a blur saves nothing then. With a gutter, its `+` or Cmd/Ctrl+Shift+M hands the caller the selected lines to comment on,
- * numbered as the caller's facts number them: while the text differs from those facts, it saves the text instead and asks User to comment
- * once it is saved.
+ * The board's Markdown editor: one textarea holds the whole text, so typing, selection, undo and paste are the browser's own; its text is
+ * transparent over a mirror that draws the lines styled. A save carries the revision User saw; a refused save keeps User's text until User
+ * saves or discards it. Lines to comment on are numbered as the caller's facts number them, so while the text differs, it is saved instead.
  */
 import {
   useEffect,

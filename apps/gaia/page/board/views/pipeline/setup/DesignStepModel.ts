@@ -1,9 +1,6 @@
 /**
- * The design step's model, pure: the agent's state and the panel head's status, whether Apply may open while a question is open, the
- * Changes tab's name, and the agent's newest change with the step it shows on the flow, the words of its link, and the Undo it sends.
- * Every count comes from the facts; Apply's state reads the open question count, and Hephaestus's refusal stays the authority. In monorepo
- * mode the page is one level's: its title row, its newest agent change, and the open questions of every level, since a question in any
- * entity holds Apply as one question does in single mode.
+ * The design step's model, pure. Apply's state reads the open question count, and Hephaestus's refusal stays the authority; in monorepo mode the open
+ * questions of every level hold Apply.
  */
 import { PAGE_CONTRACT_VERSIONS }    from '../../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardCommandDocument } from '../../../../@types/board/BoardCommandDocument.ts';

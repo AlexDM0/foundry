@@ -1,8 +1,7 @@
 /**
- * Sends one board command the way every board control does: never while the board says controls may not act, and with the forge's
- * refusal kept verbatim, the sentence that it could not be reached, or the sentence that its answer to a command it may have applied was lost,
- * for the caller to show beside its control. A control that acts on several jobs at once, such as Stop all, sends its commands in order and
- * stops at the first one the forge does not apply.
+ * Sends one board command the way every board control does: never while the board says controls may not act, and with the forge's refusal,
+ * or the sentence for an unreachable forge or a lost answer, kept for the caller to show beside its control. Several commands go in order
+ * and stop at the first one the forge does not apply.
  */
 import { useContext, useState } from 'react';
 

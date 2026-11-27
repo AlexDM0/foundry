@@ -1,8 +1,6 @@
 /**
- * The state of an entity's constitution. What matters: a draft of the entity's own wins over every other state; a file the entity names
- * is adopted; a root without gates is kept for a person, one with gates is not; any other entity is not started while a first setup's
- * constitution step is open, and reads the default once it is done or in an update; the attention line counts only the default; the rail
- * words each entity's state from the list, and an entity the list misses as the default.
+ * The state of an entity's constitution: its own draft wins, a named file is adopted, a root without gates is kept for a person, any other
+ * entity reads not started or the default, and the attention line counts only the default.
  */
 import { describe, expect, test }                                  from 'bun:test';
 import type { BoardPipelineEntityDocument }                        from '../../../../@types/board/BoardPipelineDocuments.ts';

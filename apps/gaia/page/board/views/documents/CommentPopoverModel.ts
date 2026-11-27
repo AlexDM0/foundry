@@ -54,7 +54,7 @@ function anchorLinePartsOf(commentNumber: number, anchor: BoardCommentAnchorDocu
   };
 }
 
-/** "C2 · § 4 Acceptance › A3 · line 29 · Preview". */
+/** `C2 · § 4 Acceptance › A3 · line 29 · Preview`. */
 function anchorLineOf(commentNumber: number, anchor: BoardCommentAnchorDocument, placement: BoardLineRangeDocument | null): string {
   const parts = anchorLinePartsOf(commentNumber, anchor, placement);
   return [parts.commentName, parts.section, parts.linesText, parts.viewWord].filter((part) => part !== null).join(' · ');

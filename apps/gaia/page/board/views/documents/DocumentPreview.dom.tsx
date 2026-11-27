@@ -1,12 +1,7 @@
 /**
- * Preview in a happy-dom document. What matters: the text is drawn as elements, raw HTML staying text and a character reference the
- * character it names; a selection opens the popover with artboard 2's anchor and sends it with the comment, also one in a code block, one
- * that ends on a chip and one that ends on the next block's edge; a diagram node the frame reports under the pointer offers a comment on its own source
- * line, until a moment after the pointer left it or the diagram is drawn again; the frame is told the dark theme; a message from any
- * window but the diagram's own frame is dropped; a comment's chip stands after its text, ticked once applied;
- * the plan's reference marks follow their sentences, glued to them, unresolved ones marked; the plan's context line stands under its
- * title; the selected text stays marked while its popover is open; and
- * an agent's edit shares one frame with the line it replaces, which alone is struck.
+ * Preview in a happy-dom document: text drawn as elements, raw HTML staying text; selections and diagram nodes opening the comment
+ * popover with their anchor; only the diagram's own frame heard; comment chips, reference marks and the context line placed; and an
+ * agent's edit framed with the line it replaces, which alone is struck.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';

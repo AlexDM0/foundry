@@ -1,11 +1,7 @@
 /**
- * Code in a happy-dom document. What matters: the gutter numbers each line and carries each comment's chip; a pause in typing and a blur
- * each save the whole text with the version User saw, and a document with no version yet saves with no base; a refused save keeps User's
- * text and its refusal verbatim, a blur then saves nothing and Discard my edit keeps the focus; a save asked for while one is on its way
- * goes after it; a save the forge merged onto a newer head keeps User's text until its version is read, and text typed meanwhile saves on
- * the version it was made on; selected lines and Cmd/Ctrl+Shift+M open artboard 3's popover and send its anchor, only while the text is
- * the head's, an unsaved edit being saved first; the commented lines stay selected while the popover is open; quote and fence lines are
- * muted; a gutter `+` comments on its own line; and a long line ends in an ellipsis until User scrolls sideways.
+ * Code in a happy-dom document: the gutter's numbers, chips and `+`; saves on a typing pause and on blur with the version User saw, a
+ * refused save keeping User's text, saves queued behind one on its way and merged onto a newer head; the comment popover on selected
+ * lines only while the text is the head's; muted quote and fence lines; and a long line ending in an ellipsis.
  */
 import {
   act,

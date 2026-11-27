@@ -1,9 +1,6 @@
 /**
- * The research step's model. What matters: findings group by topic with their source paths and scripts become rows; a script that needs
- * a network or a service carries its note; a finding to recheck says so; the status lines follow the agent's state and the facts; Continue
- * is always a command, with attention only when the agent marked the research ready; Stop has nothing to stop once the agent stopped. In
- * monorepo mode the layout findings are their own list, never a card; the status line says that each entity has a session once one has
- * a part; Continue opens the next step the record walks, `entities` while it walks it.
+ * The research step's model: findings by topic, scripts with their notes, the status lines, Continue and Stop, and in monorepo mode the layout
+ * findings apart and Continue to `entities`.
  */
 import { describe, expect, test }                                        from 'bun:test';
 import type { BoardPipelineSetupDocument, BoardResearchFindingDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';

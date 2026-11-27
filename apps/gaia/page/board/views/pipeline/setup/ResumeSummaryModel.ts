@@ -1,8 +1,5 @@
 /**
- * The resume summary's model, pure: each setup step with its status and the summary the facts give it, the current step's chips (open
- * questions, the pipeline agent's job), the footer's count of the done steps, the commands of Resume (none before a first setup's billing)
- * and Start over, and the note that
- * main moved since the research. Every word comes from the facts' counts and values; the record's statuses decide, a time never does.
+ * The resume summary's model, pure. Every word comes from the facts' counts and values; the record's statuses decide, a time never does.
  */
 import { PAGE_CONTRACT_VERSIONS }                                                                 from '../../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardCommandDocument }                                                              from '../../../../@types/board/BoardCommandDocument.ts';

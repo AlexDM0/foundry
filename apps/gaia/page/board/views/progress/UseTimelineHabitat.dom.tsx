@@ -1,8 +1,6 @@
 /**
- * `useTimelineHabitat` under the board's host of Flint, on chart rows marked `data-task-id` with bars marked `data-bar-kind` as the
- * Progress chart marks them. What matters: the view is the `timeline` habitat; a ticket that starts has Flint lay the bar along the last
- * shown bar of its own row, which is given and the hidden one passed over; and a ticket whose row is not shown has Flint lay a bar where it
- * stands.
+ * `useTimelineHabitat` on chart rows marked as the Progress chart marks them: a ticket that starts has Flint lay the last shown bar of its own row,
+ * or a bar where Flint stands when its row is hidden.
  */
 import { cleanup } from '@testing-library/react';
 import {

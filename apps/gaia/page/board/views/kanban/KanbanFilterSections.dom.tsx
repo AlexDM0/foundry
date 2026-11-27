@@ -1,10 +1,6 @@
 /**
- * The filter menu's Kanban sections, composed as the shell composes them: the choices hook, the filter line and menu, and the board. What
- * matters: an Epic row narrows the board, stores the pressed rows under their key, shows the pressed epic's roll-up under its row and names
- * it in the filter line; the no-epic row reads "no epic"; Order Ready shows only on a board with dependencies, with its hint, orders the
- * Ready lane by wave and stores that; Swimlanes shows only in monorepo mode, turns the entity heads off and stores that; the entity rail
- * stores the chosen entity; and "Reset filters" releases every row, files the Ready lane again, shows every entity and puts the swimlanes
- * back by entity, clearing every key.
+ * The filter menu's Kanban sections, composed as the shell composes them: each row narrows or orders the board and stores its choice
+ * under its key, the rows show only where they apply, and "Reset filters" releases every row and clears every key.
  */
 import {
   act,

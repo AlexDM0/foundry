@@ -1,8 +1,6 @@
 /**
- * The forge level's page. What matters: each approval reads the default the forge serves while absent and its switch sends the other
- * state, the Ticket phase's as the route writes a ticket, the served default route where the draft names none;
- * the merge train's re-review reads as its threshold or Off; the board limit is sent only when it changed and stays in its bounds, and
- * every count is worded in jobs; the footer counts the entities and their gates, and a root kept for a person is never "without gates".
+ * The forge level's page: each approval reads the served default while absent, the merge train's re-review reads as its threshold or Off,
+ * the board limit is sent only when changed and within bounds, and the footer counts entities and gates.
  */
 import { describe, expect, test }                      from 'bun:test';
 import type { BoardPipelineDefinitionDocument }        from '../../../../@types/board/BoardPipelineDocuments.ts';

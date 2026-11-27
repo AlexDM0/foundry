@@ -1,8 +1,6 @@
 /**
- * The ticket form's Overview: the state card with its Flint slot, the newest open incident on the ticket, the one likely action with its
- * effect, the live job's message box and More menu, Next as numbered steps (the current one marked), Other moves, and the Facts grid.
- * Watch is a link, so a stream that is down never disables it; every move posts a board command. A ticket with a spec and plan lists each
- * with where it stands and a link to its page.
+ * The ticket form's Overview: the state card with its Flint slot, the newest open incident, the likely action, the live job's controls,
+ * Next, Other moves, Facts, and the ticket's spec and plan. Watch is a link, so a stream that is down never disables it.
  */
 
 import { useState } from 'react';

@@ -1,10 +1,6 @@
 /**
- * The billing step's model, pure: the ways the record's agent bills, as its vendor serves them with its default first, worded as cards
- * without naming the vendor; the billing choice a person makes on the cards and the cap field, the default preselected while the record
- * has none; the commands it sends (a billing change, and the Continue of a record at billing, which saves a changed choice first, since
- * forge continues only once a billing is chosen); the footer's words for it, the count of waiting tickets, the pipeline agent's meter and
- * the panel head's status, and the words of the page's lists. The cap is sent as typed once it is a number; Hephaestus refuses one that is
- * not positive, and the view shows that refusal verbatim.
+ * The billing step's model, pure. A changed choice is saved before Continue, since forge continues only once a billing is chosen. The cap is sent as
+ * typed once it is a number; Hephaestus refuses one that is not positive.
  */
 import { PAGE_CONTRACT_VERSIONS }                                   from '../../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardAgentBillingOptionDocument, BoardAgentDocument } from '../../../../@types/board/BoardAgentDocuments.ts';
@@ -48,7 +44,7 @@ const BILLING_MODE_LABELS: Readonly<Record<BillingMode, string>> = { subscriptio
 /** The facts the cards read: the vendors the forge knows, with how each bills. */
 export type BillingFacts = Pick<BoardDocument, 'agent'>;
 
-/** What the pipeline agent does once started, after "When you start it, Flint:"; the fourth is Q15's: a profile runs only when asked. */
+/** What the pipeline agent does once started, after "When you start it, Flint:"; the fourth: a profile runs only when asked. */
 export const HOW_IT_WORKS_LINES: readonly string[] = [
   'Reads a snapshot of main: the scripts, the lockfile and the tests.',
   'Drafts the constitution that every builder and reviewer reads.',

@@ -1,9 +1,6 @@
 /**
- * The pipeline agent panel at a level of monorepo mode. What matters: the forge's session is the record's own, and single mode reads it
- * the same; an entity's session is its own part of the record, its job, questions and findings, never the forge's or another entity's,
- * and an entity with no part yet has no job and no question; the line over the chat counts the open questions of every other level with
- * the forge first, worded by where they wait, and is absent while no other level asks; the head names the level. An entity's research
- * session's strip names the entity it reads; the forge's strip and every other step's read as in single mode.
+ * The pipeline agent panel at a level of monorepo mode: each level's session is its own part of the record, never another level's; the
+ * line over the chat counts the other levels' open questions, the forge first; and the head and strip name the level.
  */
 import { describe, expect, test }                                      from 'bun:test';
 import type { BoardPipelineSetupDocument, BoardSetupQuestionDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';

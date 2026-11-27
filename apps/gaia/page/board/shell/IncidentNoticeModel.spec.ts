@@ -1,12 +1,6 @@
 /**
- * The incident line and its drawer. What matters: the line is one sentence however many defaults, counting every default noticed since
- * the forge started and naming the last notice, never comparing stamps; an escalation is never a default; a seen list hides the line
- * until a new default, which brings it back counting all of them; "Mark defaults seen" stores exactly the defaults noticed now, so ids of
- * an earlier forge run drop out; the wording is singular for one and leaves out the open clause with none open; open incidents alone
- * raise no line; names come from the log, so a notice the log does not hold yet gives a row and a sentence without its tickets or stamp,
- * never a throw; the drawer lists open incidents in board order, saying what an undelivered one waits for, and defaults newest first, each
- * with its trail, the applied default marked, each default's cause in the words of the notice the forge serves for it; and the stamp
- * slices are the board's limits.
+ * The incident line and its drawer: one sentence however many defaults, counting from the log rather than comparing stamps; an escalation is
+ * never a default; a seen list hides the line until a new default; and a notice the log does not hold yet gives a row, never a throw.
  */
 import { describe, expect, test } from 'bun:test';
 

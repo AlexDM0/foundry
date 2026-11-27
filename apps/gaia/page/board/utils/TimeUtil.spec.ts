@@ -1,8 +1,6 @@
 /**
- * The one stamp formatter. The cases that matter are the three forms a stored stamp takes against the viewer's day, a stamp whose offset
- * puts it on another day in the viewer's zone (it is compared as written, never parsed), and the instant forms, which are local time and so
- * are checked against the instant's own local date rather than a literal clock; the chat's seconds clock takes the same three forms. A
- * duration matters at its unit boundaries and when it runs backwards.
+ * The one stamp formatter: the three forms a stamp takes against the viewer's day, a stamp compared as written whatever its offset, the
+ * local instant forms checked against the instant's own local date, the chat's seconds clock, and durations at unit boundaries and backwards.
  */
 
 import { describe, expect, test }                        from 'bun:test';

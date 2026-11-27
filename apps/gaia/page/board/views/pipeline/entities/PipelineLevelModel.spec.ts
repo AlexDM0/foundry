@@ -1,8 +1,6 @@
 /**
- * The level a monorepo route holds. What matters: `#pipeline/forge/<item>` and `#pipeline/entity/<key>/<item>` read as their level and
- * the screen's own item, and writing them back gives the same route; an entity named `forge` keeps its own level; a single-mode item
- * reads with no level and unchanged; moving to another level keeps the screen. A draft field belongs to the entity its scope names, and
- * every other field to the forge. An entity's summary leads a page as a sentence of its own.
+ * The level a monorepo route holds: `#pipeline/forge/<item>` and `#pipeline/entity/<key>/<item>` read and write back the same, an
+ * entity named `forge` keeps its level, a single-mode item reads unchanged, and a draft field belongs to the entity its scope names.
  */
 import { describe, expect, test } from 'bun:test';
 

@@ -1,8 +1,6 @@
 /**
- * The resume summary against fake controls. What matters: the bare `#pipeline` of an open setup shows it in place of the landing; each
- * step row shows its status and summary, a done row Open; Start over asks first and sends only on the confirm; the main-moved note shows
- * only while main moved; the footer counts the done steps; Resume sends the record's id and then opens the current step, but before a
- * first setup's billing it sends nothing and only opens the billing step.
+ * The resume summary against fake controls: where it shows, its step rows, Start over asking first, the main-moved note, and Resume, which before a
+ * first setup's billing only opens the billing step.
  */
 import {
   cleanup,

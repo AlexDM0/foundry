@@ -1,12 +1,6 @@
 /**
- * The agent's tools at the design step and a launch forge refused, against fake controls. What matters: the design step's footer counts
- * the tools and the missing ones and opens their list, whose kept list is a draft edit of the record's draft at its revision; an added tool
- * forge did not find offers choosing its program in the system's file chooser and is sent again at that path; the research
- * step of a pipeline agent forge did not launch says "Not launched" with forge's own reason instead of Researching, and offers choosing the
- * program at the agent step and Look again; no setup step reads Running or the agent's work for such a job; and the board's notice names
- * each job not launched, or a forge with no agent, with where to choose it: the setup landing on a forge with no pipeline and no setup, where
- * forge keeps no agent outside a setup; a job whose billing its vendor does not offer leads to the billing step while a first setup is
- * open, else to the forge's settings, which show the billing.
+ * The agent's tools at the design step, and a launch forge refused, against fake controls: the tools list and its draft edit, an added
+ * tool's program chosen in the file chooser, "Not launched" with forge's own reason, and the board's notice pointing where to fix it.
  */
 import {
   cleanup,

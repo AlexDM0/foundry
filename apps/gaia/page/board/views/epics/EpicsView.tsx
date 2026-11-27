@@ -1,9 +1,6 @@
 /**
- * The Epics view: its title row over a grid of epic cards, each with its head (title, key, done mark), its summary, roll-up bar, legend
- * and facts, the Waits on, waves and Frees rows, and its tickets newest first. A ticket opens its ticket form in the detail panel over
- * this tab; an epic's link points the tab at that epic's card, which scrolls into view marked. The whole description, agent-written
- * HTML, shows only in its sandboxed frame, behind a disclosure. Its live work pulses only while the board's stream is live. The view is the
- * epics habitat of Flint.
+ * The Epics view: its title row over a grid of epic cards. The whole description, agent-written HTML, shows only in its sandboxed frame,
+ * behind a disclosure. The view is the epics habitat of Flint.
  */
 import {
   useEffect,

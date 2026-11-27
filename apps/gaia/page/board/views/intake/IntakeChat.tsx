@@ -1,8 +1,6 @@
 /**
- * An Intake chat column: the thread, when there is one, over a composer that carries pictures. A picture is attached, pasted into the text
- * box or dropped anywhere on the column; it uploads at once and goes with the next send, which waits until every upload settled. With no
- * picture limits served, or no picture client in the shell, no picture is offered and a pasted or dropped one is ignored. What sends the
- * chat habitat's own cues of the intake goes inside the card, where the relay reaches the thread.
+ * An Intake chat column: the thread over a composer that carries pictures. A picture uploads at once and goes with the next send, which
+ * waits until every upload settled; with no picture limits served, or no picture client in the shell, no picture is offered.
  */
 import { useState, type DragEvent, type ReactNode } from 'react';
 

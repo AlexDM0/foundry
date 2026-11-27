@@ -1,10 +1,7 @@
 /**
- * The document agent's side in a happy-dom document. What matters: while a turn works the head offers Stop, which ends the turn, and the
- * composer queues with `Queue ⌘↵`; a queued comment waits under the composer and `×` withdraws it; Cmd/Ctrl+Enter sends a message about
- * the whole document; an idle agent offers Ask first or Auto-apply; and an edit offers Apply, Discard and, inline, Edit first, which sends
- * User's own lines. The chat draws the agent's Markdown, a comment card sets only its name and lines in mono and, while an edit for it waits,
- * is marked and offers `↦ show`, the edit's card says what Apply closes, the working agent's read names its whole path, a note of the
- * board's stands dashed, and the composer asks for lines in Code and says where a comment being written lands.
+ * The document agent's side in a happy-dom document: Stop and the queueing composer while a turn works, withdrawing a queued comment,
+ * Cmd/Ctrl+Enter for the whole document, Ask first or Auto-apply, an edit's Apply, Discard and Edit first, and how the chat's cards,
+ * notes and composer read.
  */
 import {
   act,

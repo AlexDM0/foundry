@@ -1,10 +1,6 @@
 /**
- * The Kanban: its title row over the eight lanes of `KanbanModel`, narrowed and ordered by the filter menu's Kanban sections, each card
- * with its marks and no controls but its links and its asks pill: its moves are the ticket panel's. A card opens the ticket or draft form
- * of the detail panel in place, and its asks pill the question panel at the decision naming it; while either panel is open the board gains
- * scroll room the width of what it covers. A card whose state moved since the previous board is marked for a moment, as is a lane a header
- * figure points at; hovering a card draws arrows from the cards it depends on. The closed lanes' pages and the Abandoned fold are kept per
- * board. In monorepo mode the entity rail sits beside the lanes, each card names its entity, and a crossing ticket's card shows its stages.
+ * The Kanban: its title row over the lanes of `KanbanModel`. A card has no controls but its links and its asks pill, since its moves are
+ * the ticket panel's; it opens the detail or question panel in place, and the board gains scroll room the width of what the panel covers.
  * The Kanban is the tickets habitat of Flint (`page/board/flint/UseTicketsHabitat.ts`).
  */
 

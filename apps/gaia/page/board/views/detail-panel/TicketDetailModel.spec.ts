@@ -1,9 +1,6 @@
 /**
- * The ticket form. What matters: the head takes the Board's display state and shows every type, a plain ticket's too; only a Done card
- * whose row counts as reviewed carries the ✓, titled with its full `reviewed` stamp; the section tabs are always the same four in order,
- * only Activity counting, and only while a line names the ticket or its own row; Activity claims those lines alone, newest first; and the
- * Overview's facts come in their fixed order (epics, integration, filed, started, paused and its row note, finished, reviewed, done,
- * abandoned, reason, held, waiting on, branch, task), the network last, with no group fact beside the integration.
+ * The ticket form: the head's display state and type, the ✓ only on a reviewed Done card, the same four section tabs with only Activity
+ * counting, Activity's own lines newest first, and the Overview's facts in their fixed order, the network last.
  */
 import { describe, expect, test } from 'bun:test';
 

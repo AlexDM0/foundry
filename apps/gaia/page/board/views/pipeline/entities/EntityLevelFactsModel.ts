@@ -1,8 +1,6 @@
 /**
- * The facts of one entity's level, pure: the board's facts as a single pipeline would carry them, so the flow, the gates table and the
- * dialogs draw an entity as they draw single mode. The entity's flow replaces the forge's, its single pipeline is the draft and the
- * applied pipeline, its own session's questions mark its steps, and only its profile runs, cache marks and changes stay, each change as
- * the field inside the entity. An edit made there goes back scoped to the entity, unless its field is one the forge sets for every entity.
+ * The facts of one entity's level, pure: the board's facts as a single pipeline would carry them, so the flow, gates table and dialogs
+ * draw an entity as they draw single mode. An edit goes back scoped to the entity, unless the forge sets its field for every entity.
  */
 import type {
   BoardAppliedPipelineDocument,

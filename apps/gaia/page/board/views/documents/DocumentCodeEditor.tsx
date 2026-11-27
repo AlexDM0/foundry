@@ -1,8 +1,7 @@
 /**
- * Code: the document's Markdown in the board's editor, with line numbers and each comment's chip in the gutter. Selected lines, then
- * Cmd/Ctrl+Shift+M or the gutter's `+`, open the same comment popover as Preview, anchored on those lines of the head, so only while the
- * text is the head's; an edit not yet saved is saved first. The lines stay selected while the popover is open. The text saves with the
- * version User saw once User pauses typing and on blur; the forge merges it onto a newer head, and a refused save keeps User's text.
+ * Code: the document's Markdown in the board's editor, with line numbers and comment chips in the gutter. Selected lines open the same
+ * comment popover as Preview, anchored on the head's lines, so only while the text is the head's; an unsaved edit is saved first. The
+ * text saves with the version User saw on a typing pause and on blur; the forge merges it onto a newer head.
  */
 import { useCallback, useMemo } from 'react';
 

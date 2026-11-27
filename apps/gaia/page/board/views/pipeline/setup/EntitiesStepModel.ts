@@ -1,8 +1,6 @@
 /**
- * The entities step's model, pure: whether the step proposes monorepo mode, holds it, waits for the pipeline agent's proposal or stays in
- * single mode; each entity's row, the root entity's place, the footer's counts and why Continue waits; and the draft edits each gesture
- * makes, as typed edits on the entities a gesture saw, which the view sends at once as `pipeline-draft-edit` carries them. Whether the draft
- * they leave is refused is the forge's verdict, served with the draft: a row shows the forge's sentence of a refusal shown on it.
+ * The entities step's model, pure: the mode, each entity's row, the footer and the draft edits each gesture makes. Whether the draft they leave is
+ * refused is the forge's verdict, served with the draft.
  */
 import { PAGE_CONTRACT_VERSIONS }    from '../../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardCommandDocument } from '../../../../@types/board/BoardCommandDocument.ts';
@@ -232,7 +230,7 @@ function continueBlockOf(mode: EntitiesMode, refusalCount: number): string | nul
 
 const SHORT_COMMIT_LENGTH = 7;
 
-/** "Layout found by the pipeline agent J2 · snapshot of main at a1b2c3d", as far as the record names them. */
+/** The layout line, naming the pipeline agent's job and the snapshot of main as far as the record names them. */
 function statusLineOf(record: Pick<BoardSetupRecordDocument, 'agentJobId' | 'snapshotCommit'>): string {
   const agent = record.agentJobId === null ? 'Layout found by the pipeline agent' : `Layout found by the pipeline agent ${record.agentJobId}`;
   return record.snapshotCommit === null ? agent : `${agent} · snapshot of main at ${record.snapshotCommit.slice(0, SHORT_COMMIT_LENGTH)}`;

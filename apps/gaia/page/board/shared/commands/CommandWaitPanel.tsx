@@ -1,8 +1,6 @@
 /**
- * The panel over the page while a command waits more than a second on the forge: what the forge does meanwhile, a busy band, and Flint
- * running the gate lamps in its slot. It is a covering layer of the board's own, not the library's native dialog: a native modal sits in
- * the browser's top layer, above Flint's overlay, so Flint could not show in its slot there. It holds the focus and every click while it
- * shows, and closes by itself once the forge answers.
+ * The panel over the page while a command waits more than a second on the forge. It is a covering layer of the board's own, not a native
+ * modal dialog, since the browser's top layer would sit above Flint's overlay and hide Flint in its slot.
  */
 import { useLayoutEffect, useRef } from 'react';
 import { createPortal }            from 'react-dom';

@@ -1,8 +1,6 @@
 /**
- * The panel's left column: the orange decision card, where Flint waits beside "Your decision" and the question (or the count of questions
- * on a decision of several), its slot left out while the panel hides behind the detail panel, which holds the page's one slot; then each
- * question's options as cards (`DecisionOptionList`), User's own words an option of their own on a decision of one question; and the
- * answer row naming the command it posts. The choices start empty for every decision, since the column is keyed by it.
+ * The question panel's left column: the decision card with Flint's slot, each question's options and the answer row. The choices start empty for
+ * every decision, since the column is keyed by it.
  */
 
 import type { ReactNode } from 'react';

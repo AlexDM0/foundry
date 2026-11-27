@@ -1,12 +1,7 @@
 /**
- * A phase's gates table under its steps: "<Phase> gates", the gate count, the phase's line and the add buttons, then the rows in a
- * reorderable list, prepare steps first. A reorder sends the phase's run order (or the prepare steps' order) and Delete on a focused row
- * takes it out, both as draft edits through the open phase's sender. "Add gate", and "Add prepare step" in the Build phase, ask for an
- * empty Gate dialog; both hide on a live board, whose head names the tickets in the phase's gates now, once for the phase, since the facts
- * place a ticket in the phase's gates and not in one gate. A phase with no gates says so beside "Add <phase> gate". At an entity's level of
- * a monorepo screen, a profile measures that entity's gate, and the head may lead with the copy of the phase's gates to another entity;
- * on a live board there, the head's line also names the entity's gate profiles of the phase under way (MonoLive). Every row shows its
- * line's last recorded run in the phase, for the entity in view.
+ * A phase's gates table under its steps: the head with the add buttons, then the reorderable rows, prepare steps first, sending draft
+ * edits through the open phase's sender. A live board names the tickets once for the phase, since the facts place a ticket in the
+ * phase's gates and not in one gate.
  */
 import type { ReactNode }                                                                   from 'react';
 import type { BoardGateProfileRunDocument, BoardGateRowDocument, BoardStepRunTimeDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';

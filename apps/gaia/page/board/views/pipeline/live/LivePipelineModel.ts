@@ -1,11 +1,7 @@
 /**
- * The live pipeline's footer and toast, pure: the applied version with its time and who applied it, the content hash and the commit
- * that the newest Apply landed `CONSTITUTION.md` in; the Apply this view sent counts as landed once the facts show a newer applied
- * version, and its toast says "Board resumed" only when that Apply resumed the board.
- * On a forge over entities (MonoLive) the live flow is one level's: a ticket or draft on the flow belongs to the entity its job runs, and
- * to the forge while it stands where the forge acts for every entity (ticket creation, the Airlock, the landing on main); an entity's
- * level shows only its own tickets, on its own flow. The page words, the pipeline agent's tab, the advise command and the gate profiles
- * under way follow the level. An occupant whose job names no entity belongs to no entity yet.
+ * The live pipeline's footer and toast, pure. An Apply counts as landed once the facts show a newer applied version. On a forge over entities a
+ * ticket on the flow belongs to the entity its job runs, and to the forge where the forge acts for every entity: ticket creation, the Airlock
+ * and the landing on main.
  */
 import { PAGE_CONTRACT_VERSIONS }    from '../../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardCommandDocument } from '../../../../@types/board/BoardCommandDocument.ts';

@@ -1,12 +1,7 @@
 /**
- * A document's Markdown blocks as React elements, never as HTML: each piece of text, each line of a code block among them, carries the source line and
- * column where it starts, so a selection maps back to the source; a character reference draws the character it names; a link keeps only an allowed target;
- * a diagram is drawn by the diagram frame. After the text of a paragraph, heading or list item go the marks of the lines it holds, glued to its last word:
- * a comment's chip (`C2`, `✓ C2` once applied), an agent's question's solid chip (`E7`, `✓ E7` once answered), its lines marked while it waits, and a
- * reference mark of the effect reading (`1`, in the warning look while its place is unresolved, the words it quotes then underlined). The blocks that hold
- * an editor's caret line carry `data-caret`. The caller may place its own part after the innermost such block that holds a line, such as an agent's
- * proposed edit or the comment popover, and frame the part with that block, as an edit with the lines it replaces. The text an open comment points at
- * stays marked.
+ * A document's Markdown blocks as React elements, never as HTML: each text piece carries its source line and column, so a selection maps
+ * back to the source; a link keeps only an allowed target. After a block's text go its lines' chips and reference marks. Blocks on a caret
+ * line carry `data-caret`; the caller may place a part, such as a proposed edit, after the innermost block.
  */
 import {
   createContext,

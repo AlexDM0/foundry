@@ -1,21 +1,7 @@
 /**
- * The Agents view in a happy-dom document, against a fake clock, a fake transcript stream and a fake command client. What matters: builder
- * and reviewer jobs sit under the project row of the worker card and sessions in their own card, so nothing that never takes a slot sits
- * under the slot meter; a job that asks User is marked and followed by its Asks User strip, whose Answer opens the decision on the
- * Questions tab; a row carries its raw state on its palette row with a quiet or not-counted tag, its calls against its budget as a meter,
- * its subagents as squares (no subagent rows), its tickets as chips; a job interrupted by a network outage or a lost supervision reads as
- * its wait in the waiting tone, never the failure tone, and its panel says what it waits for as the forge serves it, offering Resume only
- * where it waits for the user's instruction; diagnostics add three columns and take them away again; the foot names what the figure
- * counts and the tickets in progress no job works on; the Sessions head tallies each kind of session; each card has its own empty line;
- * the elapsed time ticks each second, says "running" while the call has no result, and is tinted only while silent sweeps are above zero;
- * the transcript replays then follows, resumes after its last cursor when reopened, and renders an agent's markup as text; each control
- * posts its board command and shows a refusal verbatim, a message or answer only when written, clearing its field once applied, and an
- * answer only to the decision it was typed for; the stop modes and Fresh agent are offered as the forge offers them; the project row
- * offers the concurrency limit within the forge's bounds, Set only once the number differs; the view opens with its title row; the
- * selected job's side panel names the job and its state, holds one Flint slot (112, lane), cued by the selected job while it runs and idle
- * while it does not, unless the question panel covers it and holds the page's one slot, takes a message in its foot only where the forge
- * offers it, drops a half-typed message once another job is selected, and × routes the panel closed; and the board draws the Agents tab
- * itself, reading the board again after a change.
+ * The Agents view in a happy-dom document, against a fake clock, transcript stream and command client: the worker and Sessions cards, the
+ * Asks User strip, interrupted jobs read as waits, ticking elapsed times, the replayed transcript rendering markup as text, each control
+ * posting its command and showing a refusal verbatim, and the selected job's side panel with its one Flint slot.
  */
 import {
   act,

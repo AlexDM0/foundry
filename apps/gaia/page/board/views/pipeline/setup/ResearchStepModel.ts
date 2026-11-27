@@ -1,8 +1,6 @@
 /**
- * The research step's model, pure: the findings by topic with their source paths, the scripts as rows (a script that needs a network or a
- * service carries that note), the status line over the page, the panel head's status, and the commands of Continue
- * and Stop. The research runs nothing: no finding offers to run a script. Continue is always offered; the agent's `readyToContinue` only
- * draws attention to it. In monorepo mode the layout the agent reports first stands apart from the findings, and Continue opens `entities`.
+ * The research step's model, pure. The research runs nothing: no finding offers to run a script. Continue is always offered; the agent's
+ * `readyToContinue` only draws attention to it.
  */
 import { PAGE_CONTRACT_VERSIONS }                                        from '../../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardJobNotLaunchedDocument }                              from '../../../../@types/board/BoardAgentDocuments.ts';
@@ -140,8 +138,8 @@ const STATE_WORDS: Readonly<Record<ResearchState, string>> = {
 };
 
 /**
- * "Pipeline agent J4 · researching · snapshot of main at 1111111 · 2m 40s", or "· not launched" while forge refused its launch; the time only
- * while the agent runs and its launch is known.
+ * The status line: the pipeline agent's job, its state, the snapshot of main and its time, or "not launched" while forge refused its launch;
+ * the time only while the agent runs and its launch is known.
  * Once entities have sessions of their own, the line says so after the state.
  */
 function statusLineOf(facts: ResearchFacts, now: Date): string {

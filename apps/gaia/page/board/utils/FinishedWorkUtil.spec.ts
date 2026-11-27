@@ -1,8 +1,6 @@
 /**
- * The finished-work rules, read from the forge's facts. What matters: the stored key name and default stay as stored, the retired `recent`
- * and anything unreadable read as the default, a span or a since-day sets the cutoff, open work always shows, and the filter line and
- * window phrase are worded. The filter menu's parts: a row's finishing moment and its fallbacks, the span counts and their accessible
- * names, the since field's chosen, incomplete and future days, and what a choice announces.
+ * The finished-work rules, read from the forge's facts: the stored key and its default, the retired `recent` and unreadable values read as
+ * the default, a span or since-day sets the cutoff, open work always shows, and the filter menu's wording, counts and choices.
  */
 import { describe, expect, test } from 'bun:test';
 

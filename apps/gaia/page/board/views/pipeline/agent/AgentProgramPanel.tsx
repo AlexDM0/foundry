@@ -1,9 +1,6 @@
 /**
- * Which program of the chosen agent this forge starts: this machine's, which every forge that follows it keeps up with, or a program for
- * this forge only, chosen in the system's file chooser. A chosen program is kept for every forge on this machine while the box is ticked,
- * and changing a program other forges follow asks first, naming how many do. The program's run shows as forge reports it, and a program
- * forge refuses shows forge's sentence and is not kept. Nothing found shows where to choose it instead. On the setup's landing no record
- * holds the choice yet: the page holds it, and the landing's start sends it. Where forge looked may fold under this machine's program.
+ * Which program of the chosen agent this forge starts: this machine's, which every forge that follows it keeps up with, or one for this
+ * forge only. Changing a program other forges follow asks first; on the setup's landing the page holds the choice until the start sends it.
  */
 import { useContext, useId, useState }                         from 'react';
 import type { BoardAgentDocument, BoardPipelineAgentDocument } from '../../../../@types/board/BoardAgentDocuments.ts';

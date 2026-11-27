@@ -1,7 +1,6 @@
 /**
- * A synthetic board where every kind of thing waits on User: an escalated question, a question with its job, a code-opened question with
- * none, two draft tickets, a filing draft waiting on an answer beside one still researching, a ticket ready for review and one waiting
- * for the merge accept, and one open incident, with the attention entries the forge serves for them. Built on `boardStateFixture`, whose
+ * A synthetic board where every kind of thing waits on User: questions with and without a job, drafts, filing drafts, a ticket for review
+ * and one for the merge accept, and an open incident, with the attention entries the forge serves. Built on `boardStateFixture`, whose
  * default stays untouched. Test-only.
  */
 import type { BoardDecisionDocument, BoardQuestionHistoryEntryDocument } from '../../@types/board/BoardDecisionDocuments.ts';

@@ -1,10 +1,6 @@
 /**
- * The change list's model against the proposal fixture. What matters: every row of the facts' change list becomes one row, in order, so
- * the Changes tab counts what the list shows; each field is worded by what it names and its kind is in the words, never only in a colour;
- * a row an edit made carries that edit's sentence with its author and an Undo of that edit, and a row no edit made has neither. While an
- * applied pipeline is edited (A6 as drawn), a gate is placed by its phases with its run lines, Human code review says what it switched
- * and what a reviewed ticket then does (decision 9's sentence), and only a new gate offers a benchmark, in its last phase, worded from its
- * newest profile run.
+ * The change list's model against the proposal fixture: one row per change, in order, its kind in words and never only in a colour, an
+ * edit's sentence and Undo; and while an applied pipeline is edited, the gate placement, the Human code review line and the benchmark offer.
  */
 import { describe, expect, test }                                                                  from 'bun:test';
 import type { BoardGateProfileRunDocument, BoardPipelineFlowDocument, BoardPipelineSetupDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';

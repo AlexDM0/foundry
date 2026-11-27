@@ -72,7 +72,7 @@ export interface ExampleBoardFields {
   readonly queuedTicketIds?:           readonly string[];
   /** The tickets waiting for User's merge accept, one target's `waitingForMerge`. */
   readonly waitingForAcceptTicketIds?: readonly string[];
-  /** The board's open filing drafts; one waiting draft, D7, when not given. */
+  /** The board's open filing drafts; one waiting draft, `D7`, when not given. */
   readonly filingDrafts?:              readonly BoardFilingDraftDocument[];
   readonly waitingOn?:                 Readonly<Record<string, readonly string[]>>;
   readonly tokensById?:                Readonly<Record<string, number>>;

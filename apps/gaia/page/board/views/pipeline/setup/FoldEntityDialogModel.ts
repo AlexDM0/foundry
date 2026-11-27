@@ -1,8 +1,6 @@
 /**
- * The fold of a package into another entity, pure: where it may go (the root, then each app), the words of the trade, the home folders
- * before and after, and the draft edits. The package leaves the draft; its folders become further homes of an app, or fall to the root,
- * which owns every path no other entity owns. Every list that named the package names the target instead, or drops it where the target
- * cannot stand in it: a whitelist names packages only, and nothing names the root it already depends on.
+ * The fold of a package into another entity, pure. Its folders become homes of an app or fall to the root, which owns every path no other entity
+ * owns; a list that cannot name the target drops the package.
  */
 import type { BoardDraftEditDocument, BoardPipelineEntityDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import { CountTextUtil }                                            from '../../../../shared/utils/CountTextUtil.ts';

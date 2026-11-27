@@ -1,8 +1,6 @@
 /**
- * The parts every detail form is built from. What matters: a group's integration says where the ticket lands, and only an open marked
- * ticket counts as the group's release ticket, since a settled one's mark is history; a paused build reads `since … · …` against the
- * handed-in now, the full stamp kept for the hover, its row note beside it; log lines are claimed by their ids or, for a note, by its
- * sentence, newest first with a backfilled line in its place; and stamps are sliced as written, never re-parsed.
+ * The parts every detail form is built from: a group's integration and its release ticket, only an open marked one (a settled one's mark
+ * is history); a paused build's `since … · …` against the handed-in now; log lines claimed by ids or a note's sentence; stamps as written.
  */
 import { describe, expect, test } from 'bun:test';
 

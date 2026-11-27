@@ -1,8 +1,5 @@
 /**
- * The fold of a package. What matters: the root comes first among the targets, then each app; folding into the root kept for a person only
- * removes the package, whose folders then fall to the root, while folding into an app adds its folders to the app's homes; every list that
- * named the package follows, a whitelist dropping it and a depends-on naming the target, and what the package depended on joins the app's.
- * The fold sends its edits; whether the draft they leave is refused is the forge's verdict.
+ * The fold of a package: its targets, the folders and lists that follow it into the root or an app, and the edits it sends.
  */
 import { describe, expect, test } from 'bun:test';
 

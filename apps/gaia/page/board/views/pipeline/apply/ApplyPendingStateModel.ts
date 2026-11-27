@@ -1,9 +1,6 @@
 /**
- * The model of a pending Apply, pure: what the commit of `CONSTITUTION.md` waits on, worded from the facts' `applyState`. While it
- * commits, the work or the ticket whose landing holds main; when held or refused, the stored reason as a sentence with the files that
- * block main, what User can do next, and whether the dialog offers the exact text to commit by hand. The resume summary shows the same
- * state on one line. Over entities the commit holds each drafted constitution, so the pending state counts them and words the reasons for
- * the constitutions rather than for `CONSTITUTION.md`.
+ * The model of a pending Apply, pure: what the commit of `CONSTITUTION.md` waits on, worded from the facts' `applyState`, for the dialog
+ * and the resume summary's one line. Over entities the commit holds each drafted constitution, so the wording counts them.
  */
 import { PAGE_CONTRACT_VERSIONS }       from '../../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardCommandDocument }    from '../../../../@types/board/BoardCommandDocument.ts';

@@ -1,10 +1,6 @@
 /**
- * The design step's model against the proposal fixtures. What matters: Apply is disabled exactly while a question is open, with its
- * reason and the amber hint, and enabled with "All questions answered" at zero; the Changes tab's name says what its count counts; the
- * panel head's dot and word come from the agent's job and its ready mark; the newest change is the agent's newest edit that is not undone;
- * each field shows on the flow in the phase that holds it: a step as its card, a gate or prepare step as its row in the first phase that
- * lists it, an order as the gates, and how a ticket is written as the Ticket phase's first step; its link names that phase and what it
- * changed, or the route a ticket is now written by.
+ * The design step's model against the proposal fixtures: Apply held exactly while a question is open, the Changes tab's name, the panel head, and the
+ * agent's newest change with the phase and link it shows on.
  */
 import { describe, expect, test }                                                             from 'bun:test';
 import type { BoardPipelineFlowDocument, BoardPipelineSetupDocument, BoardSetupEditDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';

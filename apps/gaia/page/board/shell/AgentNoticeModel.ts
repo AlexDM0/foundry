@@ -1,8 +1,6 @@
 /**
- * The board's notice about its agent, pure: a job whose launch forge refused, worded with forge's own reason, or a forge with a pipeline
- * and no agent, which launches nothing; each with where it is fixed (`PipelineViewModel.notLaunchedFixOf`), the setup landing on a forge
- * with no pipeline and no setup. `null` while every job launched and the forge has an agent. While the board has no readable pipeline a
- * job not launched for want of an agent says nothing: the setup on screen is where the agent is chosen.
+ * The board's notice about its agent, pure: a job whose launch the forge refused, or a forge with a pipeline and no agent, each with where it
+ * is fixed. While the board has no readable pipeline, a job not launched for want of an agent says nothing: the setup is where it is chosen.
  */
 import type { BoardDocument } from '../../@types/board/BoardDocument.ts';
 import type { BoardRoute }    from '../../shared/BoardRouter.ts';

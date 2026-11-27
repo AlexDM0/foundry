@@ -1,10 +1,6 @@
 /**
- * The Kanban as lanes of card models, from the forge's board and the filter menu's Kanban sections (the pressed epics, the Ready order), which it also
- * models. Which lane a ticket sits in follows its status and the merge queue's facts; which ready tickets come first follows the served `readyTickets`,
- * the priority a card shows and sorts by is the served `resolvedPriority`, so no forge rule is copied here. The Kanban holds no draft: a draft ticket, a
- * ticket for User's review and a filing draft live in Tickets only (`docs/design/board-menu.md`). What waits on User leads its lane: the tickets waiting
- * for User's merge accept lead the Merge queue. In monorepo mode the entity filter narrows the board and the swimlanes divide each lane by entity
- * (`KanbanEntityFilterModel`).
+ * The Kanban as lanes of card models, from the forge's board and the filter menu's Kanban sections. Lanes, ready order and priority all
+ * follow served facts, so no forge rule is copied here; drafts live in Tickets only (`docs/design/board-menu.md`).
  */
 import type {
   BoardEpicDocument,

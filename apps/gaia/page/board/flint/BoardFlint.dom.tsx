@@ -1,15 +1,6 @@
 /**
- * The board's host of Flint in a happy-dom document, on manual frames and stubbed boxes, with a recording director to read what Flint
- * perceives. What matters: one overlay, hidden from assistive technology and blind to the pointer, so Flint blocks no click below it, and
- * the home corner beside it; Flint stays in its box, so it is drawn only inside the home corner, its body takes no press and a drag on it
- * carries nothing; the chat thread is the chat habitat and its card a workplace; Flint starts in the habitat the board stored and
- * stores where it lives under the board's key; a new turn of the thread and the first letter in the composer reach Flint as cues, the
- * turns a history brings never, since they are past; a press on the composer makes the thread the habitat Flint visits; in the Agents view
- * an agent that works is copied, Flint walking below the job column of its row, and after the agents were idle and Flint slept at home a
- * working agent does not wake it; a board occasion
- * reaches Flint wherever it is, a stream that comes back ends the unplugged loop with a wave, and each board shows a watcher spark for
- * each agent in flight, at most 4; a view below reaches Flint through `useFlintPerform`, with one of its own elements; and Gaia calls
- * no model for Flint: no request leaves the page while its director is asked.
+ * The board's host of Flint, on manual frames with a recording director: one overlay blind to the pointer, Flint kept in its box, habitats
+ * and cues from the views and the board, and Gaia calling no model for Flint: no request leaves the page while its director is asked.
  */
 import {
   act,

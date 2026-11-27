@@ -1,8 +1,6 @@
 /**
- * The resume summary's model. What matters: each step carries the record's status and the summary the facts' counts give it, and a done
- * or recheck step reopens at its route; the current step carries the open questions and the pipeline agent's job; a pending Apply names
- * its commit, hold or refusal; Resume and Start over name the record; the main-moved note shows only while main moved; the footer counts
- * the done steps. In monorepo mode the entities step follows the research and counts the draft's entities with the root.
+ * The resume summary's model: each step's status, summary and route, the current step's chips, a pending Apply, Resume and Start over, the main-moved
+ * note and the footer's count.
  */
 import { describe, expect, test }                         from 'bun:test';
 import type { BoardPipelineSetupDocument }                from '../../../../@types/board/BoardPipelineDocuments.ts';

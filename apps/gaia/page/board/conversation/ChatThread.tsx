@@ -1,8 +1,6 @@
 /**
- * A conversation as a chat: the card around a thread and its composer, and the thread of turns a conversation view words from its model.
- * A system line sits between two rules and can reveal the text it stands for; an agent turn leads with its speaker, folds its tool calls
- * and then speaks; User's message is a bubble, dashed while it waits in a queue; a decision is placed by the caller. The thread is the
- * chat habitat of Flint: it cues what its newest turn shows, and the card relays the composer's cue to it.
+ * A conversation as a chat: the card around a thread and its composer. The thread is the chat habitat of Flint: it cues what its newest turn
+ * shows, and the card relays the composer's cue to it.
  */
 
 import {

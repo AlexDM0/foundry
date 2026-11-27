@@ -1,14 +1,6 @@
 /**
- * The question panel's model against synthetic boards. What matters: which decision shows (the pointed one while open, else the first one
- * opened since the fold, else the first) and whether the panel shows against the fold (it shows again once a decision opens that was not
- * open at the fold, and whenever User opened it); options stay as stored, the stored recommendation a mark beside the label, with
- * consequences only when the agent noted them; own words only on a decision of one question; a code-opened decision has no
- * conversation, no steps and is asked by Hephaestus; the ticket block reads the first ticket's sections and Acceptance as served, a
- * wrapped line joined to its paragraph as Markdown reads it, and omits them when the board serves none; the earlier answers join the
- * openings by decision id, on that ticket only, newest first; the steps are the last top-level tool calls with the asking call current; the
- * queue foot names the later decisions, wrapping round; `open since` is the sliced stamp, never the clock; and while the board is in setup
- * the panel holds no decision, since the onboarding is then all the board shows. The
- * recommendation is the served `recommended` field alone: a label ending in "(Recommended)" without it marks nothing.
+ * The question panel's model against synthetic boards: which decision shows against the fold, options and the served `recommended` mark, the
+ * background and earlier answers, the steps, the queue, and no decision during setup.
  */
 import { describe, expect, test } from 'bun:test';
 

@@ -1,9 +1,6 @@
 /**
- * All that Flint plays in a strip's slot fits the slot. What matters: every intent a strip's habitat answers (its arrival included) and
- * every board occasion, which Flint plays wherever it is, declares an extent that fits the 60 by 50 pixel box at Gaia's size, with the
- * Watcher sparks at their most beside it: no wider than the box, as the library stands Flint where it fits, no higher, and nothing below
- * the floor; and at rest the sparks fit too. The library holds each declared extent to what it draws, and what Flint draws with the
- * sparks in a box of this size, a hop that lifts them included (`lib/flint/mind/utils/StanceUtil.fit.spec.ts`).
+ * All that Flint plays in a strip's slot, every intent and board occasion with the Watcher sparks at their most, fits the 60 by 50 pixel box
+ * at Gaia's size. The library holds each declared extent to what it draws (`lib/flint/mind/utils/StanceUtil.fit.spec.ts`).
  */
 import { describe, expect, test } from 'bun:test';
 

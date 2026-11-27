@@ -1,9 +1,7 @@
 /**
- * "What the plan names". What matters: each entry stands under its folder with its change mark and reference, each folder under the
- * folder that holds it in the plan's order, a top folder with no file of its own lending its name to each of its folders as roots, an
- * ambiguous one under each candidate's folder, a no-match one nowhere in the tree, and the files one reference changes alike in one
- * folder folded into one row; the legend counts each change; the unresolved places carry their reason and hint; the source line says
- * what was read and how long it took; and the reference marks know which places are unresolved and what words they quote.
+ * "What the plan names": entries under their folders in the plan's order, ambiguous ones under each candidate, no-match ones out of the
+ * tree, alike files folded into one row; the legend's counts, the unresolved places' reasons and hints, the source line, and the reference
+ * marks.
  */
 import { describe, expect, test } from 'bun:test';
 

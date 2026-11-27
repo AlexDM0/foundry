@@ -1,8 +1,7 @@
 /**
- * The gate dialog's profile box: what a profile does, the press that starts one (Profile, or Profile again beside the last result) or
- * stops the one running, the running state with its spinner, bar and output, and the last result as a pill, with a red run's last lines.
- * A profile starts only on that press. The output comes only from the profile's own stream route, which the holder follows by its run id;
- * the board's facts and event stream carry none.
+ * The gate dialog's profile box: the press that starts or stops a profile (nothing else starts one), the running state with its output,
+ * and the last result. The output comes only from the profile's own stream route, followed by its run id; the board's facts and event
+ * stream carry none.
  */
 
 import { useEffect, useState }       from 'react';

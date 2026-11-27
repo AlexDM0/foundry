@@ -1,8 +1,7 @@
 /**
- * The ticket form a Kanban card or wave card opens, as the side panel's head and body: the head (the id line with type and priority, which
- * × closes, then the title in the display face beside the state pill) over the section tabs (Overview, Timeline, Activity, Description),
- * each a link to its own route over the same board tab, stays put; the body scrolls the section shown. Only that section is mounted, so the
- * body's frame measures itself once it is visible.
+ * The ticket form a Kanban or wave card opens, as the side panel's head and body: the head (id line, title and state pill) over the section
+ * tabs, each a link to its own route, stays put while the body scrolls. Only the routed section is mounted, so the body's frame measures
+ * itself once it is visible.
  */
 
 import { useEffect, useRef } from 'react';

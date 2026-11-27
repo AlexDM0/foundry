@@ -1,8 +1,7 @@
 /**
- * A job's controls, each a board command: Answer (only while one of the job's decisions is open), Resume (only while the forge serves that
- * the job waits for the user's instruction), Wind down and Stop (the stop modes the forge offers) and Fresh agent (where the forge offers
- * one). The forge refuses anyway, its refusal shown verbatim. A half-typed answer belongs to the decision it was typed for, so it goes once
- * the job opens another. A message to the job is the panel foot's `JobMessageBox`.
+ * A job's controls, each a board command: Answer while one of its decisions is open, and Resume, Wind down, Stop and Fresh agent as the
+ * forge offers them; a refusal shows verbatim. A half-typed answer belongs to the decision it was typed for, so it goes once the job opens
+ * another. A message to the job is the panel foot's `JobMessageBox`.
  */
 import { useState } from 'react';
 

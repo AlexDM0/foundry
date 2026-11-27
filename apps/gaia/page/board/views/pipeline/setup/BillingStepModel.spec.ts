@@ -1,12 +1,6 @@
 /**
- * The billing step's model. What matters: the cards are the ways the record's agent's vendor bills, in forge's order with its default
- * first, worded from the served facts (the vendor's display name) with the key's variable as forge serves it, and none for a vendor that
- * bills no way; the
- * choice is the record's billing, else the default, unsaved; the cap is sent as typed once it is a number (Hephaestus, not the board,
- * refuses a cap that is not positive) and never on a way whose launch takes none; a billing change is sent only when the choice differs
- * from the record's or the record has none; Continue saves first when it must and exists only at billing; the waiting tickets are the
- * committed ones; the pipeline agent's meter shows its pair over five bars, the default pair until a draft names one; the panel head says
- * the agent is not started until the record names its job, then whether its job runs; the footer words the chosen billing and its cap.
+ * The billing step's model: the billing cards in forge's order, the choice and cap it sends and when, the waiting tickets, the pipeline agent's meter
+ * and panel head, and the footer's words.
  */
 import { describe, expect, test } from 'bun:test';
 

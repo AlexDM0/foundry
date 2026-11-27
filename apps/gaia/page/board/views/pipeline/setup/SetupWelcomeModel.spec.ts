@@ -1,8 +1,5 @@
 /**
- * The setup welcome's model. What matters: the title names the project, or the pipeline when the forge has no project name; the steps are
- * the ones a setup with no record walks, in their order, so no `entities` step shows before a record holds it, and the agent step leads,
- * current; the agent line says where forge found this machine's program, or that it found none, by the vendor's own name; and the tickets
- * line shows only while tickets wait.
+ * The setup welcome's model: the title, the steps a setup with no record walks, the agent line and the tickets line.
  */
 import { describe, expect, test } from 'bun:test';
 

@@ -1,10 +1,6 @@
 /**
- * The Tickets view in a happy-dom document. What matters: the segments show their counts, In draft's accented while something there waits
- * on User; the view opens on a routed segment, else on In draft while something waits, else on the stored segment, and a choice stores
- * it per forge (In draft, the default, removing the key); In draft draws the running intake, then the drafts waiting on User with their
- * actions opening the document page, then the drafts an agent writes with Watch; Active's rows open their ticket's detail by a click or
- * Enter; Finished's "show all" widens the finished-work window; each segment keeps its own search; a planted title stays text; and the
- * view is a workplace of Flint.
+ * The Tickets view in a happy-dom document: segment counts, which segment opens and its per-forge storage, each segment's rows and actions, a search
+ * per segment, and planted titles kept as text.
  */
 import {
   act,

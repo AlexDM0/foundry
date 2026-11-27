@@ -1,11 +1,6 @@
 /**
- * The forge level of a live monorepo pipeline (MonoLive), in place of the phases: what every entity shares, as it runs now. The Ticket
- * phase holds the steps that write a ticket in the applied route (the product owner's, or the spec's and the plan's) with the drafts in
- * them, and the approvals as they are applied; the merge train lists the
- * ticket in the Airlock and the queue behind it, each with its entity; the board's jobs in flight stand against its limit, and each
- * entity's jobs against its cap with the tickets waiting for a slot; and a note says that gates belong to an entity. After the first
- * Apply over entities, the Ticket phase also counts the product owner's entity assignments and opens their progress. Nothing here
- * changes the pipeline: an update does that.
+ * The forge level of a live monorepo pipeline, in place of the phases: the Ticket phase's steps and approvals, the merge train, the
+ * board's and each entity's jobs, and a note that gates belong to an entity. Nothing here changes the pipeline: an update does that.
  */
 import type { ReactNode }                 from 'react';
 import type { BoardPipelineFlowDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';

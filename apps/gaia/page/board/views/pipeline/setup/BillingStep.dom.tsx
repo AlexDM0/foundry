@@ -1,11 +1,6 @@
 /**
- * The billing step, the setup's second, against fake controls. What matters: the cards are the ways the record's agent bills, worded from
- * what forge serves, its default preselected while the record has no billing, the cap only on a way whose launch takes one; at billing,
- * Continue to research saves a choice the record does not hold, then continues, and opens the research, and a refusal shows verbatim and
- * stays; the page counts the waiting tickets from the facts; the pipeline agent's meter shows opus and high over five bars; the panel
- * introduces Flint in its one slot as not started; Back to agent leads to the step before; reopened while the record stands past billing,
- * the way out is back to the current step, never a Continue, and a billing change is saved to the record; the footer words the chosen
- * billing.
+ * The billing step against fake controls: the billing cards worded from what forge serves, Continue saving a changed choice first, refusals shown
+ * verbatim, and the way back to the current step once the record stands past billing.
  */
 import {
   cleanup,

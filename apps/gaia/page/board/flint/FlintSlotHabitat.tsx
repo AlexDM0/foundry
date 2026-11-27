@@ -1,8 +1,6 @@
 /**
- * A Flint slot (`design-system/FlintSlot`) as the habitat of its screen: the box registers itself with the habitat of the screen, a module
- * constant of `FlintSlotHabitats.ts`; it sends its cue each time the screen's data changes it, and not the cue it mounts with, which is no
- * change, and a screen whose agent does one thing the whole time gives none; while its cue lasts, it offers Flint that answer to copy in
- * the box, so a Flint that arrives later keeps it up too; and it tells the host that it shows, so Flint visits the open screen's slot.
+ * A Flint slot (`design-system/FlintSlot`) as the habitat of its screen. It sends its cue each time the screen's data changes it, never the
+ * one it mounts with; while a cue lasts it offers Flint that answer, so a Flint that arrives later keeps it up too.
  */
 import {
   useContext,

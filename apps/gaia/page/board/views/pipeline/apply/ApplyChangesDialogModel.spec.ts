@@ -1,8 +1,6 @@
 /**
- * The model of Apply changes against the editing fixture. What matters: the title and the button count the changes; the version line
- * names the applied revision and the next, or version 1 for a pipeline that no Apply numbered; each row names where the change is and its
- * kind, a gate by the phases whose rows hold it and a changed constitution as committed to main on Apply; the in-flight words follow the
- * revision; the command never resumes the board.
+ * The model of Apply changes against the editing fixture: the counts, the version line, each row's place and kind, the in-flight words,
+ * and a command that never resumes the board.
  */
 import { describe, expect, test }         from 'bun:test';
 import type { BoardPipelineFlowDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';

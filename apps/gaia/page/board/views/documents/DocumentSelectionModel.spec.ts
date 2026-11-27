@@ -1,8 +1,7 @@
 /**
- * Where a comment points. What matters: a Preview selection, Code lines and a diagram node all read as source lines; a one-line Preview
- * selection carries its columns and its quote (artboard 6's C2); the section path names the headings above and the list item's label; the
- * lines around a comment stay inside the document; a node's line is the line that defines it (artboard 6's C5); and a position inside a
- * drawn span moves past a line break onto the next line.
+ * Where a comment points: Preview selections, Code lines and diagram nodes all read as source lines; a one-line selection's columns and
+ * quote; the section path with a list item's label; surrounding lines kept inside the document; a node's defining line; and a position in
+ * a drawn span moving past a line break.
  */
 import { describe, expect, test } from 'bun:test';
 

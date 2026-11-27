@@ -1,8 +1,6 @@
 /**
- * The question panel as data: which open decision it shows, whether it shows against the decisions open when User last folded it, and the
- * shown decision with its asker, its questions and options exactly as asked with the consequences the agent noted, the answer line, the
- * queue after it, and its background: why it was asked, its first ticket with the Wanted and Brief excerpts and the Acceptance items as
- * text, the asking job's last tool calls and the earlier answers on that ticket. Stamps are sliced, never parsed; nothing reads the clock.
+ * The question panel as data: which open decision it shows, whether it shows against the last fold, and the decision's questions, queue and
+ * background. Stamps are sliced, never parsed; nothing reads the clock.
  */
 import type { BoardQuestionHistoryEntryDocument }        from '../../../../@types/board/BoardDecisionDocuments.ts';
 import type { BoardDocument }                            from '../../../../@types/board/BoardDocument.ts';

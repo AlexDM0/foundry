@@ -1,16 +1,7 @@
 /**
- * The open phase in a happy-dom document, over the pipeline fixtures. What matters: its header says when the phase leaves, and Merge ends
- * on main; the Ticket phase says what makes a draft ready; the smallest pipeline draws an add card only where the facts name a missing
- * step, whose choices send their edit or ask for the Gate dialog; the merge before review is an Automatic step that opens nothing and
- * keeps its derived meter focusable; a double-click or Enter asks for what a step opens (Ticket creation its agent dialog) and never sends
- * a command; a switch sends its edit, and on a live board sends `pipeline-update-start` first and the edit once the update record shows;
- * a refusal shows verbatim, and after it the next gesture's edit goes to a record opened elsewhere; a live step says its state and links
- * the tickets on it; the live Merge header names the ticket the Airlock lets onto main, the fast-forward's too, and the queued ones; an
- * editing step carries its change; a question pill asks for the question. The Ticket phase offers how a ticket is written: a press on
- * the other route sends one `ticket-writing` edit and a press on the chosen one sends nothing; the spec-then-plan route draws its four
- * steps, each writing step naming its document and marked New in orange, its document reviews by their switches alone, and says a ticket
- * needs the spec's Acceptance, an approved spec and an approved plan; and the stylesheet lets four step cards and their three arrows share
- * one row of a phase beside the agent's panel at 1440 px.
+ * The open phase in a happy-dom document, over the pipeline fixtures: its header, add cards, steps, switches and their edits on a draft
+ * and a live board, refusals shown verbatim, the live Merge header, and the Ticket phase's two ways of writing a ticket, whose four step
+ * cards fit one row beside the agent's panel at 1440 px.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';

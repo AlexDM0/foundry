@@ -1,12 +1,7 @@
 /**
- * The review step dialog (A3cReviewModal) in a happy-dom document, opened through the dialog host. What matters: Review and Re-review are
- * two tabs of one form, so a change on one tab survives a visit to the other and Save sends both; switching the re-review off hides its
- * settings and shows the off note, and Save then drops `review.reReview`; the threshold steps by 50 and stops at 50; Reset puts back the
- * defaults (re-review on at 750, the constitution in both briefs); Remove review asks first and then sends one `null` edit; both tabs
- * offer every model and effort; every brief the re-review reads offers Open; and opened from the re-review node it opens on the Re-review
- * tab, its switch focused. In the spec-then-plan route the Review tab holds the Pipeline documents after the brief, its title with the New
- * pill in the orange tint, the spec fixed at Always with its other choices disabled, a read-only line on what the builder reads in the
- * facts box, and Reset to default puts the plan back at If you approved it; the brief's Edit, Open and Add a file are underlined.
+ * The review step dialog in a happy-dom document, opened through the dialog host: Review and Re-review are two tabs of one form, the
+ * re-review's switch, threshold, Reset and Remove send what they should, and in the spec-then-plan route the Review tab holds the Pipeline
+ * documents with the spec fixed at Always.
  */
 import {
   act,

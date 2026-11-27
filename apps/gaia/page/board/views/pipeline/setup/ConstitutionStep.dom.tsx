@@ -1,15 +1,6 @@
 /**
- * The constitution step against fake controls. What matters: a source tag shows exactly on the lines the annotations anchor; READ BY lists
- * the facts' readers; Preview is a sandboxed frame and the mirror draws the text through React, never as HTML; a blur or Cmd/Ctrl+S saves
- * the whole markdown with the revision User saw, only when it changed, and a save asked for while one is on its way goes after it; a stale
- * save shows its refusal verbatim, keeps User's text, a blur then saves nothing, and Cmd+S saves on top of the new facts, but after Discard
- * my edit a new edit saves on the revision User saw; the facts' re-anchored annotations drop the edited line's tag and keep the others; the
- * footer counts the outline with the Draft chip; the mirror shows the textarea's lines; a new draft sweeps its changed lines; SOURCES and
- * Continue send their commands; at `#pipeline/edit/constitution` the same step shows only Back to the flow.
- * In monorepo mode (MonoConstitution): the rail marks each entity Adopted, Drafted, Not started or For a person, and Default once the
- * step is done; the forge level lists the entities and has no document; an adopted file opens byte for byte and nothing is sent until
- * User changes it, and then the save names the entity; READ BY lists the entity's own roles from its facts and what a crossing reads;
- * SOURCES name the entity's own files; a root kept for a person has no editor; Continue keeps the level.
+ * The constitution step against fake controls: source tags, READ BY, the sandboxed Preview, saves on blur or Cmd/Ctrl+S against the revision User
+ * saw, a stale save's refusal, and in monorepo mode each entity's own document.
  */
 import {
   act,

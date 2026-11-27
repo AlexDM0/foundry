@@ -1,8 +1,6 @@
 /**
- * One entity of the entities step, as a row of MonoEntities: its key (renamed on Enter or when the field is left), its kind, its home
- * folders, its summary and any refusal of the row, whether a constitution is in its folder, what it depends on, Fold for a package and
- * Remove. Expanded, the row adds a home folder; an app sets its whitelist and its reach, and a package names the apps that whitelist it.
- * Every change is a gesture of draft edits that the step sends or holds.
+ * One entity of the entities step as a row: its key, kind, home folders, refusal and dependencies, with Fold for a package and Remove. Every change
+ * is a gesture of draft edits.
  */
 import { useId, useState }                                          from 'react';
 import type { BoardDraftEditDocument, BoardPipelineEntityDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';

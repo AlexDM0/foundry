@@ -1,8 +1,6 @@
 /**
- * The command button's wait, in a happy-dom document with a manual board clock and a forge whose answer the spec holds. What matters: a
- * busy ring shows beside the button the moment the command is sent; a button that names its wait opens the panel over the page once the
- * wait passes a second, with its title and explanation and Flint's slot, and closes it once the forge answers; a button that names no wait
- * shows only the ring; and an answer within the second shows no panel at all.
+ * The command button's wait, on a manual board clock with a forge whose answer the spec holds: a busy ring at once, the wait panel only once
+ * the wait passes a second and only for a button that names its wait, closing when the forge answers.
  */
 import {
   act,

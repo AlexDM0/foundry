@@ -1,8 +1,7 @@
 /**
- * The document agent's question in its chat (`docs/design/agent-questions.md`): open, a card with its anchor line, the question, its context,
- * the lettered options with what each touches and does to the Acceptance, User's own words as an option of their own, and Answer; folded
- * to one line while another question is the one open; answered, what User chose. Answer sends `decision-answer` with the chosen option's
- * letter, or User's words as free text. Under the document's own "Open questions" heading, the list of its questions, each opening its card.
+ * The document agent's question in its chat (`docs/design/agent-questions.md`): open, a card with its anchor, context, lettered options
+ * and User's own words, folded while another is open; answered, what User chose. Answer sends `decision-answer` with the letter or free
+ * text. Also the list of questions under the document's own "Open questions" heading.
  */
 import { useMemo } from 'react';
 
@@ -25,7 +24,7 @@ export function questionCardIdOf(decisionId: string): string {
   return `document-question-${decisionId}`;
 }
 
-/** "E7 · § 3 Behaviour · line 16", the id and the lines in the mono face. */
+/** `E7 · § 3 Behaviour · line 16`, the id and the lines in the mono face. */
 function AnchorText({ parts }: { readonly parts: QuestionAnchorParts }) {
   return (
     <>

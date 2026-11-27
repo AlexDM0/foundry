@@ -1,8 +1,6 @@
 /**
- * The Focus layout's selection: the open phase, what is shown selected in it, the dialog a step, a gate row or an add choice asked for,
- * and what to scroll into view next. It is a hook, so the screen holding the layout can also show a step: "Show <step>" opens the phase
- * that holds it, selects its card or gate row and scrolls it into view. The selection also holds the screen's Apply dialog, asked for one
- * setup record: one modal dialog is open at a time, and an Apply asked for an earlier record never opens over a later one.
+ * The Focus layout's selection as a hook: the open phase, what is selected in it, the dialog asked for and what to scroll into view next.
+ * It also holds the Apply dialog for one setup record, so an Apply asked for an earlier record never opens over a later one.
  */
 import { createContext, useContext, useState } from 'react';
 

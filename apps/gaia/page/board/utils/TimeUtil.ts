@@ -1,8 +1,7 @@
 /**
- * The one formatter every stamp on the page goes through: a stamp from the viewer's day shows only its clock, one from another day of the
- * same year gains its month and day, and one from another year is shown in full. Nothing here reads the clock; "today" is handed in, and
- * comparing a stamp or instant with the viewer's day is a stated clock exception that decides only the text printed. It also formats
- * durations and parses stamps.
+ * The one formatter every stamp on the page goes through: the clock alone for the viewer's day, month and day added for another day of the
+ * year, in full for another year. "Today" is handed in, never read; comparing with it is a stated clock exception deciding only the text.
+ * It also formats durations and parses stamps.
  */
 
 import type { BoardDocument }      from '../../@types/board/BoardDocument.ts';

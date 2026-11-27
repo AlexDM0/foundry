@@ -1,9 +1,6 @@
 /**
- * The live flow's activity, pure: what stands on each node now (a ticket, or a filing draft being written) as a chip linking to its
- * detail, the panel head's status and the board's builds at a time, the "Now" rows of the activity panel in the facts' order, each with
- * a meter only on a step an agent runs, and the "Earlier" lines worded from the newest pipeline records. Every pipeline record the board
- * serves has its line. On a forge over entities a row names the level of its occupant and, for a package stage of a crossing, the
- * crossing it runs; each gate profile under way at any entity is a row naming its entity, and the head counts jobs over every entity.
+ * The live flow's activity, pure: the chips on each node, the panel head, the "Now" rows and the "Earlier" lines worded from the
+ * pipeline records, every one of which has its line. Over entities a row names its level and the crossing a package stage runs.
  */
 import type {
   BoardFlowNodeDocument,
@@ -83,7 +80,7 @@ function isMergeBeforeReview(node: BoardFlowNodeDocument | undefined): boolean {
   return node?.nodeKind === 'merge-main-into-tree' && node.mergePlacement === 'before-review';
 }
 
-/** "D3 drafting" for a draft; "15 · catching up" for a review catching up with main before it reviews; the id alone otherwise. */
+/** `D3 drafting` for a draft; "15 · catching up" for a review catching up with main before it reviews; the id alone otherwise. */
 function occupantChipTextOf(occupant: BoardFlowOccupantDocument, node: BoardFlowNodeDocument | undefined): string {
   if (occupant.occupantKind === 'draft') return `${occupant.occupantId} drafting`;
   return isMergeBeforeReview(node) ? `${occupant.occupantId} · catching up` : occupant.occupantId;
@@ -199,7 +196,7 @@ function buildsAtATimeTextOf(concurrencyLimit: number): string {
   return `${CountTextUtil.countedPhrase(concurrencyLimit, 'build', 'builds')} at a time`;
 }
 
-/** "Every entity · 6 jobs at a time": a forge over entities counts jobs over every entity (E72). */
+/** "Every entity · 6 jobs at a time": a forge over entities counts jobs over every entity. */
 function everyEntityHeadTextOf(concurrencyLimit: number | null): string {
   return concurrencyLimit === null ? 'Every entity' : `Every entity · ${CountTextUtil.countedPhrase(concurrencyLimit, 'job', 'jobs')} at a time`;
 }

@@ -1,8 +1,7 @@
 /**
- * Synthetic pipeline facts in the page's board contract, one whole board per artboard state (`docs/design/board.md`, "The pipeline artboards and their
- * fixtures"), by name, so a spec reads `pipelineBoardStateOf('A2-question-open')` and no view keeps fixtures of its own. Every value is example data on
- * the Example Agency board; each state is built when it is asked for. The `mono-` states are a forge over entities: the facts of each entity beside the
- * forge's. Every state the Bridge's pipeline specs drew is here, in the page's contract. Test-only.
+ * Synthetic pipeline facts in the page's board contract, one whole board per artboard state by name (`docs/design/board.md`, "The pipeline
+ * artboards and their fixtures"), so a spec reads `pipelineBoardStateOf('A2-question-open')` and no view keeps fixtures of its own.
+ * The `mono-` states are a forge over entities. Test-only.
  */
 import type { BoardAgentDocument, BoardPipelineAgentDocument } from '../../@types/board/BoardAgentDocuments.ts';
 import type { BoardDocument, BoardUsageWindowDocument }        from '../../@types/board/BoardDocument.ts';
@@ -636,7 +635,7 @@ const USER_EDITS: readonly BoardSetupEditDocument[] = [
   exampleEdit({ editId: 'E3', field: 'approval:tickets', summary: 'Example: User readies each draft.' }),
 ];
 
-/** The proposal's changes against the smallest pipeline: E1, E2 and E3 made three of them, so those rows have an Undo. */
+/** The proposal's changes against the smallest pipeline: the edits `E1` to `E3` made three of them, so those rows have an Undo. */
 const PROPOSAL_CHANGES: readonly BoardPipelineChangeDocument[] = [
   { field: 'prepare:install', changeKind: 'new', editId: null },
   { field: 'gate:typecheck', changeKind: 'new', editId: 'E1' },
@@ -875,7 +874,7 @@ function editingState(changeList: readonly BoardPipelineChangeDocument[]): Board
   });
 }
 
-/** A6 as drawn: typecheck's run line changed, lint removed, a new merge gate a11y, and Human code review switched on. */
+/** The draft as its artboard draws it: typecheck's run line changed, lint removed, a new merge gate a11y, and Human code review switched on. */
 const DRAWN_DRAFT = examplePipeline({
   ...PROPOSED_PIPELINE,
   gates: [
@@ -1220,7 +1219,7 @@ const PICKED_UP_FACTS: BoardTicketFactsDocument = {
 const DELIVERED_FACTS: BoardTicketFactsDocument = { ...PICKED_UP_FACTS, settlesADependency: true, isClosed: true };
 
 /**
- * The tickets of the monorepo boards: web's builds and its ticket in the Airlock, web's ticket 22 crossing into the design system in its
+ * The tickets of the monorepo boards: web's builds and its ticket in the Airlock, web's crossing ticket going into the design system in its
  * package build, the design system's ticket queued for the Airlock, web's committed ticket that waits for a slot, and web's delivered one.
  */
 const MONOREPO_TICKETS: readonly BoardTicketDocument[] = [

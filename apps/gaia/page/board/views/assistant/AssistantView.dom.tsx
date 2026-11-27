@@ -1,15 +1,7 @@
 /**
- * The Assistant view against fake controls and a fake transcript stream. What matters: the live session reads as a chat, planted markup in
- * the Assistant's prose and in User's bubble reaching the DOM only as text; the head names the session's turns and calls; a queued bubble
- * comes from the board's `job-messaged` records and the session's waiting count, so it outlasts a reload, and goes once the session took
- * the message; the composer says whether a message queues and sends `job-message` on Enter; no live session says a fresh one is booting,
- * its Send disabled; and the open and handled incidents sit in the Incidents rail, a delivery linking its Assistant job and an escalation
- * its decision, an applied default in the warning state with the forge's cause sentence, each step with its time. The view opens with its
- * title row, the chat head holds the one Flint slot (100, lane), and the count of the decisions the Assistant put to User links to
- * Questions, counting what the forge serves as escalated. The head's switch reads the state the board serves, a press sends
- * `pipeline-assistant-set` once and the switch waits for the forge's next board, never moving by itself; a refusal shows the forge's
- * sentence; and while the switch is off the tab says so and that each incident takes its default, a defaulted incident showing the reason
- * the forge serves.
+ * The Assistant view against fake controls and a fake transcript stream: the session as a chat with planted markup kept as text, queued
+ * bubbles that outlast a reload, the composer and booting states, the Incidents rail, the head's one Flint slot and decision count, and the
+ * switch that waits for the forge's next board, never moving by itself.
  */
 import {
   act,

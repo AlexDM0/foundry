@@ -1,9 +1,6 @@
 /**
- * The Tickets view (`docs/design/tickets.md`): its title row, the In draft · Active · Finished segments with their counts and a search per
- * segment, and the shown segment's own layout. It opens on the segment its route names, else on In draft while something there waits on
- * User, else on the segment this viewer chose last on this forge, which a choice stores; an address that names a segment follows the
- * choice, so a reload, a copied link or Back never puts back a segment User left. The view is the tickets habitat of Flint
- * (`page/board/flint/UseTicketsHabitat.ts`).
+ * The Tickets view (`docs/design/tickets.md`). It opens on the routed segment, else on In draft while something waits on User, else on the stored
+ * one; an address naming a segment follows the choice, so Back never puts back a segment User left.
  */
 import { useMemo, useRef, useState } from 'react';
 

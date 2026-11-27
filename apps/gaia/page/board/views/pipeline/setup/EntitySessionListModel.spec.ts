@@ -1,10 +1,6 @@
 /**
- * The research sessions of a forge over entities. What matters: the forge's session comes first, then each entity's under the label of
- * its group, Apps before Packages before Root; a session's state comes from its own job alone (no job yet is not started, a job that left
- * the board is stopped, a stopping job is stopping), and only the forge's session can be done, since only it says so; only a live session
- * offers a stop, and Stop all is exactly the stops of the live sessions; the counts name the entities' states and every open research
- * question; the shown session is the route's level while the list holds it, else the forge's, and the layout finding is never one of its
- * findings; the list shows only once an entity has a part of the record.
+ * The research sessions of a forge over entities: their order, each session's state from its own job alone, the stops, the counts, and which session
+ * shows.
  */
 import { describe, expect, test }                                                                    from 'bun:test';
 import type { BoardPipelineSetupDocument, BoardResearchFindingDocument, BoardSetupQuestionDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';

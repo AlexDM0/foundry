@@ -1,8 +1,7 @@
 /**
- * The shared Markdown editor's model, pure. The text splits into lines as the forge splits it; a line is known by its text and its
- * occurrence among equal lines, so a mark keyed that way follows its line while the text above it changes. The text in the textarea follows
- * the facts until User types, and then stays User's until a save lands or User discards it. A selection reads as the source lines it
- * touches, so a comment names lines however the selection was made.
+ * The shared Markdown editor's model, pure. The text splits into lines as the forge splits it, and a line is known by its text and its
+ * occurrence among equal lines, so a mark keyed that way follows its line while the text above it changes; the text follows the facts until
+ * User types, then stays User's until a save lands or User discards it.
  */
 
 const LINE_BREAK = /\r?\n/u;

@@ -1,9 +1,6 @@
 /**
- * The agent choice's model. What matters: every vendor card comes from what the forge sends, the vendors it cannot run share one line
- * by their own names and get no card, and nothing of Gaia's own stands for agents the forge does not name; this machine's program is the
- * one kept, else the first place found; a program chosen for every forge is kept as this machine's before it is followed, and pinned
- * otherwise; changing a program other forges follow asks first and names how many; Continue waits until the record's program runs; and the
- * landing's start sends the program the page holds, kept for the machine first where it must be, or nothing while no program is there.
+ * The agent choice's model: every vendor card and line comes from what the forge sends, never from Gaia; which program is kept, pinned or
+ * asked about first; Continue waits until the record's program runs; and what the landing's start sends.
  */
 import { describe, expect, test } from 'bun:test';
 

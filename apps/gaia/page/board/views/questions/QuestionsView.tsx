@@ -1,9 +1,6 @@
 /**
- * The Questions view: every open decision, each of which opens beside the board in the question panel, the answered ones below, and the
- * open notices, which have no answer. A spec or plan agent's question also opens its document at the line it asks on
- * (`docs/design/agent-questions.md`). Notifications are allowed from a click here, never asked for on load. The view is the questions
- * habitat of Flint (`board/flint/UseQuestionsHabitat.ts`). As a tab of the board it reads the decision the question panel shows from the
- * shell.
+ * The Questions view: every open decision, the answered ones and the open notices. Notifications are allowed from a click here, never asked for on
+ * load.
  */
 import { useContext, useMemo, useRef } from 'react';
 

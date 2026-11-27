@@ -1,9 +1,6 @@
 /**
- * The first Apply's model, pure: the "Resume the board" line from the committed tickets and the concurrency limit, the note that
- * Apply commits the constitution first, and the `pipeline-apply` command, which carries the checkbox's value as it shows.
- * Over entities (MonoApply) it also words what Apply stores, the committed tickets that the product owner gives an entity after Apply,
- * the entities worth a look, which never block Apply. The refusal an Apply meets now is the one the forge serves, in its sentence, with a
- * link to each ticket it names; nothing is predicted here.
+ * The first Apply's model, pure: the "Resume the board" line, the constitution note and the `pipeline-apply` command. The refusal an
+ * Apply meets is the one the forge serves, in its sentence; nothing is predicted here.
  */
 import { PAGE_CONTRACT_VERSIONS }                                                                       from '../../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardCommandDocument }                                                                    from '../../../../@types/board/BoardCommandDocument.ts';

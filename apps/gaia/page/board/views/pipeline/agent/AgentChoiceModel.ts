@@ -1,8 +1,6 @@
 /**
- * The agent choice's model, pure, for the setup's agent step and the forge's settings alike: a vendor card for each vendor the forge can
- * run and one line naming those it cannot run yet, this machine's program or the one forge found where installers put it, the program's
- * run as forge reports it, where forge looked, and the commands of each choice. A program chosen for every forge is kept as this machine's
- * first and then followed; Gaia names no vendor of its own and words every card and line from what the forge sends.
+ * The agent choice's model, pure, for the setup's agent step and the forge's settings alike. A program chosen for every forge is kept as
+ * this machine's first and then followed; Gaia names no vendor of its own and words every card and line from what the forge sends.
  */
 import { PAGE_CONTRACT_VERSIONS }                                                               from '../../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardAgentDocument, BoardAgentProgramChoiceDocument, BoardPipelineAgentDocument } from '../../../../@types/board/BoardAgentDocuments.ts';

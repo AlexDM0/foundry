@@ -1,14 +1,6 @@
 /**
- * A phase's gates table in a happy-dom document, over the pipeline fixtures. What matters: the head counts the phase's gates, and the
- * smallest pipeline's empty table says so beside "Add <phase> gate" and, in Build, "Add prepare step"; a press on a time chip sends
- * `gate-profile-start` for that gate in the table's phase, the only command a row sends by itself, and a measuring chip takes no press;
- * a double-click or Enter on a row asks for its Gate dialog (a prepare row: the prepare variant) and sends nothing; "Add prepare step"
- * shows in the Build phase only; a keyboard reorder sends the phase's new order and never lifts a gate above a prepare step; Delete on a
- * focused row sends the order without it, or removes a prepare step; on a live board the add buttons hide, the head names the tickets in
- * the phase's gates once, since the facts tie a ticket to the phase's gates and not to one gate, so no row names one, and a reorder sends
- * `pipeline-update-start` first; a second gesture while the first is held or on its way is not taken, so an order built on the old rows
- * never undoes the edit before it, nor replaces a live board's held edits. Each prepare and gate row shows its line's newest served run
- * time for the phase in view, in the failure tone when it failed, and with the bound's mark on a line its bound stopped.
+ * A phase's gates table in a happy-dom document, over the pipeline fixtures: the head and add buttons, the time chip's profile command,
+ * a row's Gate dialog, keyboard reorder and Delete, the live board's head and held edits, and each row's newest served run time.
  */
 import {
   act,

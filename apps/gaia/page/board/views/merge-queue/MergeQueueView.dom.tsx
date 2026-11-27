@@ -1,8 +1,6 @@
 /**
- * The Merge queue detail in a happy-dom document. What matters: with merge approval on, the tickets waiting for merge show in a list of
- * their own, apart from the queued candidates, each with its forecast pill and a link to its detail panel; with merge approval off no such
- * list shows; the order line shows the text it is given.
- * The view is a workplace of Flint.
+ * The Merge queue detail in a happy-dom document: with merge approval on, the tickets waiting for merge list apart from the queued
+ * candidates, and with it off no such list shows; the order line shows the text it is given. The view is a workplace of Flint.
  */
 import {
   cleanup,

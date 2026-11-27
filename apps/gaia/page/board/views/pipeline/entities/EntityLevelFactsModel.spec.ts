@@ -1,8 +1,6 @@
 /**
- * The facts of one entity's level and the scope of its edits. What matters: an entity's screen draws the entity's flow, single pipeline,
- * questions, profile runs and cache marks, never another entity's or the forge's; its changes read as single-pipeline fields and its own
- * definition or entity-only fields are not on its flow; an edit there is scoped to the entity, while a field the forge sets for every
- * entity, and one already scoped, stays as it is; an entity the facts do not hold draws an empty flow, not the forge's.
+ * The facts of one entity's level and the scope of its edits: an entity's screen draws only the entity's own facts, its edits are scoped
+ * to it unless the forge sets the field for every entity, and an entity the facts do not hold draws an empty flow.
  */
 import { describe, expect, test }                             from 'bun:test';
 import type { BoardDraftEditDocument }                        from '../../../../@types/board/BoardPipelineDocuments.ts';

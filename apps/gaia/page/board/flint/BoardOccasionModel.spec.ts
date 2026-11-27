@@ -1,13 +1,7 @@
 /**
- * The board occasions of Flint. What matters: each row of the table "Board occasions" gives its intent on the change it names and on no
- * other, so a board that stays as it was gives none; the first board after none is no change; a restart of Hephaestus shows its baton
- * pass once, on the restarting board or, when the page missed that board, on the rise of the generation, and the regroup follows on the
- * rise after a restart that was shown; an incident settles only on a record that closes it, never on an escalation or on leaving the list; a pipeline is
- * applied only when the revision of its newest Apply rises from one the board could read; the occasions come in the table's order, the
- * lost connection first, the refused command after the board and the connection that comes back last; an incident that opens or settles
- * while Flint lives in the questions habitat is that habitat's to answer, so the board does not; a stream that keeps reopening through
- * `connecting` is unplugged once and comes back once; and the count of `watcher-spark` is the agents in flight, at most 4, and 0 before a
- * board.
+ * The board occasions of Flint: each row of the table "Board occasions" gives its intent on the change it names and on no other, in the
+ * table's order; an incident while Flint lives in the questions habitat is that habitat's to answer; and `watcher-spark` counts the agents
+ * in flight, at most 4.
  */
 import { describe, expect, test } from 'bun:test';
 

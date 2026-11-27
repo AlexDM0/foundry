@@ -1,11 +1,7 @@
 /**
- * Editing an applied pipeline (A6Editing) in a happy-dom document, through the Pipeline view against fake controls. What matters: the
- * footer counts exactly the change list beside the version the board runs on, and Apply N changes opens the change list's dialog; gate
- * pills and gate rows carry their change (changed, removed and new), while a removed agent step is not drawn, its add card comes back and
- * the Changes tab lists it; switching Human code review sends its edit, and the facts that come back draw its steps in the Review phase; the
- * in-flight note lists the tickets in flight as chips; the Human code review card says what a reviewed ticket then does; the Changes tab
- * comes first and the Pipeline agent tab second; a new gate's Benchmark sends `gate-profile-start`, Ask the pipeline agent to check sends
- * `pipeline-check` and turns to the agent, and Discard sends `pipeline-draft-discard` and returns to `#pipeline`.
+ * Editing an applied pipeline in a happy-dom document, through the Pipeline view against fake controls: the footer's count and Apply,
+ * the change marks on pills, rows and the Changes tab, the in-flight chips, the tab order, and the commands of Benchmark, Ask the pipeline
+ * agent to check and Discard.
  */
 import { cleanup, screen, within } from '@testing-library/react';
 import {

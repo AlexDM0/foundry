@@ -1,11 +1,6 @@
 /**
- * The live flow's panel (A5Live): the "On the flow" tab lists what runs now, one row per ticket or draft on the flow linking to its detail,
- * then the newest pipeline records; the Pipeline agent tab says that no agent runs until one is asked. On the smallest pipeline, the About
- * tab comes first. The head names the selected tab, with how many work and the builds at a time on the flow tab. Under every tab, Ask the
- * pipeline agent sends `pipeline-agent-advise` and turns to the agent's tab; the advise session it opens then shows as an edit of the
- * pipeline. On a forge over entities (MonoLive) the flow tab lists every entity's work, each row naming its entity or the forge and a
- * package stage the crossing it runs, then every entity's gate profiles under way, and the agent's tab and Ask name the level shown,
- * whose entity the advise command carries.
+ * The live flow's panel: the "On the flow" tab with what runs now and the newest pipeline records, the Pipeline agent tab, and the
+ * About tab first on the smallest pipeline. Ask the pipeline agent sends `pipeline-agent-advise`; over entities it names the level shown.
  */
 
 import { useState, type ReactNode } from 'react';

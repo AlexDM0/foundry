@@ -1,8 +1,6 @@
 /**
- * The dependencies view in a happy-dom document. What matters: the tab opens with its title row; the waves render as columns with their
- * heads, nodes and edges; an open wave's head says "No forecast" when it has none; a node ends with its ticket's first epic; pointing at
- * a ticket lights its lineage and the edges inside it and dims the rest; leaving the canvas clears the lineage only after the grace; a
- * node opens its ticket's detail panel; the graph and its empty line both sit in the card; and a planted title shows as text.
+ * The dependencies view in a happy-dom document: the waves as columns, the forecast head, lighting and clearing a lineage, opening a ticket, and
+ * planted titles kept as text.
  */
 import {
   cleanup,

@@ -90,7 +90,7 @@ export const EXAMPLE_LIVE_ASSISTANT: BoardJobDocument = exampleAgentJob({
   id: 'J1', kind: 'assistant', role: 'assistant', ticketIds: []
 });
 
-/** Four defaults (I1 to I4, I4 the newest) and two open incidents (I5 delivered in J1's chat 14, I6 waiting), with a live Assistant J1. */
+/** Four defaults (`I1` to `I4`, `I4` the newest) and two open incidents (`I5` delivered in `J1`'s chat 14, `I6` waiting), with a live Assistant. */
 export function exampleIncidentBoard(): IncidentNoticeBoard {
   const defaults = [
     exampleIncidentDefault({

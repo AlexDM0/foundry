@@ -1,9 +1,6 @@
 /**
- * A Flint slot as its screen's habitat, under the board's host of Flint on manual frames. What matters: the slot's box is the habitat of
- * its screen, and the cue it mounts with sends nothing; a change of the screen's data reaches Flint as the slot's new cue; a lasting cue
- * offers Flint its answer to keep up in the slot, a moment none; the open screen's slot is the visit target, a press in another
- * habitat of the screen sends Flint there, and the slot of the next screen is the target again; and Flint goes to the slot at once when
- * it is made and when the next screen's slot shows, so it never waits at its home corner for its director's next turn, every few seconds.
+ * A Flint slot as its screen's habitat, under the board's host on manual frames: the cue it mounts with sends nothing, a data change sends
+ * the slot's new cue, the open screen's slot is the visit target, and Flint goes to it at once rather than at its director's next turn.
  */
 import {
   act,

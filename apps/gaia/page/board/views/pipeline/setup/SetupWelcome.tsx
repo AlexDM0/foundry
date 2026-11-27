@@ -1,8 +1,6 @@
 /**
- * The setup landing of a forge with no pipeline, the welcome: what a pipeline is and that every answer is kept, the steps the setup walks
- * with what each decides, the first one current, and the one way in, Start with the agent, which opens the agent step; beside it whether
- * forge found this machine's program of the agent. A `pipeline.json` it cannot read is named with its reason, and waiting tickets in one
- * quiet line.
+ * The setup landing of a forge with no pipeline: what a pipeline is, the steps the setup walks and the one way in, Start with the agent, beside
+ * whether forge found this machine's program of the agent.
  */
 import {
   Banner,

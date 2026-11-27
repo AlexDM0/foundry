@@ -1,8 +1,6 @@
 /**
- * A role's brief, the instruction files read top to bottom, in one ruled box: a row per file with its note, Edit on the constitution, Open
- * on a file whose text the facts carry (a read-only dialog of it), and × to remove it. A removed constitution leaves a quiet row whose
- * switch puts it back at the top; "Add a file" at the box's foot opens a path field. The list is the form's: nothing is sent until the
- * dialog's Save.
+ * A role's brief, the instruction files read top to bottom, in one ruled box: a row per file with Edit, Open or ×, a removed constitution's
+ * quiet row that puts it back, and "Add a file". The list is the form's: nothing is sent until the dialog's Save.
  */
 
 import { useId, useState }                                                 from 'react';

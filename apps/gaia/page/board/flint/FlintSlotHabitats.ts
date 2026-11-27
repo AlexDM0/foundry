@@ -1,12 +1,7 @@
 /**
- * The Flint slot of each screen as a habitat of Flint (`flint/`): there Flint stands for the agent the screen shows. Every slot answers a
- * cue of `FlintSlotCues.ts` with the same intent: an agent that reads the repository researches, one that writes types, one that reviews
- * reviews with the looking glass, one that drafts thinks, one that waits on User holds up the "?" card, a finished proposal is happy, an
- * idle agent lets Flint rest, and a forge that checks before it answers runs the gate lamps. Flint waves when it arrives in a slot, except
- * in the slot of the Constitution step, where the agent drafts: there it thinks, and in a command wait's, where it runs the gate lamps. A
- * screen whose agent does one thing the whole time, the Setup step's, sends no cue, since a cue reaches Flint only when it changes: its
- * arrival says it. Each setup step's slot also answers a question that waits on User and a stopped agent. A slot has content around it,
- * so it keeps Flint inside: Flint pops in through its edge and never shows over that content.
+ * The Flint slot of each screen as a habitat of Flint, where Flint stands for the agent the screen shows and answers each cue of
+ * `FlintSlotCues.ts` with the same intent on every screen. A cue reaches Flint only when it changes, so a screen whose agent does one thing
+ * the whole time sends none: its arrival says it. A slot has content around it, so it keeps Flint inside, never over that content.
  */
 import {
   ARRIVED_CUE,

@@ -1,10 +1,6 @@
 /**
- * The first Apply's model. What matters: the "Resume the board" line counts the committed tickets and names the concurrency limit only when
- * the facts carry one; the constitution note shows only while the draft holds a constitution; the command carries the record, its draft
- * revision and the checkbox's value as given. Over entities: the description counts the entities and the version; the pace is worded in
- * jobs; the line about committed tickets without an entity shows only when Apply turns the pipeline into entities; the Apply refusal is the
- * one the forge serves, in its sentence unchanged, each ticket its facts name a link to its detail, and none is predicted on a board whose
- * served facts carry none; an entity without gates or with the default constitution is worth a look, and the root kept for a person is not.
+ * The first Apply's model: the "Resume the board" line, the constitution note, the command as given, and over entities the description,
+ * the pace in jobs, the line about tickets without an entity, the served refusal unchanged, and which entities are worth a look.
  */
 import { describe, expect, test }                                                                      from 'bun:test';
 import type { BoardPipelineDefinitionDocument, BoardPipelineEntityDocument, BoardSetupRecordDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';

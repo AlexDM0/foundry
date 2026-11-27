@@ -1,8 +1,6 @@
 /**
- * The header's rows: the title row (the Forge mark and wordmark, the project title, the state pill and its quiet details, then at its right
- * end the figures closed by the Waiting on User pill), the "Agents at work" strip, and the tab bar, its tabs counting what waits on User,
- * with whatever the shell puts at its right end. The forge's controls and the theme are Gaia's own, outside the board. In setup, while the
- * board has no readable pipeline, the board draws no header at all: the page's own head names the forge and holds the setup step bar.
+ * The header's rows: the title row, the "Agents at work" strip and the tab bar. The forge's controls and the theme are Gaia's own, outside
+ * the board; in setup the board draws no header, since the page's own head names the forge and holds the setup step bar.
  */
 
 import type { ReactNode } from 'react';

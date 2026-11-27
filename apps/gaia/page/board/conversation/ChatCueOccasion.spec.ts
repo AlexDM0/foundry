@@ -1,8 +1,6 @@
 /**
- * Which cue a chat's turns give Flint. What matters: only the newest turn that is not a system line counts; a decision asks a question; a
- * working agent turn calls a tool while its last call runs, writes once it has prose, and thinks before; a turn whose last call failed
- * failed, working or not; an ended turn is done; User's message gives no cue; and the occasion key changes with the turn, so the same cue
- * on the next turn is a new happening.
+ * Which cue a chat's turns give Flint: only the newest turn that is not a system line counts, and the occasion key changes with the turn, so
+ * the same cue on the next turn is a new happening.
  */
 import { describe, expect, test } from 'bun:test';
 

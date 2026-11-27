@@ -1,12 +1,7 @@
 /**
- * The composer, in a happy-dom document, against fake control surroundings. What matters: it names its recipient, links the recipient's
- * job and shows its status tag, since User must see who a message reaches and whether it queues; Enter and Send post the caller's command
- * once, and the text clears once the forge applied it, keeps what User typed while it was on its way, and stays on a refusal, shown
- * verbatim; Shift + Enter, Enter during an input
- * method's composition, Enter while the caller makes no command (its empty-text rule) and Enter while controls are unavailable all send
- * nothing; the head carries the key hints, the caller's attachments sit above the text box and its foot controls under it, with no foot
- * without them; the text box and the paper-plane Send share one row (one height, held in the browser by `conversation.css`), Send named by its
- * label alone; pasted files reach the caller and a text paste does not; and the recipient and the status are text, never markup.
+ * The composer, in a happy-dom document, against fake control surroundings: it names its recipient and status, since User must see who a
+ * message reaches and whether it queues; Enter and Send post once and obey every rule of a board control, and the text clears only once the
+ * forge applied it.
  */
 import {
   act,

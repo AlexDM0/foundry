@@ -1,10 +1,6 @@
 /**
- * The pipeline agent panel's model, pure: the chat the agent's transcript reads as, the line of what the agent does while a turn runs, the
- * setup questions of one step worded as question cards, and the commands an answer and a message send. Questions are setup questions in
- * the record, never decisions: an answer is `pipeline-setup-answer`, a message `job-message` to the agent's job. The agent strip above
- * the composer says what the agent does on each step, beside Flint's slot: the habitat of the step, with its cue. In monorepo mode the
- * panel holds the session of one level, the forge's or one entity's: its job, its questions and its findings, never another level's; the
- * open questions of the other levels are only counted and linked.
+ * The pipeline agent panel's model, pure. Questions here are setup questions in the record, never decisions: an answer is
+ * `pipeline-setup-answer`, a message `job-message`. In monorepo mode the panel holds one level's session and only counts the others' questions.
  */
 
 import { PAGE_CONTRACT_VERSIONS }    from '../../../../../src/shared/constants/PageContractVersions.ts';

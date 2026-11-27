@@ -1,8 +1,7 @@
 /**
- * Follows one job's transcript through Gaia's relay (`.../forges/<trackerId>/jobs/<jobId>/stream?after=<cursor>`): a `history` event with
- * every entry after the cursor, then a `message` per new entry, each in the page's conversation contract. The client keeps the last cursor
- * it received, so a panel reopened on the same job resumes after it. One log line can give several entries with one cursor, so an entry is
- * known by its `entryKey`.
+ * Follows one job's transcript through Gaia's relay: a `history` event after the cursor, then a `message` per new entry. The last cursor is
+ * kept, so a panel reopened on the same job resumes after it; one log line can give several entries with one cursor, so an entry is known by
+ * its `entryKey`.
  */
 import { PAGE_CONTRACT_VERSIONS }            from '../../../src/shared/constants/PageContractVersions.ts';
 import { ContractVersionUtil }               from '../../../src/shared/utils/ContractVersionUtil.ts';

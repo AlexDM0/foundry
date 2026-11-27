@@ -1,8 +1,6 @@
 /**
- * A level's group of the Changes list in a happy-dom document, against fake controls. What matters: the head names the level with its
- * count and folds the group; a change card's Undo sends that edit; a copy's batch card names the set, undoes it with one press as
- * `pipeline-draft-undo` with `wholeBatch` for the set's first edit at its level, and unfolds each edit with its own Undo; a copy to two
- * entities gives the second entity's group a set that counts and undoes its own edits only.
+ * A level's group of the Changes list in a happy-dom document, against fake controls: the head folds the group, a card's Undo sends its
+ * edit, and a copy's batch card undoes its set at that level in one press, each edit still undone alone.
  */
 import { cleanup, screen, within } from '@testing-library/react';
 import {

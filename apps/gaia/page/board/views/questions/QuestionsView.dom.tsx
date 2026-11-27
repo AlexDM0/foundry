@@ -1,12 +1,6 @@
 /**
- * The Questions inbox against fake controls. What matters: each decision shows its questions and options exactly as asked, an escalated
- * report as the agent wrote it, and the answer posts `decision-answer` with the chosen letters or free text; the first answer wins and a
- * later one shows Hephaestus's refusal verbatim; the open-question count leads the tab title and a new decision raises one notification;
- * a finding is no question; the view opens with its title row; planted markup in a question reaches the DOM only as text; an option shows
- * the consequences its agent noted; each open card opens the question panel at itself beside the board, and while the panel shows a
- * decision the view says so, so a wide window keeps the list clear of the panel. A spec or plan agent's question opens its document at the
- * line it asks on.
- * The view is a workplace of Flint.
+ * The Questions inbox against fake controls: decisions shown as asked, answers posted with the first one winning, the tab title count and
+ * notification, planted markup kept as text, and each card opening the question panel.
  */
 import {
   act,

@@ -1,16 +1,6 @@
 /**
- * The header in a mounted board. What matters: the title row carries Forge's mark, the wordmark and the project as the one `h1`, and the state pill
- * reads Running with its dot only while live; the header offers no forge control and no theme button, which are Gaia's own outside the board, and no
- * concurrency field, which lives on the Agents tab; the status details read as one line; the figures link to their tabs under the mounted forge, a
- * lane's figure asks for its lane and the agents figure says what it counts; the menu comes in its order, Progress naming the view it opens, its menu
- * offering the Progress views the board shows, the open one pressed, and going to the one chosen (`docs/design/board-menu.md`); the arrow keys, Home and
- * End move along the menu and go to an entry's route; the activity strip shows one chip per job holding a launch slot and none for a session job, the
- * counts and the slots in use in its head over the chips, and one flag for tickets in progress with no job, holds Flint's slot only on the Kanban tab
- * with no side panel open, cued by the first running chip, and ticks from the injected clock only while it is live; the Waiting on User pill names the
- * total and the escalated, opens its inbox in the served order with each action at its served target's route, closes on Esc (handing the focus back), a
- * pointer outside or a followed link, and its ages tick only while live; and the tabs count what waits on User in their tones, with no badge at zero. In
- * setup (no readable pipeline) the board draws no header at all, since the page's own head names the forge and holds the setup step bar
- * (`SetupStepBar.dom.tsx`); with a pipeline set the Pipeline tab is last.
+ * The header in a mounted board: the title row, figures, menu, activity strip, Waiting on User pill and tab badges, none of them a forge
+ * control, which is Gaia's own outside the board. In setup the board draws no header, since the page's own head holds the setup step bar.
  */
 import {
   act,

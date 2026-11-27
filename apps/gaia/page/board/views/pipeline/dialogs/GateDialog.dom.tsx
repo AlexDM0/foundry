@@ -1,9 +1,7 @@
 /**
- * The gate dialog (A2bGateModal) in a happy-dom document, opened through the dialog host. What matters: Save is disabled with no phase
- * ticked; Profile again sends the start command and the box shows profiling once the facts say the run is running; Stop sends the stop
- * command and the stopped run reads "Stopped · no result"; the log lines come only from the profile log the box follows, never from the
- * board facts; Remove gate sends `null`; the prepare variant has no phases and no fix command and removes the step; a new gate from a +
- * ticks its phase and asks for a name; and on a live board a Save opens the update first.
+ * The gate dialog in a happy-dom document, opened through the dialog host: Save, Profile again, Stop and Remove gate send their commands,
+ * the log lines come only from the profile log the box follows, the prepare variant edits a step, a new gate from a + ticks its phase, and
+ * on a live board a Save opens the update first.
  */
 import {
   act,

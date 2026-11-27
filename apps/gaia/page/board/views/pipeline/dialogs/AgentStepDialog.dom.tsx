@@ -1,12 +1,7 @@
 /**
- * The agent step dialog (A3Inspector) in a happy-dom document, opened through the dialog host as the flow opens it. What matters: it opens
- * on the model select and closes on Esc and × without sending; the Ticket creation node opens it too, under its own phase; the model
- * select and the effort choices offer every value of the board's choices in order; the head meter's bars equal the effort's level; Save
- * sends one edit with model, effort and the ordered entries and the dialog closes once it is applied; a removed constitution leaves the
- * Include the constitution switch, which puts it back at the top; with every row removed the built-in brief line shows and Save sends an
- * empty list; on a live board Save opens the update first and its edit goes once the record shows; and Ask the pipeline agent messages
- * the agent's job, or opens an advise session first. In the spec-then-plan route the Spec and Plan steps open it under the Ticket phase
- * on their own pairs, and the builder's dialog holds the Pipeline documents with every choice open, whose changed rule its Save stores.
+ * The agent step dialog in a happy-dom document, opened through the dialog host as the flow opens it: the choices it offers, Save sending
+ * one edit (after opening the update on a live board), Reset, Ask the pipeline agent, and the Spec, Plan and builder dialogs of the
+ * spec-then-plan route.
  */
 import {
   act,

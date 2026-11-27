@@ -1,10 +1,6 @@
 /**
- * The incident trail. What matters: the trail is read from the board and the log alone; an open incident's steps are its opening with
- * the facts it was opened with, its delivery with the Assistant's job and chat once it went out, then its notes; a settled incident is read
- * back from the log, newest first, has no delivery step (the log records none), and ends in its settling record, whose stamp and move the
- * entry carries; an escalation names its decision as an id; an incident still open is never also settled; a default's cause reads in the
- * words of the notice the forge serves for it, and as recorded once none is served; the pill reads an open incident as waiting until
- * delivered and an applied default in the draft rose.
+ * The incident trail, read from the board and the log alone: an open incident's opening, delivery and notes; a settled one read back from
+ * the log, newest first, ending in its settling record; escalations as decision ids; a default's cause in the forge's notice words; the pill.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -21,7 +17,7 @@ const OPEN_INCIDENT: BoardIncidentDocument = {
   id: 'I3', kind: 'setup-failed', ticketIds: ['042'], jobId: 'J4', facts: { step: 'install' }, defaultMove: 'worktree-repair', deliveredInTurn: null, openedAt: AT
 };
 
-/** The notice the forge serves for I1's default, whose cause sentence the trail shows. */
+/** The notice the forge serves for `I1`'s default, whose cause sentence the trail shows. */
 const NOTICES: readonly BoardNoticeDocument[] = [{
   kind:      'incident-defaulted',
   facts:     { incidentId: 'I1', move: 'merge-abort', cause: 'no-assistant' },

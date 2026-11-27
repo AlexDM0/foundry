@@ -1,9 +1,6 @@
 /**
- * The selected session: its head (title, job, turns and calls, state), its chat with User's request first, the agent's turns and each open
- * decision docked where it was asked, then, while the session is open, the product owner's live turn where Flint works; the composer
- * sending `job-message`, or, on a session that ended other than closed, a read-only tag naming its outcome; and beside it the drafts, the
- * pictures and Close intake. It follows the one transcript stream of its job. Its
- * chat cues the chat habitat of Flint when a filing draft is researched.
+ * The selected Intake session: its head, its chat, the composer or, on a session that ended other than closed, a read-only tag naming
+ * its outcome, and beside it the drafts, the pictures and Close intake. It follows the one transcript stream of its job.
  */
 
 import { PAGE_CONTRACT_VERSIONS }               from '../../../../src/shared/constants/PageContractVersions.ts';

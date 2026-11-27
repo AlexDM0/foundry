@@ -1,9 +1,7 @@
 /**
- * The board's command client against answers in the page's contract, under the statuses Gaia's relay gives them. What matters: a
- * command is posted as JSON to the relay's commands route at its version, with the page's session cookie and no `Authorization` header;
- * each answer maps to its outcome, the forge's refusal sentence kept verbatim and Gaia's own sentence for a refusal of Gaia's; a 401 is
- * `no-session`; nothing answering is `unreachable`; and a 200 this page cannot read is `outcome-unknown`, never `unreachable`, since the
- * forge may have applied the command.
+ * The board's command client against answers under the statuses Gaia's relay gives them: how a command is posted and how each answer maps
+ * to its outcome, the forge's refusal verbatim. A 200 this page cannot read is `outcome-unknown`, never `unreachable`, since the forge may
+ * have applied the command.
  */
 import { describe, expect, test } from 'bun:test';
 

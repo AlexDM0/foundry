@@ -1,9 +1,6 @@
 /**
- * What waits on User. What matters: the list is the attention the forge serves, entry for entry and in its order, with only the action
- * added; each action routes to the tab and item of its served target; the escalated entries lead with the one primary action; the tab
- * counts tone Questions by escalation, sum the drafts and the tickets for review on Tickets and a merge to accept on Progress, count the
- * Assistant's open incidents in grey, give no entry at zero and never count Intake; the drafts waiting are Tickets' count; and the
- * accessible names read singular and plural. Which entries wait, and their order, are the forge's rules.
+ * What waits on User: the attention the forge serves, entry for entry and in its order, with only the action added, and the tab counts. Which
+ * entries wait, and their order, are the forge's rules.
  */
 import { describe, expect, test } from 'bun:test';
 

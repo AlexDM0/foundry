@@ -1,9 +1,6 @@
 /**
- * The shared Markdown editor's model. What matters: the markdown splits into the lines the textarea shows, one mirror line per textarea
- * line, so both stand at the same heights; a line's key is its text and occurrence, so a mark keyed that way follows its line; `#` and `##`
- * lines are headings and quote and fence lines muted; a new version names only the lines it changed; the text follows newer facts only
- * while nothing is unsaved; and a selection reads as the lines it touches, a selection that ends at a line's very start leaving that line
- * out.
+ * The shared Markdown editor's model: one mirror line per textarea line, so both stand at the same heights; a line keyed by its text and
+ * occurrence; and the text following newer facts only while nothing is unsaved.
  */
 import { describe, expect, test } from 'bun:test';
 

@@ -1,9 +1,6 @@
 /**
- * The Changes list grouped by level, pure: the forge's changes first, then each entity's in the rail's order, each group with its count.
- * Inside a group, the changes that one copy to another entity made (the edits sharing a `batch`) stand as one batch row in the place of
- * its first change, with one undo for the set, `pipeline-draft-undo` with `wholeBatch` for an edit of that level, which takes back the
- * copy's edits at that level only, and each change still undone alone; a set down to one change is an ordinary row. A change inside an
- * entity is worded as the same field of a single pipeline, and the fields only an entity has get their own words.
+ * The Changes list grouped by level, pure: the forge first, then each entity in the rail's order. The edits sharing a `batch` stand as one
+ * row whose undo takes back the copy's edits at that level only; a change inside an entity is worded as the same field of a single pipeline.
  */
 import { PAGE_CONTRACT_VERSIONS }                                   from '../../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardCommandDocument }                                from '../../../../@types/board/BoardCommandDocument.ts';

@@ -1,12 +1,7 @@
 /**
- * A ticket's spec and plan, a page of their own at `documents/ticket/<id>/<spec|plan>[/line/<n>]`: the head (breadcrumb back to the
- * ticket's Tickets segment, the document tabs, then Build, the state line, the next draft that waits on User, Preview, Code or Split, the
- * comment count and the one primary button, held while the agent's questions are open), the document in the chosen view, on a plan
- * the notice of a spec that moved under it and the effect pane, and the document agent's chat. The documents are read through Gaia's relay
- * when the page opens and again on each `documents` part of the board stream; the agent's turns come from its job's transcript, its open
- * questions from the board's decisions (`docs/design/agent-questions.md`). A route naming a line opens the page there, its question unfolded. A read that
- * fails once the documents were read keeps the page as last read, with the failure over it, so nothing User is doing is lost. The page
- * itself keeps only what User is doing: the view, the comment being written, the effect pane, and the text typed but not saved.
+ * A ticket's spec and plan on a page of their own at `documents/ticket/<id>/<spec|plan>[/line/<n>]`, read through Gaia's relay and again
+ * on each `documents` part of the board stream. A read that fails after a good one keeps the page as last read, so nothing User is doing
+ * is lost; the page itself keeps only that: the view, the comment being written, the effect pane and the unsaved text.
  */
 import {
   createContext,

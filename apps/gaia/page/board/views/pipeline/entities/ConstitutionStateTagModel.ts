@@ -1,8 +1,7 @@
 /**
- * The state of one entity's constitution, pure: drafted in this setup, adopted as its own folder holds it, the installed default, not
- * started yet, or none for a root kept for a person. A draft of the entity's own wins; an entity that names a file keeps it byte for byte;
- * a root without gates is kept for a person; any other entity reads the installed default, which a first setup calls not started until
- * the constitution step is done. No state blocks Apply.
+ * The state of one entity's constitution, pure: drafted, adopted, the installed default, not started yet, or none for a root kept for a
+ * person. A first setup reads the installed default as not started until its constitution step is done; an entity that names a file keeps
+ * it byte for byte, and no state blocks Apply.
  */
 import type { BoardPipelineEntityDocument, BoardSetupRecordDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import type { BoardSetupStepState }                                   from '../../../../@types/board/BoardVocabulary.ts';

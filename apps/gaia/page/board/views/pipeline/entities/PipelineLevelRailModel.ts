@@ -1,9 +1,6 @@
 /**
- * The pipeline's level rail, pure: the forge row first, then the entities in the groups Apps, Packages and Root, each row with its key,
- * its kind, one status mark and its counts of open questions and pending edits, and the one line that counts what deserves a look. The
- * filter keeps the entities whose key or kind holds its text; the forge row always stays. A root entity with no gates is kept for a
- * person, so it never counts as an entity without gates. A live screen may give each row a line of its work, as MonoLive counts each
- * entity's tickets and the forge's jobs.
+ * The pipeline's level rail, pure: the forge row, then the entities grouped as Apps, Packages and Root, each with its mark and counts,
+ * and the attention line. A root entity with no gates is kept for a person, so it never counts as an entity without gates.
  */
 import type { BoardDocument }                                  from '../../../../@types/board/BoardDocument.ts';
 import type { BoardPipelineEntityDocument }                    from '../../../../@types/board/BoardPipelineDocuments.ts';

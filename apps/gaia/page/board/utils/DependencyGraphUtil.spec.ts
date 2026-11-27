@@ -1,9 +1,7 @@
 /**
- * The dependency model against `docs/design/board.md`, "The dependency model". The cases that matter: a chain and a diamond (a ticket two paths
- * reach is held once), two parallel chains (waves span chains, the pace path follows the deeper one), the pace-path tie-break and its
- * place first in its wave, settled and abandoned dependencies, Unlocks counting upstream dependencies as no obstacle, cross-epic links by
- * primary epic, a draft or a committed low-priority ticket left out of the waves yet still holding its dependents out of Now, and the
- * inputs that must not throw: a cycle, an unknown id and an empty board. The slot count is whatever limit is passed.
+ * The dependency model against `docs/design/board.md`, "The dependency model": chains, diamonds and parallel chains, the pace path and its
+ * tie-break, settled, abandoned and cross-epic dependencies, drafts and low-priority tickets kept out of the waves yet holding dependents,
+ * and the inputs that must not throw (a cycle, an unknown id, an empty board).
  */
 
 import { describe, expect, test }     from 'bun:test';

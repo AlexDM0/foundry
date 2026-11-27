@@ -1,13 +1,7 @@
 /**
- * The first Apply (A4Confirm) in a happy-dom document, opened from the design step against fake controls. What matters: Apply sends
- * `pipeline-apply` with `resumesBoard` exactly as the checkbox shows, on by default; the checkbox counts the committed tickets and the
- * concurrency limit; a refusal shows verbatim and the dialog stays open; with the facts' `applyState` committing, held or refused, the
- * dialog opens on that state's text from the facts, its Cancel is Cancel apply, which sends `pipeline-apply-cancel`, and a signing
- * failure offers the exact text of CONSTITUTION.md; Cancel, on the foot's start side, closes the dialog; once the facts show the
- * pipeline applied, the view leaves the setup route for the live flow.
- * Over entities (MonoApply): the dialog lists what is stored per level and the constitutions in the one commit; an entity worth a look
- * links to its level and never blocks Apply; the line about pending tickets without an entity shows; E94 is the
- * served Apply refusal in the forge's sentence, with a link to each ticket it names and Apply disabled, and none is predicted.
+ * The first Apply in a happy-dom document, opened from the design step: `pipeline-apply` with `resumesBoard` as the checkbox shows, a
+ * refusal verbatim, the pending states and Cancel apply, the live flow once applied, and over entities the served Apply refusal in the
+ * forge's sentence with a link to each ticket it names.
  */
 import {
   act,

@@ -1,8 +1,6 @@
 /**
- * The Waves tab: its title row, then `WavesModel`'s waves canvas and its legend. Pointing at a ticket lights its lineage, the ticket, everything
- * it depends on and everything waiting on it, with the edges between them, and dims the rest; leaving clears it after a short grace, so
- * crossing the gap to a neighbouring ticket switches the lineage without a frame in which nothing is lit. A ticket opens the row form of
- * the detail panel in place, over the Waves tab. A live node pulses only while the board's stream is live.
+ * The Waves tab: its title row, then `WavesModel`'s waves canvas and legend. Leaving a ticket clears its lineage only after a short grace, so
+ * crossing to a neighbour switches lineage without a frame in which nothing is lit.
  */
 
 import {

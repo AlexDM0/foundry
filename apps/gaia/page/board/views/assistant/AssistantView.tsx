@@ -1,10 +1,7 @@
 /**
- * The Assistant view: its title row, then the live session as a chat card (its head holding Flint, the session's name, job and facts, how
- * many of its decisions wait on User, and the board's Assistant switch), the thread and the composer; beside it a rail of its open
- * incidents and the handled ones with the trail of steps made under them, a delivery linking its Assistant and an escalation its decision,
- * each applied default in the warning state with the forge's reason. The switch shows the state the forge serves and a press sends
- * `pipeline-assistant-set`; a refusal reads as the forge's sentence under the head. While the switch is off the head says so and that each
- * incident takes its default; while it is on and no session is up the thread says a fresh one is booting.
+ * The Assistant view: its title row, the live session as a chat card (its head holding Flint, the session's facts, its decisions waiting on
+ * User and the Assistant switch), and a rail of its open and handled incidents. A press of the switch sends `pipeline-assistant-set`, a
+ * refusal reads as the forge's sentence, and while the switch is off each incident takes its default.
  */
 import { useRef } from 'react';
 

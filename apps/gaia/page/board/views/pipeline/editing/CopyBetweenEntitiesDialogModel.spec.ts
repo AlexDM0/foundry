@@ -1,8 +1,6 @@
 /**
- * The copy of one entity's settings to others. What matters: a gate goes with its definition and its place at the end of each copied phase,
- * a gate of the same name replaces the target's own and the preview says so; what the target already holds as the source does makes no
- * edit; prepare steps and agent settings go only when ticked, the settings keeping the target's briefs and document reading rules; the
- * source is never its own target; and the whole set goes as one `pipeline-draft-edit` marked as a copy, or nothing when no edit is left.
+ * The copy of one entity's settings to others: gates with their place, replaced gates in the preview, no edit for what the target already
+ * holds, prepare steps and agent settings only when ticked, and the whole set as one `pipeline-draft-edit` marked as a copy.
  */
 import { describe, expect, test }                                                                    from 'bun:test';
 import type { BoardDraftEditDocument, BoardPipelineDefinitionDocument, BoardPipelineEntityDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';

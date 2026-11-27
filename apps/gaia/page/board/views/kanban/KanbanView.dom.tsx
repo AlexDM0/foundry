@@ -1,17 +1,7 @@
 /**
- * The Kanban against a fake command client and a fake clock, in a happy-dom document. What matters: the six lanes with their counts and
- * no draft, a draft ticket, a ticket for review and a filing draft living in Tickets only, while the head links to Tickets saying how many
- * drafts wait on User (`docs/design/board-menu.md`); the card anatomy (id, size mark, priority, type, tokens, epics, waiting-on, hold, no
- * row, the footer stamp) as text, a planted payload included; a card opens the ticket form in place, and a control inside a card or a click
- * ending a text selection opens nothing; a waiting-on id brings the card it names into focus; a working card's stamp ticks while the
- * stream is live and holds still while it is down; a card offers no move of its own (no move button, no checkbox, no Ready selected: the
- * ticket panel holds the moves), and hovering or focusing it adds no element; the filter menu's pressed epics narrow the lanes; a card
- * whose state moved on the next board is marked changed for a moment; a header figure's lane is outlined for a moment; a card's asks pill
- * opens the question panel at its decision; and while a detail or the question panel is open the board carries its panel room. Also: the
- * lanes' priority and state groups, "needed first" and `↦ N`, the hover marks and arrows (against stubbed card boxes, since happy-dom
- * lays nothing out), the Ready lane by wave, a closed lane's pages and the finished-work window's hidden line, and the Abandoned lane's
- * fold, each choice stored under its key; the title row, the dashed card of a state that waits for a person, and no state badge.
- * The view is a workplace of Flint.
+ * The Kanban against a fake command client and a fake clock, in a happy-dom document: the lanes and cards as text, a planted payload
+ * included, a card offering no move of its own and opening its form in place, the live and changed marks, the filter menu's sections and
+ * stored choices, and the panel room. Hover arrows are tested against stubbed card boxes, since happy-dom lays nothing out.
  */
 import {
   act,

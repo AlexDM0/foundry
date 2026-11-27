@@ -1,11 +1,6 @@
 /**
- * Each entity's work on a live forge over entities. What matters: a ticket in a package stage of another entity's crossing counts at the
- * crossed package as a crossing, never as its own ticket there nor as one of its home entity's tickets; an entity counts only its tickets
- * on its phases, so a ticket no agent has picked up and a closed ticket count nowhere, as the forge's served flags say; the forge row counts
- * the board's jobs against its limit and the merge train; an entity's page shows only the crossings out of it or into it; an entity's jobs
- * that hold a slot stand against its cap, worded in jobs, naming the entities whose crossings they serve, and its ready tickets without a
- * job wait for a slot, a held one never; a root kept for a person runs no jobs; and the tickets in flight group by the entity whose stage
- * they run, in the entities' order, those naming none last.
+ * Each entity's work on a live forge over entities: crossings counted at the crossed package, an entity's tickets on its own phases,
+ * the forge row's jobs and merge train, each entity's jobs against its cap, and the tickets in flight grouped by entity.
  */
 import { describe, expect, test } from 'bun:test';
 

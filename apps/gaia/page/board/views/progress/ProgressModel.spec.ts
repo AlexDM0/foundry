@@ -1,9 +1,6 @@
 /**
- * The Progress chart's model. The cases that matter: bars are placed by the geometry as percentages of the range, a range the rows run off
- * clips them, and Fit spans the rows to now; which rows are a ticket's review bars comes from the Board's row facts alone, so a row named
- * like a review but without the fact stays a row of its own; a ticket's review rows are ordered by the round their name gives, never by
- * filing; hidden review rows become segments on their ticket's row in their round's fill; a waiting to-do row says so; and a row is changed
- * against the previous board when it is new or its display state or review round moved.
+ * The Progress chart's model: bar placement and clipping, review rows known from the board's row facts alone and ordered by round, review segments,
+ * and which rows count as changed.
  */
 import { describe, expect, test } from 'bun:test';
 

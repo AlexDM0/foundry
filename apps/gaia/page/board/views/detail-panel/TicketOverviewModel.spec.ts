@@ -1,16 +1,7 @@
 /**
- * The ticket form's Overview. What matters: the live job is joined by its `ticketIds`, and only a build, review or merge-agent job: a
- * session naming the ticket is passed over; the state card says what that job does (calls against budget, the last tool call, since when,
- * the elapsed time left off for a stamp later than now), a job waiting after a network outage or a lost supervision by its cause, and the
- * cue of its Flint slot, idle while that job does not run, or with no job why nothing works on the ticket; the lead is Watch for a live
- * job, else Accept, Ready or Unhold as the forge offers them, Accept sendable only while offered; the other moves keep their order without
- * the lead and show exactly when the forge offers them, Park names the running job only while one runs, Priority… opens the served
- * priorities, and Delivered by hand… confirms first; Next words each forecast step, marks exactly the current one (none while nothing
- * runs), links the tickets the landing lets start and says what still holds the others, and is absent without a forecast; the facts carry
- * their second lines; the live job's controls offer a message while it takes one and Wind down, Stop and Fresh agent as it offers them
- * (nothing while stopping), each worded with the ticket, its branch and the served hold, a ticket already held keeping its hold; and the
- * newest open incident listing the ticket heads the Overview; a ticket with a spec and plan lists each with its standing and its page,
- * and says when they hold its build, and a ticket without them lists none.
+ * The ticket form's Overview: the live job joined by `ticketIds` (build, review or merge-agent only), the state card and its cue, the lead
+ * and other moves exactly as the forge offers them, Next's steps, the facts, the live job's controls worded with the ticket, branch and
+ * hold, the newest open incident, and the ticket's spec and plan with their standing.
  */
 import { describe, expect, test } from 'bun:test';
 

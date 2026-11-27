@@ -1,8 +1,6 @@
 /**
- * The incident line above the header: one error banner however many defaults Hephaestus applied, naming the newest, whose button opens
- * the incident drawer over the header. The drawer lists the open incidents and the applied defaults, each row unfolding its trail, one at a
- * time, the newest default unfolded first. Esc, which leaves no panel and no embedding page an Esc of its own, or a pointer down outside
- * closes it; Esc hands the focus back to the line's button. "Mark defaults seen" hides the line in this browser until the next default.
+ * The incident line above the header: one error banner however many defaults Hephaestus applied, opening the incident drawer. Esc closes
+ * the drawer and leaves no panel or embedding page an Esc of its own; "Mark defaults seen" hides the line in this browser until the next one.
  */
 
 import {

@@ -1,8 +1,6 @@
 /**
- * The gate dialog (A2bGateModal): a gate's command, fix command, folder, phases and network, with its profile box; the same dialog empty
- * adds a gate, its phase ticked; and its prepare variant edits or adds a prepare step, a command alone. Save sends the definition and the
- * phase orders it changes; Remove gate takes the gate out of every phase, Remove prepare step drops the step. Nothing is sent on Esc, × or
- * Cancel, and a gate with no phase ticked cannot be saved. At an entity's level of a monorepo screen, its profile measures that entity's gate.
+ * The gate dialog: a gate's command, fix command, folder, phases and network, with its profile box; empty it adds a gate, and its prepare
+ * variant edits a prepare step. Nothing is sent on Esc, × or Cancel, and a gate with no phase ticked cannot be saved.
  */
 
 import { useId, useState }                                                   from 'react';

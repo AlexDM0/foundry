@@ -1,11 +1,7 @@
 /**
- * A4Confirm, the first Apply: the board starts using the pipeline as the flow shows it. "Resume the board" (on by default) says how many
- * committed tickets start building and how many at a time, and Apply sends it with `pipeline-apply`; a refusal shows verbatim and the
- * dialog stays open. While Apply commits `CONSTITUTION.md` first, the dialog shows the pending state from the facts, and Cancel becomes
- * Cancel apply. Once the pipeline is applied, the setup record closes and the view shows the live flow.
- * Over entities (MonoApply) it lists what is stored per level, the constitutions the one commit holds, the entities worth a look, which
- * never block Apply, and the committed tickets the product owner gives an entity after Apply. Only in update mode over a stored pipeline
- * without entities does it show that tickets in flight refuse Apply (E94), each a link to its detail, with Apply disabled.
+ * The first Apply: the board starts using the pipeline as the flow shows it, resuming if "Resume the board" stays on. While Apply commits
+ * `CONSTITUTION.md` first the dialog shows the pending state. Only in update mode over a pipeline without entities do tickets in flight
+ * refuse Apply, each a link to its detail.
  */
 import { useState }                                                      from 'react';
 import type { BoardAppliedPipelineDocument, BoardPipelineSetupDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';

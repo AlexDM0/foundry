@@ -1,9 +1,6 @@
 /**
- * The question panel: one open decision beside the board, over every tab, with what to answer on the left and why it was asked on the
- * right, and the queue of the other open decisions in its foot. It slides in while a decision waits and out once none shows, keeping the
- * last one shown while it slides, handing the focus it held back to what held it as it appeared; it stays mounted but hidden while the
- * detail panel shows, and Esc closes it only when no inner layer took the key, so the detail panel closes first. While it shows, it is
- * the questions habitat of Flint (`board/flint/UseQuestionsHabitat.ts`).
+ * The question panel: one open decision beside the board, what to answer on the left and why it was asked on the right. It stays mounted but hidden
+ * while the detail panel shows, and Esc closes it only when no inner layer took the key, so the detail panel closes first.
  */
 
 import {

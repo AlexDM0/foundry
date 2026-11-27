@@ -1,9 +1,6 @@
 /**
- * The tool use fold, in a happy-dom document, on a fake board clock. What matters: closed, it says how many tools ran, which, and how many
- * failed; open, it lists each call with its input and result and names each call's outcome; a running call ticks its elapsed time on the
- * clock, and one with no start shows no time rather than an invented one; User's close of an open fold outlasts the next entries of the turn,
- * so a live turn never springs open again; the live turn's fold closes once the turn ends, unless User opened it, so only the live turn
- * stays open; and the tool's names, inputs and results are text, never markup.
+ * The tool use fold, in a happy-dom document, on a fake board clock: its counts closed and its calls open, a running call's time on the
+ * clock, and User's close of an open fold outlasting the next entries, so a live turn never springs open again.
  */
 import {
   act,

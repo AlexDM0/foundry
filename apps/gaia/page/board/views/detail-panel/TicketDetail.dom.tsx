@@ -1,17 +1,7 @@
 /**
- * The tabbed ticket form in a happy-dom document, against a fake command client. What matters: the four section tabs come in their order,
- * each a link to its own route over the same board tab, Overview the current one without a section, and only the routed section is in the
- * DOM; the arrow keys, Home and End go to a section; Activity counts and lists the lines naming the ticket or its row, or says none does;
- * the Overview's state card names the live job and its calls beside Flint's slot (no slot while the question panel shows over the panel's
- * slide out, so a page has one), and leads with Watch, a link no stream outage disables, else with Ready, Unhold or Accept as the forge
- * offers them, Accept disabled while not offered; Park…, Hold… and Delivered by hand… open their row before anything is sent, Cancel
- * sending nothing, and a move the forge does not offer is not shown; Priority… opens a row of the served priorities, each posting
- * `ticket-priority`, closing once applied and showing the forge's refusal verbatim; a closed move row hands the focus back to its
- * opener; Next marks exactly one current step and links the tickets the landing lets start, and is absent without a forecast; the Facts
- * grid carries its second lines; a refused move shows the forge's sentence beside the control that drew it; and a live job's controls sit
- * under Watch, after the open incident naming the ticket: a message box while the job takes one, and More, whose Wind down, Stop and
- * Fresh agent each open a confirmation in place naming the ticket, its branch and its hold, sending nothing until confirmed, Cancel and Esc
- * handing the focus back; a stopping job shows Stopping. alone, a watched one Stop alone.
+ * The tabbed ticket form in a happy-dom document, against a fake command client: section tabs as routed links with arrow, Home and End
+ * keys; Activity; the Overview's state card with Flint's one slot and its lead; move rows that send nothing until confirmed and hand the
+ * focus back; Priority, Next and Facts; refusals verbatim; and the live job's controls confirming in place before anything is sent.
  */
 import {
   act,

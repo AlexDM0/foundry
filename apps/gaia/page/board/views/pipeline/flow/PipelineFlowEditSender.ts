@@ -1,10 +1,7 @@
 /**
- * Sends the flow's draft edits as `pipeline-draft-edit` against the open setup record. On a live board, with no record open, an edit
- * gesture first sends `pipeline-update-start` and holds its edits; they go once the facts show the update record the start opened, and
- * never when the start was refused. Both commands go through `useControlCommand`, so either refusal is kept verbatim. A gesture's edits go
- * with the draft revision its rows came from, and no gesture is taken while the one before it is held or on its way, so an edit built on
- * old rows is refused as stale instead of undoing the edit before it. At an entity's level of a monorepo screen, each field goes scoped to
- * that entity, but a field the forge sets for every entity.
+ * Sends the flow's draft edits as `pipeline-draft-edit`; on a live board a gesture first sends `pipeline-update-start` and holds its edits
+ * until the update record shows, never when the start was refused. A gesture's edits carry the draft revision of their rows, and no gesture
+ * is taken while the one before it is held or on its way, so an edit built on old rows is refused as stale instead of undoing the one before.
  */
 import { useEffect, useRef, useState } from 'react';
 

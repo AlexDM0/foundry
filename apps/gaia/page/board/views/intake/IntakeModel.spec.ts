@@ -1,9 +1,6 @@
 /**
- * The Intake view's model. What matters: an intake that ended stopped or failed is read only, so a route naming it keeps its chat; a
- * session names each open decision by id, never a count; the route picks the session or the new chat, and a started job stops starting
- * once a `job-ended` record names it; the composer's tag follows the session's turn and closed state; an open session's live turn, where
- * Flint works, carries its pill and calls; and the chat places User's request after the line that started the session and each open
- * decision where it was asked.
+ * The Intake view's model: which session the route picks and when a started job stops starting, the read-only sessions that ended
+ * stopped or failed, the composer's tag, the live turn where Flint works, and where the chat places User's request and each open decision.
  */
 import { describe, expect, test } from 'bun:test';
 

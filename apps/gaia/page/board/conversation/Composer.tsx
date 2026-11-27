@@ -1,9 +1,6 @@
 /**
- * The box under a chat: its head names the recipient, says through its status tag whether a message sends now or queues, and gives the
- * keys; under it the text box and the paper-plane Send, then the caller's foot controls. Enter sends and Shift + Enter starts a new line;
- * Enter and Send share one send, so both obey every rule of a board control. The text clears once the forge applied the command, unless
- * User changed it while the command was on its way, and stays on a refusal, which shows verbatim under the text box. Inside a chat card,
- * the first letter of a text cues Flint that User types.
+ * The box under a chat: its head names the recipient and whether a message sends now or queues; Enter and Send share one send, so both obey
+ * every rule of a board control. The text clears once the forge applied the command, unless User changed it while it was on its way.
  */
 import {
   useContext,

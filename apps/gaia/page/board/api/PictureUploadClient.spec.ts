@@ -1,8 +1,6 @@
 /**
- * The board's picture client against answers in the page's contract. What matters: the bytes are posted with the
- * file's type to the relay's pictures route at its version, with the session cookie and no `Authorization` header, a file of no type as plain
- * bytes; the stored picture comes back; a forge's refusal keeps its sentence verbatim; a 401 is `no-session` and nothing answering, or an
- * answer of another version, `unreachable`.
+ * The board's picture client against answers in the page's contract: the bytes posted with the file's type, the stored picture back, the
+ * forge's refusal verbatim, a 401 `no-session`, and nothing answering or an answer of another version `unreachable`.
  */
 import { describe, expect, test } from 'bun:test';
 

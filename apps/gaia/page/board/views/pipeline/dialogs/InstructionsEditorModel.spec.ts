@@ -1,8 +1,6 @@
 /**
- * The instruction list's model. What matters: the constitution is `constitution.md` and "drafted" before Apply and the pipeline's path
- * after it, with an Edit link and no Open; at an entity its own state says drafted, adopted or default; a brief takes the file name and
- * text the facts resolved, and a role's own brief in a re-review list says whose it is; a removed constitution comes back at the top; an
- * added path goes last, once; and only the roles that may read the constitution are offered it.
+ * The instruction list's model: how the constitution reads before and after Apply and at an entity, the names and texts of briefs, where
+ * a removed constitution and an added path go, and which roles are offered the constitution.
  */
 import { describe, expect, test }                                                                           from 'bun:test';
 import type { BoardInstructionDocument, BoardPipelineDefinitionDocument, BoardResolvedInstructionDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';

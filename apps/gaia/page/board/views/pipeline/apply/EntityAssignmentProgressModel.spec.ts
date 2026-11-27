@@ -1,8 +1,6 @@
 /**
- * The product owner's entity assignments after the first Apply over entities, read-only. What matters: an assigned ticket shows its entity
- * and the product owner's reason, one assigned by User says so; while the job runs an unassigned ticket waits, and once it ended it has
- * no entity; a ticket the board no longer holds still shows; the count and the state word follow the facts; the forge level shows the
- * line while the job runs or a ticket still lacks an entity.
+ * The product owner's entity assignments after the first Apply over entities, read-only: each ticket's entity and reason, an unassigned
+ * ticket while the job runs and after, the count and state word, and when the forge level shows the line.
  */
 import { describe, expect, test }             from 'bun:test';
 import type { BoardEntityAssignmentDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';

@@ -10,8 +10,9 @@ const TICKET_LINE_START = /^Ticket #/;
 const TICKET_REFERENCE_PREFIX = String.raw`(?<!\b(?:task|row) )#`;
 
 /**
- * From ticket #100 up a ticket's `#120` is spelled as task 120's, so a row is named only in the forms the CLI writes for rows (`Task #N`,
- * `row #N`, `Review row #N`), and a line beginning `Ticket #` names no row. The lookahead keeps task 1 from claiming task 13.
+ * Once ticket numbers reach three digits a ticket's `#120` is spelled as task 120's, so a row is named only in the forms the CLI writes
+ * for rows (`Task #N`, `row #N`, `Review row #N`), and a line beginning `Ticket #` names no row. The lookahead keeps `Task #1` from
+ * claiming `Task #13`.
  */
 function textNamesTask(text: string, taskId: number): boolean {
   return !TICKET_LINE_START.test(text) && new RegExp(`\\b(?:task|row) #${taskId}(?![0-9])`, 'i').test(text);

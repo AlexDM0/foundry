@@ -1,9 +1,7 @@
 /**
- * The Focus layout's model, pure: which of the four phases (Ticket, Build, Review, Merge) holds each node and add slot of the facts, the
- * stepper's tab of each phase with its sub-line and pill, the open phase's header words, the step a live card is in, and the Ticket
- * phase's readiness lines, which follow how a ticket is written: one ticket with an Acceptance and a Brief, or a spec, then a plan. The
- * Merge header stands for the merge train's frame and its end, so those nodes get no step card. An entity of a monorepo draws three
- * phases: its tickets are made at the forge, so the Ticket phase is the forge's.
+ * The Focus layout's model, pure: which of the four phases holds each node, the stepper's tabs, the open phase's header and the Ticket
+ * phase's readiness lines. The Merge header stands for the merge train's frame and end; an entity draws three phases, since its tickets
+ * are made at the forge.
  */
 import type { BoardFlowNodeDocument, BoardInsertSlotDocument, BoardPipelineFlowDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import type {

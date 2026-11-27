@@ -1,10 +1,6 @@
 /**
- * The forge level of a monorepo's design (MonoDesignForge), in place of the phases: what every entity shares. The Ticket phase holds how a
- * ticket is written, the steps that write it, whose dialogs set their agents (the product owner's, or the spec's and the plan's), and its
- * reviews (Human ticket review, or Human spec and plan review); the merge train holds Human code review and the Airlock's
- * conflict re-review, set in the merge step dialog; the board limit is the board's own setting, which applies at once, outside the
- * proposal, with each entity's cap under it; then a note that the forge level holds no gates, and the table of the entities, each linking
- * to its level. A switch goes to the draft through the flow's edit sender.
+ * The forge level of a monorepo's design, in place of the phases: what every entity shares, from how a ticket is written to the merge
+ * train, the board limit and the table of entities. The board limit applies at once, outside the proposal; each switch goes to the draft.
  */
 import { useState }                            from 'react';
 import type { BoardConcurrencyBoundsDocument } from '../../../../@types/board/BoardFactDocuments.ts';

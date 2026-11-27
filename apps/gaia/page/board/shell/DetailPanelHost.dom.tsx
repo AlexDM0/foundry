@@ -1,8 +1,6 @@
 /**
- * The detail panel's host over a stand-in Kanban card. What matters: Enter on a card moves the
- * focus to × and Esc hands it back to the card, while a pointer open leaves the focus on the card;
- * a switch of the ticket form's section keeps the panel open on the new section with the focus on
- * its tab, and Esc then still hands the focus back to the card.
+ * The detail panel's host over a stand-in Kanban card: the focus moves to × on a keyboard open and back to the card on Esc, also after a
+ * switch of the ticket form's section.
  */
 import {
   act,

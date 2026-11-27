@@ -1,17 +1,6 @@
 /**
- * The design step (A2Proposal) in a happy-dom document, against fake controls. What matters: the proposal opens on its title row and the
- * Build phase with no change marked; a step that waits on an open question shows its pill on its card and its phase tab and opens on the
- * question while every other step keeps its own dialog, and the answer sends `pipeline-setup-answer` and closes it; Apply pipeline is
- * disabled exactly while a question is open, with its reason and hint, and opens the apply step otherwise; the Changes tab counts the facts'
- * change list and lists one card per change with Undo; the footer's Proposal pill is dashed and leaves the counts to the phase tabs; neither
- * a proposal nor a new one sends a profile, only a time chip press does; the agent's newest change is framed under its own label, opens
- * its phase, selects its gate row and undoes it; Discard proposal sends `pipeline-draft-discard`; before a draft a line over the phases
- * and the agent strip say the agent is designing; the agent's panel opens on the Conversation, and its strip, beside the one Flint slot,
- * waits while a design question is open and is ready once proposed.
- * In monorepo mode: an entity's level draws its three phases, its own gates and its own chat, its edits and profiles name the entity, and
- * what the forge sets links there; the rail moves to another level on the same screen, with its flow, chat and changes; the forge's level
- * draws its page and no gates, its switches and the Airlock edit the forge's fields, and a question in any entity holds Apply; a copy of a
- * phase's gates to another entity goes as one copy of the edits that change something.
+ * The design step against fake controls: the proposal's phases and changes, open questions holding Apply, the agent's newest change with its Undo,
+ * and in monorepo mode each entity's own level and the forge's.
  */
 import {
   act,

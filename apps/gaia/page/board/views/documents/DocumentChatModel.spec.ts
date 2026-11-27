@@ -1,11 +1,7 @@
 /**
- * A document agent's chat. What matters: each sent message stands before the agent turn it opened, counted by the job's user lines,
- * which themselves stay out; a settled proposal's line follows the turn that answered its message; a working turn makes the agent work and
- * names the comment it answers and its running call; queued messages stand under the composer, never in the chat; a message the agent
- * has not taken yet follows the turns; the effect reading is a card with its places and unresolved count; and while the agent answers a
- * comment made before User's own version or typing, a notice says its edit lands on User's text. The agent's question User answered stands
- * as its card where its answer's message would, an answer waiting for the agent's turn stands as its card after the turns and never in the
- * queue, and the open questions stand last (artboard 11).
+ * A document agent's chat: each sent message before the turn it opened, the job's own user lines left out; proposals, working turns, queued
+ * and untaken messages, the effect reading's card, the notice that an edit lands on User's text, and the agent's questions, answered ones
+ * in place and open ones last.
  */
 import { describe, expect, test } from 'bun:test';
 

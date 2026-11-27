@@ -1,10 +1,7 @@
 /**
- * One mermaid block, drawn by Gaia's diagram frame: a sandboxed frame of an opaque origin (`allow-scripts` alone), which reaches neither
- * this page, its cookies nor Gaia's API. Once it loads, the page hands it the source and the board's colour tokens of the current theme as
- * mermaid's theme variables, with `darkMode` for the dark theme, again when the theme changes, and takes a message only from its own frame,
- * of the frame protocol's name and version. The frame answers with its height and its nodes, and with the node under the pointer, which
- * offers a comment on the node's line until a moment after the pointer left it, unless it went to the offer, or until the diagram is drawn
- * again. A diagram that fails to draw shows its source as text.
+ * One mermaid block in a sandboxed frame of an opaque origin (`allow-scripts` alone), which reaches neither this page, its cookies nor
+ * Gaia's API. It gets the source and the theme's colour tokens, and is heard only from its own frame. A hovered node offers a comment on
+ * its line until a moment after the pointer leaves, so the pointer can reach the offer. A diagram that fails shows its source as text.
  */
 import {
   createContext,

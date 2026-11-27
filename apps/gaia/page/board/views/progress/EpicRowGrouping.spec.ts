@@ -1,8 +1,5 @@
 /**
- * The Progress rows grouped by epic. The cases that matter: a board without epics is drawn ungrouped; a ticket's rows, its review rows
- * included, go under its primary epic only, and the head counts the epic's other tickets as shared; open epics come first and "No epic"
- * last; a group with no rows is left out; a folded group keeps its head and draws no rows; the span is placed on the axis with the bars'
- * minimum width and left out wholly outside the range; and toggling a head folds or unfolds it.
+ * The Progress rows grouped by epic: a ticket's rows under its primary epic only, the group order, folding, and the epic span on the axis.
  */
 import { describe, expect, test } from 'bun:test';
 

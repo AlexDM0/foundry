@@ -1,9 +1,7 @@
 /**
- * The Agents view's model: which board records are agent jobs, which card a job sits in (the worker list or Sessions) and in what order,
- * its role mark, its open decision as an ask, its calls against its budget, its subagents as squares, its quiet sweeps, the slot meter and
- * the cards' counts and tallies, whether it is stopping or takes a message, as the forge offers, and whether a concurrency limit asked for
- * may be sent within the bounds the forge serves. Which job holds a launch slot is the forge's `launchSlots` fact, never a kind list copied
- * here.
+ * The Agents view's model: which board records are agent jobs, which card each sits in and in what order, and each job's mark, ask, budget,
+ * subagents and controls as the forge offers them. Which job holds a launch slot is the forge's `launchSlots` fact, never a kind list
+ * copied here.
  */
 
 import type { BoardLaunchSlotsDocument }           from '../../../@types/board/BoardDocument.ts';

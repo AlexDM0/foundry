@@ -1,8 +1,6 @@
 /**
- * Keeps the Progress chart usable beside a right-edge panel: while the detail panel or the question panel is open the chart gains trailing
- * scroll room the width the panel covers, with its timeline width frozen so no bar moves, and the opened row's bars scroll clear of the
- * panel. On close the chart glides back to its own end before the room goes, so nothing it shows jumps; a glide User's own scroll cut
- * short still lets the room go after `PANEL_ROOM_RELEASE_MILLISECONDS`.
+ * Keeps the Progress chart usable beside a right-edge panel by giving it trailing scroll room with its timeline width frozen. On close the chart
+ * glides back before the room goes, so nothing jumps.
  */
 import { useLayoutEffect, type RefObject } from 'react';
 

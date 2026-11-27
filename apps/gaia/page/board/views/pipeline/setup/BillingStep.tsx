@@ -1,10 +1,6 @@
 /**
- * A0Setup, the billing step, the setup's second, as FlowSetup draws it: the page's title row with the pipeline's state and the waiting
- * tickets, the Billing step card with the ways the record's agent bills, as its vendor serves them (its default preselected while the
- * record has no billing, and the cap per launch on a way whose launch takes one); beside it the pipeline agent's panel, which introduces
- * Flint and what it does once started; the footer words the chosen billing. While the record stands at billing, Continue saves a changed
- * choice and continues, which launches the pipeline agent and opens the research. Reopened while the record stands past it, a billing
- * change is saved to the record, and the way out is back to the current step. Back to agent leads to the step before.
+ * The billing step, the setup's second: the ways the record's agent bills beside the pipeline agent's panel. Continue saves a changed choice before
+ * it launches the pipeline agent, since forge continues only once a billing is chosen.
  */
 import { useState }                                                  from 'react';
 import type { BoardPipelineSetupDocument, BoardSetupRecordDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';

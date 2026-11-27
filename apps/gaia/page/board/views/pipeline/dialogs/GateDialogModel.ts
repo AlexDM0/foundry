@@ -1,8 +1,6 @@
 /**
- * The gate dialog's model, pure: the form a gate, a prepare step or a new one starts from; whether it can be saved; the edits a Save sends
- * (the definition, and the order of each phase whose box changed, or of the prepare steps for a new one) and the one Remove sends; the
- * kicker over the title; the profile box's state, result and words from the newest profile run of the gate in the dialog's phase; and
- * the log lines its output stream gives.
+ * The gate dialog's model, pure: the form a gate or prepare step starts from, whether it can be saved, the edits a Save or Remove sends,
+ * the kicker, and the profile box's state and log lines from the newest profile run of the gate in the dialog's phase.
  */
 import type {
   BoardDraftEditDocument,

@@ -1,8 +1,6 @@
 /**
- * The conditional re-review's card, shared by the review step dialog's Re-review tab and the merge step dialog: its title with the
- * Conditional pill and its switch, and under a rule while on the threshold stepper, the re-reviewer's compact model and effort and its
- * brief; while off, the note on what leaves the flow. In monorepo mode the merge train's re-review is split by level: the forge sets its
- * switch and threshold alone, and an entity sets its own conflict re-reviewer, with the forge's switch and threshold read only and linked.
+ * The conditional re-review's card, shared by the review step dialog and the merge step dialog: its switch, threshold, re-reviewer and brief,
+ * or the off note. In monorepo mode the forge sets the switch and threshold, and an entity its own conflict re-reviewer.
  */
 
 import type { RefObject } from 'react';

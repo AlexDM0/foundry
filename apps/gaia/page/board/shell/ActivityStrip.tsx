@@ -1,9 +1,6 @@
 /**
- * The "Agents at work" strip under the title row: a head line with the building and reviewing counts, how many launch slots are in use and,
- * at its far end, a warning flag for in-progress tickets with no Hephaestus job; under it one chip per job holding a launch slot (its id,
- * role, ticket title and the time since it launched, linking to the job on the Agents tab). On the Kanban tab it opens with Flint's slot,
- * the habitat cued by the first running job. The times tick each second from the injected clock while the event stream is live. The
- * strip is a polite live region, so its ticking times are hidden from assistive technology.
+ * The "Agents at work" strip under the title row: its counts and one chip per job holding a launch slot, opening with Flint's slot on the
+ * Kanban tab. The strip is a polite live region, so its ticking times are hidden from assistive technology.
  */
 import { useRef, type RefObject } from 'react';
 

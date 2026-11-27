@@ -1,14 +1,7 @@
 /**
- * The detail panel in a happy-dom document, against a fake command client. What matters: the body reaches the DOM only as the `srcdoc` of
- * a frame whose `sandbox` is exactly the design's, and a planted payload (an `onerror` image, a script, a `javascript:` link) in it runs
- * nothing and never reaches the panel's own document; the frame takes the page's stylesheets and theme and follows a theme change; a card
- * opens the ticket form (its Overview: Other moves and Facts, Next only with a forecast; its Timeline and Description on their sections), a
- * row the row form (Controls, Task, Phases, Ticket, Log) and a filing draft the draft form (Request, Questions); links inside open other
- * details over the same tab; × closes; a closing panel slides out and reports itself gone; a switch of item cross-fades the contents, a
- * switch of section does not. On the row form, Ready, Hold, Park and network each post their board command, each shown exactly while the
- * forge offers it; a refusal shows the forge's sentence verbatim; every control is disabled while the stream is down; and a ticket waiting
- * for merge shows its prediction and conflicted files, Accept and Update branch posting only while offered. The ticket form's own controls
- * are `TicketDetail.dom.tsx`'s.
+ * The detail panel in a happy-dom document, against a fake command client: the body only as a sandboxed frame's `srcdoc`, where a planted
+ * payload runs nothing; the ticket, row and draft forms; closing and cross-fades; and the row form's controls posting as the forge offers,
+ * refusals verbatim, all disabled while the stream is down. The ticket form's own controls are `TicketDetail.dom.tsx`'s.
  */
 import {
   act,

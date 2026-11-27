@@ -1,9 +1,6 @@
 /**
- * The Pipeline documents section's model. What matters: a role reads by the defaults the forge serves (today the builder both documents
- * always, the reviewer the spec always and the plan only if User approved it) unless the pipeline stores other rules; a document the forge
- * fixes for the role (the reviewer's spec) stays at its rule, its other choices disabled, while every other choice is open; a Save stores
- * only the rules that differ from the served default, and none when all are the default; Gaia keeps no default of its own, so other served
- * defaults move every one of these; and the reviewer's line on the builder words each rule the builder reads by.
+ * The Pipeline documents section's model: a role reads by the defaults the forge serves unless the pipeline stores others, a fixed document
+ * keeps its rule, a Save stores only the rules that differ from the served default, and Gaia keeps no default of its own.
  */
 import { describe, expect, test } from 'bun:test';
 

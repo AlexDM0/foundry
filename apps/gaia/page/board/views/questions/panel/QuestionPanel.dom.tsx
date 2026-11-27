@@ -1,15 +1,6 @@
 /**
- * The question panel against fake controls, a fake transcript follower and an in-memory board store, driven through the shell's own state
- * hook. What matters: an open agent question shows the panel headed by its asker, id and open-since clock; the question waits in the
- * orange decision card with the one Flint slot; options show as asked, the agent's recommendation a pill beside the label, with their
- * consequences only when noted; Answer posts `decision-answer` with the chosen letter, or User's own words on a decision of one question,
- * and shows a refusal verbatim, disabled while the stream is down; Fold and × hide the panel until a decision opens that was not open at
- * the fold, the fold outlives a reload, and a panel User opened hands the focus back to its opener as it closes; Next question
- * moves along the queue and starts with nothing chosen, and the queue line keeps its whole text on hover; a code-opened decision has no
- * conversation and no steps; the reading tabs switch by click and arrow keys without losing the answer form, and one a later board drops
- * falls back to the background; the steps are the followed transcript's last top-level calls with the question current; earlier answers
- * keep to the ticket; planted markup stays text; and while the detail panel shows the panel is hidden and leaves Esc alone.
- * The shown panel is a workplace of Flint.
+ * The question panel against fake controls and an in-memory board store: the decision card and options, answering, folding and its reload, focus
+ * return, the queue, the reading tabs, and hiding behind the detail panel.
  */
 import {
   act,

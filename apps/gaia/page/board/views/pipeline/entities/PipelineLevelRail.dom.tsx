@@ -1,10 +1,6 @@
 /**
- * The level rail in a happy-dom document. What matters: the forge row leads and the entities follow in their labelled groups, each a
- * real button named by its key, kind, mark and counts; the selected row is the current one with the selection look and the one tab stop;
- * a press moves to that row's level; the arrow keys, Home and End move the focus between rows, wrapping, without moving the level; the
- * filter field narrows the entities and says when none matches; the attention line and the note show only while an entity needs a look,
- * the note saying that an entity without gates lands its tickets unchecked (E27); a live screen's work follows an entity's kind, and stands
- * alone under the forge.
+ * The level rail in a happy-dom document: the rows and their groups, selection and the one tab stop, keyboard focus moves, the filter,
+ * the attention line and the note that an entity without gates lands its tickets unchecked, and a live screen's line of work.
  */
 import {
   cleanup,

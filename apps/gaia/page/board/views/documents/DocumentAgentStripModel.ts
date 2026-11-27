@@ -1,8 +1,7 @@
 /**
- * The document agent's head and Flint strip, pure: what the head says under the agent's name, the strip's status line, and Flint's cue in the strip's
- * slot. While a turn works the agent reads the file its running call names, or writes between calls, for the comment it answers; it waits on User while a
- * question of its own is open, then while an edit of its own waits for review, or, on a plan, while the newest effect reading of the head left places
- * unresolved; it is done once its document is approved with nothing open; otherwise it idles and the strip says how to start.
+ * The document agent's head and Flint strip, pure. While a turn works the agent reads or writes for the comment it answers; it waits on User
+ * for its open question, then its edit under review, or a plan's unresolved effect reading; it is done once approved with nothing open;
+ * otherwise it idles and the strip says how to start.
  */
 import type { BoardTicketDocumentDocument, BoardEffectReadingDocument } from '../../../@types/board/TicketDocumentsDocument.ts';
 import { CountTextUtil }                                                from '../../../shared/utils/CountTextUtil.ts';
@@ -15,9 +14,9 @@ export type DocumentViewMode = 'preview' | 'code' | 'split';
 
 export interface DocumentAgentStripModel {
   readonly agentName: string;
-  /** Under the name: "Replying to C2 · reads v4", "Waiting on you · 1 edit to review". */
+  /** Under the name: `Replying to C2 · reads v4`, `Waiting on you · 1 edit to review`. */
   readonly headLine:  string;
-  /** Beside Flint: "Reading package.json for C2", "Idle. Select text to comment, or ask." */
+  /** Beside Flint: `Reading package.json for C2`, `Idle. Select text to comment, or ask.` */
   readonly status:    string;
   readonly cue:       FlintSlotCue;
 }

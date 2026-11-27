@@ -1,9 +1,6 @@
 /**
- * `useBoardOccasions` against a recording Flint handle. What matters: the reading a component mounts with performs nothing, since it is no
- * change; each new reading performs only the first of its occasions, and a render with the same reading performs nothing again; each board
- * sets the sparks of `watcher-spark` to its agents in flight, also when Flint is made after the board arrived; an occasion while no Flint
- * is made is not kept for the Flint made later; an incident that opens while Flint lives in the questions habitat is left to that habitat;
- * a stream that reopens and fails again is unplugged once; and without a reading nothing is performed or attended.
+ * `useBoardOccasions` against a recording Flint handle: the reading a component mounts with is no change, each new reading performs only the
+ * first of its occasions, and an occasion while no Flint is made is not kept for a later one.
  */
 import { cleanup, render }         from '@testing-library/react';
 import { afterEach, expect, test } from 'bun:test';

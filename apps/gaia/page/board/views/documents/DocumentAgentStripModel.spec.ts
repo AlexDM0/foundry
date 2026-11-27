@@ -1,8 +1,6 @@
 /**
- * The document agent's head and Flint strip. What matters: a working agent reads or writes for the comment it answers, named by its running call (artboard
- * 1), and says the version it started on once the head moved under it (artboard 5); an edit waiting for review makes it wait on User (artboard 4), on a
- * plan for the spec version it answers (artboard 8); unresolved places of the head's effect reading make the plan agent wait on User (artboard 7); its own
- * open questions make it wait on User's answers first (artboard 11); idle, the strip says how to start, by view.
+ * The document agent's head and Flint strip: a working agent named by its running call and the version it started on, waiting on User for
+ * an edit to review, an unresolved effect reading or its own open questions, and, idle, how to start by view.
  */
 import { describe, expect, test } from 'bun:test';
 

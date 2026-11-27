@@ -1,10 +1,6 @@
 /**
- * A pending Apply inside the apply dialogs (A4, A6b): the commit of `CONSTITUTION.md` under way with a busy ring, or the reason it holds
- * or was refused with what User can do next. After a signing failure, "View CONSTITUTION.md" opens the exact text User may commit by hand.
- * The foot under it is the dialogs' shared one: Cancel (or Back) on the start side and Apply on the end with no pending request, Cancel
- * apply while one is pending, and Apply again beside it once the request was refused; each command's refusal shows verbatim beside its
- * button. Over entities the pending state counts the constitutions in the commit, and a first Apply that the board would refuse keeps
- * Apply disabled with the reason on hover.
+ * A pending Apply inside the apply dialogs: the commit of `CONSTITUTION.md` under way, or why it holds or was refused and what User can
+ * do next, and the dialogs' shared foot, whose commands' refusals show verbatim beside their buttons.
  */
 
 import { useState }                                             from 'react';
@@ -61,7 +57,7 @@ export function ApplyPendingState({ applyState, constitutionMarkdown, entityCons
 export interface ApplyFootProps {
   readonly setupId:        string;
   readonly applyState:     BoardApplyStateDocument | null;
-  /** "Cancel" in A4, "Back" in A6b: it only closes the dialog. */
+  /** "Cancel" in the first Apply, "Back" in Apply changes: it only closes the dialog. */
   readonly closeLabel:     string;
   readonly onClose:        () => void;
   readonly applyLabel:     string;

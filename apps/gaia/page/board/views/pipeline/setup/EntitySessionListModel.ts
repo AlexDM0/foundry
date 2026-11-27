@@ -1,9 +1,6 @@
 /**
- * The research sessions of a forge over entities, pure: the forge's own session first, then one row per entity in the groups Apps,
- * Packages and Root, each with its state, its findings and open research questions, and the command that stops it. An entity's session
- * is its part of the setup record; it has no session until Hephaestus starts one. Only the forge's session can say that its research is
- * done, so an entity's live session reads as researching. No setting limits how many sessions run at once: each starts as its entity is
- * confirmed. Stop all sends a stop for every live session; a stopped session keeps what it found.
+ * The research sessions of a forge over entities, pure. Only the forge's session can say its research is done, so an entity's live session reads as
+ * researching; a stopped session keeps what it found. No setting limits how many sessions run at once: each starts as its entity is confirmed.
  */
 import { PAGE_CONTRACT_VERSIONS }    from '../../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardCommandDocument } from '../../../../@types/board/BoardCommandDocument.ts';

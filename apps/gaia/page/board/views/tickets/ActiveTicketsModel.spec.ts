@@ -1,8 +1,6 @@
 /**
- * The Active segment's model. What matters: the stage is what holds a ticket, an open question of its agent first, then a ticket it waits
- * on, else the forge's display state; the agent names its job, role and tokens, "asks you" while it asks, and "no agent yet" without one;
- * since reads as the job's run, the question's age or when the ticket became ready; work under way comes first, each part by id; a
- * document agent's question is the draft's, never an Active stage; and the search narrows the rows while the count keeps every ticket.
+ * The Active segment's model: each ticket's stage, agent and since, the order of the rows, a document agent's question left to its draft, and the
+ * search.
  */
 import { describe, expect, test } from 'bun:test';
 

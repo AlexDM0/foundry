@@ -1,12 +1,7 @@
 /**
- * The board's shell for one forge: it reads the board through Gaia's relay at the start, after each `board-changed` and after its stream
- * comes back, follows the stream's connection, says whether controls may act, and draws the banners, the incident line, the header with its
- * tabs, and the main area, where every tab is drawn by its view in `BOARD_TAB_VIEWS`. Over a detail tab the detail panel opens on the
- * routed item. Beside every tab the question panel shows one open decision, opened by a view, by a decision that opens, or by
- * `questions/<id>`, but never while the board is in setup. It navigates by Gaia's address alone, through `services.goTo`, and provides
- * the tracker id and the way to go to every link below it. Flint lives over the whole board, its habitat stored with the board's
- * preferences. The page's own head over the board, its children, heads the shell, told through `BoardSetupHeadContext` while the board is
- * in setup, when it holds the setup step bar and the board draws no header of its own.
+ * The board's shell for one forge: it reads the board through Gaia's relay, follows the stream, says whether controls may act, and draws the
+ * banners, header and the routed tab's view from `BOARD_TAB_VIEWS`. It navigates by Gaia's address alone, through `services.goTo`; in setup
+ * the page's own head holds the step bar, told through `BoardSetupHeadContext`, and the board draws no header.
  */
 import {
   useCallback,

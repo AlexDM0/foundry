@@ -1,9 +1,6 @@
 /**
- * The merge step dialog (A3dMergeModal), for a merge of main into the tree after the review and the re-review that follows it. Nothing on
- * the merge itself is set: its derived meter, focusable with its tooltip, says whose model and effort fix its conflicts. Its one setting is
- * the conditional re-review after a conflict merge; Save sends the merge train's `reReview` and, while on, the conflict re-reviewer. In
- * monorepo mode the forge's dialog is the Airlock's and sets only the switch and threshold, and an entity's sets only its own conflict
- * re-reviewer, linking the forge for the rest.
+ * The merge step dialog, for the merge of main into the tree after the review. The merge itself has no setting, only its derived meter;
+ * its one setting is the conditional re-review after a conflict merge, split in monorepo mode between the forge and each entity.
  */
 
 import { useRef, useState }                                                                          from 'react';

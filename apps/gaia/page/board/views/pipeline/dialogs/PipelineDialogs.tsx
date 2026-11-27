@@ -1,9 +1,6 @@
 /**
- * The dialog an open request names, over the pipeline the board is designing or running: the agent step, review step, merge step or gate
- * dialog, or the open question a node waits on. Its Saves go to the open setup record; on a live board the first one opens an update
- * (`pipeline-update-start`) and its edits go once the record shows. A dialog closes once its edits are applied, and stays open showing
- * the refusal when they are not. At a monorepo level the constitution's link opens that level's, the merge step dialog sets only the
- * level's part of the merge train's re-review, and the product owner's dialog at the forge says it routes each ticket to an entity.
+ * The dialog an open request names: an agent, review, merge or gate dialog, or the open question a node waits on. Its Saves go to the open
+ * setup record, and on a live board the first opens an update; a dialog closes once its edits apply and shows the refusal when they do not.
  */
 import type { BoardFlowNodeDocument, BoardPipelineFlowDocument, BoardSetupRecordDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import { BOARD_GATE_PHASES, type BoardGatePhase, type BoardPipelineNodeMark }              from '../../../../@types/board/BoardVocabulary.ts';

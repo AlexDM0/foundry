@@ -1,8 +1,6 @@
 /**
- * The forge level's page, pure: the approvals every entity shares, those of the Ticket phase as the route writes a ticket, with the hint of
- * each state and the edit a switch sends; the steps that write a ticket in the route the flow draws; the merge train's conflict re-review,
- * the board limit and the entity caps under it, worded in jobs, and the footer's count of the entities and their gates. The board limit is
- * the board's setting, sent by its own control at once; every other setting here is a draft field.
+ * The forge level's page, pure: the approvals every entity shares, the steps that write a ticket, the merge train's re-review, the board
+ * limit with the entity caps under it, and the footer. The board limit is sent at once by its own control; every other setting is a draft field.
  */
 import { PAGE_CONTRACT_VERSIONS }                                                              from '../../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardCommandDocument }                                                           from '../../../../@types/board/BoardCommandDocument.ts';

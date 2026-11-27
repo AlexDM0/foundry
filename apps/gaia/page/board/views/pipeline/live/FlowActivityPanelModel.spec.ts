@@ -1,10 +1,6 @@
 /**
- * The live flow's activity model. What matters: a node's chips are exactly the occupants the facts place on it, each linking to its
- * ticket or draft detail, a draft read as drafting and a ticket on the merge before review as catching up; the "Now" rows equal the
- * occupants in the facts' order, with a meter only on a step an agent runs, and a row the crossing namer names ends with its crossing;
- * the panel head counts the working rows; a ticket in flight is a chip linking to its detail; a gate profile is a row only while queued
- * or running, naming its entity when it has one; the "Earlier" lines keep the facts' order and cut the stamp only when the page carries
- * the slices.
+ * The live flow's activity model: each node's chips are exactly its occupants, the "Now" rows follow the facts' order with meters only on
+ * agent steps, gate profiles show while queued or running, and the "Earlier" lines keep the facts' order.
  */
 import { describe, expect, test } from 'bun:test';
 

@@ -1,10 +1,6 @@
 /**
- * The In draft segment's model. What matters: a draft that waits on User is a waiting row whose wait and action follow what the forge says
- * waits (an answer opens the document's questions, a proposal or an approval opens the document) and whose track marks User's stage; a
- * draft nobody waits on is an agent's row with its agent and Watch, or "no agent yet"; on the one-ticket route a ticket in review is a
- * waiting row with "Review ticket" and a Shape → Ticket review track, and a draft waits to be made ready; a filing draft waits on its
- * questions; the waiting rows run oldest wait first; the running intakes come with their drafts and questions; and the segment waits on
- * User while a row or an intake's question does. The search narrows the draft rows, never the intakes.
+ * The In draft segment's model: rows waiting on User with their wait, action and track, agents' rows, the one-ticket route, the order of waits, the
+ * running intakes, and the search.
  */
 import { describe, expect, test } from 'bun:test';
 

@@ -1,9 +1,7 @@
 /**
- * The document agent's side of the page: its head (the agent, what it does, Ask first or Auto-apply, or Stop while a turn works), the chat (comments as
- * cards that jump to their anchor, the agent's turns as Markdown, its proposed edits with what Apply closes, the effect reading's card, the agent's
- * questions to answer and the ones answered, and what the working agent reads), which opens on its newest item, then the dashed notice that the agent's
- * edit lands on what User changed meanwhile, Flint's strip and the composer. A message sent while the agent works waits in the queue under the composer,
- * where `×` withdraws it, and the composer's button reads `Queue ⌘↵`; Cmd/Ctrl+Enter sends. On a plan the composer offers the effect reading of the head.
+ * The document agent's side of the page: its head, the chat (comments, turns, proposed edits, the effect reading and questions), opening on
+ * its newest item, the notice that an edit lands on User's changes, Flint's strip and the composer. A message sent while the agent works
+ * waits in the queue under the composer, where `×` withdraws it; Cmd/Ctrl+Enter sends.
  */
 import { useLayoutEffect, useRef, useState } from 'react';
 
@@ -123,7 +121,7 @@ function StopButton({ place }: { readonly place: DocumentPlace }) {
   return <Button label="Stop" dense disabled={!stop.enabled} onPress={() => void stop.send()} />;
 }
 
-/** "C2 · § 4 Acceptance › A3 · line 29 · Preview", the comment's name and its lines in the mono face; the view word where it is asked for. */
+/** `C2 · § 4 Acceptance › A3 · line 29 · Preview`, the comment's name and its lines in the mono face; the view word where it is asked for. */
 function AnchorLabel({ parts, namesView }: { readonly parts: AnchorLineParts; readonly namesView: boolean }) {
   return (
     <span>

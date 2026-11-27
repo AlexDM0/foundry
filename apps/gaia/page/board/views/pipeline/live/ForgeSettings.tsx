@@ -1,8 +1,6 @@
 /**
- * The forge's settings after setup: its agent (the vendor, whether it follows this machine's program or a program for this forge only, the
- * program's path and whether it runs, Choose program… and Look again), its billing only while the pipeline's is not a way the agent bills,
- * and its tools (the approved ones, Edit tools, and following the pipeline's programs again). Changing this machine's program from here asks
- * first and names how many other forges follow it.
+ * The forge's settings after setup: its agent and program, its billing while the agent does not bill the pipeline's way, and its tools.
+ * Changing this machine's program from here asks first and names how many other forges follow it.
  */
 import { useState }                        from 'react';
 import type { BoardPipelineAgentDocument } from '../../../../@types/board/BoardAgentDocuments.ts';

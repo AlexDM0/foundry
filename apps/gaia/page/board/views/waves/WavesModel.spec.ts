@@ -1,9 +1,6 @@
 /**
- * The dependencies view's model, laid out in waves. The cases that matter: a diamond lays out a Done column of what the open tickets build
- * on and one column per wave, the pace path first; Ready comes only from the forge's ready list and a held ticket wears Held; edges mark
- * the pace path and a settled dependency; nodes and heads are placed in pixels on one canvas; a ticket's lineage is itself, everything
- * upstream and everything waiting on it; a forecast is asked only while Hephaestus is running; a node names its ticket's first epic;
- * and a board where nothing depends on anything draws no view.
+ * The dependencies view's model, laid out in waves: the columns, Ready and Held, edges, pixel placement, a ticket's lineage, when a forecast is
+ * asked, and no view when nothing depends on anything.
  */
 import { describe, expect, test } from 'bun:test';
 

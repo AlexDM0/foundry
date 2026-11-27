@@ -1,8 +1,6 @@
 /**
- * One level's part of the Changes list: a head that folds the group, naming the forge or the entity with its count of changes, over one
- * card per change with its own Undo, and one batch card per copy to another entity. A batch card says what the copy did and how many
- * edits it made, undoes the set with one press, and unfolds each edit with its own Undo. The draft has no move of its own that takes a
- * set back, so the caller gives the set's command.
+ * One level's part of the Changes list: a folding head, a card per change with its own Undo, and a batch card per copy to another entity.
+ * The draft has no move of its own that takes a set back, so the caller gives the set's command.
  */
 import { useId, useState } from 'react';
 import {

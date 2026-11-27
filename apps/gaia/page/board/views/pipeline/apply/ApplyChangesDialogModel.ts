@@ -1,8 +1,6 @@
 /**
- * The model of Apply changes on a running board (A6b), pure: the title that counts the changes, the version line from the applied
- * revision, one row per change worded by what it names, where it is and its kind (a gate by the phases that run it, the constitution as
- * committed to main on Apply), the in-flight note, and the `pipeline-apply` command, which never resumes the board. Over entities
- * (MonoApplyChanges) the rows group by level, the forge first, and a copy's set stands as one row with its count of edits.
+ * The model of Apply changes on a running board, pure: the title, the version line, one row per change, the in-flight note and the
+ * `pipeline-apply` command, which never resumes the board. Over entities the rows group by level, the forge first.
  */
 import { PAGE_CONTRACT_VERSIONS }    from '../../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardCommandDocument } from '../../../../@types/board/BoardCommandDocument.ts';

@@ -1,11 +1,6 @@
 /**
- * The finished-work filter at the tab bar's right end, in a happy-dom document. What matters: the line reads the window in bold and,
- * when given one, the pressed epic; the menu opens from it with the focus on the pressed span and closes on Esc, a second click or Enter
- * in the since field, each handing the focus back to the line, while a click or focus outside only closes it; the choice is read from and written
- * to its key, `<STORAGE_PREFIX>:<trackerId>:visibility`, the default removing it, and the retired `recent` reads as the default; each
- * span shows the count it would show of the counted items and names it; the since field marks a chosen day and refuses one after today;
- * each choice is announced; the selected tab's sections show; and "show all" and "Reset filters" set all and the default, Reset first
- * resetting the tab's own filters.
+ * The finished-work filter at the tab bar's right end: its line and menu, the focus handed back to the line on every close, the choice stored
+ * under `<STORAGE_PREFIX>:<trackerId>:visibility` with the retired `recent` read as the default, and each span's count.
  */
 import {
   act,

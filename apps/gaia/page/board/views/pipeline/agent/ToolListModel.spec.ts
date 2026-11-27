@@ -1,8 +1,6 @@
 /**
- * The agent tools' model. What matters: each row says where forge found the tool or that the machine lacks it, and what runs it; the kept
- * list names each approved tool at its found path, git always, a missing tool never, and each added name without a path for forge to find;
- * nothing is sent while the list is as served; the list keeps a draft edit while a setup designs, else the stored pipeline's tools; and an
- * added tool forge did not find is named from its refusal, so User can choose its program and the list names it at that path.
+ * The agent tools' model: each row's place and runner, the kept list (git always, a missing tool never, an added name without a path),
+ * nothing sent while the list is as served, the command per mode, and an added tool forge did not find kept at the program User chooses.
  */
 import { describe, expect, test } from 'bun:test';
 

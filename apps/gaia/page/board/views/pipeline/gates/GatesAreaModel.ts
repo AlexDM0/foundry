@@ -1,8 +1,7 @@
 /**
- * The gates table's model, pure: each phase's title, line and empty sentence, each row's words, its band and its time chip with its cache
- * mark, what a double-click on a row opens, and the draft edits a reorder or a Delete sends. A prepare row stands before the gates of its
- * phase and reorders only among the prepare rows; a removed row stays drawn until Apply, struck, and moves nowhere. Each row's last run
- * is the newest run time the forge served for its line, worded here and never computed.
+ * The gates table's model, pure: each phase's words, each row's words, band and time chip, and the draft edits a reorder or Delete sends.
+ * A prepare row reorders only among the prepare rows, a removed row stays drawn and struck until Apply and moves nowhere, and each row's
+ * last run is the time the forge served, never computed here.
  */
 import { PAGE_CONTRACT_VERSIONS }    from '../../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardCommandDocument } from '../../../../@types/board/BoardCommandDocument.ts';

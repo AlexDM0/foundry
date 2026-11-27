@@ -1,12 +1,6 @@
 /**
- * A1Reading, the research step, as FlowResearch draws it: its place in the steps over the page's title row, the agent's status line, what it
- * found by topic in cards two by two and the scripts as a table, grey lines until the first finding comes; beside it the pipeline agent's
- * panel with the research questions as decision cards, Flint reading the repository and the composer, its head offering Stop. The footer
- * says the step is saved and the agent keeps working, and offers Back to billing and Continue to constitution at every moment of the research.
- * In monorepo mode (MonoResearch) the layout the agent reports comes first; once entities have sessions of their own, the sessions list
- * stands beside the findings of the session shown, which the route's level holds, and the panel holds that session's chat. Each live session
- * has its own Stop, and the footer says how far the sessions are and offers Stop all, Back and Continue to the next step. No setting limits how
- * many sessions run.
+ * The research step: what the agent found by topic and its scripts, beside the pipeline agent's panel. Continue stays offered while the agent works;
+ * in monorepo mode each entity's session shows apart, with its own Stop.
  */
 
 import type { ReactNode }                                                from 'react';

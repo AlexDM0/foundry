@@ -1,9 +1,6 @@
 /**
- * The Pipeline view's level in monorepo mode. What matters: monorepo mode is a fact of the record or of the stored pipeline, never of the
- * route; a monorepo screen shows the route's level, else the forge, and single mode shows none whatever the route names; the screen reads
- * the item under the level, so every screen opens at the level the owner was on; a setup route left once the setup is applied goes to the
- * live flow at its level, and to `#pipeline` in single mode; the step and constitution routes keep a level when given
- * one and stay as they are without; the entities shown are the draft's while a record holds one, else the stored pipeline's.
+ * The Pipeline view's level in monorepo mode: monorepo mode is a fact of the record or the stored pipeline, never of the route; every
+ * screen opens at the level the owner was on, and the entities shown are the draft's while a record holds one, else the stored pipeline's.
  */
 import { describe, expect, test } from 'bun:test';
 

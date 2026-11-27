@@ -134,7 +134,7 @@ export function decisionRecordOf(kind: string, at: string, decisionId: string, f
   };
 }
 
-/** `decision-opened` and `decision-answered` records: E3 on #004 answered, E2 on #009 answered, and the shown E7 opened. */
+/** `decision-opened` and `decision-answered` records: `E3` on #004 answered, `E2` on #009 answered, and the shown `E7` opened. */
 export const EARLIER_HISTORY: readonly BoardQuestionHistoryEntryDocument[] = [
   decisionRecordOf('decision-opened', '2026-10-29T13:40:00+01:00', 'E3', { kind: 'agent-question', ticketIds: ['004'] }),
   decisionRecordOf('decision-opened', '2026-10-29T13:41:00+01:00', 'E2', { kind: 'agent-question', ticketIds: ['009'] }),
@@ -153,7 +153,7 @@ export interface ExampleQuestionPanelBoardFields {
 }
 
 /**
- * J4 builds #004 at call 38 of 150; #005 and #006 wait on #004, so it holds two. The decisions are open in the order given, which is the
+ * `J4` builds #004 at call 38 of 150; #005 and #006 wait on #004, so it holds two. The decisions are open in the order given, which is the
  * answering order the forge serves.
  */
 export function exampleQuestionPanelBoard(fields: ExampleQuestionPanelBoardFields = {}): BoardDocument {
@@ -181,7 +181,7 @@ export function exampleQuestionPanelBoard(fields: ExampleQuestionPanelBoardField
   });
 }
 
-/** A top-level tool call of J4, or a subagent's when `parentToolUseId` is given. */
+/** A top-level tool call of `J4`, or a subagent's when `parentToolUseId` is given. */
 export function exampleToolCall(sequence: number, toolName: string, text: string, parentToolUseId: string | null = null): BoardTranscriptEntryDocument {
   return {
     cursor:       `1.${sequence}`,
@@ -203,7 +203,7 @@ export function exampleToolCall(sequence: number, toolName: string, text: string
   };
 }
 
-/** Seven calls of J4, a subagent's among them, ending with its question. */
+/** Seven calls of `J4`, a subagent's among them, ending with its question. */
 export const ASKING_TRANSCRIPT: readonly BoardTranscriptEntryDocument[] = [
   exampleToolCall(1, 'Read', 'src/theme/tokens.css'),
   exampleToolCall(2, 'Read', 'src/account/Layout.tsx'),

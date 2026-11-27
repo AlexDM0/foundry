@@ -1,9 +1,6 @@
 /**
- * A0bResume, the resume summary, as FlowResume draws it: a centred column of the page's title row, the setup steps in a vertical stepper,
- * each with its status and its summary, a done step with Open, the current step with its open questions and its pipeline agent, and the
- * note when main moved since the research; the footer counts the done steps and offers Start over, which asks first in the footer, and
- * Resume, which reopens the agent and goes to the current step; before a first setup's billing, which no agent starts before, it only goes
- * there.
+ * The resume summary: the setup steps with their status and summary, and Resume, which reopens the agent at the current step. Before a first setup's
+ * billing no agent runs yet, so Resume only goes there.
  */
 import { useState }                        from 'react';
 import type { BoardPipelineSetupDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';

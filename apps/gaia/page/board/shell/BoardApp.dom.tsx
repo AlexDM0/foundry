@@ -1,16 +1,7 @@
 /**
- * The board's shell for one forge against fake services, in a happy-dom document. What matters: `BOARD_TAB_VIEWS` names a view for every tab, and the
- * main area holds the routed tab's view and no other; the header's menu goes to its routes through `goTo` under the mounted forge, and the Progress view
- * shown is remembered per board; a lost stream disables every control; the board reads itself at the start and again after `board-changed`; the stored
- * tab opens a route naming none; a detail tab opens the detail panel on the routed item, which closes through `goTo`; and the board root, keyed by its
- * tracker id, unmounts one forge's board, its Flint with it, before it mounts another's, so the document never holds two Flints
- * (`.claude/rules/flint.md`). The Questions tab is drawn by its view, the question panel shows beside it, and `questions/<id>` opens it at that
- * question. The Kanban is drawn under the filter line, a card opens the detail panel over it, a header figure outlines its lane, and its item
- * `merge-queue` draws the Merge queue's detail. The Pipeline tab is drawn on a board with a readable pipeline and on one in setup, where it is the only
- * tab, the board draws no header, and the page's own head, drawn at the board's top, is told where the setup stands and holds the setup steps,
- * the entities step among them in monorepo mode, but none on the welcome before a setup record opens, while the agent step that starts one
- * stands at its first step; out of setup it is told nothing. In setup a job not launched only for want of an agent raises neither the agent
- * notice nor a notice banner, while another notice still shows.
+ * The board's shell for one forge against fake services: the routed tab's view and no other, the board read again after `board-changed`, a
+ * lost stream disabling every control, and one forge's board, its Flint with it, unmounted before another mounts, so the document never
+ * holds two Flints (`.claude/rules/flint.md`).
  */
 import {
   act,

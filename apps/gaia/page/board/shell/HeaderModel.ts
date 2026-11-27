@@ -1,10 +1,7 @@
 /**
- * The header's model, pure: the status line (its label from the forge's state and the event stream, its mono details), the new-code notice,
- * the header statistics with today's figures as the forge serves them, the activity strip's facts, and the open notices and the warnings in
- * the forge's sentences. The forge's controls are Gaia's forge bar's, so the header offers none. The incident defaults are the incident
- * line's (`IncidentNoticeModel.ts`), one line however many. While the board has no readable pipeline it is in setup and draws no header:
- * the model then holds the setup steps with the record's statuses and where the setup stands, for the page's own head, and its notices
- * leave out a job not launched for want of an agent, which the setup chooses, and list the new-code notice, which no status line shows.
+ * The header's model, pure, in the forge's sentences and figures; the forge's controls are Gaia's forge bar's and the incident defaults the
+ * incident line's. In setup it holds the steps for the page's own head, and its notices leave out a job not launched for want of an agent,
+ * which the setup chooses, and list the new-code notice, which no status line shows then.
  */
 
 import type { BoardDocument, BoardHephaestusDocument, BoardUsageDocument } from '../../@types/board/BoardDocument.ts';

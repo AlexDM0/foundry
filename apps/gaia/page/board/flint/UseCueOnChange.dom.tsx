@@ -1,8 +1,6 @@
 /**
- * `useCueOnChange` in a happy-dom document. What matters: the occasion a component mounts with sends nothing, since it is no happening; a
- * new occasion sends its cue once, also when it names the same cue as before; a render with the same occasion sends nothing again; and no
- * occasion sends nothing. Data that arrives after mount, such as a chat's history, names its baseline key: nothing is sent before it, and
- * the occasion that comes with a new key is the data's state, no happening.
+ * `useCueOnChange` in a happy-dom document: the occasion a component mounts with sends nothing, a new occasion sends its cue once, and data
+ * that arrives after mount names its baseline key, so its first state is no happening.
  */
 import { cleanup, render }         from '@testing-library/react';
 import { afterEach, expect, test } from 'bun:test';

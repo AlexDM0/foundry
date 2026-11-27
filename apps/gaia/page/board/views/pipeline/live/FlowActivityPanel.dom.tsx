@@ -1,8 +1,6 @@
 /**
- * The live flow's activity aside in a happy-dom document, over the A5 fixture. What matters: the "Now" rows equal the occupants on the
- * flow, each a link to its ticket or draft, with a meter only on a step an agent runs; the "Earlier" list shows the worded records with
- * their clocks; Ask the pipeline agent sends `pipeline-agent-advise` and turns to the agent's tab, and a refusal leaves the tab as it was;
- * the head counts the working rows; on the smallest pipeline the About tab comes first.
+ * The live flow's activity aside in a happy-dom document, over the live-pipeline fixture: the "Now" rows match the flow's occupants, the
+ * "Earlier" list, Ask the pipeline agent and its refusal, the head's count, and the About tab first on the smallest pipeline.
  */
 import { cleanup, screen, within } from '@testing-library/react';
 import {

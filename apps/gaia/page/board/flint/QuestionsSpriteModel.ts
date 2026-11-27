@@ -1,12 +1,7 @@
 /**
- * What the questions habitat cues between two payloads (`docs/design/board.md`, "Flint's habitats on the board views", `questions`), each row once, in the
- * order of the table. Asking begins when a decision is open and none is selected, the selection being the decision the question panel shows. It is a knock
- * in place of an ask once User selected another decision than the oldest two times since Flint last asked or knocked, while the oldest open decision, by
- * `openedAt` and then id, stayed the oldest; the count starts again whenever the oldest changes. A look at the oldest decision itself, or closing the
- * panel, is no pass over it. Every incident has a default move, so an incident that opens lights the fuse. An incident settles when the history gains a
- * record that it was handled, answered or took its default move; an escalation is no settling, since its decision opens. A waiver is answered when the
- * history gains a `decision-answered` record for a decision its `decision-opened` record names as a `waiver`; any other decision that gains one is
- * answered.
+ * What the questions habitat cues between two payloads (`docs/design/board.md`, "Flint's habitats on the board views", `questions`), each row
+ * once, in the order of the table. A knock replaces an ask once User passed over the same oldest decision twice; an escalation is no
+ * settling, since its decision opens.
  */
 import type { SpriteCue } from '../../lib/flint/FlintInterface.ts';
 import { QUESTIONS_CUES } from './QuestionsSpriteHabitat.ts';

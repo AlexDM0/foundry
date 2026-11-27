@@ -1,9 +1,7 @@
 /**
- * The document agent's questions to User on its document, pure (`docs/design/agent-questions.md`). An open question is an open decision the
- * spec or plan agent asked on this ticket's document; an answered one is the document's message that carries its decision id and the
- * answer's parts. Each question has its `E<n>` chip on the line its anchor stands on now and its lines marked, and lists under the
- * document's own "Open questions" heading until its answer settles: the agent's edit for it is applied, or the agent's turn on it ended
- * with no edit for it waiting.
+ * The document agent's questions to User on its document, pure (`docs/design/agent-questions.md`): open decisions the spec or plan agent
+ * asked here, answered ones from the messages carrying their decision id. Each has its `E<n>` chip and marked lines, listed under "Open
+ * questions" until its answer settles: its edit applied, or the agent's turn ended with no edit for it waiting.
  */
 import type { MarkdownBlock }                                                                       from '../../../../src/lib/markdown-render/MarkdownBlocks.ts';
 import type { BoardDecisionDocument, BoardDecisionOptionDocument }                                  from '../../../@types/board/BoardDecisionDocuments.ts';
@@ -16,7 +14,7 @@ import { CommentPopoverModel }                                                  
 import type { CommentChip }                                                                         from './DocumentBlocks.tsx';
 import { DocumentSelectionModel }                                                                   from './DocumentSelectionModel.ts';
 
-/** "E7 · § 3 Behaviour · line 16": the question's name and its lines in the mono face, the section in the text face. */
+/** `E7 · § 3 Behaviour · line 16`: the question's name and its lines in the mono face, the section in the text face. */
 export interface QuestionAnchorParts {
   readonly questionName: string;
   readonly section:      string | null;

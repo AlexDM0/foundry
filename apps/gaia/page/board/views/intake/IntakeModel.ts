@@ -1,8 +1,6 @@
 /**
- * The Intake view as data: every product-owner session, live ones from the board and ended ones read back from the log, each with its
- * title, the tickets it filed, its open decisions and its last line; which one the route selects, or the new chat; and the selected one's
- * chat worded as turns, User's request after the line that started it and each open decision placed where it was asked. A closed session
- * keeps its transcript and chat: a message resumes it by id. A session that ended any other way, stopped or failed, is read only.
+ * The Intake view as data: every product-owner session, live ones from the board and ended ones from the log, which one the route
+ * selects, and its chat worded as turns. A closed session resumes on a message; one that stopped or failed is read only.
  */
 
 import type { BoardDecisionDocument }                                        from '../../../@types/board/BoardDecisionDocuments.ts';
@@ -29,7 +27,7 @@ export interface IntakePill {
 /** What a session's row says under its title. */
 export interface IntakeSessionFacts {
   readonly pill:        IntakePill;
-  /** "E5 waits on User", one per open decision of the job. */
+  /** `E5 waits on User`, one per open decision of the job. */
   readonly askTexts:    readonly string[];
   /** "2 drafts" on a live session, "2 tickets filed" on an ended one; `null` with none. */
   readonly ticketsText: string | null;

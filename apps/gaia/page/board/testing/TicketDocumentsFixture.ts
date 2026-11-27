@@ -1,8 +1,7 @@
 /**
- * Ticket #004's spec and plan in the states the document artboards draw: the spec drafted with a comment applied and one the agent answers, its edit
- * proposed, User typing in Split while the agent works with a comment queued, the plan with its effect reading, and the plan out of date under a newer
- * spec, and the spec agent asking User on two lines of its spec, one question open and one answered. Each state is the documents Gaia's relay serves, with
- * the agent's transcript beside it. Test-only.
+ * The spec and plan of the fixture's ticket `#004` in the states the document views draw: drafted, with an edit proposed, typed on in
+ * Split, the plan with its effect reading and out of date, and the spec agent asking User. Each state is the documents Gaia's relay
+ * serves, beside the agent's transcript. Test-only.
  */
 import type { BoardDecisionDocument }        from '../../@types/board/BoardDecisionDocuments.ts';
 import type { BoardDocument }                from '../../@types/board/BoardDocument.ts';
@@ -310,7 +309,7 @@ function entry(cursor: number, role: string, text: string, fields: Partial<Board
   });
 }
 
-/** The spec agent's first three turns: the first draft, the saved choice for C1, and C2 begun, reading `package.json`. */
+/** The spec agent's first three turns: the first draft, the saved choice for `C1`, and `C2` begun, reading `package.json`. */
 export const SPEC_TRANSCRIPT_WORKING: readonly BoardTranscriptEntryDocument[] = [
   entry(1, 'user', 'Write the spec.'),
   entry(2, 'assistant', 'Drafted v1: problem, outcome, behaviour with a theme-flow diagram, four acceptance checks and what stays out.'),
@@ -322,10 +321,10 @@ export const SPEC_TRANSCRIPT_WORKING: readonly BoardTranscriptEntryDocument[] = 
   entry(8, 'tool-call', '{"file_path":"package.json"}', { toolName: 'Read', toolUseId: 'T1' }),
 ];
 
-/** The first two turns: the draft and the saved choice for C1, the agent idle before C2. */
+/** The first two turns: the draft and the saved choice for `C1`, the agent idle before `C2`. */
 export const SPEC_TRANSCRIPT_AFTER_C1: readonly BoardTranscriptEntryDocument[] = SPEC_TRANSCRIPT_WORKING.slice(0, 6);
 
-/** The same, with C2's turn ended on the proposed edit. */
+/** The same, with `C2`'s turn ended on the proposed edit. */
 export const SPEC_TRANSCRIPT_IDLE: readonly BoardTranscriptEntryDocument[] = [
   ...SPEC_TRANSCRIPT_WORKING,
   entry(9, 'tool-result', '{"scripts":{"check:contrast":"bun scripts/contrast.ts"}}', { toolUseId: 'T1' }),
@@ -358,7 +357,7 @@ const C4_QUEUED = message({
   state:         'queued',
 });
 
-/** C3 in Split: the agent reads the server's render for C3 while User types on line 34. */
+/** `C3` in Split: the agent reads the server's render for `C3` while User types on line 34. */
 export const SPEC_TRANSCRIPT_SPLIT: readonly BoardTranscriptEntryDocument[] = [
   ...SPEC_TRANSCRIPT_IDLE,
   entry(12, 'user', '{"comment":"C3"}'),
@@ -487,7 +486,7 @@ const PLAN_OUT_OF_DATE = unwrittenPlan({
   }],
 });
 
-/** Spec v6 moved A2 under plan v3, which was approved on spec v5. */
+/** Spec v6 moved `A2` under plan v3, which was approved on spec v5. */
 export const PLAN_OUT_OF_DATE_TRANSCRIPT: readonly BoardTranscriptEntryDocument[] = [
   entry(1, 'user', 'The spec moved.'),
   entry(2, 'assistant', 'Only A2 changed. Step 2 is the one place the plan depends on it, so I propose one edit there. The rest of the plan still holds on `v6`.'),
@@ -495,13 +494,13 @@ export const PLAN_OUT_OF_DATE_TRANSCRIPT: readonly BoardTranscriptEntryDocument[
 ];
 
 export const DOCUMENT_STATES = {
-  /** Artboard 1: the agent answers C2, reading `package.json`. */
+  /** The agent answers `C2`, reading `package.json`. */
   specWorking:     documentsOf(specDocument({}), unwrittenPlan()),
-  /** Artboard 3: the agent idle after C1, before C2. */
+  /** The agent idle after `C1`, before `C2`. */
   specIdleAfterC1: documentsOf(specDocument({ messages: [REQUEST, C1] }), unwrittenPlan()),
-  /** Artboards 2, 4 and 6: the agent waiting on User with its edit for C2 proposed. */
+  /** The agent waiting on User with its edit for `C2` proposed. */
   specIdle:        documentsOf(specDocument({ proposals: [FIRST_DRAFT, SAVED_CHOICE_EDIT, CONTRAST_EDIT_PROPOSED] }), unwrittenPlan()),
-  /** Artboard 5: spec v6 with C2 applied, the agent on C3 started on v5, C4 queued. */
+  /** Spec v6 with `C2` applied, the agent on `C3` started on v5, `C4` queued. */
   specSplit:       documentsOf(specDocument({
     head:      version(6, 'person', '2026-11-24T15:01:00'),
     markdown:  SPEC_MARKDOWN_V6,
@@ -537,7 +536,7 @@ function questionAnchor(line: number, sectionPath: readonly string[]): BoardComm
   };
 }
 
-/** Artboard 11's E7, open: does the ticket add the saved theme choice, asked on the Behaviour's fallback line. */
+/** `E7`, open: does the ticket add the saved theme choice, asked on the Behaviour's fallback line. */
 export const SAVED_CHOICE_QUESTION: BoardDecisionDocument = {
   id:        'E7',
   kind:      'agent-question',
@@ -585,7 +584,7 @@ export const SAVED_CHOICE_QUESTION: BoardDecisionDocument = {
   placement: lines(FALLBACK_LINE),
 };
 
-/** E8, answered: the forge's message to the agent, the question's line, the chosen label and User's note, and those parts apart. */
+/** `E8`, answered: the forge's message to the agent, the question's line, the chosen label and User's note, and those parts apart. */
 const IMAGES_ANSWER = message({
   messageId:  'M2',
   decisionId: 'E8',
@@ -601,7 +600,7 @@ const IMAGES_ANSWER = message({
   deliveryNumber: 2,
 });
 
-/** The spec agent's first draft, where it asks E7 and E8, then its turn on User's answer to E8. */
+/** The spec agent's first draft, where it asks `E7` and `E8`, then its turn on User's answer to `E8`. */
 export const SPEC_TRANSCRIPT_ASKS: readonly BoardTranscriptEntryDocument[] = [
   entry(1, 'user', 'Write the spec.'),
   entry(
@@ -615,7 +614,7 @@ export const SPEC_TRANSCRIPT_ASKS: readonly BoardTranscriptEntryDocument[] = [
   entry(6, 'turn-end', ''),
 ];
 
-/** Artboard 11: spec v4 with E7 open and E8 answered. */
+/** Spec v4 with `E7` open and `E8` answered. */
 export const SPEC_ASKS_DOCUMENTS: GaiaTicketDocumentsDocument = documentsOf(specDocument({
   markdown:  SPEC_MARKDOWN_ASKS,
   messages:  [REQUEST, IMAGES_ANSWER],

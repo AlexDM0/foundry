@@ -1,10 +1,6 @@
 /**
- * The gates table's model. What matters: a phase counts the gates that run and says why it has none; a prepare row leads with "P" and
- * gates count from 1; a reorder sends the phase's run order, or the prepare steps' order for a prepare row, without the removed rows;
- * a removed row is a band of its own, so no row passes it; Delete takes a gate out of this phase alone and removes a prepare step; a
- * prepare row opens the prepare variant; the time chip words each profile state in its pass, fail or waiting tone, with the cache mark
- * beside the time of a run whose gate reported a full or partial hit, asks to measure a changed gate, and takes no press while it measures.
- * A row's last run is the served run of its line in the phase and entity in view, a prepare step's install run included, the newest first.
+ * The gates table's model: counts and empty sentences, prepare rows before gates, the orders a reorder or Delete sends, removed rows as
+ * their own band, and the time chip's words, tone and cache mark from each line's newest served run.
  */
 import { describe, expect, test }                                                           from 'bun:test';
 import type { BoardGateProfileRunDocument, BoardGateRowDocument, BoardStepRunTimeDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';

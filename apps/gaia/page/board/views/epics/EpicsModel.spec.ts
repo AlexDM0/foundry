@@ -1,9 +1,6 @@
 /**
- * The epic cards on the view model. What matters: open epics show before settled ones; the done mark, the roll-up segments in
- * settled-first order and the facts as worded; the summary is the description's first paragraph as text while the rendered string stays
- * for the sandbox; what an epic waits on and frees follows the cross-epic dependencies of a ticket's primary epic; its waves start with
- * Done; ticket lines are newest first naming their other epics, a repeat review naming the round the forge serves; and a finished epic
- * outside the window hides behind the empty line naming it.
+ * The epic cards on the view model: their order, roll-up, facts and summary, the dependencies of a ticket's primary epic, the waves, the
+ * ticket lines newest first, and the empty line naming a finished epic outside the window.
  */
 import { describe, expect, test } from 'bun:test';
 

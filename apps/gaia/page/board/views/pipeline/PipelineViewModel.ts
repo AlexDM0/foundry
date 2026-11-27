@@ -1,10 +1,6 @@
 /**
- * The Pipeline view's model, pure: which screen the facts and the route pick, the setup steps in their order with their words, and the
- * route of each step (`pipeline/setup/<step>`). The screen follows the facts first: a record in `setup` mode opens the route's
- * step, or the resume summary on the bare `#pipeline`; outside it `pipeline/settings` is the forge's settings, its agent and its tools; a
- * record in `update` or `advise` mode is the flow being edited; a readable pipeline is the live flow; anything else is the setup landing,
- * the welcome, and at `pipeline/setup/agent` the agent step that starts a setup; both carry an unreadable file's reason. In monorepo
- * mode a route leads with its level (`PipelineLevelModel`), and the screen reads the item under it.
+ * The Pipeline view's model, pure: which screen the facts and the route pick, the setup steps in order with their words, and each step's
+ * route (`pipeline/setup/<step>`). The facts decide first; in monorepo mode a route leads with its level (`PipelineLevelModel`).
  */
 import type { BoardDocument } from '../../../@types/board/BoardDocument.ts';
 import type {

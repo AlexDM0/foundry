@@ -1,11 +1,6 @@
 /**
- * The Epics view in a happy-dom document. What matters: an epic's description reaches the DOM only as the `srcdoc` of a frame whose
- * `sandbox` attribute is exactly the design's, and only once its disclosure opens, so a planted image handler, script or `javascript:` link
- * never becomes an element of the board's own document and runs nothing, while its summary shows as text; the title row heads the view;
- * the cards carry the epic marks, a one-at-a-time wave saying so in its head and leaving its ticket cards plain;
- * a ticket line opens its ticket form over the Epics tab and is marked while open; the epic the route points at is marked; and a window
- * that hides every epic says so in one line.
- * Live work pulses only while the board's stream is live. The view is a workplace of Flint.
+ * The Epics view in a happy-dom document. Above all, an epic's description reaches the DOM only as the `srcdoc` of a frame with exactly
+ * the design's `sandbox`, once its disclosure opens, so planted markup never becomes an element of the board's own document and runs nothing.
  */
 import {
   act,

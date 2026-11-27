@@ -1,12 +1,7 @@
 /**
- * The flow's step model over the pipeline fixtures. What matters: the table of `docs/design/board.md`, "The pipeline flow: what a node opens" (the merge
- * before review opens nothing); every merge step carries a derived meter whose tooltip follows where it is derived from; each step card names its kind,
- * and a Gates card says who fixes a red gate, read from its way back; a re-review is conditional and says its threshold; the switches word their state; an
- * editing card carries its change, a switch the way it turned and a gates step the count of its changed gates, while a proposal carries none; a gate pill
- * carries the cache mark of its gate's newest run in the step's phase; each add choice sends its edit or asks for the Gate dialog; the footer's removed
- * steps are worded from the facts; and a node asks while a question it names is open. In the spec-then-plan route the Spec and Plan
- * agents open the agent step dialog and name the document they write in place of their brief files, the spec's and the plan's reviews are
- * User's switches, and the route's choice sends one `ticket-writing` edit, whose one-ticket value removes the key.
+ * The flow's step model over the pipeline fixtures: what a node opens (`docs/design/board.md`, "The pipeline flow: what a node opens"),
+ * the derived meters, each card's words, change and cache marks, the add choices, and in the spec-then-plan route the writing agents and
+ * the route's `ticket-writing` edit.
  */
 import { describe, expect, test } from 'bun:test';
 

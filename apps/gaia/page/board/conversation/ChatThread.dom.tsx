@@ -1,9 +1,6 @@
 /**
- * The chat card and thread, in a happy-dom document. What matters: each turn kind renders its own part, in the order given, since the
- * thread is a conversation read top down; a system line reveals the text it stands for only on User's ask, and hides it again; an agent
- * turn leads with its speaker in its state's colour, then its stamp or, while it works, its working words, then its tool fold and prose;
- * User's message is a bubble under its stamp line, dashed with its tag while it waits in a queue; the caller places each decision; the
- * card is a named section; and agent prose, User's text and a revealed prompt are text, never markup.
+ * The chat card and thread, in a happy-dom document: each turn kind renders its own part, in the order given, since the thread is a
+ * conversation read top down; agent prose, User's text and a revealed prompt are text, never markup.
  */
 import {
   cleanup,

@@ -1,13 +1,7 @@
 /**
- * The Intake view against fake controls and a fake transcript stream. What matters: the list shows every session with its title, state,
- * asks and drafts, the ones that wait on User first; the route selects one session, whose transcript is the only one followed, so moving
- * to another closes the first stream; the chat shows User's request as a bubble, the agent's turns with their tool folds and the open
- * decision as a turn whose Answer posts `decision-answer`; the composer posts `job-message`, on Enter too, and clears; Close intake posts
- * `intake-close` and names the drafts it offers; an open session's chat ends with the product owner's live turn, holding the one Flint
- * slot; each pane is headed in the page face; a closed session has no Close intake, says a message resumes it and takes a message; a
- * stopped or failed session stays listed and on the route naming it, read only with its outcome and no composer; the new chat opens on
- * `intake/new` and when there is no session, starts the session with `intake-start` and then follows the new job, shown as starting until
- * a board names it or its end.
+ * The Intake view against fake controls and a fake transcript stream: the session list, the one transcript followed for the routed session,
+ * the chat and its commands (`decision-answer`, `job-message`, `intake-close`, `intake-start`), and how closed, stopped, failed and new
+ * sessions read.
  */
 import {
   act,

@@ -1,9 +1,6 @@
 /**
- * The Merge queue detail's model: per target, the Airlock holder and its phase, the waiting candidates in the order the forge computed
- * (five keys, or User's press order with merge approval on), git's predicted conflicts, and why its landings wait (an open `target-moved`
- * decision, the forge's notice that the main checkout or a held file blocks them, in the forge's own sentence). It orders and decides
- * nothing itself: the order, the predictions and the reasons arrive as served facts. With merge approval on, the tickets waiting for User's
- * accept show apart, each with its prediction against the target's tip.
+ * The Merge queue detail's model: per target, the Airlock holder, the waiting candidates, their predicted conflicts and why landings wait.
+ * It orders and decides nothing itself: the order, the predictions and the reasons arrive as served facts.
  */
 import type { BoardLimitsDocument, BoardNoticeDocument }                     from '../../../@types/board/BoardFactDocuments.ts';
 import type { BoardMergeCandidateDocument, BoardMergeQueueDocument }         from '../../../@types/board/BoardJobDocuments.ts';

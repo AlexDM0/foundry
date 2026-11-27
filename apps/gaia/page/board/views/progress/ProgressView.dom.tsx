@@ -1,15 +1,6 @@
 /**
- * The Progress tab in a happy-dom document. What matters: each row draws its bars where the model places them, through the style prop; the
- * review-rows choice draws a ticket's review rows above it, latest round first, and is stored under its key; the title row names the tab;
- * the range control above the chart presses Fit by default and the preset chosen, and the chosen range, a custom one included, survives a
- * reload for the same viewer; the wide-titles
- * choice is stored; on a board with epics the rows are grouped under head rows that fold and stay folded across a reload; a tick label
- * near the right edge sits left of its line; a row opens its row's detail in place while its number links to its ticket and an epic
- * head's name to its epic; a row finished before the finished-work window is not drawn, and a held range marks rows that changed under
- * it until a range is chosen again, even when they change back; after a board update a moved or new row is marked changed once, until its
- * highlight has played; a planted title shows as text; Save as the board's range posts the range shown, Fit as the automatic span; and
- * Clear… asks first, posts the scope chosen, and Cancel sends nothing.
- * The tab is a workplace of Flint.
+ * The Progress tab in a happy-dom document: bars placed through the style prop, the review rows, the range control and its per-viewer storage, epic
+ * groups, row details and links, changed-row marks, and saving or clearing the range.
  */
 import {
   act,

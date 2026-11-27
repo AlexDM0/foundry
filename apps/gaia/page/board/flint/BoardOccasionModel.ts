@@ -1,9 +1,7 @@
 /**
- * The board occasions of Flint: the changes of the whole board, wherever Flint is, from the last reading of the board to the next one, in
- * the order of the table of `docs/design/board.md`, "Flint's board occasions", with a settled incident and an applied pipeline after its
- * incident row and a connection that comes back last; the host performs the first. Also the count of `watcher-spark` for a board. A
- * reading holds the board, the event stream's connection and how many commands Hephaestus refused so far. An incident that opens or
- * settles has one answer: while Flint lives in the questions habitat, that habitat answers it, so the board does not.
+ * The board occasions of Flint, from one reading of the board to the next, in the order of `docs/design/board.md`, "Flint's board
+ * occasions", but a settled incident and an applied pipeline after its incident row and a connection that comes back last; the host performs
+ * the first. An incident that opens or settles while Flint lives in the questions habitat is that habitat's to answer, so the board does not.
  */
 import type { SpriteAttendant, SpriteIntent }         from '../../lib/flint/FlintInterface.ts';
 import type { ConnectionState }                       from '../api/BoardEventStreamClient.ts';

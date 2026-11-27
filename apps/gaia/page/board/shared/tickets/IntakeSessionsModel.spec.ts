@@ -1,8 +1,6 @@
 /**
- * The product-owner sessions. What matters: live sessions come from the board and ended ones from the log, a session reopened by a message
- * shows once, as live, and an intake that ended stopped or failed is listed with its outcome; sessions that wait on User sort first, then
- * the live ones and the ended ones, each newest first by the log's order; and a title falls back from the product owner's to the request's
- * first line to the job id, the request read from the launch record, since a reopening message replaces the job's text.
+ * The product-owner sessions: live ones from the board and ended ones from the log, a reopened session shown once as live, sessions that
+ * wait on User first, and a title falling back from the product owner's to the request's first line to the job id.
  */
 import { describe, expect, test } from 'bun:test';
 

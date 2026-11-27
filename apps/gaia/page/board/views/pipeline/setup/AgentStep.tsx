@@ -1,9 +1,6 @@
 /**
- * The agent step, the setup's first: which agent builds the forge, a card for each vendor the forge runs and one line naming those it runs
- * in a later version, and which of its programs this forge starts, with where forge looked folded under it. With no record it is reached
- * from the welcome: the page holds the choice, Back returns to the welcome, and the footer's Continue starts the setup with it, which opens
- * the billing step. With a record the choice is the record's: Continue moves a record still at this step on to billing, and a record past
- * it is reached again by the way back to its current step. While nothing is found the primary action opens the file chooser instead.
+ * The agent step, the setup's first: which agent builds the forge and which of its programs this forge starts. With no record the page holds the
+ * choice and Continue starts the setup with it; with a record the choice is the record's.
  */
 import { useId, useState }                 from 'react';
 import type { BoardAgentDocument }         from '../../../../@types/board/BoardAgentDocuments.ts';

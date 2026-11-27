@@ -1,9 +1,6 @@
 /**
- * MonoEntities, the entities step: the layout research found, proposed as monorepo mode, which User accepts or declines for single mode;
- * every entity as a row to rename, re-kind, re-home, fold or remove, an app's whitelist and reach, the root entity with what it gets (kept
- * for a person by default) and a form to add an entity; the refusals the forge serves for its stored draft before Continue; beside it the
- * pipeline agent at the forge level. Each gesture is a set of draft edits, sent at once as one `pipeline-draft-edit`, one gesture in flight
- * at a time: the step holds no edit, and a draft the forge refuses is shown as stored, with its refusals, until a further gesture fixes it.
+ * The entities step: the layout research found, proposed as monorepo mode, which User accepts or declines for single mode. Each gesture is sent at
+ * once as one `pipeline-draft-edit`; a draft the forge refuses shows as stored, with its refusals.
  */
 import { useState }                                                                             from 'react';
 import type { BoardCommandDocument }                                                            from '../../../../@types/board/BoardCommandDocument.ts';

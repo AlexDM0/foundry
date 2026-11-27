@@ -1,9 +1,6 @@
 /**
- * The ask item, in a happy-dom document. What matters: its kind, mono id, tickets, question and meta all show, since a line of it is all
- * User sees before acting; a row is an entry of its caller's list and a strip is not; the kind's state colours the item, a row's label in
- * its ink and a strip's in small link-coloured words, and an escalated item says so; its age is a stamp whose full text shows on hover,
- * and with no age no time is invented; an empty meta adds no line; every value is text, never markup; and a ticket link outside a mounted
- * board refuses to draw.
+ * The ask item, in a happy-dom document: its kind, id, tickets, question and meta all show, since a line of it is all User sees before
+ * acting; its age is a stamp and never invented; every value is text, never markup.
  */
 import { cleanup, render, screen } from '@testing-library/react';
 import {

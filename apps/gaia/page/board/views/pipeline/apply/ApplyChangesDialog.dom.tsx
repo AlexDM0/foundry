@@ -1,10 +1,6 @@
 /**
- * Apply on a running board (A6bApplyChanges) in a happy-dom document, opened from the editing flow's footer against fake controls. What
- * matters: one row per change, changed, new or removed, each naming where it is and its kind, a removed one struck through, and a changed
- * constitution as committed to main on Apply; the title counts the changes and the version line names the applied revision and the next;
- * the in-flight note lists the tickets in flight as chips; Apply N changes sends `pipeline-apply` that never resumes the board; a
- * `pipeline-moved` or `constitution-moved` refusal shows verbatim with nothing else offered; Back closes it; with a constitution change,
- * the committing, held and refused states show as in the first Apply, with Cancel apply.
+ * Apply changes on a running board, in a happy-dom document against fake controls: the change rows, the title and version line, the
+ * tickets in flight, `pipeline-apply` never resuming the board, a refusal verbatim, and the pending states of a constitution change.
  */
 import { cleanup, screen, within } from '@testing-library/react';
 import {

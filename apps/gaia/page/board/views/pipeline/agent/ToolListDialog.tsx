@@ -1,8 +1,6 @@
 /**
- * The tools the forge's agents may run, as a dialog over the design step or the forge's settings: each tool with where forge found it or
- * that this machine lacks it, what runs it, a box that keeps it on the list and a missing mark; an Add field names another tool for forge
- * to find. Keeping the list sends it whole, as a draft edit while a setup designs the pipeline, else as the stored pipeline's tools. An added
- * tool forge does not find offers choosing its program in the system's file chooser, and the list is sent again with the tool at that path.
+ * The tools the forge's agents may run, as a dialog over the design step or the forge's settings. Keeping the list sends it whole, as a
+ * draft edit while a setup designs the pipeline, else as the stored pipeline's tools.
  */
 import { useContext, useId, useState } from 'react';
 import type { BoardAgentToolDocument } from '../../../../@types/board/BoardAgentDocuments.ts';

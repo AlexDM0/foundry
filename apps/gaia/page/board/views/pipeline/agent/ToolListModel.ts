@@ -1,9 +1,6 @@
 /**
- * The agent tools' model, pure: each tool as a row (where forge found it, or that this machine lacks it, and which job, prepare step or gate
- * runs it), the list a person edits (the approved tools and the ones added by name), and the command that keeps it: a draft edit while a
- * setup designs the pipeline, else the stored pipeline's tools. Git every job runs is always approved, and a tool the machine lacks cannot
- * be approved until it is installed. An added tool forge does not find is kept at the program User chooses for it. The list is not what
- * keeps agents inside the repository; the sandbox is.
+ * The agent tools' model, pure: each tool as a row, the list a person edits, and the command that keeps it. Git is always approved, and
+ * a tool the machine lacks cannot be until it is installed. The list is not what keeps agents inside the repository; the sandbox is.
  */
 import { PAGE_CONTRACT_VERSIONS }                                                           from '../../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardAgentToolDocument, BoardAgentToolUseDocument, BoardToolRequestDocument } from '../../../../@types/board/BoardAgentDocuments.ts';

@@ -1,14 +1,7 @@
 /**
- * The Agents view's model. What matters: builders, reviewers and roleless jobs are worker work and intake, Assistant and pipeline agent
- * jobs are sessions, so nothing that never takes a slot sits under the slot meter; jobs that ask User lead their card; the slot meter reads
- * the forge's `launchSlots`, never a kind list, and a job is counted only when the forge named it; each role and each roleless kind draws
- * its own icon and anything else a dot, so no two roles read alike, but a re-reviewer and a conflict re-reviewer take the reviewer's icon
- * with their own word; calls read against the budget, warn near it and unbounded without one; subagents are squares worded in every plural
- * form; the ask carries the open decision's first question and its stamp sliced as the inbox slices it; every count leaves out its zero
- * parts and names one in the singular; a session says what it is about; a job is stopping by its state or by a stop request alone, and
- * takes a message exactly as the forge offers; the job panel's head and transcript head are worded from the job's facts alone, an
- * interrupted job's state by the wait its served cause names; and a
- * concurrency limit is sendable only as a changed whole number within the bounds the forge serves.
+ * The Agents view's model: worker jobs apart from sessions, so nothing that never takes a slot sits under the slot meter, which reads the
+ * forge's `launchSlots`; role icons, call budgets, subagents, asks and counts worded; stopping and messages as the forge offers them; and a
+ * concurrency limit sendable only as a changed whole number within the served bounds.
  */
 import { describe, expect, test } from 'bun:test';
 

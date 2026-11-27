@@ -1,9 +1,6 @@
 /**
- * The Kanban's monorepo parts, pure. What matters: a board with no readable pipeline, or one without entities, gets no filter, so single
- * mode stays as it was; an entity counts its own open tickets and a crossing's while a package stage runs in it, never a closed one; a
- * stored entity the pipeline no longer names chooses nothing; the rail leads with every entity, groups apps, packages and root, and the
- * filter text narrows the entities but never that row; the swimlanes follow the rail's order and close with the tickets that have no
- * entity yet; a crossing's stages before the current one are done, the package stages name the package, and its line says where it is.
+ * The Kanban's monorepo parts, pure: a board without entities gets no filter, so single mode stays as it was; the entity counts, the
+ * rail's groups and filter text, the swimlanes' order, and a crossing ticket's stages and line.
  */
 import { describe, expect, test } from 'bun:test';
 

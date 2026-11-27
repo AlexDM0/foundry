@@ -1,9 +1,6 @@
 /**
- * The change list's model, pure: each row of the facts' change list worded from its field and its kind, with the sentence of the edit
- * that made it and who made it, and the Undo command, which sends that edit's id. A row that no edit made has no Undo. While an applied
- * pipeline is edited, a row also reads the applied and the draft values: a gate is placed by the phases whose rows hold it, with its run
- * line before and after; Human code review says what it switched and what a reviewed ticket then does; and a new gate offers a benchmark
- * in the phase it runs in last, which starts only on User's press.
+ * The change list's model, pure: each row worded from its field and kind, with the edit that made it and an Undo of that edit. While an
+ * applied pipeline is edited a row also reads the applied and draft values; a new gate's benchmark starts only on User's press.
  */
 import { PAGE_CONTRACT_VERSIONS }    from '../../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardCommandDocument } from '../../../../@types/board/BoardCommandDocument.ts';

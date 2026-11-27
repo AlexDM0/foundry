@@ -1,8 +1,6 @@
 /**
- * The words every chat view gives its thread. What matters: a stamp is the local time with seconds and never invented for an entry with
- * none; the boot line is the view's own, with its chat number when it has one, and every other system line reads the same in every view;
- * a closed fold counts its tools and errors, the working one says how many so far and starts open; a call the turn ended without
- * answering reads as an error with no result.
+ * The words every chat view gives its thread: stamps, the boot line and other system lines, and the fold's counts, a call the turn ended
+ * without answering reading as an error with no result.
  */
 import { describe, expect, test } from 'bun:test';
 

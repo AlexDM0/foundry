@@ -1,13 +1,6 @@
 /**
- * The board's visit target in a happy-dom document. What matters: with no slot shown, nothing is the target before User focuses or
- * presses anything, and the habitat whose workplace holds the newest focus or press is the target, so a press on a chat card's composer
- * picks the thread beside it; the open screen's slot is the target by default; a press in another habitat makes that habitat the target,
- * and a press on the slot or inside it takes the target back, the slot counting as its own box although a workplace holds it; a press
- * outside every habitat, or on Flint's overlay, keeps the target; a slot that shows, as on a change of screen, is the target again, also
- * when the screen moves the focus as it opens, and the slot that goes leaves the one before it; a newer slot that is not among the
- * habitats Flint can live in, as a hidden one with no room, leaves the target to the older slot; a slot that shows sends Flint to visit
- * at once, and a Flint made while a slot shows goes too, so it never waits at home for its director, and with no slot shown Flint is not
- * sent; and once stopped, the tracker follows nothing.
+ * The board's visit target in a happy-dom document: the open screen's slot by default, the habitat User last pressed or focused in after it,
+ * the innermost one winning, and a newly shown slot taking it back and sending Flint there at once.
  */
 import { afterEach, expect, test } from 'bun:test';
 

@@ -1,9 +1,6 @@
 /**
- * The boards' left column in monorepo mode, the levels of the pipeline on the design system's selection rail: a filter field, a one-line
- * count of what deserves a look, then the forge row and the entities in the groups Apps, Packages and Root. Each row shows the key in mono,
- * the kind muted, one status mark and the counts of open questions and pending edits; a press moves to that level. A screen may give its
- * own marks, as the constitution step marks each entity's constitution, in place of the gates marks, and a live screen a line of each
- * level's work after its kind.
+ * The boards' left column in monorepo mode, the pipeline's levels on the design system's selection rail: a filter, a count of what
+ * deserves a look, then the forge row and the entities grouped as Apps, Packages and Root. A press moves to that level.
  */
 import { useState, type ReactNode } from 'react';
 import {

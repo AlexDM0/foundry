@@ -1,9 +1,6 @@
 /**
- * The chat thread's model over the transcript entries Hephaestus streams. What matters: the session's entries between two other items
- * are one agent turn and a `turn-end` closes it, so `working` and the open fold never depend on a clock; a subagent's entries stay out; a
- * call takes its outcome from the result with its `toolUseId`, so calls that share a log line each keep theirs; the fold counts its tools
- * most used first; Hephaestus's first chat is the boot line and a later one with incidents a delivery; a Talos line is a standing reply
- * with no text; a stamp is the entry's own and never invented; the queued messages come last; and every key is unique.
+ * The chat thread's model over the transcript entries Hephaestus streams: a `turn-end` closes a turn, so `working` and the open fold never
+ * depend on a clock; a call takes its outcome from the result with its `toolUseId`; a stamp is never invented; and every key is unique.
  */
 import { describe, expect, test } from 'bun:test';
 

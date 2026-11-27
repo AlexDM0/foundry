@@ -1,11 +1,7 @@
 /**
- * The board's visit target for Flint: the Flint slot of the open screen, the newest slot that shows among the habitats Flint can live in,
- * unless User focused or clicked in another habitat since it showed; then that habitat, until User works in another one or a slot shows
- * again, as on a change of screen. A habitat counts as its whole workplace, the nearest element around it marked `data-flint-workplace`
- * (the chat card holds the thread and its composer), and a slot as its own box; of the habitats around the element User worked in, the
- * innermost wins. A focus or a press outside every habitat, or on Flint itself, changes nothing. With no slot shown and no habitat worked
- * in, Flint visits none. The tracker sends Flint to a slot at once when the slot shows, or when Flint is made while it shows, so Flint
- * never waits at its home corner for its director's next turn.
+ * The board's visit target for Flint: the open screen's Flint slot, unless User focused or clicked in another habitat since it showed. A
+ * habitat counts as its whole workplace (`data-flint-workplace`) and a slot as its own box. Flint is sent to a slot at once when it shows, so
+ * it never waits at its home corner for its director's next turn.
  */
 import { FLINT_OVERLAY_ATTRIBUTE, type RegisteredHabitat } from '../../lib/flint/FlintInterface.ts';
 import type { FlintSlotShowing }                           from './FlintSlotShowing.ts';

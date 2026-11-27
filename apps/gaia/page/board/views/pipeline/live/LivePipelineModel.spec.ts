@@ -1,10 +1,6 @@
 /**
- * The live pipeline's footer and toast. What matters: the footer names the applied version, its time and User, the content hash, and the
- * constitution commit only when the newest Apply made one; an Apply counts as landed only once the facts carry a newer applied version;
- * the toast says "Board resumed" only for an Apply that resumed the board. On a forge over entities: an occupant is the forge's on a step
- * the forge holds and else its job's entity's, or no one's while its job names none; an entity's live facts keep only its own tickets,
- * on the steps it draws; the words, the agent's tab, Ask and the advise command follow the level; only a queued or running profile of
- * the phase is under way.
+ * The live pipeline's footer and toast, and on a forge over entities which level owns an occupant, which tickets a level keeps, and the words, tab,
+ * Ask and advise command that follow the level.
  */
 import { describe, expect, test }                                   from 'bun:test';
 import type { BoardAppliedPipelineDocument, BoardFlowNodeDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';

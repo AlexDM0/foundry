@@ -1,8 +1,6 @@
 /**
- * The wave forecast's rules. The cases that matter: a running pass's remainder is drawn only from past passes at least as long, so it grows
- * once the pass outlives the usual one; a size with enough delivered samples draws on those alone and one short of the minimum falls back
- * to every delivered ticket; the slot limit serialises independent tickets; a dependent starts only once its dependency finishes; and a
- * wave holding a held or paused ticket has no forecast.
+ * The wave forecast's rules: a running pass's remainder, the samples a size draws on, the slot limit, dependencies, and no forecast for a wave
+ * holding a held or paused ticket.
  */
 import { describe, expect, test } from 'bun:test';
 

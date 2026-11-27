@@ -1,9 +1,6 @@
 /**
- * The pipeline agent's conversation inside a pipeline panel: what the step shows before it, the agent's chat, what follows the chat, the
- * line of what the agent does while a turn runs, and the step's setup questions as decision cards last; then the agent strip with Flint,
- * and the composer that messages the agent in the panel's foot. An answer and a message go to Hephaestus as commands, and a refusal
- * shows verbatim. In monorepo mode the panel shows one level's session, the forge's or an entity's, under a line that links the open
- * questions of the other levels; the head that holds the panel names the level by `PipelineAgentPanelModel.panelTitleOf`.
+ * The pipeline agent's conversation inside a pipeline panel: the chat, the step's setup questions as cards, the agent strip with Flint and
+ * the composer. In monorepo mode it shows one level's session, under a line that links the other levels' open questions.
  */
 import type { ReactNode }                                  from 'react';
 import type { BoardPipelineSetupDocument }                 from '../../../../@types/board/BoardPipelineDocuments.ts';

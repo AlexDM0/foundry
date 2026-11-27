@@ -1,12 +1,7 @@
 /**
- * A document agent's chat, pure. The agent's turns are its job's transcript as `ChatThreadModel` reads it, the job's own user lines left
- * out, since the document's messages stand for them: each sent message is placed before the agent turn it opened (`agentTurn`, counted by
- * the transcript's user lines from 1), a message the agent has not taken yet after the turns, and a queued one under the composer, where
- * `×` withdraws it. A proposal's diff card follows the turn that answered its message, a settled proposal leaves one line there, and the
- * newest effect reading of the document is a card that opens its pane. The agent's question User answered stands where its answer's
- * message would, as its card, and the questions still open stand last, as they wait (`docs/design/agent-questions.md`). The agent works
- * while its newest turn has not ended. While it works on a comment made on an older version and User has changed the document since, a
- * notice says its edit lands on User's text.
+ * A document agent's chat, pure: the job's transcript as `ChatThreadModel` reads it, its own user lines left out since the document's
+ * messages stand for them, each placed before the turn it opened (`agentTurn`). The agent works while its newest turn has not ended; on a
+ * comment older than User's latest change, a notice says its edit lands on User's text.
  */
 import type { BoardTranscriptEntryDocument } from '../../../@types/board/ConversationDocument.ts';
 import type {
@@ -30,7 +25,7 @@ export interface ChatMessageItem {
   readonly kind:        'message';
   readonly key:         string;
   readonly messageId:   string;
-  /** "C2 · § 4 Acceptance › A3 · line 29 · Preview"; `null` for a message about the whole document. */
+  /** `C2 · § 4 Acceptance › A3 · line 29 · Preview`; `null` for a message about the whole document. */
   readonly anchorLine:  string | null;
   readonly anchorParts: AnchorLineParts | null;
   readonly quote:       string | null;

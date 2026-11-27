@@ -1,8 +1,6 @@
 /**
- * The panel's right column: reading tabs over why the question was asked. Background holds why the agent stopped, the first ticket with
- * its Wanted and Brief as text and its Acceptance items, what the asking job did before it asked, and the earlier answers on that ticket;
- * the ticket tab its whole body in a sandboxed frame; the conversation tab the asking job's chat. The transcript is followed while a tab
- * that reads it shows, and the tab starts at Background for every decision, since the column is keyed by it.
+ * The question panel's right column: reading tabs over why the question was asked, the ticket and the asking job's chat. The tab starts at Background
+ * for every decision, since the column is keyed by it.
  */
 
 import { useState } from 'react';

@@ -1,10 +1,6 @@
 /**
- * One step of the open phase: its kind word with its mark, a Conditional pill on a re-review, the pills that say what it waits on or how
- * it changed (each pops in, a new step's in orange), User's switch on a "You" step, then its title, its gate pills, its sentence, the
- * tickets on it on a live board, and at its foot an agent's model and effort on one line with the document a writing step writes, and its
- * brief files. A double-click or Enter asks for what the
- * step opens, or for the question it waits on; a press inside a control stays that control's. At an entity of a monorepo, a switch the
- * forge sets is a link to the forge level.
+ * One step of the open phase: its kind, pills, switch, title, gate pills, sentence, tickets on a live board, and its agent and briefs.
+ * A double-click or Enter asks for what the step opens; a press inside a control stays that control's.
  */
 
 import type { KeyboardEvent, SyntheticEvent } from 'react';

@@ -1,12 +1,6 @@
 /**
- * The entities step against fake controls. What matters: the proposal shows every entity and the root kept for a person, and Continue
- * waits until User decides; Accept opens Continue, which moves the step on; Stay in single mode removes every entity from the draft, the
- * step then says single mode, and once the step is left that way the setup has six steps again; before any proposal, Stay in single mode
- * continues the step with no entity; a fold sends the package's removal and the target's new homes as one gesture; a gesture is sent at
- * once even when the draft it leaves holds a refusal, and nothing is predicted; a refusal the forge serves shows in its sentence with
- * Continue disabled, and its fix sends the fix's edits; a key the forge refuses shows the forge's sentence; choosing the root's gates adds
- * the root entity; how a crossing runs is read-only; and the agent's question at the entities step shows in the panel, while a research question
- * stays on the research step.
+ * The entities step against fake controls: accepting or declining monorepo mode, each gesture sent at once as draft edits, the forge's refusals shown
+ * in its sentence, and the agent's question in the panel.
  */
 import {
   act,

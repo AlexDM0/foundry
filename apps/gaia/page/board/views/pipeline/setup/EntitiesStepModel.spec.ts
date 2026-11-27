@@ -1,12 +1,6 @@
 /**
- * The entities step's model. What matters: the mode is a fact of the record and of User's press, never a stored choice: an empty draft
- * waits for the proposal until User removed entities, which is single mode; a proposal is accepted by the press, by User's own edit of an
- * entity or by a done step. The rows leave the root to its own place, which defaults to kept for a person. Every gesture is edits on the
- * entities a gesture saw: a rename moves the entity whole and every list that named it follows, a removal takes its references with it,
- * an entity keeps one home, a key another entity or the root holds is refused, a declined proposal removes every entity, and the edits go
- * out typed. The step holds no edit: a gesture's edits go to the forge at once, even when the draft they leave holds a refusal, one
- * gesture at a time. A refusal is the one the forge serves: its sentence shows on the row it names, a whitelist entry it names is marked,
- * nothing is predicted, and Continue waits for a decision and while a served refusal stands.
+ * The entities step's model: the mode follows from the record and User's press, never a stored choice; every gesture is typed edits sent at once; and
+ * a refusal is the one the forge serves, never predicted.
  */
 import { describe, expect, test }                                                            from 'bun:test';
 import type { BoardDraftEditDocument, BoardEntityRefusalDocument, BoardSetupRecordDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';

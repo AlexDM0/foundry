@@ -1,8 +1,7 @@
 /**
- * The Agents view: its title row, the worker list (builders and reviewers, under the project row holding the launch-slot meter and the
- * concurrency limit), then Sessions (intake and the Assistant), all ticking each second on the board's clock, and for the job the route
- * names its side panel, which slides out again when the route drops the job. Show diagnostics adds the same columns to both cards. Its
- * transcript stream arrives as a prop, so a DOM spec drives it. The view is the agent panel habitat of Flint.
+ * The Agents view: its title row, the worker list under the project row (launch-slot meter, concurrency limit), then Sessions, ticking on
+ * the board's clock, and the routed job's side panel. Its transcript stream arrives as a prop, so a DOM spec drives it. The view is the
+ * agent panel habitat of Flint.
  */
 import {
   useCallback,

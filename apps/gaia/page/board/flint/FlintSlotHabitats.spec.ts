@@ -1,9 +1,6 @@
 /**
- * The habitats of the Flint slots. What matters: every answer is an intent of Flint's fixed list, so Flint refuses none; each screen
- * answers every cue it sends, with the same intent on every screen; every cue a screen lists can reach Flint, since a cue goes only on a
- * change: a screen lists none or at least two, or its one cue is lasting and kept up; Flint waves on arriving in a slot, thinks in the
- * Constitution step's and runs the gate lamps in a command wait's; each screen's kind is its own; only a lasting cue, whose answer is a
- * loop, is kept up in the slot; and every slot keeps Flint inside, since content stands around it.
+ * The habitats of the Flint slots: every answer is an intent of Flint's fixed list, each screen answers every cue it sends, every cue can
+ * reach Flint since a cue goes only on a change, and every slot keeps Flint inside, since content stands around it.
  */
 import { describe, expect, test } from 'bun:test';
 

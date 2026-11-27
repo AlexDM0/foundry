@@ -1,8 +1,6 @@
 /**
- * The model of editing an applied pipeline (A6Editing), pure: the footer's count of the changes with the version they make, the panel
- * head's version step and the agent's status, the note that the board keeps its version until Apply, what a change card reads from the
- * applied and the draft pipeline, and the commands of Ask the pipeline agent to check and Discard. Over entities (MonoEditing) the
- * changes are grouped by level, the footer also counts the levels, and the check names the entities the draft touches.
+ * The model of editing an applied pipeline, pure: the footer's count and version, the panel head, the board note, the change cards and the
+ * commands of Ask the pipeline agent to check and Discard. Over entities the changes group by level and the check names the entities touched.
  */
 import { PAGE_CONTRACT_VERSIONS }                            from '../../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardCommandDocument }                         from '../../../../@types/board/BoardCommandDocument.ts';

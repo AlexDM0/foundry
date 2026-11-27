@@ -1,8 +1,6 @@
 /**
- * The conditional re-review's model. What matters: a stored `reReview` is on at its threshold, an absent one off at the default threshold;
- * Reset is on at the forge's rework threshold, as its limits serve it, with the re-reviewer's defaults and the constitution in its list; a
- * form switched off stores no `reReview`; the threshold steps by the served step from a minimum of one step; and each place has its own
- * re-reviewer and words.
+ * The conditional re-review's model: on or off from the stored `reReview`, Reset to the forge's served rework threshold and defaults,
+ * no `reReview` stored when off, the threshold stepping by the served step, and each place's own re-reviewer and words.
  */
 import { describe, expect, test }               from 'bun:test';
 import type { BoardPipelineDefinitionDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';

@@ -1,8 +1,7 @@
 /**
- * `useAgentPanelHabitat` under the board's host of Flint, with its own rule director, on job rows marked `data-job-id` as `JobRow` marks
- * them. What matters is the order of a launch, which the model specs cannot see: the job event shows the job launching, and the board
- * event a moment later raises the agents in flight, before Flint's next frame; Flint then strikes the spark of the launch, and the slots
- * do not take its place.
+ * `useAgentPanelHabitat` under the board's host of Flint, on rows marked `data-job-id`. It holds the order of a launch, which the model
+ * specs cannot see: the job event, then the board event raising the agents in flight before Flint's next frame; Flint strikes the
+ * launch's spark and the slots do not take its place.
  */
 import { cleanup }                 from '@testing-library/react';
 import { afterEach, expect, test } from 'bun:test';

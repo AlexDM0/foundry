@@ -1,10 +1,6 @@
 /**
- * The gate dialog's model. What matters: a stored gate's form ticks the phases it runs in and keeps its options, a new gate ticks the
- * phase it was opened from; a gate with no phase, no name or no command cannot be saved, a prepare step needs no phase; a Save sends the
- * definition, keeping fields the dialog does not show, and the order of only the phases whose box changed; a new prepare step also sends
- * the prepare order; Remove is one `null` edit of the gate or the step; the kicker says the phase, the place and the mark; and the profile
- * box follows the newest run of the gate in that phase, with the cache mark of a run whose gate reported a hit, its stream's lines shown
- * as output keyed by their number.
+ * The gate dialog's model: the form a stored or new gate starts from, when it can be saved, the definition and phase orders a Save sends,
+ * the one `null` edit of Remove, the kicker, and the profile box following the newest run of the gate in that phase.
  */
 import { describe, expect, test }                                            from 'bun:test';
 import type { BoardGateProfileRunDocument, BoardPipelineDefinitionDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';

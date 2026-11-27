@@ -1,15 +1,7 @@
 /**
- * The Pipeline view's screen choice. What matters: the facts decide before the route. With no record and no pipeline the setup landing,
- * the welcome, shows, and at the agent step's route the agent step that starts the setup; an unreadable `pipeline.json` lands on both with
- * its reason; a record in `setup` mode opens the route's step only while
- * the record has reached it, and the resume summary on the bare `#pipeline` or an unknown or unreached step; a record in `update` or
- * `advise` mode is the flow being edited, or the constitution at `#pipeline/edit/constitution`; a readable pipeline is the live flow. A
- * step's route is `#pipeline/setup/<step>`; once the setup is applied, the live
- * flow leaves a setup route for `#pipeline`, and only a setup route. Monorepo mode is a fact of the record: single mode shows no
- * `entities` step and its route falls back to the resume summary, while a record walking the step, or holding entities, shows it after
- * the research; a record that left the step done with no entity declined monorepo mode and is in single mode. The agent step leads the
- * steps; a job forge did not launch is fixed where its cause is chosen: its billing at the billing step of an open first setup, its program
- * where the agent is chosen.
+ * The Pipeline view's screen choice: the facts decide before the route, across the setup landing, the setup steps a record reached, the
+ * resume summary, the edited flow and the live flow; the `entities` step shows only in monorepo mode; and a job forge did not launch is
+ * fixed where its cause is chosen.
  */
 import { describe, expect, test } from 'bun:test';
 

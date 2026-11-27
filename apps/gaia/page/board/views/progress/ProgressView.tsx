@@ -1,9 +1,6 @@
 /**
- * The Gantt, the Progress view of that name: its title row, the range control and the row options above one card holding the Gantt chart of
- * `ProgressModel`, its sticky head carrying the column names in the pinned cell and the axis ticks on the track, its rows grouped by epic on a board
- * with epics. Bars, ticks, spans and the now line are placed through the `style` prop. The range, the name column, the folded groups and the review-rows
- * choice are kept per viewer under their keys. A row opens its row detail in place; its number links to its ticket on Tickets, an epic head's name to
- * that epic. The tab is the timeline habitat of Flint (`UseTimelineHabitat.ts`).
+ * The Gantt, the Progress view: the range control and row options over the chart of `ProgressModel`, its rows grouped by epic. Bars, ticks, spans and
+ * the now line are placed through the `style` prop.
  */
 
 import {

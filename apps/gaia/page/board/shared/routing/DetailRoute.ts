@@ -1,8 +1,6 @@
 /**
- * Which detail the hash route opens in place over a board tab, and the fragment that opens it. The panel opens over Tickets, Kanban,
- * Waves, Gantt and Epics alike, so a route keeps its tab and names the item after it: `#<place>/<form>/<id>`. A second click on what
- * is open closes it; an epic is no detail form but a place on the Epics tab, `#epics/epic/<key>`. The ticket form opens on a section,
- * `#<tab>/ticket/<id>/<section>`, Overview with none; the section is where the form stands, never which item it is.
+ * Which detail the hash route opens in place over a board tab: `#<place>/<form>/<id>`, keeping its tab, and `#<tab>/ticket/<id>/<section>`
+ * for a ticket's section, which is where the form stands, never which item it is. An epic is a place on the Epics tab, `#epics/epic/<key>`.
  */
 import type { BoardRoute, BoardTab } from '../../../shared/BoardRouter.ts';
 

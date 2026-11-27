@@ -1,8 +1,7 @@
 /**
- * Where a comment points, pure: a selection in Preview, lines in Code or a node of a diagram, each read as the same anchor of source lines,
- * so the agent always gets lines. Preview adds the columns of a one-line selection and the quote; every anchor carries the section path
- * of the headings above it, with the label of the list item it sits in, and the lines around it; a diagram node adds its mermaid id, and its
- * line is the first line of the diagram's source that names it.
+ * Where a comment points, pure: a Preview selection, Code lines or a diagram node, each read as the same anchor of source lines, so the
+ * agent always gets lines, with the section path, the surrounding lines, a one-line selection's columns and quote, and a node's mermaid id
+ * and the first line naming it.
  */
 import type { MarkdownBlock, SourcePosition }                      from '../../../../src/lib/markdown-render/MarkdownBlocks.ts';
 import type { BoardCommentView }                                   from '../../../@types/board/BoardVocabulary.ts';

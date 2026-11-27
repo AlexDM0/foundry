@@ -1,10 +1,7 @@
 /**
- * The panel of an applied pipeline being edited (A6Editing): its Changes tab first, the change cards with the tickets in flight under
- * them and Ask the pipeline agent to check in its foot, which sends `pipeline-check` and turns to the agent's tab; then the Pipeline agent
- * tab with the agent's chat and the composer. The head names the selected tab: the version step beside Changes, the agent's state and
- * its model and effort beside Pipeline agent. An advise session, which Ask the pipeline agent opened on the live flow, opens on the
- * agent's tab. Over entities (MonoEditing) the Changes tab groups the changes of every level, a copy's set with one Undo, names the
- * entities the check covers, and the agent's tab is the session of the level shown.
+ * The panel of an applied pipeline being edited: the Changes tab first, with the change cards, the tickets in flight and Ask the pipeline
+ * agent to check, then the Pipeline agent tab. Over entities the Changes tab groups every level's changes and the agent's tab follows the
+ * level shown.
  */
 import { useState }                                            from 'react';
 import type { BoardPipelineSetupDocument }                     from '../../../../@types/board/BoardPipelineDocuments.ts';

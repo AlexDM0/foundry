@@ -1,8 +1,7 @@
 /**
- * The ticket form's other moves, each a button beside the effect it has. A move that needs a reason (Hold…, Park…), domains (Set
- * network…), a choice (Priority…) or a confirmation (Delivered by hand…) only opens its row under itself, one row at a time; the row's
- * button posts the board command, and Cancel closes it with nothing sent. A closed row hands the focus back to the move that opened it,
- * or to the first move when that one is gone. Keyed by ticket by its caller, so typed text never carries over to the next ticket opened.
+ * The ticket form's other moves, each beside its effect. A move needing a reason, domains, a choice or a confirmation opens its row under
+ * itself, one at a time; Cancel sends nothing, and a closed row hands the focus back to its opener or the first move. Keyed by ticket by
+ * its caller, so typed text never carries over to the next ticket.
  */
 import {
   Fragment,

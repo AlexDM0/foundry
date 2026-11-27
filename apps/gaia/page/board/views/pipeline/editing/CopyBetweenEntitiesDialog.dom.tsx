@@ -1,8 +1,6 @@
 /**
- * The copy between entities (MonoCopyGates) in a happy-dom document, against fake controls. What matters: it opens on the entity it was
- * asked from and offers every other entity as a target; with no target the foot says what to pick and Copy sends nothing; ticking a target
- * and a part previews each changed target and its replaced gates, and Copy sends the set as one copy and closes once applied; a new source
- * drops itself from the targets.
+ * The copy between entities in a happy-dom document, against fake controls: the targets offered, the foot with no target, the preview
+ * of each changed target, Copy sending the set as one copy, and a new source dropping itself from the targets.
  */
 import { cleanup, screen, within } from '@testing-library/react';
 import {

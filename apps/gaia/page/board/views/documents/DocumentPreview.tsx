@@ -1,9 +1,7 @@
 /**
- * Preview: the document drawn from its Markdown by the page itself, with each comment's chip after its text, each of the agent's questions' chip with its
- * lines marked and its item under the document's "Open questions" heading, the effect reading's reference marks, an open proposal framed with the lines it
- * replaces, and the comment popover after the text it points at, which stays marked while the popover is open. A selection opens the popover with an
- * anchor of source lines, columns, quote and section, also one in code or one that ends on a chip, a checkbox or the edge of a block; a hovered diagram
- * node offers a comment on its own line. Read-only text still takes comments: a comment changes no text.
+ * Preview: the document drawn from its Markdown by the page itself, with its comment and question chips, reference marks, an open proposal
+ * framed with the lines it replaces, and the comment popover after the text it points at. A selection or a hovered diagram node opens the
+ * popover with an anchor of source lines. Read-only text still takes comments: a comment changes no text.
  */
 import { useMemo, type MouseEvent, type ReactNode } from 'react';
 

@@ -1,8 +1,6 @@
 /**
- * The pictures a message is about to carry. What matters: each refusal before upload (a type Hephaestus does not take, a file over the
- * size bound, a file past the per-message bound) comes from the served limits and counts the pictures already carried, never a refused
- * one; the accepted types and the sizes read as User reads them, at each unit's edge; a message sends with text or an uploaded picture and
- * never while an upload runs; a send names only the uploaded pictures; and a sent picture's address is Gaia's relay's.
+ * The pictures a message is about to carry: each refusal before upload comes from the served limits and counts only the pictures carried,
+ * types and sizes read as User reads them, and a send names only the uploaded pictures and never goes while an upload runs.
  */
 import { describe, expect, test } from 'bun:test';
 

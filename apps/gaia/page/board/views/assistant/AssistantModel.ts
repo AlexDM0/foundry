@@ -1,8 +1,7 @@
 /**
- * The Assistant view as data: the board's Assistant switch as the forge serves it, and the command a press sends; the live Assistant
- * session, or none while a fresh one boots or while the switch is off; its chat thread worded as turns, with the
- * messages it has not taken yet as queued bubbles; the composer's status; its open incidents; and the handled ones read back from the log
- * through `IncidentTrailUtil`, each with the moves, notes and escalations made under it.
+ * The Assistant view as data: the board's Assistant switch and the command a press sends, the live session (none while one boots or the
+ * switch is off), its chat thread with the messages it has not taken as queued bubbles, the composer's status, and its open and handled
+ * incidents through `IncidentTrailUtil`.
  */
 
 import { PAGE_CONTRACT_VERSIONS }                              from '../../../../src/shared/constants/PageContractVersions.ts';

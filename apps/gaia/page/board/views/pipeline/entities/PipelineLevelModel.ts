@@ -1,8 +1,6 @@
 /**
- * The level a pipeline screen shows in monorepo mode, pure: the forge, or one entity. The level is held in the route, ahead of the screen's
- * own item: `#pipeline/forge/<item>` and `#pipeline/entity/<key>/<item>`, so every screen opens at the level the owner was on. An entity
- * takes two segments because a key may be any word, `forge` too. An item with no level is a single-mode route and reads as it always did.
- * A draft field belongs to the entity its `entity:<key>` scope names, and every other field to the forge.
+ * The level a pipeline screen shows in monorepo mode, pure, held in the route ahead of the screen's own item so every screen opens at the
+ * level the owner was on. An entity takes two segments because a key may be any word, `forge` too.
  */
 import type { BoardRoute } from '../../../../shared/BoardRouter.ts';
 

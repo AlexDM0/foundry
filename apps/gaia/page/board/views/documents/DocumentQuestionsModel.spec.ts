@@ -1,10 +1,7 @@
 /**
- * The document agent's questions (artboard 11). What matters: an open question is a decision of this ticket's shown document only, its
- * options lettered for the forge and shown in capitals, its section read from the head, so the document's title never leads it; an answer
- * is the message naming its decision, read from the forge's parts, so free text with a blank line stays one answer; each has a solid
- * chip on its line, `E7` open and `✓ E7` answered, in the applied look once its answer settles, which an edit applied, discarded or
- * conflicted does, as does the end of the agent's turn with no edit for it; its lines are marked until then; it lists under the document's
- * own Open questions heading; and a line picks the question whose lines hold it.
+ * The document agent's questions: open ones from this document's decisions with lettered options and a section read from the head, answers
+ * read from the forge's parts so free text stays one answer, chips `E7` and `✓ E7` with their lines marked until the answer settles, the
+ * Open questions list, and which question a line picks.
  */
 import { describe, expect, test } from 'bun:test';
 

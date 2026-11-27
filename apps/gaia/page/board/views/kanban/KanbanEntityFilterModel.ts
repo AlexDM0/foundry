@@ -1,8 +1,6 @@
 /**
- * The Kanban in monorepo mode, pure: the entity filter (the stored pipeline's entities with their open tickets, and the chosen one), the
- * rail that shows it, which tickets an entity holds, the swimlanes that divide a lane by entity, and the stages of a crossing ticket on its
- * card. A board whose stored pipeline has no entities is in single mode: it gets no filter, no swimlanes and no stages, and the Kanban is
- * unchanged. A ticket belongs to its own entity, and while a crossing runs a package stage, also to that package.
+ * The Kanban in monorepo mode, pure: the entity filter, its rail, the swimlanes and a crossing ticket's stages. A board without entities
+ * is in single mode and the Kanban is unchanged. A ticket belongs to its own entity, and while a crossing runs a package stage, to that package.
  */
 import type { BoardPipelineEntityDocument }                                 from '../../../@types/board/BoardPipelineDocuments.ts';
 import type { BoardPageTicketFactsDocument, BoardTicketStageFactsDocument } from '../../../@types/board/BoardTicketDocuments.ts';

@@ -1,9 +1,6 @@
 /**
- * The Merge queue detail's model. What matters: the order is the forge's, kept as it arrives; the Airlock holder reads with its phase;
- * each candidate's prediction takes its pill's word and palette row, its conflicted files apart, its priority the served one, and the
- * pairwise conflicts are worded; a target's landings name the `target-moved` decision and, in the forge's own sentence, the notice of the
- * main checkout or a held file they wait on, including a target that has nothing queued; the order is worded as five keys, or as User's
- * press order when the applied pipeline turns merge approval on.
+ * The Merge queue detail's model: the forge's order kept as it arrives, the Airlock holder, each candidate's prediction and conflicts,
+ * why a target's landings wait in the forge's own sentence, and the order worded as five keys or as User's press order.
  */
 import { describe, expect, test } from 'bun:test';
 

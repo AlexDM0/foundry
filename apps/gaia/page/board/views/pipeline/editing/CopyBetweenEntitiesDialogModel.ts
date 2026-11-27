@@ -1,9 +1,6 @@
 /**
- * The copy of one entity's settings to other entities, pure: the ordinary draft edits it makes in each target, the preview line of each
- * target, the entities offered as targets, and the one `pipeline-draft-edit` that sends the whole set as a copy, so the draft keeps it as
- * one batch. A gate goes with its definition and its place at the end of each copied phase's order; a prepare step goes at the end of the
- * target's steps; agent settings carry the model and effort of the entity's own roles and keep the target's briefs. A thing the target
- * already holds as the source does makes no edit, so a copy that changes nothing has nothing to send.
+ * The copy of one entity's settings to other entities, pure: the ordinary draft edits it makes in each target and their preview, sent as
+ * one `pipeline-draft-edit` marked as a copy so the draft keeps it as one batch. What a target already holds makes no edit.
  */
 import { PAGE_CONTRACT_VERSIONS }    from '../../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardCommandDocument } from '../../../../@types/board/BoardCommandDocument.ts';

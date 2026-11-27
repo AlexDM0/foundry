@@ -1,8 +1,6 @@
 /**
- * The custom range popover in a happy-dom document. What matters: it opens on the applied range's bounds with From focused and each bound's
- * resolved stamp under it; an unreadable bound or a To not after From says so and holds Apply back; Apply and Enter apply the draft with
- * its tick size and close it handing the focus back; Esc and Cancel discard it handing the focus back, Esc taken before a panel's own Esc
- * however their listeners were ordered; and a click outside discards it.
+ * The custom range popover in a happy-dom document: its draft bounds and their checks, Apply and Enter, Esc and Cancel before a panel's own Esc, and
+ * a click outside.
  */
 import {
   cleanup,

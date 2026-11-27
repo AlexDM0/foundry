@@ -1,12 +1,7 @@
 /**
- * Editing a pipeline over entities (MonoEditing, MonoApplyChanges) in a happy-dom document, through the Pipeline view against fake
- * controls. What matters: each level is its own page beside the entity rail, the forge's or the entity's; the forge level offers how a
- * ticket is written and draws the route's writing steps and reviews; the Changes tab groups every
- * level's changes, the forge first, each with its count, and names the entities the check covers; a copy's set undoes with one press as
- * `pipeline-draft-undo` with `wholeBatch`, while each of its edits still undoes alone; the footer counts the changes and the levels they
- * are in; the agent's tab is the session of the level shown; Apply changes groups its rows by level, a copy's set as one row, and groups
- * the tickets in flight by entity, a ticket in a package stage under the package as a crossing from its own entity; and the refusal of
- * removing an entity that a ticket names shows verbatim.
+ * Editing a pipeline over entities in a happy-dom document, against fake controls: a page per level beside the entity rail, the Changes
+ * tab grouped by level with a copy's set undone in one press, the footer counting changes and levels, Apply grouping rows by level and the
+ * tickets in flight by entity, and a refusal shown verbatim.
  */
 import { cleanup, screen, within } from '@testing-library/react';
 import {

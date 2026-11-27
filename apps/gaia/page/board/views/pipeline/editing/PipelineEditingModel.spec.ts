@@ -1,9 +1,6 @@
 /**
- * The editing model against the A6 fixture. What matters: the footer counts the changes with the version they make, and only the count
- * for a pipeline that no Apply numbered, and the panel head the version step; the agent tab's status follows its job; the board note
- * names the version that runs until Apply; the change cards read the applied pipeline and the draft of the facts, and nothing without a
- * flow; Ask the pipeline agent to check and Discard send their commands with the setup. Over entities, the footer also counts the
- * levels, the changes group by level, the forge first, and the check names the entities the draft touches.
+ * The editing model against the applied-pipeline fixture: the footer's count and version, the agent tab's status, the board note, the
+ * change cards, and the commands of Ask the pipeline agent to check and Discard; over entities, the levels counted and grouped.
  */
 import { describe, expect, test } from 'bun:test';
 

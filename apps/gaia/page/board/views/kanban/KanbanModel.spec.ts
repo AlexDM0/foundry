@@ -1,12 +1,7 @@
 /**
- * The Kanban's view model against small synthetic boards. What matters: each ticket lands in the lane its status and the merge queue put
- * it in, and no draft ticket, ticket for review or filing draft is on it (Tickets holds them, `docs/design/board-menu.md`); what waits on
- * User leads its lane (the tickets waiting for User's merge accept on top of the Merge queue), ready tickets keep the forge's served order,
- * closed lanes read newest first; the card carries its marks (size, priority, type, tokens, epics, waiting-on, hold); and the
- * filter menu's epic rows filter, count, name the line's epic part and drop a stored row whose epic went. Also: "needed first" and `↦ N`
- * (closed lanes none, heavy from five), the hover arrows' links (skipping a card not shown), the Ready lane by wave (filed on a board
- * without dependencies), a closed lane's pages with their clamping, the Abandoned lane folded by default, the asks pill naming the
- * first open decision on the ticket in the order User answers them, and the dashed card of a state that waits for a person.
+ * The Kanban's view model against small synthetic boards: each ticket's lane, no draft on the board (`docs/design/board-menu.md`), what
+ * leads each lane and in which order, the card's marks, the filter menu's epic rows, the Ready lane by wave, a closed lane's pages and
+ * the Abandoned fold, and the asks pill.
  */
 import { describe, expect, test } from 'bun:test';
 

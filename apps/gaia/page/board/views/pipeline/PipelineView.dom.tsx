@@ -1,22 +1,7 @@
 /**
- * The Pipeline view in a happy-dom document. What matters: it names the screen the facts and the route pick, and the setup landing of an
- * unreadable `pipeline.json` shows the warn banner with the reason, which a readable board never shows. The flow screen draws the Focus
- * layout under its title row; the smallest pipeline has its "About this pipeline" aside and, while editing, the footer naming the removed
- * steps beside Discard and Apply changes, while a live flow has the applied footer and no changes footer. The Build phase opens first;
- * a phase tab opens its phase with its gates table, and Enter on a Gates step opens that phase's table. A double-click on a step opens
- * its dialog with the step selected, and closing it clears the selection. A gate dialog opened on any screen shows a running
- * profile's output from the follower the view was given, the one the shell builds over the stream route. One modal dialog is open at a
- * time: a step dialog closes the Apply dialog and Apply closes the step dialog, and an Apply sent in one update never opens by itself in
- * the next. A Gates step marks each gate whose newest run in its phase, a job's or a profile's, reported a full or partial cache hit, and
- * no gate whose run reported a miss, reported nothing, or reported only in another phase.
- * A live monorepo pipeline (MonoLive) shows the level the route names, with the rail and the breadcrumb: an entity's steps carry only its
- * own tickets, its gates head names its profile under way, the activity names each row's entity or the forge and lists every entity's
- * profile under way, and Ask carries the entity;
- * the forge's level lists the merge train and the board's jobs in place of the phases. Each rail row counts its level's work: an entity's
- * open tickets and the crossings in a package stage there, the forge's jobs and merge train; an entity's page shows the crossings that
- * run a package stage now, out of it or into it; an activity row of a package stage names the crossing it runs; the merge train names
- * each ticket's entity; and each entity's jobs stand against its cap, worded in jobs, with the crossings they serve and the ready tickets
- * that wait for a slot.
+ * The Pipeline view in a happy-dom document: the screen the facts and the route pick, the Focus layout with its footers and dialogs (one
+ * modal at a time), the gates' cache marks, and in a live monorepo pipeline the level the route names, its rail counts, its crossings and
+ * each entity's jobs against its cap.
  */
 import {
   act,

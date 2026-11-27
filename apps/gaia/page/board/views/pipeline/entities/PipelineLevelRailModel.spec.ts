@@ -1,11 +1,6 @@
 /**
- * The level rail's rows. What matters: the forge row comes first and the entities follow in the groups Apps, Packages and Root, each in
- * the draft's order; each row has one mark, a gate profile under way before no gates before the default constitution, else its gate
- * count; a root without gates is kept for a person and never counted as needing a look; the counts of open questions and pending edits
- * belong to their own level only, and a first setup counts no pending edit, since it proposes every field; the filter keeps the forge
- * and the entities whose key or kind holds its text; the stored pipeline's entities show while no record holds a draft; a screen's own
- * words replace every entity row's mark and the attention line, and drop the note on gates; a live screen's line of each level's work
- * joins its row and the row's sentence, and no row has one without it.
+ * The level rail's rows: their order and groups, each row's one mark and its own level's counts, a root without gates never needing a look,
+ * the filter, a screen's own words in place of the marks, and a live screen's line of each level's work.
  */
 import { describe, expect, test }                                                                    from 'bun:test';
 import type { BoardGateProfileRunDocument, BoardPipelineEntityDocument, BoardSetupQuestionDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';

@@ -1,8 +1,7 @@
 /**
- * The ticket form's Timeline, on the shapes it draws: a ticket never started (its queue still open, its note naming why it
- * waits), a low ticket without a row, a build paused and resumed and still running, a delivered ticket with a review pass, a delivered
- * ticket missing its `delivered` stamp, whose axis ends at `updated` and never at now, and a ticket abandoned before it started. The end
- * label's clock is local time, so it is asserted through the same formatter, never as a literal.
+ * The ticket form's Timeline on the shapes it draws: never started, without a row, paused and resumed, delivered with a review pass,
+ * delivered without its `delivered` stamp (the axis ends at `updated`, never now), and abandoned. The end label's clock is local time, so
+ * it is asserted through the same formatter.
  */
 import { describe, expect, test } from 'bun:test';
 

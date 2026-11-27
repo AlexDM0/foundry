@@ -1,9 +1,6 @@
 /**
- * The Kanban's entity rail and its monorepo marks, in a happy-dom document. What matters: a board without entities shows no rail, no
- * entity key and no stages, as before; in monorepo mode the rail sits beside the lanes as a filter, every entity shown and pressed at first,
- * the entities in their groups with their open tickets counted; a press on an entity narrows the lanes to its tickets and presses its row,
- * and the row of every entity shows them all again; the filter field narrows the rows; the lanes carry a swimlane head per entity; a card
- * names its entity; and a crossing ticket's card shows its five stages, the package's dashed, and says where it is in words.
+ * The Kanban's entity rail and monorepo marks in a happy-dom document: a board without entities shows none of them, as before; in
+ * monorepo mode the rail filters the lanes, the swimlanes head each entity, a card names its entity and a crossing card shows its stages.
  */
 import {
   cleanup,

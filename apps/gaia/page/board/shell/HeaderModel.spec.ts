@@ -1,17 +1,7 @@
 /**
- * The header's model. What matters: the state pill reads Running, orange, only while serving unpaused with the stream up, and otherwise
- * the state the board knows on the quiet pill; the header offers no forge control, which is Gaia's forge bar's; the new-code notice is the
- * forge's sentence and is not listed again; the warnings and the notices are the forge's sentences as served, and an incident default is
- * neither (the incident line holds it); the statistics read concurrency and today's figures as the forge serves them, on the date it
- * counted them and zero on another, and say which tab and which Kanban lane they open; the agents figure counts the jobs holding a launch
- * slot, never the rows in progress nor the Assistant, and says so on hover, from the same slot jobs as the activity strip. The status
- * details are the usage windows the facts carry and never a placeholder, a limit hit naming its reset on the viewer's clock, since the
- * stored stamp is UTC; while the board has no readable pipeline it is in setup and draws no header, and the model holds the record's step
- * statuses for the page's own head (done and recheck steps reopening at their route), six steps with the entities step while the record
- * is in monorepo mode and five once it declined it; before the first board it is not. In setup the model says where the setup stands, at
- * the record's current step or not started before a record opens, but at the first step on the agent step that starts one, and its
- * notices leave out a job not launched only for want of an agent while listing the new-code notice, which no status line shows then; every
- * other notice stays.
+ * The header's model: the state pill, notices and statistics are the forge's as served, never a placeholder, a limit's reset on the viewer's
+ * clock since the stored stamp is UTC; the agents figure counts the jobs holding a launch slot; and in setup the model holds the setup steps
+ * for the page's own head.
  */
 import { describe, expect, test } from 'bun:test';
 

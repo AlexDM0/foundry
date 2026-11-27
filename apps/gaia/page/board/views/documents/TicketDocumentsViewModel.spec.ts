@@ -1,9 +1,6 @@
 /**
- * The head of a ticket's documents page. What matters: the tabs in pipeline order, the plan muted after the spec until the spec is
- * approved, a ticked tab with its approved version, the plan out of date once the spec moved under it, and `then Build · held`; the state
- * line; the one primary button and its wording, `Approve spec · start Plan`, `Approve plan · start build` or `Approve plan again · start
- * build`, sending the head version, locked while there is nothing to approve, User's edit is unsaved or the agent's questions on the
- * document are open (saying how many), and read-only `Approved by pipeline` where the review is off; and the notice over a plan the spec moved under.
+ * The head of a ticket's documents page: the tabs in pipeline order and when they are muted, ticked or out of date, the state line, and
+ * the one primary button's wording, the head version it sends and every reason it is locked or read-only.
  */
 import { describe, expect, test } from 'bun:test';
 

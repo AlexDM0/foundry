@@ -1,13 +1,6 @@
 /**
- * The agent step, the setup's first, against fake controls and a planted file chooser. What matters: the vendor cards come from what the
- * forge sends, the vendors it cannot run yet named in one line and never offered as a card. Before the setup starts, reached from the
- * welcome, which Back returns to, the page holds the choice and sends nothing until Continue to billing starts the setup with it: this
- * machine's program, kept first when forge only found it, or a program chosen in the dialog, kept for every forge while the box is ticked
- * (asking first while other forges follow the machine's) or pinned once unticked; the start of an unreadable file says it replaces it, a
- * refused start shows forge's sentence verbatim and stays, and with nothing found the primary action opens the chooser. With a record, a
- * choice is sent to the record at once, a refusal shows verbatim and keeps nothing, the program's run shows as forge reports it, Continue to
- * billing waits until the record's program runs, the footer says the step is saved and repeats no program path, and a record past the step
- * is reached again by the way back to its current step, never a Back to billing.
+ * The agent step against fake controls and a planted file chooser: the vendor cards, the program choice held on the page before a record exists and
+ * sent to the record once one does, and refusals shown verbatim.
  */
 import {
   act,

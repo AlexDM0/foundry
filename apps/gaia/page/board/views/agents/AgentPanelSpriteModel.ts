@@ -1,8 +1,7 @@
 /**
- * What the agent panel habitat cues and copies, from the Agents view's facts (`docs/design/board.md`, "Flint in the agent panel: copy and cues"): the copy
- * intent of a job, first row that matches; which job Flint copies; whether some agent has work to copy or all are idle; which jobs
- * appeared; and the cues of a change between two payloads. A launch has one answer, the `strike-spark` of the copy: a job that appears
- * launching is not greeted, and the rise of the slots while a job launches is that launch, so it is not cued.
+ * What the agent panel habitat cues and copies, from the Agents view's facts (`docs/design/board.md`, "Flint in the agent panel: copy and
+ * cues"). A launch has one answer, the `strike-spark` of the copy: a job that appears launching is not greeted, and the rise of the slots
+ * while a job launches is that launch, so it is not cued.
  */
 import type { BoardHephaestusDocument } from '../../../@types/board/BoardDocument.ts';
 import type { SpriteCue, SpriteIntent } from '../../../lib/flint/FlintInterface.ts';

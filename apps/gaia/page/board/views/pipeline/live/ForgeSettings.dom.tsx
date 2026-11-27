@@ -1,11 +1,6 @@
 /**
- * The forge's settings against fake controls and a planted file chooser. What matters: the agent shows its vendor, that it follows this
- * machine's program, the path and that it runs; a program kept for every forge, when other forges follow this machine's, asks first and
- * names how many, and sends nothing until confirmed; unticked it pins the program with `pipeline-agent-set`; Look again sends
- * `agent-look-again`; while forge runs the program, a send shows the busy ring and past a second the panel that names the check; Edit
- * tools lists each tool with where it was found or that the machine lacks it, and keeps the edited list whole with `pipeline-tools-set`, a
- * tool added by name for forge to find; the billing shows only while the pipeline bills a way the agent does not, and saves the chosen
- * way with the agent as it is, in one `pipeline-agent-set`; and the live footer leads here.
+ * The forge's settings against fake controls and a planted file chooser: the agent and its program, the confirmation before changing a
+ * program other forges follow, Look again, the busy ring, Edit tools, and the billing choice, each sending its one command.
  */
 import {
   cleanup,

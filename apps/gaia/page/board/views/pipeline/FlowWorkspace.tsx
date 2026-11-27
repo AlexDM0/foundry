@@ -1,9 +1,6 @@
 /**
- * The page of every pipeline stage that draws the flow (the proposal, live, editing and the smallest pipeline), in the Focus layout of
- * `PipelinePage`: the page's title row over the phase stepper and the one open phase, the stage's panel in the right column, the stage's
- * footer bar under both; and the dialog a step, a gate row or an add choice opens. With no flow yet, the title row, the panel and the footer still stand.
- * In monorepo mode the level rail stands left of the page and the level's breadcrumb over the title; single mode passes neither. An
- * entity's level draws its three phases, and the forge's level draws its own page in place of the phases.
+ * The page of every pipeline stage that draws the flow, in the Focus layout of `PipelinePage`. With no flow yet, the title row, the panel
+ * and the footer still stand. In monorepo mode an entity's level draws its three phases, and the forge's level its own page in their place.
  */
 
 import { useEffect, useRef, type ReactNode } from 'react';

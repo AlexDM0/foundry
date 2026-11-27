@@ -1,10 +1,6 @@
 /**
- * The incident line and its drawer in a happy-dom document. What matters: four defaults are one alert line, not four, naming the newest
- * default's id, move, ticket and clock; its button opens and closes the Incidents drawer, saying so; the drawer closes like any popover, on
- * Esc (handled, so neither a side panel nor an embedding page takes it too, the focus back on the button) or a pointer down outside, and
- * when a link in it is followed; the newest default starts unfolded and one row unfolds at a time, its trail in order with the applied
- * default marked; a delivery links its Assistant job; Mark defaults seen tells the shell and closes the drawer; and with every default seen
- * nothing renders, an open drawer closing with its line.
+ * The incident line and its drawer in a happy-dom document: four defaults are one alert line naming the newest, its drawer closes like any
+ * popover, its Esc handled so neither a side panel nor an embedding page takes it too, and with every default seen nothing renders.
  */
 import {
   act,

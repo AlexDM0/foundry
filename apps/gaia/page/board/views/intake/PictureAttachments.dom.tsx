@@ -1,11 +1,7 @@
 /**
- * Pictures in the Intake view, against fake controls whose picture client records every upload. What matters: a picture attached, pasted
- * or dropped shows as a thumbnail with its name and size and counts against the served bound, and a pasted file that is no image is
- * ignored; a picture the served limits refuse never uploads and shows its refusal, and one the forge refuses shows the forge's words
- * verbatim and sends no message; a picture uploads before the message that names its stored id; remove drops a picture, and Send waits
- * while an upload runs; an applied message takes only the pictures it carried; Send and Start session name the uploaded pictures, a
- * picture alone being enough; a sent picture loads through Gaia's relay of its forge, in User's turn and in the aside; and with no limits
- * served nothing of this is offered.
+ * Pictures in the Intake view against fake controls that record every upload: attaching, pasting and dropping, the served limits' and the
+ * forge's refusals, a picture uploaded before the message that names it, Send waiting on uploads, and a sent picture loading through
+ * Gaia's relay; with no limits served nothing of this is offered.
  */
 import {
   cleanup,

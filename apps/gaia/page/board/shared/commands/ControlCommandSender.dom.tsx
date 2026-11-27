@@ -1,12 +1,7 @@
 /**
- * The control-command sender, through a probe component in a happy-dom document, against a command client whose answers the spec sets. What
- * matters: an applied command clears the last refusal and hands its result to `onApplied`; the forge's refusal shows verbatim, even one that
- * names a command, and an unreachable forge shows the one sentence for it; a command whose answer was lost says it may have been applied,
- * never that the forge was unreachable, and calls neither `onApplied` nor the refusal handler; only the forge's refusal reaches the board's
- * refusal handler; an install hold goes to the install-held handler and a lost session to the session handler; the sender is disabled while
- * a send is in flight, while the stream is down, while launches are held unless the command is answered then, and while there is no command
- * or nothing to send, and a send past the disabled button then sends nothing. Several commands go in order, and the first one the forge does
- * not apply ends the send with its refusal; an empty list sends nothing.
+ * The control-command sender, through a probe component against a command client whose answers the spec sets: each outcome reaches its own
+ * handler with the forge's refusal verbatim, a lost answer never reads as unreachable, the sender is disabled whenever controls may not act,
+ * and several commands stop at the first one not applied.
  */
 import {
   act,

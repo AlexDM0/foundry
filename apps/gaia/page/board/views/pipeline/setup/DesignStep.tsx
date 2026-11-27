@@ -1,15 +1,6 @@
 /**
- * A2Proposal, the design step: the Focus layout of the proposed flow, with the pipeline agent's panel in its right column, whose tabs are
- * the Conversation (the agent's chat with the design questions as decision cards, Flint's strip and the composer) and the change list.
- * The agent's newest change shows under its chat, framed under its label, with a link that opens the step's phase and selects it, and its
- * Undo. The footer's agent tools open the list of the programs the design runs, kept as a draft edit. The footer's dashed Proposal pill
- * says that nothing is stored before Apply; at the forge level of a monorepo, which draws no phase tabs to count them, it counts the
- * proposed steps and gates; and it offers Discard proposal and Apply pipeline, which waits while a question is open and opens the apply
- * dialog, also on its own while an Apply is pending. Until the agent proposes a draft, a line over the phases says that it is designing.
- * In monorepo mode (MonoDesignEntity, MonoDesignForge) the page is one level's, which the route holds: the entity rail stands left and the
- * level's breadcrumb over the title. At an entity, its three phases, gates, dialogs, chat and changes are its own, and its settings can be
- * copied to other entities; at the forge, the forge's page stands in place of the phases. A press on the rail keeps the screen and moves
- * to that level, and a question in any level holds Apply.
+ * The design step: the proposed flow beside the pipeline agent's Conversation and change list. Nothing is stored before Apply, which waits while a
+ * question is open in any level; in monorepo mode the page is the level the route holds.
  */
 
 import { useId, useState }                 from 'react';

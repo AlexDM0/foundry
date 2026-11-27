@@ -1,9 +1,6 @@
 /**
- * The review step dialog (A3cReviewModal), in two tabs: Review holds the reviewer's model, effort and brief, in the spec-then-plan route
- * its pipeline documents with a read-only line on what the builder reads, and when it runs; Re-review the conditional
- * re-review after the review's fixes. Both tabs edit one form: Save sends the reviewer, the re-reviewer while the re-review is on, and the
- * review with or without its `reReview`. Remove review, after its confirmation, sends the review's removal. Opened from the re-review
- * node, it opens on the Re-review tab with its switch focused.
+ * The review step dialog in two tabs of one form: Review holds the reviewer's model, effort, brief and pipeline documents, Re-review the
+ * conditional re-review after the review's fixes. Save sends the reviewer, the re-reviewer while on, and the review with or without `reReview`.
  */
 
 import { useRef, useState }                                                                          from 'react';

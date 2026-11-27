@@ -1,8 +1,7 @@
 /**
- * "What the plan names", pure: the effect reading's entries as a folder tree of the repository, each entry under its folder with its
- * change mark and reference number, an ambiguous entry under the folder of each candidate, and the files one reference changes alike in
- * one folder folded into one row; the legend with a count per change; the unresolved entries with their reason and a hint; and the line
- * that says what the reading read and how long it took.
+ * "What the plan names", pure: the effect reading as a folder tree of the repository, ambiguous entries under each candidate's folder,
+ * files one reference changes alike folded into one row; the legend's counts per change; unresolved entries with reason and hint; and the
+ * line that says what the reading read and how long it took.
  */
 import type { BoardEffectChange }                                    from '../../../@types/board/BoardVocabulary.ts';
 import type { BoardEffectEntryDocument, BoardEffectReadingDocument } from '../../../@types/board/TicketDocumentsDocument.ts';

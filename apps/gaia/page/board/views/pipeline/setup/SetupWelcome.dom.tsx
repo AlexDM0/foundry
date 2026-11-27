@@ -1,9 +1,6 @@
 /**
- * The welcome, the setup landing of a forge with no pipeline, in the Pipeline view. What matters: it is only the onboarding, with no state
- * tags and no overview of the phases; its title names the project; it lists the steps the setup walks, numbered, the agent first and
- * current; its one way in is Start with the agent, a link to the agent step that starts the setup, which sends nothing; it says whether
- * forge found the agent's program and where; an unreadable `pipeline.json` is named with its reason; and waiting tickets show in one quiet
- * line only while tickets wait.
+ * The welcome, the setup landing of a forge with no pipeline: only the onboarding, the steps the setup walks, Start with the agent sending nothing,
+ * and the agent's program, an unreadable `pipeline.json` and waiting tickets.
  */
 import { cleanup, screen, within } from '@testing-library/react';
 import {

@@ -1,9 +1,7 @@
 /**
- * Each entity's work on a live forge over entities (MonoLive, MonoApplyChanges), pure, from the Board facts of the tickets and the jobs:
- * the rail's count of each entity's open tickets and the crossings into it, and the forge row's jobs and merge train; the crossings an
- * entity's page shows now; the words of a package stage run for a crossing; the entity of a ticket in the merge train; each entity's
- * jobs against its cap, worded in jobs; and the tickets in flight grouped by the entity whose stage they run. A ticket in a package stage
- * runs at the crossed package and counts there as a crossing from its own entity, never as one of its own entity's tickets.
+ * Each entity's work on a live forge over entities, pure, from the board's facts of tickets and jobs: the rail's counts, the crossings,
+ * the merge train, each entity's jobs against its cap, and the tickets in flight by entity. A ticket in a package stage counts at the
+ * crossed package as a crossing, never as its own entity's ticket.
  */
 import type { BoardDocument }                                             from '../../../../@types/board/BoardDocument.ts';
 import type { BoardJobDocument }                                          from '../../../../@types/board/BoardJobDocuments.ts';
@@ -207,7 +205,7 @@ function entityIsKeptForAPerson(entity: BoardPipelineEntityDocument): boolean {
 }
 
 /**
- * One row per stored entity, in the pipeline's order (E72): its cap, or the board's limit alone; its jobs that hold a slot, naming the
+ * One row per stored entity, in the pipeline's order: its cap, or the board's limit alone; its jobs that hold a slot, naming the
  * entities whose crossings they serve; and its ready tickets that wait for a slot, with whether it stands at its cap. A root kept for a
  * person runs no jobs, so its row says so.
  */

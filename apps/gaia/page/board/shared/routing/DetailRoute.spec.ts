@@ -1,9 +1,6 @@
 /**
- * The detail route contract the board views open the panel through. What matters: each form round-trips through its item text, an
- * unknown form or an id the form cannot carry opens nothing, a board-only tab's item is never a detail, a second opener click on what is
- * open closes it, and an epic is pointed at on the Epics tab only. The ticket form's section rides after its id: it round-trips, an
- * unknown or empty one opens Overview so a stale link still opens the ticket, and it never changes which item is open, so an opener
- * closes the ticket whatever section shows.
+ * The detail route contract the board views open the panel through: each form round-trips through its item text, anything the form cannot
+ * carry opens nothing, and a ticket's section never changes which item is open, so a stale section still opens the ticket.
  */
 import { describe, expect, test } from 'bun:test';
 

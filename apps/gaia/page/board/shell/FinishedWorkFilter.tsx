@@ -1,9 +1,6 @@
 /**
- * The filter line at the tab bar's right end, such as "Hiding closed > 1 day" with its window in bold and, on the Kanban, the pressed
- * epic, opening the filter menu: the spans (each with the count it would show), a since-day, what is hidden and "show all", then the
- * sections the selected tab adds. The choice is the board's, stored per board. Opening focuses the pressed span; Esc, a second click on the
- * line and Enter in the since field close it and hand the focus back to the line, a click or focus outside only closes it. Its Esc is
- * caught before the detail panel's, which then stays open: one Esc closes one thing.
+ * The filter line at the tab bar's right end, opening the filter menu; the choice is the board's, stored per board. Its Esc is caught before
+ * the detail panel's, which then stays open: one Esc closes one thing.
  */
 
 import {

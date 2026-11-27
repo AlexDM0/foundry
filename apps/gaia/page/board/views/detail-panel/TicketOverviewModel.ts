@@ -1,10 +1,7 @@
 /**
- * The ticket form's Overview, as a model: the state card (what works on the ticket now, or why nothing does), the newest open incident
- * naming the ticket, the one likely action, the live job's own controls (a message, and Wind down, Stop and Fresh agent, each worded with
- * what it ends and the hold it leaves), Next (Hephaestus's forecast of the steps to the landing), the other moves with their effects, the
- * spec and plan of a ticket written in that route, each with where it stands and the page that opens it, and the facts. The live job is
- * joined here by its `ticketIds`; nothing here decides a step: the forecast, the offered moves and controls and the hold a stop leaves are
- * the forge's, as it serves them.
+ * The ticket form's Overview, as a model: the state card, the newest open incident, the likely action, the live job's controls, Next, the
+ * other moves, the spec and plan, and the facts. The live job is joined here by its `ticketIds`; nothing here decides a step: the
+ * forecast, the offered moves and controls and the hold a stop leaves are the forge's, as it serves them.
  */
 import type { BoardDocument }                                                  from '../../../@types/board/BoardDocument.ts';
 import type { BoardJobDocument, BoardTicketForecastDocument }                  from '../../../@types/board/BoardJobDocuments.ts';

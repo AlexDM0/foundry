@@ -1,10 +1,6 @@
 /**
- * A3bConstitution, the constitution step, as FlowConstitution draws it: the agent's state over the page's title row with Edit or Preview,
- * and the free markdown document in its card, in Edit or in a sandboxed Preview; beside it the pipeline agent's panel with who reads the
- * constitution, the SOURCES the agent drafts from, the chat with its questions as decision cards, Flint drafting and the composer. The
- * footer counts the sections and rules of the draft. In setup it goes Back to research or Continue to pipeline design; editing an applied
- * pipeline's constitution, it goes Back to the flow. In monorepo mode (MonoConstitution) each entity has its own document under the level
- * the route holds, beside the entity rail that marks each entity's state; the forge level lists the entities, and has no document.
+ * The constitution step: the free markdown document in Edit or a sandboxed Preview beside the pipeline agent's panel. Editing an applied pipeline's
+ * constitution it leads only back to the flow; in monorepo mode each entity has its own document.
  */
 import { useId, useState, type ReactNode }                              from 'react';
 import type { BoardPipelineEntityDocument, BoardPipelineSetupDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';

@@ -1,9 +1,7 @@
 /**
- * Makes the Agents view the agent panel habitat of Flint: it registers the view's element, cues an agent that appears, a change between
- * some agent working and all idle, the one action of the job Flint copies, and the changes of a job and of the launch slots; and it gives
- * Flint the job cell of the row it copies, found by the row's `data-job-id`. The rows differ only in height and Flint walks the bottom
- * edge, so it stands below the job column for every job. What the view mounts with is no change: the one actions jobs show then are taken
- * as shown, so a return to the view cues none again.
+ * Makes the Agents view the agent panel habitat of Flint: it registers the view's element, cues the changes of jobs and launch slots, and
+ * gives Flint the job cell of the row it copies. The rows differ only in height and Flint walks the bottom edge, so it stands below the job
+ * column. What the view mounts with is no change, so a return to the view cues nothing again.
  */
 
 import {

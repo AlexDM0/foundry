@@ -1,8 +1,6 @@
 /**
- * The Epics view's model, the epic cards read from the served board: each shown epic's done mark, summary, roll-up bar, legend and facts,
- * what it waits on outside itself, its tickets in the board's waves, the epics it frees, and its ticket lines newest first, open epics
- * first. A ticket counts under its primary epic alone, as the dependency model's cross-epic links do. The description stays the rendered
- * string, which only the sandboxed frame shows; the summary is its first paragraph's words as text.
+ * The Epics view's model, the epic cards read from the served board. A ticket counts under its primary epic alone, as the dependency
+ * model's cross-epic links do. The description stays the rendered string, which only the sandboxed frame shows.
  */
 import type { BoardDocument }                                          from '../../../@types/board/BoardDocument.ts';
 import type { BoardEpicDocument, BoardTicketDocument }                 from '../../../@types/board/BoardTicketDocuments.ts';

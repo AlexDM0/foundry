@@ -1,8 +1,6 @@
 /**
- * The fixed markup around agent-written HTML in a sandboxed frame: its title, theme and the page's stylesheet addresses, its body marked
- * for the frame's typography, and every link opening outside the frame. The document is built through the DOM and read back as markup, so
- * every value the page sets reaches the frame as text or as an attribute, never as markup. The document has no browsing context: nothing
- * in the HTML loads or runs while it is built.
+ * The fixed markup around agent-written HTML in a sandboxed frame. It is built through the DOM, which has no browsing context, and read back
+ * as markup, so every value the page sets reaches the frame as text or as an attribute, never as markup, and nothing loads while it is built.
  */
 
 /** What the frame takes from the page around it, so the HTML reads in the page's type and colours. */

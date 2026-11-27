@@ -1,9 +1,6 @@
 /**
- * The words a Kanban card prints beyond its title. What matters: a building or reviewing card ticks its label and seconds-precise time
- * at work, a repeat review names the round the forge serves (the first repeat round while it serves none), and a review counts from its
- * newest review row only while that row runs; a paused or awaiting-review card says how long it has waited, its full stamp in the hover,
- * and a stamp later than now shows nothing; every other card shows its newest milestone, which the merge queue calls "built" and a
- * delivery "done"; the note says when a reviewed ticket was reviewed and why an abandoned one was abandoned.
+ * The words a Kanban card prints beyond its title: the working label and time, the review round the forge serves, how long a paused or
+ * waiting card has waited, the newest milestone otherwise, and the note on a reviewed or abandoned ticket.
  */
 import { describe, expect, test } from 'bun:test';
 

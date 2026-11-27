@@ -1,8 +1,6 @@
 /**
- * The Questions view and the question panel as the questions habitat of Flint (`flint/`): there Flint waits on User's answers. It asks
- * when a decision is open and none is shown, knocks when User moved past the oldest one twice and left it waiting, lights the fuse of an
- * incident that will take its default move and is happy when one settles, signs a waiver User granted, and is happy when any other
- * decision is answered.
+ * The Questions view and the question panel as the questions habitat of Flint, where Flint waits on User's answers: it asks, knocks on a
+ * decision left waiting, lights an incident's fuse, signs a granted waiver, and is happy when a decision is answered.
  */
 import {
   ARRIVED_CUE,

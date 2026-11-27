@@ -1,10 +1,6 @@
 /**
- * The open phase: its header (its number, name and purpose, when it leaves and the Next button, or for Merge the end on main and, on a
- * live board, the tickets in the merge train), for the Ticket phase how a ticket is written, its steps from left to right with an add card
- * wherever the facts name a missing step, and under them the phase's gates table, or for the Ticket phase what makes a draft ready. Its
- * switches, the ticket-writing choice, add choices and gate edits go through one draft edit sender, which opens an update first on a
- * live board. At an entity's level of a monorepo screen the phases are three, a switch the forge sets links there in place of the switch,
- * an add choice the forge would set is not offered, and the gates table offers to copy the phase's gates to another entity.
+ * The open phase: its header, how a ticket is written, its steps with add cards where the facts name a missing step, and its gates table.
+ * Every edit goes through one draft edit sender, which opens an update first on a live board.
  */
 
 import type { ReactNode }                 from 'react';

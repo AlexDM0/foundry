@@ -1,9 +1,6 @@
 /**
- * The activity strip's facts. What matters: a chip exists only for a job the board names in `launchSlots`, since the forge counts a
- * slot by job kind (a merge agent runs as a builder yet holds none) and the board must not count by a rule of its own; a running build
- * and a running review take the in-progress and reviewing palettes, any other state its nearest row; a chip's time is the job's launch
- * stamp, the longest running first and a launching job without one last; a chip carries the job's role, kind and state, which Flint's
- * slot is cued by; the counts split the slot jobs by kind, the without-job count is the board's list and the slot limit is the board's.
+ * The activity strip's facts: a chip exists only for a job the board names in `launchSlots`, since the forge counts a slot by job kind (a
+ * merge agent runs as a builder yet holds none) and the board must not count by a rule of its own; its counts and slot limit are the board's.
  */
 import { describe, expect, test } from 'bun:test';
 

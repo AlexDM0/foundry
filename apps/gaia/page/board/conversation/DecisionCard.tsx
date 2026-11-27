@@ -1,8 +1,6 @@
 /**
- * One open decision with its questions and options exactly as asked, answered with `decision-answer`: one choice per question, several
- * when it is multi-select, or User's own words, an option of their own, on a decision of one question (`DecisionOptionList`). Shown as a
- * card in the Questions inbox and docked in an Intake chat, where the questions may stand side by side; the first answer wins, and a later
- * one shows the forge's refusal beside the control.
+ * One open decision with its questions and options exactly as asked, answered with `decision-answer`. Shown in the Questions inbox and docked
+ * in an Intake chat; the first answer wins, and a later one shows the forge's refusal beside the control.
  */
 import { useMemo, type ReactNode } from 'react';
 

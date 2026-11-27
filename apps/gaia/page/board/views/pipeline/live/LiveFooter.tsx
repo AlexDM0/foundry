@@ -1,8 +1,6 @@
 /**
- * The live flow's footer bar (A5Live), as FlowLive draws it: the green Applied pill, the applied version with its time and who applied
- * it, the content hash and the constitution commit the newest Apply made (each entity's constitutions over entities); View stored pipeline
- * opens the stored text, Forge settings the forge's agent and tools, and Update pipeline opens an update of it with `pipeline-update-start`
- * and moves to `pipeline/edit`.
+ * The live flow's footer bar: the Applied pill, the applied version with its time and who applied it, the content hash and constitution
+ * commit, and the View stored pipeline, Forge settings and Update pipeline actions.
  */
 import { useState } from 'react';
 import {

@@ -1,11 +1,6 @@
 /**
- * The Focus layout's model over the pipeline fixtures. What matters: the nodes fall into the four phases in the facts' order, with each
- * add card right after its node and the merge train's queue, frame and end left to the Merge header; a step's phase is the one that holds
- * it; each tab says its steps and gates, and its pill says what waits there per stage (a question first, then the live tickets, the
- * editing changes, or a proposal's or the smallest pipeline's word); the header words when a phase leaves, a phase with no step is skipped and Merge ends
- * on main; and a live step's state is a word. The spec-then-plan route keeps its four writing and review steps in the Ticket phase, says
- * the ticket is ready with a numbered Acceptance in the spec, an approved spec and an approved plan, and words who approves the spec by
- * its switch.
+ * The Focus layout's model over the pipeline fixtures: the nodes in their four phases, each tab's words and pill, the header's words,
+ * a live step's state, and the spec-then-plan route's steps and readiness lines in the Ticket phase.
  */
 import { describe, expect, test }         from 'bun:test';
 import type { BoardPipelineFlowDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';

@@ -1,10 +1,7 @@
 /**
- * The one `EventSource` on Gaia's relay of a forge's board events. Every event is a change signal under the forge's event name: `board`
- * carries `board-changed`, after which the page reads the board again, and a part's event names the part. The browser reconnects by itself
- * and sends the last event's id as `Last-Event-ID`, which the relay hands the forge; a stream the browser gave up on is opened again here.
- * A handshake or an event of another contract version closes the stream for good as `down`. `EventSource` hides the status that closed it,
- * so a closed stream asks whether Gaia still holds this window's session, as the fleet stream does; once it does not, the stream is
- * `no-session`, tells the page its session was lost, and opens no more.
+ * The one `EventSource` on Gaia's relay of a forge's board events, each a change signal. The browser reconnects by itself with
+ * `Last-Event-ID`, so only a stream it gave up on is opened again here. `EventSource` hides the status that closed it, so a closed stream
+ * asks whether Gaia still holds this window's session; once it does not, the stream is `no-session`, tells the page, and opens no more.
  */
 import { PAGE_CONTRACT_VERSIONS }                     from '../../../src/shared/constants/PageContractVersions.ts';
 import { ContractVersionUtil }                        from '../../../src/shared/utils/ContractVersionUtil.ts';

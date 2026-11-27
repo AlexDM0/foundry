@@ -1,9 +1,6 @@
 /**
- * The Kanban's view model in monorepo mode. What matters: a board without entities gets no entity filter, and its cards carry no entity
- * and no stages, so single mode is the model it was; a chosen entity shows its own tickets and a crossing in a package stage that runs in
- * it, nothing else; with every entity shown and the swimlanes by entity, each lane divides its cards by entity under counted heads, below
- * what leads the lane; with swimlanes off, or one entity chosen, the lane keeps its single-mode groups; a card names its entity, and a
- * crossing ticket's card carries its stages and says where it is in its accessible name.
+ * The Kanban's view model in monorepo mode: a board without entities is the single-mode model it was; a chosen entity shows its own and its
+ * crossing tickets; swimlanes divide each lane by entity unless off or one entity is chosen; cards name their entity and stages.
  */
 import { describe, expect, test } from 'bun:test';
 

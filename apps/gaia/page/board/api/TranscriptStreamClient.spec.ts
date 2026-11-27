@@ -1,9 +1,6 @@
 /**
- * The transcript client against fake relay sources. What matters: the stream opens the relay's job stream at its version after the cursor
- * it was given, `history` and `message` both reach the handler, the history says it arrived also when it brought no entry, an entry of
- * another shape is dropped and a document of another `boardVersion` too, and the last cursor received is kept for a reopened panel; a stream
- * the browser gave up on reopens after that cursor once the wait fires, and an entry replayed across the reopen is delivered once. Entries
- * of one log line share a cursor and differ in `entryKey`, so all of them arrive, every field intact, a chat's pictures among them.
+ * The transcript client against fake relay sources: history and new entries reach the handler, entries of another shape or version are
+ * dropped, and the last cursor is kept so a reopened stream resumes after it, an entry replayed across the reopen delivered once.
  */
 import { describe, expect, test } from 'bun:test';
 

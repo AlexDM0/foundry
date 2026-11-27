@@ -1,8 +1,6 @@
 /**
- * The constitution step's model, pure: the agent's state over the page and in the panel head, who reads the constitution, the outline the
- * footer counts, the SOURCES ticks that steer the agent's next draft, and the commands of Continue and of a tick. The same step edits an
- * applied pipeline's constitution at `pipeline/edit/constitution`, with no stepper and the way back to the flow in place of Back and
- * Continue. In monorepo mode each entity has its own document, drafts, SOURCES and readers, and every command names the entity.
+ * The constitution step's model, pure. The same step edits an applied pipeline's constitution at `pipeline/edit/constitution`, with the way back to
+ * the flow in place of Back and Continue; in monorepo mode every command names the entity.
  */
 import { PAGE_CONTRACT_VERSIONS }    from '../../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardCommandDocument } from '../../../../@types/board/BoardCommandDocument.ts';

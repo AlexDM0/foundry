@@ -1,8 +1,6 @@
 /**
- * The row form. What matters: the head is the row's label and displayed name in its display state, or the ticket's own for a ticket
- * without a row; the Task facts carry owner, note, start, end, elapsed, tokens, review round and ticket; recorded phases count a repeat
- * review's round, say the time since the phase before, and the newest takes the row's display state; a row without recorded phases has
- * them derived from the stamps up to the status it reached, under a note; and a review row has no Ticket section.
+ * The row form: its head, the Task facts, recorded phases with their review rounds and the time since the phase before, phases derived from
+ * the stamps under a note when none were recorded, and no Ticket section on a review row.
  */
 import { describe, expect, test } from 'bun:test';
 

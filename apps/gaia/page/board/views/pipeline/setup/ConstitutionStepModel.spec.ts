@@ -1,10 +1,6 @@
 /**
- * The constitution step's model against the pipeline fixtures. What matters: READ BY names Builder, Review and Re-review from the facts'
- * roles and nothing else, both re-reviewers as one word; the footer counts the outline's sections and rules; the agent's state comes from
- * its job and its ready mark; a SOURCES tick flips that one choice at the facts' revision and never sends the markdown; Continue moves the
- * constitution step; an update record is the edit mode. At an entity: READ BY names each of its roles apart and what a crossing reads;
- * its file and SOURCES are its own folder's; its setup carries its own draft and readers; a tick names the entity; an adopted file is
- * offered only when the flow holds it whole; a forge-wide role never reads an entity's; a root kept for a person has no editor and says so.
+ * The constitution step's model against the pipeline fixtures: READ BY from the facts' roles, the footer's outline counts, the agent's state, SOURCES
+ * ticks and Continue, and each entity's own file, sources and readers.
  */
 import { describe, expect, test }                                     from 'bun:test';
 import type { BoardPipelineFlowDocument, BoardPipelineSetupDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';

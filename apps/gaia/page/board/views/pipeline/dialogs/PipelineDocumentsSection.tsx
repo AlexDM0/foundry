@@ -1,8 +1,6 @@
 /**
- * The Pipeline documents section of the builder's and the reviewer's dialogs: under its title, with the orange New pill beside it, a ruled row per
- * document (the spec, then the plan) with Always, If you approved it and Never, and the line that says what If you approved it gives. A
- * document the forge fixes for the role (the reviewer's spec) stays at its rule, its other choices shown disabled. The rules are the
- * form's: nothing is sent until the dialog's Save.
+ * The Pipeline documents section of the builder's and the reviewer's dialogs: a row per document with Always, If you approved it and Never,
+ * a document the forge fixes for the role held at its rule. The rules are the form's: nothing is sent until the dialog's Save.
  */
 import { useId } from 'react';
 import {

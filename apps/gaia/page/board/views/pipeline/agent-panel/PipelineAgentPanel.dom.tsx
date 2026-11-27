@@ -1,9 +1,6 @@
 /**
- * The pipeline agent panel at a level of monorepo mode, in a happy-dom document against fake controls. What matters: single mode follows
- * the record's one session and shows no level line; at an entity the panel follows that entity's session alone, shows its questions and
- * messages its job with no picture, as it offers none, and never mixes in the forge's or another entity's thread; at the forge the
- * entities' questions stay out of the thread and a line counts them with a link to each entity's level. The agent strip's Flint slot is
- * a strip's 60 by 50 px, and Flint lives in it.
+ * The pipeline agent panel at a level of monorepo mode, against fake controls: single mode follows the record's one session; an entity's
+ * panel follows only that entity's session; at the forge the entities' questions stay out of the thread and a line counts and links them.
  */
 import {
   cleanup,

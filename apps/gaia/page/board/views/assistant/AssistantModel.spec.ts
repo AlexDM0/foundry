@@ -1,12 +1,7 @@
 /**
- * The Assistant view's model. What matters: the switch is the state the board serves, its words name that state and a press sends the
- * other one; no live Assistant reads as booting while the switch is on and as off while it is off; a live one carries its live facts; an incident on the
- * board is open and never also settled, though the log opened it; the queued messages are the newest the session has not taken, counted
- * and never matched by text; the composer's tag follows the session's turn; the head names no call budget, since the Assistant has none;
- * the thread's items are worded as the chat shows them, a stamp in local time with seconds and never invented; the decisions the Assistant
- * put to User are the ones its job asks and the ones the forge serves as escalated, never another agent's, and Flint waits only while one
- * does; and an incident step's stamp is never invented. How each incident reads is `IncidentTrailUtil`'s, held by its own spec; how the
- * thread is read is `ChatThreadModelUtil`'s.
+ * The Assistant view's model: the switch as served and its press, booting or off without a live session, queued messages counted and never
+ * matched by text, the thread worded with stamps never invented, and only the Assistant's own and escalated decisions. Incidents are held by
+ * `IncidentTrailUtil`'s spec, the thread by `ChatThreadModelUtil`'s.
  */
 import { describe, expect, test } from 'bun:test';
 

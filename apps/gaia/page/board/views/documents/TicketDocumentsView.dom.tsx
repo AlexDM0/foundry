@@ -1,15 +1,7 @@
 /**
- * A ticket's documents page against a fake relay and fake controls. What matters: the page reads the documents of the routed ticket and
- * reads them again on the board stream's `documents` part, never on another; Approve sends the head version it shows; the tabs link the
- * other document, muted while it waits on the one before; a plan the spec moved under says so, holds the build and asks to be approved
- * again; where the review is off the document reads `Approved by pipeline` and its Code is read-only; a refusal reads verbatim; a comment's
- * card in the chat jumps to Preview and scrolls to its lines at each press, and a page opened jumped to lines scrolls there; while the agent
- * works on a comment made before User's edit, the chat says its edit lands on User's text; Plan's composer opens the effect pane on the effect reading it
- * asks for; a failed read after a good one keeps the page and User's text; and leaving Code leaves no edit that locks Approve. The
- * breadcrumb leads back to the ticket's Tickets segment and Next waiting on you to the next draft that waits; the agent's question shows
- * marked on its line, in the document's Open questions and as its card, whose Answer sends the option's letter and User's note; an
- * answered one says what User chose, with no way to change it; Approve waits while a question is open; and a route naming a line opens
- * the question there (artboard 11).
+ * A ticket's documents page against a fake relay and fake controls: it reads the routed ticket's documents again on each `documents`
+ * part, approves the head version it shows, keeps User's text through a failed read, and shows the agent's questions on their lines,
+ * in Open questions and as cards whose Answer sends the option's letter, holding Approve while one is open.
  */
 import {
   act,
@@ -318,7 +310,7 @@ describe('the documents page', () => {
   });
 });
 
-/** Artboard 11's board: #004 waits on User's answer to E7 since 13:05, and, with `otherDraftWaits`, #007's plan for its approval since 12:00. */
+/** The asking board: #004 waits on User's answer to `E7` since 13:05, and, with `otherDraftWaits`, #007's plan for its approval since 12:00. */
 function asksBoardOf(otherDraftWaits: boolean): BoardDocument {
   const asking = {
     ...documentsTicketOf(),

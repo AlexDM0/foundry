@@ -1,8 +1,6 @@
 /**
- * Which right-edge panel covers the end of a board view now, so the view makes room as wide as it: the detail panel while an item is
- * routed, else the question panel while it shows. One panel shows at a time, the detail panel over the question panel. Either panel holds
- * the page's one Flint slot, so a view it covers shows none. The shell says whether the question panel shows, over every tab; a spec
- * provides its own.
+ * Which right-edge panel covers the end of a board view now, so the view makes room as wide as it: the detail panel while an item is routed,
+ * else the question panel while it shows. Either panel holds the page's one Flint slot, so a view it covers shows none.
  */
 import { createContext, useContext } from 'react';
 

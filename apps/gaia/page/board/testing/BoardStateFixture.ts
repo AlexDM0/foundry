@@ -1,7 +1,6 @@
 /**
- * A synthetic board in the page's board contract for the header, epics, finished-work, merge-queue and Agents specs: two epics, five
- * tickets, one queued target, a builder holding the one taken launch slot and the Assistant beside it; and builders of a ticket, a job, a
- * subagent and an open decision a job asks User, each with the facts and offers the forge serves for it. Test-only.
+ * A synthetic board in the page's board contract for the header, epics, finished-work, merge-queue and Agents specs, with builders of a
+ * ticket, a job, a subagent and an open decision, each with the facts the forge serves for it. Test-only.
  */
 import type { BoardDecisionDocument }                                             from '../../@types/board/BoardDecisionDocuments.ts';
 import type { BoardDocument }                                                     from '../../@types/board/BoardDocument.ts';
@@ -161,7 +160,7 @@ export const DIRTY_CHECKOUT_NOTICE: BoardNoticeDocument = {
   causeText: null,
 };
 
-/** A job as the board serves it: a running builder on ticket 3 unless the changes say otherwise. */
+/** A job as the board serves it: a running builder on ticket `'3'` unless the changes say otherwise. */
 export function exampleAgentJob(changes: Partial<BoardJobDocument> & Pick<BoardJobDocument, 'id'>): BoardJobDocument {
   return {
     kind:          'build',

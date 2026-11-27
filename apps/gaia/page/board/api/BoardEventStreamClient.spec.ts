@@ -1,9 +1,6 @@
 /**
- * The board's event-stream client against fake relay sources. What matters: it opens the relay's board events at their version; each event
- * of the board's names reaches the handler as Gaia's change signal and the last event id is kept; the connection follows open and error; a
- * handshake of another `boardStreamVersion`, or an event of another `boardVersion`, closes the stream for good as `down`; a stream the
- * browser closed is opened again after the wait while one it is reconnecting by itself is left alone; and a closed stream asks Gaia's
- * session standing as the fleet stream does: lost is `no-session`, calls `sessionWasLost` once and opens no more, held or unknown is `down`.
+ * The board's event-stream client against fake relay sources: change signals and the last event id, reopening a stream the browser closed,
+ * closing for good on another contract version, and asking Gaia's session standing once the stream closes.
  */
 import { describe, expect, test } from 'bun:test';
 

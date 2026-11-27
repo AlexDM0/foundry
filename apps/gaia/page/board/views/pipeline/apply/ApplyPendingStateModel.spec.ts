@@ -1,10 +1,6 @@
 /**
- * The pending Apply's model against hand-made `applyState` facts. What matters: while committing, the line names the commit, or the
- * ticket whose landing holds main; every stored hold and refusal reason is worded as a sentence, with the blocking files where the reason
- * has them, and a commit held `interrupted` asks for a resume; only a refused request offers Apply again, and only a signing failure
- * offers the text of CONSTITUTION.md; the resume summary's one line says the same; Cancel apply names the record. Over entities the
- * committing line counts the constitutions in the one commit, the reasons that name the file name the constitutions, and a signing
- * failure asks for the drafted constitutions by hand.
+ * The pending Apply's model against hand-made `applyState` facts: the committing line, every hold and refusal reason as a sentence, when
+ * Apply again and the constitution's text are offered, the resume summary's line, and the counts and wording over entities.
  */
 import { describe, expect, test }       from 'bun:test';
 import type { BoardApplyStateDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';

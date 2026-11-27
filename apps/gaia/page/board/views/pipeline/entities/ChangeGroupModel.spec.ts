@@ -1,11 +1,6 @@
 /**
- * The Changes list grouped by level. What matters: the forge's group comes first, then the entities in the rail's order, and an entity
- * the rail no longer holds still gets its group; a group counts every change it holds, a set's members too; the edits of one copy stand
- * as one batch row in the place of its first change, with the set's sentence, its count and the edits its undo takes back, while each
- * change keeps its own Undo; the set's one Undo is `pipeline-draft-undo` with `wholeBatch` for the set's first edit at its level, so a
- * copy to two entities gives each entity's group its own set, counted and undone by that entity's edits alone; a set down to one
- * change is an ordinary row; a change inside an entity is worded as the same field of a single pipeline, and the fields only an entity
- * has, and its definition, get their own words.
+ * The Changes list grouped by level: the forge first, then the entities in the rail's order; a copy's edits stand as one batch row with
+ * one `pipeline-draft-undo` with `wholeBatch` per level while each change keeps its Undo; and how a change inside an entity is worded.
  */
 import { describe, expect, test }                                   from 'bun:test';
 import type { BoardPipelineChangeDocument, BoardSetupEditDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';

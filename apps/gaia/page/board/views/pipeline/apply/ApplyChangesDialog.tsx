@@ -1,11 +1,6 @@
 /**
- * A6bApplyChanges, Apply on a running board: the changes as rows, each worded by what it names, where it is and its kind (a changed
- * `constitution` is committed to main on Apply), the version line and the tickets in flight. Back closes it; Apply N changes sends
- * `pipeline-apply` without resuming the board, and a refusal shows verbatim with nothing else offered. While Apply commits
- * `CONSTITUTION.md` first, the pending, held and refused states show as in the first Apply, with Cancel apply. Over entities
- * (MonoApplyChanges) the rows group by level under each level's name and count, a copy's set as one row with its count of edits, and the
- * tickets in flight group by entity, a ticket in a package stage under the package as a crossing from its entity; a refusal, such as
- * removing an entity a ticket names, shows verbatim as every refusal does.
+ * Apply changes on a running board: the changes as rows, the version line and the tickets in flight; Apply sends `pipeline-apply` without
+ * resuming the board, and a refusal shows verbatim with nothing else offered. Over entities the rows group by level and the tickets by entity.
  */
 import type { BoardAppliedPipelineDocument, BoardPipelineFlowDocument, BoardPipelineSetupDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import {

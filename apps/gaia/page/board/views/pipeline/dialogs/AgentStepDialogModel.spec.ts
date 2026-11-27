@@ -1,11 +1,6 @@
 /**
- * The agent step dialog's model. What matters: the form starts from the draft's stored settings, else the pair the facts resolved, else
- * the role's default pair the forge serves in its limits, and from the served default list of the role where the draft stores none; Reset
- * is the served defaults, so a forge with other defaults gives other forms; a Save is one edit of the role
- * carrying model, effort and the entries in order; the meter level is the effort's place plus one (low 1 … max 5); every effort has a
- * hint, xhigh's the one the plan words; and the builder's Fixes line names the merge before review. The spec and plan agents are agent
- * steps of the Ticket phase whose Reset is the pair the forge serves for each; the builder's and the reviewer's forms carry when they read
- * the pipeline documents, the stored rules over the served defaults, and a Save stores only the rules that differ from those defaults.
+ * The agent step dialog's model: where the form starts and what Reset gives, both from what the forge serves; a Save as one edit of the
+ * role; the meter level and effort hints; and the spec, plan, builder and reviewer forms, which store only rules that differ from the defaults.
  */
 import { describe, expect, test }                                         from 'bun:test';
 import type { BoardInstructionDocument, BoardPipelineDefinitionDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';

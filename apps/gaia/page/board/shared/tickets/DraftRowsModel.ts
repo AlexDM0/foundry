@@ -28,7 +28,7 @@ export interface DraftRowBase {
   readonly ticketId:   string | null;
   readonly title:      string;
   readonly epic:       RowEpic | null;
-  /** "from J4", the job that filed it; `null` when no job did. */
+  /** "from `J4`", the job that filed it; `null` when no job did. */
   readonly originText: string | null;
   readonly steps:      readonly DraftStep[];
   /** Where the id opens: the document being written, else the ticket's or the draft's detail. */
