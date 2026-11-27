@@ -1,8 +1,7 @@
 /**
- * `gaia serve` run as the program it is, under a scratch home on any free port, since the launcher starts and stops it as a program: it
- * prints its address once it listens, writes its token, serves its health, the fleet, a command and the built
- * page with the CSP, and at a stop signal exits 0. Where Gaia already answers, or the port setting names no port, it refuses with exit code 1
- * and writes nothing.
+ * `gaia serve` run as the program it is, as the launcher starts and stops it, under a scratch home on any free port: it prints its
+ * address once it listens, writes its token, serves its health, the fleet, a command and the page with the CSP, and exits 0 at a stop
+ * signal. Where Gaia already answers, or the port setting names no port, it refuses with exit code 1 and writes nothing.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { join }                     from 'node:path';

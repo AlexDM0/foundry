@@ -1,12 +1,7 @@
 /**
- * Gaia whole, in one process, from the registry to the page: the forge watch, the fleet, forge-control and the page server, wired as
- * `gaia serve` wires them, over recorded answers of every forge and of the forge program, under a scratch home. The page's
- * side is what the page reads and sends: the session it buys, the `fleet` events it follows, the commands it posts.
- *
- * The flow: five forges appear, each in its own condition; the dormant Example Storefront is started and reads starting, then live; the
- * unreachable Invoice Service refuses a stop, in the forge's own words; the machine limit is lowered through the live forge, which then
- * reports it. Each forge answers from one answer set per stage of the flow, the forge program from one per stage, and every timer is fired
- * by hand, so nothing waits a real interval. W5.6 (notifications) is not built and not in it.
+ * Gaia whole in one process, wired as `gaia serve` wires it, over recorded forge answers under a scratch home: five forges appear, the
+ * dormant Example Storefront is started and goes live, the unreachable Invoice Service refuses a stop in the forge's own words, and the
+ * machine limit is lowered through the live forge. Every timer is fired by hand, so nothing waits a real interval.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -69,8 +64,8 @@ const READ_AT = '2026-11-12T13:19:30.000Z';
 const EXAMPLE_TOKEN = 'example-token-0123456789abcdef';
 
 /**
- * The forges of the flow. Example Storefront is the one a forge serving every contract was recorded as, Example Project the one a forge
- * before F1 was recorded as; the other three answer nothing or are never asked.
+ * The forges of the flow. Example Storefront is the one a forge serving every contract was recorded as, Example Project the one an older
+ * forge, whose identity carries no version, was recorded as; the other three answer nothing or are never asked.
  */
 const FORGES = {
   exampleStorefront: { trackerId: 'example-storefront-7c41', project: 'Example Storefront', hephaestusOrigin: 'http://127.0.0.1:4951' },
