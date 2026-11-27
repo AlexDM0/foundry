@@ -23,8 +23,8 @@ import {
 } from 'bun:test';
 
 
+import { RepositoryLandings }                                 from '../../adapters/repository-landings/RepositoryLandings.ts';
 import { HELD_CHECKOUT_RETRY_TRIES }                          from '../../lib/git/HeldCheckout.ts';
-import { RepositoryLandings }                                 from '../../lib/git/RepositoryLandings.ts';
 import { PRODUCT_NAMES }                                      from '../../shared/constants/ProductNames.ts';
 import { ticketFixture }                                      from '../../testing/BoardFixtures.ts';
 import { heldFileGit, type CountingCheckoutWritePrimitives }  from '../../testing/HeldFileGit.ts';

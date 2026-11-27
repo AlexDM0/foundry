@@ -6,8 +6,8 @@
 import { existsSync, mkdirSync, statSync } from 'node:fs';
 import { join }                            from 'node:path';
 
-import { RepositoryLandings }                                                 from '../../lib/git/RepositoryLandings.ts';
-import type { RepositoryLandingFiles, RepositoryTracker, TrackerListReading } from '../../lib/git/RepositoryLandings.ts';
+import type { RepositoryLandingFiles, RepositoryTracker, TrackerListReading } from '../../adapters/repository-landings/RepositoryLandings.ts';
+import { RepositoryLandings }                                                 from '../../adapters/repository-landings/RepositoryLandings.ts';
 import { repositoryRootWithoutGit }                                           from '../../lib/git/RepositoryRootWithoutGit.ts';
 import { GIT_ENTRY_NAME }                                                     from '../../lib/git/constants/GitConventions.ts';
 import { PRODUCT_NAMES }                                                      from '../../shared/constants/ProductNames.ts';

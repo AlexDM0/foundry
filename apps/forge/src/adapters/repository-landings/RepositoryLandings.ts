@@ -6,11 +6,11 @@
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';
 
-import { writeFileAtomically }   from '../atomic-file/AtomicFile.ts';
-import { errorCodeOf }           from '../atomic-file/HeldFileFailure.ts';
-import { JsonRecordUtil }        from '../json-record/JsonRecordUtil.ts';
-import { VersionedRegistryUtil } from '../versioned-registry/VersionedRegistryUtil.ts';
-import type { RegistryEntry }    from '../versioned-registry/VersionedRegistryUtil.ts';
+import { writeFileAtomically }   from '../../lib/atomic-file/AtomicFile.ts';
+import { errorCodeOf }           from '../../lib/atomic-file/HeldFileFailure.ts';
+import { JsonRecordUtil }        from '../../lib/json-record/JsonRecordUtil.ts';
+import { VersionedRegistryUtil } from '../../lib/versioned-registry/VersionedRegistryUtil.ts';
+import type { RegistryEntry }    from '../../lib/versioned-registry/VersionedRegistryUtil.ts';
 
 const LANDING_JOURNAL_FILE_NAME = 'landings.jsonl';
 const LANDING_LOCK_FOLDER_NAME  = 'landings.lock';

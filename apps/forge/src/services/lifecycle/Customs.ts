@@ -23,6 +23,7 @@ import {
   REVIEWER_REPORT_SCHEMA
 } from '../../adapters/reports/ReportSchemas.ts';
 import { reportVerdictOf, type JsonSchema }                                        from '../../adapters/reports/ReportValidation.ts';
+import { type RepositoryLanding, type RepositoryLandingFiles, RepositoryLandings } from '../../adapters/repository-landings/RepositoryLandings.ts';
 import { TicketAcceptanceUtil }                                                    from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
 import type { JobOutcome }                                                         from '../../domain/tracker-model/@types/Job.ts';
 import type { LogRecord }                                                          from '../../domain/tracker-model/@types/LogRecord.ts';
@@ -33,7 +34,6 @@ import type { AgentAdapter, AgentConfigurationNames }                           
 import { type GitPathStyle, GitPaths }                                             from '../../lib/git/GitPaths.ts';
 import { type GitHookPolicy, type GitRun, GitProcess }                             from '../../lib/git/GitProcess.ts';
 import { GitWorktrees }                                                            from '../../lib/git/GitWorktrees.ts';
-import { type RepositoryLanding, type RepositoryLandingFiles, RepositoryLandings } from '../../lib/git/RepositoryLandings.ts';
 import { GIT_PATHSPEC_ARGUMENT_CHARACTERS }                                        from '../../lib/git/constants/GitConventions.ts';
 import { GitArgumentsUtil }                                                        from '../../lib/git/utils/GitArgumentsUtil.ts';
 import type { BranchNames }                                                        from '../../shared/BranchNames.ts';

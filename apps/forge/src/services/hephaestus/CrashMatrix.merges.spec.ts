@@ -23,8 +23,8 @@ import {
   test
 } from 'bun:test';
 
+import { RepositoryLandings, type RepositoryLanding } from '../../adapters/repository-landings/RepositoryLandings.ts';
 import { INTERRUPTED_MERGE_HOLD }                     from '../../domain/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
-import { RepositoryLandings, type RepositoryLanding } from '../../lib/git/RepositoryLandings.ts';
 import {
   ancestryAsked,
   commitResolved,

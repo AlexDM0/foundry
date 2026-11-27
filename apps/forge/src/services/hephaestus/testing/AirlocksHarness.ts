@@ -8,6 +8,7 @@ import { join }      from 'node:path';
 
 import type { KeptAirlockFacts }                          from '../../../adapters/airlock-facts/AirlockFactsIngestion.ts';
 import type { MergedTreeGate }                            from '../../../adapters/gate-outcome/@types/MergedTreeGate.ts';
+import { RepositoryLandings }                             from '../../../adapters/repository-landings/RepositoryLandings.ts';
 import type { GatePhase }                                 from '../../../domain/tracker-model/@types/GatePhase.ts';
 import type { GateRunCacheReports, GateRunStepRuns, Job } from '../../../domain/tracker-model/@types/Job.ts';
 import type { EntityKey, Pipeline, PipelineAirlock }      from '../../../domain/tracker-model/@types/Pipeline.ts';
@@ -15,7 +16,6 @@ import type { MainConstitutionReading }                   from '../../../domain/
 import type { TicketPriority }                            from '../../../domain/tracker-model/@types/Ticket.ts';
 import type { Board }                                     from '../../../domain/tracker-model/Board.ts';
 import { PipelineUtil }                                   from '../../../domain/tracker-model/utils/PipelineUtil.ts';
-import { RepositoryLandings }                             from '../../../lib/git/RepositoryLandings.ts';
 import { branchNamesOf }                                  from '../../../shared/BranchNames.ts';
 import { AIRLOCK_LIMITS, type AirlockLimits }             from '../../../shared/constants/AirlockLimits.ts';
 import { PRODUCT_NAMES }                                  from '../../../shared/constants/ProductNames.ts';
