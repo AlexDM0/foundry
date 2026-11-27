@@ -32,9 +32,13 @@ export const Empty: Story = { args: { items: [], count: 0 } };
 export const WithHeadEnd: Story = { args: { headEnd: <TextButton label="Example action" onPress={fn()} /> } };
 export const NestedHeading: Story = { args: { titleElement: 'h3' } };
 
+/** A host animates a leaving item with its own stylesheet; the story fades it out over a second, in reverse, so the leave shows. */
+const LEAVING_ANIMATION = { animation: 'design-system-fade 1s reverse both' } as const;
+
 /** Items that come and go through `useListPresence`, its list element handed over by `listRef`: an arrival and a leaving item are marked. */
 function ComingAndGoingItems() {
   const [items, setItems] = useState<readonly string[]>(EXAMPLE_ITEMS);
+  const [addedCount, setAddedCount] = useState(0);
   const list = useRef<HTMLUListElement>(null);
   const presentItems = useListPresence(items, (item) => item, list);
   return (
@@ -44,14 +48,21 @@ function ComingAndGoingItems() {
       count={items.length}
       headEnd={(
         <>
-          <TextButton label="Add an item" onPress={() => setItems([...items, `Example item ${items.length + 1}`])} />
+          <TextButton label="Add an item" onPress={() => {
+            setItems([...items, `Added example item ${addedCount + 1}`]);
+            setAddedCount(addedCount + 1);
+          }} />
           <TextButton label="Remove the first" onPress={() => setItems(items.slice(1))} />
         </>
       )}
       emptyText="No example items yet."
       items={presentItems}
       keyOf={({ key }) => key}
-      renderItem={({ item, presence }) => <li data-presence={presenceAttributeOf(presence)}><Text>{`${item} (${presence})`}</Text></li>}
+      renderItem={({ item, presence }) => (
+        <li data-presence={presenceAttributeOf(presence)} style={presence === 'leaving' ? LEAVING_ANIMATION : undefined}>
+          <Text>{`${item} (${presence})`}</Text>
+        </li>
+      )}
       listRef={list}
     />
   );

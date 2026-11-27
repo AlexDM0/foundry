@@ -233,7 +233,8 @@ export function EntitiesStep({
     <>
       <View gap="two">
         <Text typeRole="small" muted>{EntitiesStepModel.statusLineOf(record)}</Text>
-        <PageHead titleElement="h2"
+        <PageHead
+          titleElement="h2"
           title={EntitiesStepModel.headingOf(facts.project ?? '')}
           lead={'An entity is an app, a package or the root. Each gets its own constitution, gates and reviewers. A ticket changes one entity, '
             + 'and crosses into a whitelisted package in stages.'}

@@ -360,7 +360,8 @@ export function ProgressView({
 
   return (
     <div className="board-progress-view" data-name-column={nameColumnWidth} ref={viewElement} data-flint-workplace="">
-      <PageHead titleElement="h2"
+      <PageHead
+        titleElement="h2"
         title="Gantt"
         lead="Each ticket's builds and reviews over time, grouped by epic. Click a row to open it. Click its number to open the ticket."
       />

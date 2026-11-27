@@ -33,17 +33,11 @@ export function presenceAttributeOf(presence: ListItemPresence): Exclude<ListIte
   return presence === 'settled' ? undefined : presence;
 }
 
-function leavingMillisecondsOf(element: Element): number {
-  const style = getComputedStyle(element);
-  if (style.animationName === '' || style.animationName === 'none') return 0;
-  return (CssDurationUtil.millisecondsOf(style.animationDuration) ?? 0) + (CssDurationUtil.millisecondsOf(style.animationDelay) ?? 0);
-}
-
 /** The longest leaving animation among the list element's children marked leaving. */
 function longestLeaveOf(list: Element | null): number {
   if (list === null) return 0;
   const leavingChildren = [...list.children].filter((child) => child.getAttribute('data-presence') === LEAVING_PRESENCE);
-  return Math.max(0, ...leavingChildren.map(leavingMillisecondsOf));
+  return Math.max(0, ...leavingChildren.map(CssDurationUtil.animationMillisecondsOf));
 }
 
 /**

@@ -28,7 +28,7 @@ design-system/
   atoms/              one element, or a small fixed group of elements: Button, Icon, StateDot, View, Text
   molecules/          a logical combination of atoms: Row, Card, Tag, ConfirmStrip
   organisms/          a larger composition: Dialog, SidePanel, Tabs, MultipleChoiceQuestion
-  utils/              helpers that are not components: Dismissal, Presence, ValueChange, RovingFocusUtil, SpacingStyleUtil
+  utils/              helpers that are not components: Dismissal, Presence, ListPresence, ValueChange, RovingFocusUtil, SpacingStyleUtil
   constants/          design decisions as values: SPACING, the spacing scale, each step a token of tokens.css
   @types/             types several layers share: StateTone and StateDotShape, and ThemeChoice
   styles/             tokens.css, base.css, keyframes.css and the entry stylesheet design-system.css
@@ -212,8 +212,9 @@ design-system/
   first paint and reduced motion zero it. A new token is zeroed in both zeroing blocks of `styles/tokens.css`.
   The toast's reading time is no motion: reduced motion keeps it.
 - **An easing is a token too:** `--ease-out` for a motion that plays once, `--ease-in-out` for one that loops.
-- **A part that leaves animates out through `usePresence` (`utils/Presence.ts`),** inert while it goes. A
-  number that ticks when it changes keys its element through `useValueChange` (`utils/ValueChange.ts`), so the
+- **A part that leaves animates out through `usePresence` (`utils/Presence.ts`),** inert while it goes, and an item
+  that leaves a list through `useListPresence` (`utils/ListPresence.ts`), which keeps it in its place through the
+  animation the host's stylesheet gives it. A number that ticks when it changes keys its element through `useValueChange` (`utils/ValueChange.ts`), so the
   first showing plays nothing.
 
 ### Fonts

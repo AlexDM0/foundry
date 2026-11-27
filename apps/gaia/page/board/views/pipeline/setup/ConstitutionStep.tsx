@@ -93,7 +93,8 @@ function SingleConstitutionStep({
             <span className="board-pipeline-constitution-status-dot" data-state={agentState} aria-hidden="true" />
             {ConstitutionStepModel.statusLineOf(agentState)}
           </span>
-          <PageHead titleElement="h2"
+          <PageHead
+            titleElement="h2"
             title="The constitution"
             lead={(
               <>
@@ -346,7 +347,8 @@ function MonorepoConstitutionStep({
       <View gap="sixteen">
         <View gap="two">
           {breadcrumb}
-          <PageHead titleElement="h2"
+          <PageHead
+            titleElement="h2"
             title={entityKey === null ? 'Constitutions' : `${entityKey}’s constitution`}
             lead={entityKey === null
               ? 'One document per entity: each entity’s builder and reviewers read its own first. The Forge level has no constitution of its own.'
@@ -403,7 +405,8 @@ function MonorepoConstitutionStep({
             {ConstitutionStepModel.entityStatusLineOf(agentState, shownKey)}
             <ConstitutionStateTag state={state} />
           </span>
-          <PageHead titleElement="h2"
+          <PageHead
+            titleElement="h2"
             title={`${shownKey}’s constitution`}
             lead={keptForAPerson
               ? `${shownKey} has no constitution of its own.`

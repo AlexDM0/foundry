@@ -290,13 +290,13 @@ describe('the board\'s isolation', () => {
   const plantedKanbanModule = join(PAGE_FOLDER, 'board', 'views', 'kanban', 'cards', 'Planted.tsx');
   const plantedBoardSharedModule = join(PAGE_FOLDER, 'board', 'shared', 'routing', 'Planted.ts');
 
-  test('the guard names a view, nested or not, that imports another view, and passes its own folder and ViewTitle', () => {
+  test('the guard names a view, nested or not, that imports another view, and passes its own folder and a module of views/ outside every view', () => {
     expect(boardImportBreaksOf(plantedKanbanModule, 'import { MergeQueueView } from \'../../merge-queue/MergeQueueView.tsx\';'))
       .toEqual(['page/board/views/kanban/cards/Planted.tsx imports page/board/views/merge-queue/MergeQueueView.tsx (a view imports another view)']);
     expect(boardImportBreaksOf(join(PAGE_FOLDER, 'board', 'views', 'tickets', 'Planted.ts'), 'import type { IntakeModel } from \'../intake/model/IntakeModel.ts\';'))
       .toEqual(['page/board/views/tickets/Planted.ts imports page/board/views/intake/model/IntakeModel.ts (a view imports another view)']);
     expect(boardImportBreaksOf(plantedKanbanModule, 'import { KanbanModel } from \'../KanbanModel.ts\';')).toEqual([]);
-    expect(boardImportBreaksOf(plantedKanbanModule, 'import { ViewTitle } from \'../../ViewTitle.tsx\';')).toEqual([]);
+    expect(boardImportBreaksOf(plantedKanbanModule, 'import { PlantedPart } from \'../../PlantedPart.tsx\';')).toEqual([]);
   });
 
   test('the guard names board/shared/ importing a view or the shell, and passes it importing the board\'s utils', () => {

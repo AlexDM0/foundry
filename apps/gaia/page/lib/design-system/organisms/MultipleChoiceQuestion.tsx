@@ -1,10 +1,9 @@
 /**
- * A question card: an eyebrow and the question as the legend of a fieldset, an optional context line under it that describes the card, then
- * its options as children (a `QuestionOption` for each
- * lettered option, then an optional `QuestionOtherOption` whose words are typed in place), then the answer button. The options are radios of
- * one group, or checkboxes when several may be chosen; the card holds the chosen letters and hands each choice on. Answer waits for a
- * choice, and for words when the Other option is chosen. It glows while it asks; once answered, the green confirmation takes the place of
- * its options. Its options sit stacked, or side by side in equal columns.
+ * A question card: an eyebrow and the question as the legend of a fieldset, an optional context line under it that describes the card,
+ * then its options as children (a `QuestionOption` for each lettered option, then an optional `QuestionOtherOption` whose words are typed
+ * in place), then the answer button. The options are radios of one group, or checkboxes when several may be chosen; the card holds the
+ * chosen letters and hands each choice on. Answer waits for a choice, and for words when the Other option is chosen. It glows while it
+ * asks; once answered, the green confirmation takes the place of its options. Its options sit stacked, or side by side in equal columns.
  */
 import {
   createContext,

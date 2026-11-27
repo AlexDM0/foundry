@@ -11,4 +11,11 @@ function millisecondsOf(cssTime: string): number | null {
   return match[2] === 's' ? amount * MILLISECONDS_PER_SECOND : amount;
 }
 
-export const CssDurationUtil = Object.freeze({ millisecondsOf });
+/** How long an element's animation runs, its delay included: 0 when it has none, so a part with no motion goes at once. */
+function animationMillisecondsOf(element: Element): number {
+  const style = getComputedStyle(element);
+  if (style.animationName === '' || style.animationName === 'none') return 0;
+  return (millisecondsOf(style.animationDuration) ?? 0) + (millisecondsOf(style.animationDelay) ?? 0);
+}
+
+export const CssDurationUtil = Object.freeze({ millisecondsOf, animationMillisecondsOf });

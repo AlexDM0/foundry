@@ -17,6 +17,7 @@
   align-self: stretch; width: 48px; height: auto; min-height: 30px;
   color: var(--accent-ink-on); background: var(--button); border-color: var(--button); border-radius: var(--r-3);
 }
+.design-system-icon-button[data-accent]:not(:disabled):hover { border-color: var(--button); }
 .design-system-icon-button[data-accent] .design-system-icon-button-drawing { display: block; width: 18px; height: 18px; }
 .design-system-icon-button[data-accent]:disabled { color: var(--ink-4); background: var(--wash); border-color: var(--line); }
 
