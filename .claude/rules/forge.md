@@ -74,9 +74,11 @@ talos.ts  →  talos/ (the Talos program)  →  src/domain/talos/ (its contract 
 - `src/domain/` holds forge's own models: the tracker model (`src/domain/tracker-model/`, the `Board`) and Talos's
   contract with Hephaestus (`src/domain/talos/`: its frames, records, launches, event log and files). A domain package
   imports `src/lib/` and the domain packages its main module declares.
-- `talos/` is the Talos program, the second entry program beside `cli/`: only `talos.ts` imports it, and only the specs
-  of `src/services/hephaestus/` besides (`TALOS_PROGRAM_SPEC_IMPORTERS`), to run its socket server against
-  Hephaestus's client. `architecture/TalosClosure.spec.ts` holds what it reaches.
+- `talos/` is the Talos program, the second entry program beside `cli/`: only `talos.ts` imports it, and besides only
+  the test code of `src/services/hephaestus/` (`TALOS_PROGRAM_SPEC_IMPORTERS`), to run its socket server against
+  Hephaestus's client, and, through `talos/testing/`, the specs of `src/lib/local-endpoint/` and `src/testing/`, which
+  hold the endpoint against Talos's idle socket (`TESTING_FOLDER_IMPORTERS`). `architecture/TalosClosure.spec.ts` holds
+  what it reaches.
 - A package in `packages/` imports no file of an app. forge imports a package only by its name and only when
   `package.json` declares it as a `workspace:^` dependency, never by a file path. Every declared package is one
   workspace-package layer, and it imports another package only when its own `package.json` declares it.
@@ -174,11 +176,11 @@ talos.ts  →  talos/ (the Talos program)  →  src/domain/talos/ (its contract 
 - The repository tooling is for the owner only, on macOS and Linux. `.claude/hooks/` is bash. `.readme-graphics/` is
   one Python script. It is not part of the product, and it needs no Windows form.
 - `eslint.config.js` (`CONFINED_REACHES`, the clock selectors) holds `process.env` to `src/shared/Environment.ts`,
-  `process.exit` to `agent-progress.ts`, `talos.ts` and `setup.ts` (Deviations), `process.cwd`, `homedir()` and
-  the clock in `src/` and `cli/` to `cli/CommandContext.ts` (`homedir()` also to `setup.ts`), `process.platform`
+  `process.exit` to `agent-progress.ts`, `talos.ts` and `setup.ts` (Deviations), `process.cwd`, `homedir()` and the
+  clock in `src/`, `talos/` and `cli/` to `cli/CommandContext.ts` (`homedir()` also to `setup.ts`), `process.platform`
   and `chmodSync` in shipping code to the sites it names, and `process.chdir` to nowhere. The environment is read
-  through documented getters; specs set it in a child process (one exception, Deviations). The product's own
-  variables are named from `PRODUCT_NAMES.ENVIRONMENT_PREFIX`, never as literals.
+  through documented getters; specs set it in a child process (one exception, Deviations). The product's own variables
+  are named from `PRODUCT_NAMES.ENVIRONMENT_PREFIX`, never as literals.
 - A command takes everything (directory, now, streams, stdin, prompt, platform, home) from its `CommandContext`.
 - Every write of a file a reader may hold open goes through the atomic-file package.
 
