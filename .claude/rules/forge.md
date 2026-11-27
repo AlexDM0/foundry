@@ -196,8 +196,10 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 
 ### Comments
 
-- `architecture/CommentRuns.spec.ts` holds that no inline comment outside a docblock runs past two lines. Name files in
-  backticks, by the path the head of this file sets. Agreed-and-not-done work lives in `docs/backlog.md`;
+- `architecture/CommentRuns.spec.ts` holds that no inline comment outside a docblock runs past two lines, that no
+  comment, file headers and docblocks included, runs past five lines, and that no comment names a ticket, acceptance or
+  question id, a plan section or an artboard; a short pointer to a tracked document under `docs/` may stay. Name
+  files in backticks, by the path the head of this file sets. Agreed-and-not-done work lives in `docs/backlog.md`;
   `no-warning-comments` in `eslint.config.js` holds that no TODO does.
 
 ### TypeScript and lint
