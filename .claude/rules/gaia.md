@@ -203,7 +203,7 @@ Verify fails on a stale stamp and on a forge recording stamped `authored`, and l
 the OS as not finished. One recording is stamped `authored`, and verify lists it as a warning: a dialog only a person
 can answer. `bun run record path-chooser` asks the person at a Mac's screen to choose a folder and cancel a file, and
 until someone has, its recording stays authored beside its spec. Every forge recording is recorded. From this
-repository's forge, at `SUPPORTED_FORGE_VERSION` (4.4): `hephaestus-fetch-supported-forge`, the forge in each situation;
+repository's forge, at `SUPPORTED_FORGE_VERSION` (4.5): `hephaestus-fetch-supported-forge`, the forge in each situation;
 `hephaestus-fetch-ticket-documents`, a ticket's documents in the spec-then-plan route, opened by a save of its spec;
 `hephaestus-fetch-presence`, a forge's presence while it serves and after User started it again after a kill, with the
 crash log it wrote; and `hephaestus-fetch-versions`, older, ahead and newer through forge's test setting

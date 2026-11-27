@@ -6,7 +6,7 @@
     "operatingSystem": "darwin",
     "system": "forge",
     "source": "recorded",
-    "systemVersion": "install version 50, code e94a66ffc588"
+    "systemVersion": "install version 50, code 467e7073c1f4"
   },
   "answers": [
     {
@@ -25,7 +25,7 @@
         "verdict": "answered",
         "status": 200,
         "contentType": "application/json;charset=utf-8",
-        "bodyText": "{\"generation\":1,\"processId\":48107,\"codeVersion\":\"e94a66ffc588\",\"startedAt\":\"2026-11-25T20:55:47+01:00\",\"startOrigin\":\"user\",\"lastStart\":{\"kind\":\"first-start\",\"previousGeneration\":null,\"crashSuspected\":false,\"crashLogNumber\":null},\"heartbeat\":{\"sequence\":1,\"at\":\"2026-11-25T20:55:48+01:00\"},\"supervision\":\"supervising\",\"abandonedPasses\":{\"inARow\":0,\"lastReason\":null,\"lastAt\":null},\"interruptedWork\":[],\"heldMerges\":[],\"crashLogs\":[],\"talos\":{\"protocolVersion\":2,\"codeVersion\":\"e94a66ffc588\",\"startNumber\":1}}",
+        "bodyText": "{\"generation\":1,\"processId\":48107,\"codeVersion\":\"467e7073c1f4\",\"startedAt\":\"2026-11-27T10:22:13+01:00\",\"startOrigin\":\"user\",\"lastStart\":{\"kind\":\"first-start\",\"previousGeneration\":null,\"crashSuspected\":false,\"crashLogNumber\":null},\"heartbeat\":{\"sequence\":1,\"at\":\"2026-11-27T10:22:13+01:00\"},\"supervision\":\"supervising\",\"abandonedPasses\":{\"inARow\":0,\"lastReason\":null,\"lastAt\":null},\"interruptedWork\":[],\"heldMerges\":[],\"crashLogs\":[],\"talos\":{\"protocolVersion\":2,\"codeVersion\":\"467e7073c1f4\",\"startNumber\":1}}",
         "bodyBytes": null
       }
     },
@@ -35,7 +35,7 @@
         "verdict": "answered",
         "status": 200,
         "contentType": "application/json;charset=utf-8",
-        "bodyText": "{\"number\":1,\"generation\":1,\"component\":\"hephaestus\",\"suspected\":false,\"recordedAt\":\"2026-11-25T20:55:49+01:00\",\"startKind\":\"crashed\",\"error\":null,\"activeJobs\":[{\"jobId\":\"J1\",\"kind\":\"assistant\",\"ticketIds\":[],\"state\":\"running\",\"interruption\":null,\"airlockPhase\":null}],\"logTail\":[\"2026-11-25T20:55:47+01:00 Hephaestus serving http://127.0.0.1:4951/ under Hephaestus lock 1 (code e94a66ffc588, install version 50, agents fake-agent).\",\"2026-11-25T20:55:48+01:00 Started Talos 1 (the one before none, 0 orphans swept).\",\"2026-11-25T20:55:48+01:00 Launched child instance 1 of job J1 (assistant) under Talos.\"]}",
+        "bodyText": "{\"number\":1,\"generation\":1,\"component\":\"hephaestus\",\"suspected\":false,\"recordedAt\":\"2026-11-27T10:22:14+01:00\",\"startKind\":\"crashed\",\"error\":null,\"activeJobs\":[{\"jobId\":\"J1\",\"kind\":\"assistant\",\"ticketIds\":[],\"state\":\"running\",\"interruption\":null,\"airlockPhase\":null}],\"logTail\":[\"2026-11-27T10:22:13+01:00 Hephaestus serving http://127.0.0.1:4951/ under Hephaestus lock 1 (code 467e7073c1f4, install version 50, agents fake-agent).\",\"2026-11-27T10:22:13+01:00 Started Talos 1 (the one before none, 0 orphans swept).\",\"2026-11-27T10:22:13+01:00 Launched child instance 1 of job J1 (assistant) under Talos.\"]}",
         "bodyBytes": null
       }
     },
@@ -45,7 +45,7 @@
         "verdict": "answered",
         "status": 200,
         "contentType": "application/json;charset=utf-8",
-        "bodyText": "{\"generation\":2,\"processId\":48107,\"codeVersion\":\"e94a66ffc588\",\"startedAt\":\"2026-11-25T20:55:49+01:00\",\"startOrigin\":\"user\",\"lastStart\":{\"kind\":\"crashed\",\"previousGeneration\":1,\"crashSuspected\":false,\"crashLogNumber\":1},\"heartbeat\":{\"sequence\":1,\"at\":\"2026-11-25T20:55:49+01:00\"},\"supervision\":\"supervising\",\"abandonedPasses\":{\"inARow\":0,\"lastReason\":null,\"lastAt\":null},\"interruptedWork\":[],\"heldMerges\":[],\"crashLogs\":[{\"number\":1,\"generation\":1,\"component\":\"hephaestus\",\"recordedAt\":\"2026-11-25T20:55:49+01:00\",\"suspected\":false}],\"talos\":{\"protocolVersion\":2,\"codeVersion\":\"e94a66ffc588\",\"startNumber\":1}}",
+        "bodyText": "{\"generation\":2,\"processId\":48107,\"codeVersion\":\"467e7073c1f4\",\"startedAt\":\"2026-11-27T10:22:15+01:00\",\"startOrigin\":\"user\",\"lastStart\":{\"kind\":\"crashed\",\"previousGeneration\":1,\"crashSuspected\":false,\"crashLogNumber\":1},\"heartbeat\":{\"sequence\":1,\"at\":\"2026-11-27T10:22:15+01:00\"},\"supervision\":\"supervising\",\"abandonedPasses\":{\"inARow\":0,\"lastReason\":null,\"lastAt\":null},\"interruptedWork\":[],\"heldMerges\":[],\"crashLogs\":[{\"number\":1,\"generation\":1,\"component\":\"hephaestus\",\"recordedAt\":\"2026-11-27T10:22:14+01:00\",\"suspected\":false}],\"talos\":{\"protocolVersion\":2,\"codeVersion\":\"467e7073c1f4\",\"startNumber\":1}}",
         "bodyBytes": null
       }
     }

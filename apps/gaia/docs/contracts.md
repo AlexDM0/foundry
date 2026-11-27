@@ -140,7 +140,7 @@ version, major.minor.
 
 The forge's requirements are in `docs/forge-requirements.md`: forge 1.0 meets V1 to V6, V8 and V9. Every fixture of a forge contract is recorded from a forge
 that serves it (`bun run record <name>`), and `bun run verify` fails on a forge recording stamped `authored`. From this repository's
-forge 4.4: `hephaestus-fetch-supported-forge`, the forge in each situation, its one job the product owner of an intake User started, since a
+forge 4.5: `hephaestus-fetch-supported-forge`, the forge in each situation, its one job the product owner of an intake User started, since a
 new board's Assistant is off, launched on the agent the board offers, which starts a setup record left at its billing step, since a forge with
 no agent chosen launches no job; `hephaestus-fetch-board`, Example Storefront's board as the relay reads it:
 the board document (with a draft ticket and a committed one the product owner gives an entity; a pipeline applied over two app entities
@@ -153,7 +153,7 @@ refused with its code, fields and sentence, of an unknown kind, and answered 423
 board's notice in that hold; a picture accepted and read back, refused as too large and as no picture; a product owner job's stream (its handshake
 and an empty history, since the fake agent writes no conversation) and a gate profile run's output; the first setup record at its billing
 step, started with its agent, with no billing chosen; and an intake's product owner standing not launched once the program its agent was pinned to is gone, with the
-look again and the board after it, whose program check does not run); and `hephaestus-fetch-versions`, the forge answering older (1.0), one minor ahead (4.4) and newer (5.1) through its
+look again and the board after it, whose program check does not run); and `hephaestus-fetch-versions`, the forge answering older (1.0), one minor ahead (4.6) and newer (5.1) through its
 test setting `FORGE_VERSIONS_ANSWER`, and a forge from before system versions, serving no `/api/versions`;
 `hephaestus-fetch-ticket-documents`, Example Bookshop with a pipeline stored in the spec-then-plan route and two drafts: the save of one
 draft's spec, which opens its documents, with the board's events up to the `documents` event, the documents and the board read after it,

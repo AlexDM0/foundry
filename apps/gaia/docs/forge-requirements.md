@@ -6,11 +6,12 @@ forge never knows about it: each requirement below speaks of a client or a host,
 
 ## Status
 
-Forge 4.4 meets V1 to V5, V9 and V11 to V15: it answers `/api/versions` with current 4.4 and minimum 4.0, serves identity 1, summary 3,
+Forge 4.5 meets V1 to V5, V9 and V11 to V15: it answers `/api/versions` with current 4.5 and minimum 4.0, serves identity 1, summary 3,
 monitor 6 and control 3 at their `/api/v<n>/` paths beside the unversioned ones, carries the system version in the monitor stream, and
-takes its documents from `forge-contracts`, every registry entry `shipped`. Gaia supports forge 4.4: 4.1 adds each forge's agent and meets
+takes its documents from `forge-contracts`, every registry entry `shipped`. Gaia supports forge 4.5: 4.1 adds each forge's agent and meets
 V11, 4.2 adds a ticket's documents and the pipeline's defaults and meets V12 and V13, 4.3 puts the agent before the billing and meets V14,
-4.4 adds the document agents' questions and where each draft stands and meets V15.
+4.4 adds the document agents' questions and where each draft stands and meets V15, and 4.5 adds the header warning and the
+incident kind `system-file-unreadable`, which Gaia shows as it shows any warning and incident.
 Since 2.0 forge serves no page of its own, so the
 requirements that let a host frame that page, V6 and V8, went with it, and V5 keeps only its half about the monitor stream. The numbers
 V6 to V8 are not used again.
@@ -215,7 +216,7 @@ panel past a second, but cannot shorten it.
 
 ## 3. What Gaia does with a forge that misses a requirement
 
-Gaia supports exactly one forge system version (`SUPPORTED_FORGE_VERSION`, forge 4.4) and keeps nothing for an older forge: forge 1, 2 or 3,
+Gaia supports exactly one forge system version (`SUPPORTED_FORGE_VERSION`, forge 4.5) and keeps nothing for an older forge: forge 1, 2 or 3,
 and a forge that serves no V1 to V3, as every forge from before system versions, read as older, and Gaia offers Update forge.
 
 | Missing | Gaia shows |
