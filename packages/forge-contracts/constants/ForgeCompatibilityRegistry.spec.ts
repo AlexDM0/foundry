@@ -1,10 +1,7 @@
 /**
- * Forge's compatibility registry against forge's versions. What matters: the guard holds today, with nothing kept below the minimum and no
- * entry contradicting itself; the registry holds endpoints only, every one shipped and still needed, since forge 4.0 keeps nothing for a
- * client of forge 3; a client built for 4.0 calls each endpoint at the listed version, the summary, the monitor, its stream, the board and
- * its event stream at the version 4.0 introduced; a client built for forge 3 is served none of those five; a ticket's documents are served
- * from 4.2, to no client built for 4.1; nothing is removable at 4.0, nor at a raise of the minimum to the next minor; and the guard names
- * an entry kept below the minimum, planted here, until it is removed.
+ * Forge's compatibility registry against forge's versions: the guard holds today, every entry is a shipped endpoint still needed (4.0 keeps
+ * nothing for a forge 3 client), each client is served the endpoint version its forge version introduced, and the guard names an entry
+ * kept below the minimum, planted here.
  */
 import { describe, expect, test } from 'bun:test';
 

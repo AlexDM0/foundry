@@ -3,7 +3,7 @@
 /** The contracts an identity names beside its own. */
 export type ServedContractName = 'summary' | 'monitor' | 'control';
 
-/** The major of each contract the forge serves; a contract it does not serve is absent from the object (F1). */
+/** The major of each contract the forge serves; a contract it does not serve is absent from the object. */
 export type IdentityContractsDocument = { readonly [Contract in ServedContractName]?: number };
 
 export interface IdentityDocument {

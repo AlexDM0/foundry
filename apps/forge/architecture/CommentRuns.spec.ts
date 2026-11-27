@@ -29,41 +29,30 @@ const REFERENCE_PATTERNS: readonly RegExp[] = [
 
 /** Files with comments longer than five lines, each with its count; the sweep shrinks this to nothing and nothing joins it. */
 const LONG_COMMENTS_AWAITING_THE_SWEEP: Readonly<Record<string, number>> = {
-  'architecture/AgentBoundary.spec.ts':                           1,
-  'architecture/ClientNames.spec.ts':                             1,
-  'architecture/ComponentNames.spec.ts':                          1,
-  'architecture/DocumentSpecCitations.spec.ts':                   1,
-  'architecture/GitRunsAtAToplevel.spec.ts':                      1,
-  'architecture/ImportDirection.spec.ts':                         1,
-  'architecture/LineEndingPolicy.spec.ts':                        1,
-  'architecture/LintRules.spec.ts':                               1,
-  'architecture/PlatformBoundary.spec.ts':                        1,
-  'architecture/PlatformProbes.integration.spec.ts':              1,
-  'architecture/ProductNameLiterals.spec.ts':                     1,
-  'architecture/ProseWrap.spec.ts':                               1,
-  'architecture/RealSystemSpecs.spec.ts':                         1,
-  'architecture/SpecSleeps.spec.ts':                              1,
-  'architecture/SpecsOpenNoPage.spec.ts':                         1,
-  'architecture/StoreBoundary.spec.ts':                           1,
-  'architecture/TalosClosure.spec.ts':                            1,
-  'architecture/TalosMainThread.spec.ts':                         1,
-  'architecture/TestFileConventions.spec.ts':                     1,
-  'forge-contracts/@types/BoardAgentDocuments.ts':                1,
-  'forge-contracts/@types/BoardPipelineDocuments.ts':             1,
-  'forge-contracts/@types/MonitorSnapshotDocument.ts':            1,
-  'forge-contracts/constants/ForgeCompatibilityRegistry.spec.ts': 1,
-  'forge-contracts/constants/ForgeCompatibilityRegistry.ts':      1,
-  'forge-contracts/constants/ForgeSystemVersions.ts':             1,
-  'system-versions/utils/CompatibilityRegistryUtil.spec.ts':      1,
+  'architecture/AgentBoundary.spec.ts':                      1,
+  'architecture/ClientNames.spec.ts':                        1,
+  'architecture/ComponentNames.spec.ts':                     1,
+  'architecture/DocumentSpecCitations.spec.ts':              1,
+  'architecture/GitRunsAtAToplevel.spec.ts':                 1,
+  'architecture/ImportDirection.spec.ts':                    1,
+  'architecture/LineEndingPolicy.spec.ts':                   1,
+  'architecture/LintRules.spec.ts':                          1,
+  'architecture/PlatformBoundary.spec.ts':                   1,
+  'architecture/PlatformProbes.integration.spec.ts':         1,
+  'architecture/ProductNameLiterals.spec.ts':                1,
+  'architecture/ProseWrap.spec.ts':                          1,
+  'architecture/RealSystemSpecs.spec.ts':                    1,
+  'architecture/SpecSleeps.spec.ts':                         1,
+  'architecture/SpecsOpenNoPage.spec.ts':                    1,
+  'architecture/StoreBoundary.spec.ts':                      1,
+  'architecture/TalosClosure.spec.ts':                       1,
+  'architecture/TalosMainThread.spec.ts':                    1,
+  'architecture/TestFileConventions.spec.ts':                1,
+  'system-versions/utils/CompatibilityRegistryUtil.spec.ts': 1,
 };
 
 /** Files whose comments name a reference, each with its count of such comments; it only shrinks. */
-const REFERENCES_AWAITING_THE_SWEEP: Readonly<Record<string, number>> = {
-  'forge-contracts/@types/BoardConversationDocuments.ts': 1,
-  'forge-contracts/@types/ForgeControlCommand.ts':        1,
-  'forge-contracts/@types/IdentityDocument.ts':           1,
-  'forge-contracts/@types/MonitorSnapshotDocument.ts':    1,
-};
+const REFERENCES_AWAITING_THE_SWEEP: Readonly<Record<string, number>> = {};
 const ONLY_A_LINE_BREAK_BETWEEN = /^[ \t]*\r?\n[ \t]*$/;
 
 interface CommentRanges {

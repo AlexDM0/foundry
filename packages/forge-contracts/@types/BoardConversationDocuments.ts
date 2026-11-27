@@ -20,7 +20,7 @@ export interface BoardDecisionOptionDocument {
   readonly touches?:          readonly string[];
   /** What the user gets and what the user loses. */
   readonly tradeOff?:         string;
-  /** What the option does to the ticket's Acceptance items, by their labels, such as "A2 fails". */
+  /** What the option does to the ticket's Acceptance items, by their labels. */
   readonly acceptanceEffect?: string;
 }
 

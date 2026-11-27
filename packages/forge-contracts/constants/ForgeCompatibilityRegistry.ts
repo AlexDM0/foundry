@@ -1,9 +1,7 @@
 /**
- * Forge's compatibility registry: one entry per thing forge keeps for clients of its versions, each versioned endpoint and each
- * compatibility path that is no endpoint (none today), with the forge version that introduced it and the last forge version whose clients
- * still need it. `bun run versions:raise-minimum <major.minor>` lists what a raise of `FORGE_SYSTEM_VERSIONS.minimumSupported` makes removable, and
- * `ForgeCompatibilityRegistry.spec.ts` fails while an entry is kept below that minimum. `GET /api/versions` is in no entry: it is never removed.
- * An endpoint segment `{<name>}` is a template a concrete path fills (`CompatibilityRegistryUtil.endpointEntryForPath`).
+ * Forge's compatibility registry: one entry per thing forge keeps for clients of older versions, with the version that introduced it and the
+ * last whose clients still need it. `bun run versions:raise-minimum <major.minor>` lists what a raise makes removable. `GET /api/versions`
+ * is in no entry, since it is never removed; an endpoint segment `{<name>}` is a template a concrete path fills.
  */
 import type { CompatibilityEntry } from 'system-versions/CompatibilityEntry';
 import type { SystemVersion }      from 'system-versions/VersionsDocument';

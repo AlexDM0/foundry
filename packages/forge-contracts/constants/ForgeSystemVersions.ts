@@ -5,41 +5,8 @@
 import type { VersionsDocument } from 'system-versions/VersionsDocument';
 
 /**
- * Forge 2.0 is the headless forge: it serves an API and no page. Against forge 1: no page of its own, no browser session or session code, no embed
- * contract and no frame-ancestor record; no Flint's brain in the monitor or the commands; the monitor names what an entry opens by a typed
- * target; the board document carries Markdown (`bodyMarkdown`, `descriptionMarkdown`, `constitutionMarkdown`) where it carried rendered
- * HTML; the Assistant is a switch of the board (the command pipeline-assistant-set, the pipeline's `assistant` key, the default cause
- * assistant-off); and a pipeline has one format, whose gate key is `forgeOnly`. The registry dates the endpoints this changed at 2.0
- * (`ForgeCompatibilityRegistry.ts`).
- * Forge 3.0 names its serving process Hephaestus. Against forge 2: the summary, the monitor and the board document carry the process's facts
- * under the key `hephaestus` (the board's own switch is `hephaestusState`, its log kind hephaestus-set), and the four lifecycle commands are
- * hephaestus-pause, hephaestus-unpause, hephaestus-stop and hephaestus-restart. The registry dates the endpoints this changed at 3.0.
- * Forge 4.0 restarts Hephaestus after a preflight of the code on disk, with no handshake through a file. Against forge 3: the process's state
- * while it restarts is `restarting` in the summary, the monitor and the board document, the warning kind of a failed restart is
- * restart-failed, and the board document carries that failure as `restartWarning`. The registry dates the endpoints this changed at 4.0.
- * Forge 4.1 adds each forge's agent: the board document's `agent`, the setup step `agent` and the record's `agent` and `tools`, a job's
- * `notLaunched`, the pipeline's `agent` and `tools`, the draft field `tools`, and the commands pipeline-setup-agent, pipeline-agent-set,
- * pipeline-tools-set, agent-look-again and machine-agent-program-set.
- * Forge 4.2 adds a ticket's documents in the spec-then-plan route: their endpoint, the user's commands on them, the `documents` event and
- * the new members of the board's unions. Most reach a client only once a board sets that route, but the board's limits name the
- * defaults of the two new roles, `specAgent` and `planAgent`, on every board: a key added to a record a client reads, which only adds. The
- * limits also add the defaults a pipeline means where it says nothing, so a client keeps no copy: `defaultAgentPairOfRole`,
- * `defaultDocumentsOfRole`, `fixedDocumentsOfRole`, `defaultApprovals` and `defaultTicketWritingRoute`.
- * Forge 4.3 puts the agent step before billing, since the agent's vendor decides how it can bill: pipeline-setup-start carries the agent
- * and optionally the billing, the record's `billing` is `null` until chosen, each vendor names its `billingOptions`, and a job is not
- * launched `billing-not-offered` when its billing names a way its vendor does not bill; pipeline-agent-set optionally carries a billing to
- * store with the agent. The owner decided it is a minor.
- * Forge 4.4 lets a spec or plan agent ask on its document. Its question is an agent-question decision that names its `document`, its
- * `anchor` and its `placement`; each option names its `letter`; a decision answer's letters may carry a `note`; a message that answers a
- * question names its `decisionId` and its `answer` in parts; and a ticket being written carries its `draft`: its stage, what waits on the
- * user, its agent and when that wait began. The relayed verb `document ask` adds the command ticket-document-agent-ask; an approval while
- * the question is open is refused document-has-open-questions, and a withdraw of an answer document-answer-not-withdrawn. What waits on
- * the user leaves out a draft whose spec or plan agent is still writing it.
- * Forge 4.5 adds the header warning `system-file-unreadable`, a board-wide file of forge's own that Hephaestus cannot read, with its `file`
- * and `reason`, and the incident kind `system-file-unreadable`, a job's own file that Hephaestus cannot read.
- * The minimum supported is the current major's first version: no client built for forge 3 is served. The current version is raised with
- * every change to a route, a document, a command or a message, in its minor when the change only adds; the minimum only to retire what the
- * registry keeps.
+ * The current version rises with every change to a route, a document, a command or a message, in its minor when the change only adds; the
+ * minimum only to retire what the registry keeps. What each version changed is `apps/forge/docs/reference/hephaestus-api.md`, "System versions".
  */
 export const FORGE_SYSTEM_VERSIONS: VersionsDocument = {
   current:          { major: 4, minor: 5 },

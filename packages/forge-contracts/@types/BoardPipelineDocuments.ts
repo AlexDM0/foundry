@@ -1,8 +1,7 @@
 /**
- * The board document's pipeline facts: the stored pipeline as read, the open setup, update or advise record with what it holds, the flow a
- * view draws with its nodes, edges and marks, the gates' profile runs, cache marks and step run times, the newest pipeline records, the
- * choices a step may take, and the typed draft edits a command sends and an entity refusal's fix holds. Values only, never words: a view
- * words every kind, role and label, but the sentence of a refusal and the label of its fix, which are forge's.
+ * The board document's pipeline facts: the stored pipeline, the open setup, update or advise record, the flow a view draws, the gates' runs
+ * and the typed draft edits a command sends. Values only, never words: a view words every kind, role and label, but a refusal's sentence
+ * and its fix's label, which are forge's.
  */
 import type {
   AgentEffort,

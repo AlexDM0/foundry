@@ -1,5 +1,5 @@
 /**
- * The commands of the forge's control contract (F7, G3) a monitor may send to `POST /api/commands`, as the forge spells them. The body
+ * The commands of the forge's control contract a monitor may send to `POST /api/commands`, as the forge spells them. The body
  * carries no version: the forge's system version names the kinds it reads, the resume of interrupted work from 1.20 and the
  * clean restart of Talos from 1.23.
  */

@@ -1,8 +1,6 @@
 /**
- * The forge's `MonitorSnapshot` (F2), from `GET /api/monitor` and each `monitor` event (F3): the keys a reader checks at `monitorVersion: 6`;
- * and the stream's handshake and event, which carry the forge's system version.
- * Keys no reader checks, such as `ticketCountByStatus` and Hephaestus's `generation`, are left out. Every string union is the wire's own
- * spelling.
+ * The forge's `MonitorSnapshot`, from `GET /api/monitor` and each `monitor` event, at `monitorVersion: 6`, with the stream's handshake and
+ * event: only the keys a reader checks, each string union in the wire's own spelling.
  */
 import type { SystemVersion } from 'system-versions/VersionsDocument';
 

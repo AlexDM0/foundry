@@ -53,10 +53,8 @@ export interface AgentProgramPlaceDocument {
 }
 
 /**
- * Why an agent's program does not run: `no-agent-chosen`, `other-vendor`, `no-machine-program` and `billing-not-offered` (the billing
- * names a way the vendor does not bill, from forge 4.3) read the choice; `relative-path`,
- * `inside-forbidden-root`, `batch-target`, `not-there`, `not-executable` and `no-adapter` where the program lies; `did-not-start`,
- * `timed-out`, `failed` and `not-this-agent` how its run with its version arguments ended.
+ * Why an agent's program does not run: `no-agent-chosen` through `billing-not-offered` read the choice, `relative-path` through `no-adapter`
+ * where the program lies, and `did-not-start` through `not-this-agent` how its run with its version arguments ended.
  */
 export type AgentProgramRefusalCause =
   | 'no-agent-chosen'
