@@ -4,7 +4,7 @@
  * launched by the Playbook from the row's stage alone, verified by Customs against the fixture's recorded git and gated green by the
  * manifest Hephaestus writes for it: stage 1 crosses into the package, the package build states a change of what the package exposes,
  * the package review confirms it and seals the package change, `adapt` keeps the seal, and the home review queues the ticket, whose
- * Airlock gates the shop, the admin app and the package and lands it. Each stage case on its own is in `JobLaunch.crossing.spec.ts`, and
+ * Airlock gates the shop, the admin app and the package and lands it. Each stage case on its own is in `BuildJobPass.crossing.spec.ts`, and
  * each landing case in `Airlocks.crossing.spec.ts`.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -32,7 +32,7 @@ import { stepIn }                                                               
 import { GIT_CALL_SHAPES, RECORDED_PLACEHOLDERS, useRecordedGit }                    from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }                            from '../../testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }                                                 from '../../testing/ToolGuard.ts';
-import type { JobLaunchContext }                                                     from './JobLaunch.ts';
+import type { JobLaunchContext }                                                     from './@types/JobLaunchContext.ts';
 import { AirlockAnswerSets }                                                         from './testing/AirlockAnswerSets.ts';
 import { createRecordedAirlocksHarness, RECORDED_AIRLOCK_IDS, type AirlocksHarness } from './testing/AirlocksHarness.ts';
 import {

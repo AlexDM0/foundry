@@ -46,15 +46,14 @@ import { GIT_CALL_SHAPES, type RecordedGitStep, useRecordedGit } from '../../tes
 import { createScratchDirectory, removeScratchDirectory }        from '../../testing/ScratchWorkspace.ts';
 import { testWhenGitIsRecorded }                                 from '../../testing/ToolGuard.ts';
 import type { BoardTransaction }                                 from '../tracker/BoardTransaction.ts';
+import type { BuildJobObservation }                              from './@types/BuildJobObservation.ts';
+import type { JobLaunchContext }                                 from './@types/JobLaunchContext.ts';
+import { BuildJobPass }                                          from './BuildJobPass.ts';
 import type { GateRunSlots }                                     from './GateRunSlots.ts';
 import { jobFolderIn }                                           from './HephaestusFiles.ts';
-import {
-  BUILD_JOB_CAUSES,
-  JobLaunch,
-  type BuildJobObservation,
-  type JobLaunchContext
-} from './JobLaunch.ts';
-import { keptRedHandoffOf } from './testing/KeptRedHandoff.ts';
+import { MainMergeRounds }                                       from './MainMergeRounds.ts';
+import { BUILD_JOB_CAUSES }                                      from './constants/BuildJobCauses.ts';
+import { keptRedHandoffOf }                                      from './testing/KeptRedHandoff.ts';
 
 const AT = '2026-11-12T10:00:00+01:00';
 const TARGET = 'master';
@@ -162,9 +161,9 @@ function mergingMainScene(kind: 'review' | 'build', pipeline: Pipeline): Merging
   } as unknown as JobLaunchContext;
   const change = { board, at: AT } as unknown as BoardTransaction;
   const pass = async (): Promise<BuildJobObservation[]> => {
-    const observations = JobLaunch.observeBuildJobs(context, board.jobs(), board.pipeline());
-    JobLaunch.applyBuildJobObservations(change, context, observations);
-    await JobLaunch.runBuildJobEffects(context, board, observations);
+    const observations = BuildJobPass.observeBuildJobs(context, board.jobs(), board.pipeline());
+    BuildJobPass.applyBuildJobObservations(change, context, observations);
+    await BuildJobPass.runBuildJobEffects(context, board, observations);
     return observations;
   };
   return {
@@ -362,7 +361,7 @@ testWhenGitIsRecorded('a reviewer back from a resume merging-main sent it on goe
   for (const state of ['running', 'in-customs', 'gating'] as const) board.moveJob(scene.jobId, state, AT);
   const stamp = board.gateRunStampOf('review');
   if (stamp === null) throw new Error('The scene stores no pipeline.');
-  JobLaunch.applyBuildJobObservations({ board, at: AT } as unknown as BoardTransaction, context, [{
+  BuildJobPass.applyBuildJobObservations({ board, at: AT } as unknown as BoardTransaction, context, [{
     jobId:           scene.jobId,
     setup:           'installed',
     installStepRuns: [],
@@ -401,7 +400,7 @@ testWhenGitIsRecorded('with no review step a green build waits in merging-main, 
   const stamp = board.gateRunStampOf('build');
   if (stamp === null) throw new Error('The scene stores no pipeline.');
   const manifest = { ...stamp, prepare: [], gates: [{ name: 'tests', run: 'bun test' }] };
-  JobLaunch.applyBuildJobObservations({ board, at: AT } as unknown as BoardTransaction, context, [{
+  BuildJobPass.applyBuildJobObservations({ board, at: AT } as unknown as BoardTransaction, context, [{
     jobId:           gating.id,
     setup:           'installed',
     installStepRuns: [],
@@ -448,7 +447,7 @@ testWhenGitIsRecorded('a resolution larger than the merge train\'s re-review thr
   });
   const kept = JSON.parse(readFileSync(join(scene.jobFolder(), 'main-resolution.json'), 'utf8')) as unknown;
   expect(kept).toMatchObject({ conflictRound: 1, resolutionCommit: RESOLUTION_TIP, lines: RE_REVIEW_THRESHOLD_LINES + 1 });
-  expect(JobLaunch.mainMergeConflictOf(scene.context.workspace.trackerDirectory, scene.job() as Readonly<Job>)).toEqual(KEPT_CONFLICT);
+  expect(MainMergeRounds.mainMergeConflictOf(scene.context.workspace.trackerDirectory, scene.job() as Readonly<Job>)).toEqual(KEPT_CONFLICT);
 });
 
 testWhenGitIsRecorded('a conflict that cannot be read stops the look: the resolution is never measured, and the job waits on the incident', async () => {
@@ -464,7 +463,7 @@ testWhenGitIsRecorded('a conflict that cannot be read stops the look: the resolu
   expect(scene.job()?.state).toBe('merging-main');
   const versionProblem = { code: 'version-differs', field: 'version', expectedVersion: 1 } as const;
   const unreadable = { verdict: 'unreadable-file', file: `jobs/${scene.jobId}/main-conflict.json`, problem: versionProblem } as const;
-  expect(JobLaunch.mainMergeConflictOf(scene.context.workspace.trackerDirectory, scene.job() as Readonly<Job>)).toEqual(unreadable);
+  expect(MainMergeRounds.mainMergeConflictOf(scene.context.workspace.trackerDirectory, scene.job() as Readonly<Job>)).toEqual(unreadable);
   expect(scene.board.incidents().map((incident) => [incident.kind, incident.facts['file']])).toEqual([['system-file-unreadable', unreadable.file]]);
 });
 
@@ -510,7 +509,7 @@ testWhenGitIsRecorded('a re-reviewer in Customs whose verdict cannot be read is 
   const verdict = { verdict: 'unreadable-file', file: `jobs/${reReviewer.id}/verdict.json`, problem: { code: 'not-a-json-object' } } as const;
   const change = { board: scene.board, at: AT } as unknown as BoardTransaction;
 
-  JobLaunch.applyBuildJobObservations(change, scene.context, [{
+  BuildJobPass.applyBuildJobObservations(change, scene.context, [{
     jobId:            scene.jobId,
     setup:            'installed',
     installStepRuns:  [],
@@ -555,7 +554,7 @@ testWhenGitIsRecorded('a re-review that holds ends the re-reviewer reviewed, and
     if (reReviewer === undefined) throw new Error('No conflict re-reviewer was launched.');
     for (const state of ['running', 'in-customs'] as const) scene.board.moveJob(reReviewer.id, state, AT);
     const change = { board: scene.board, at: AT } as unknown as BoardTransaction;
-    JobLaunch.applyBuildJobObservations(change, scene.context, [{
+    BuildJobPass.applyBuildJobObservations(change, scene.context, [{
       jobId:            scene.jobId,
       setup:            'installed',
       installStepRuns:  [],

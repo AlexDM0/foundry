@@ -12,7 +12,8 @@ import { PipelineUtil }                                 from '../../domain/track
 import { boardFixture, ticketFixture }                  from '../../testing/BoardFixtures.ts';
 import { ENTITY_FORGE_ENTITIES, entityForgePipelineOf } from '../../testing/EntityForgeFixture.ts';
 import type { BoardTransaction }                        from '../tracker/BoardTransaction.ts';
-import { JobLaunch, type JobLaunchContext }             from './JobLaunch.ts';
+import type { JobLaunchContext }                        from './@types/JobLaunchContext.ts';
+import { BuildJobPass }                                 from './BuildJobPass.ts';
 
 const AT = '2026-11-17T16:00:00+01:00';
 
@@ -25,7 +26,7 @@ function barOfALaunchedReviewer(pipeline: Pipeline, round: number, entityStage?:
     kind: 'review', role: 'reviewer', ticketIds: ['001'], parentJobId: null, attempt: round, target: 'main', ...entityStage
   }, AT);
   const context = { workspace: { rootDirectory: '/example', trackerDirectory: '/example/.forge' }, log: () => undefined } as unknown as JobLaunchContext;
-  JobLaunch.applyBuildJobObservations({ board, at: AT } as unknown as BoardTransaction, context, [{
+  BuildJobPass.applyBuildJobObservations({ board, at: AT } as unknown as BoardTransaction, context, [{
     jobId:            job.id,
     setup:            'creating-worktree',
     installStepRuns:  [],

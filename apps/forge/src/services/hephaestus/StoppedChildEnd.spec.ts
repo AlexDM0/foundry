@@ -1,5 +1,5 @@
 /**
- * What a child's end on the Windows adapter decides downstream, read the way `DrivePass.ts` and `JobLaunch.ts` read a child's end. A kill reads as
+ * What a child's end on the Windows adapter decides downstream, read the way `DrivePass.ts` and `JobLines.ts` read a child's end. A kill reads as
  * exit 1 there, so what matters is that a forced stop does not reach the branches of a child that exited by itself.
  */
 import { expect, test } from 'bun:test';

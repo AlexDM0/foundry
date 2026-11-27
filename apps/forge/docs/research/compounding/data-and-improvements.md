@@ -781,7 +781,7 @@ package from the repository root.
 | The event log and its stamps | `src/domain/talos/EventLog.ts` |
 | What a stream line maps to | `src/lib/agent-launch/AgentSessionEvent.ts`, `src/lib/claude-code/ClaudeStreamMapper.ts` |
 | A raw result line | `src/lib/claude-code/testing/fixtures/resume-structured-output.stdout.jsonl` |
-| Job folder files, step verdicts, the gate run manifest, `gate.log`, `start.json` | `src/services/hephaestus/JobLaunch.ts` |
+| Job folder files, step verdicts, the gate run manifest, `gate.log`, `start.json` | `src/services/hephaestus/WorktreeJobs.ts`, `src/services/hephaestus/JobGateRuns.ts`, `src/services/hephaestus/JobLaunch.ts` |
 | The red handoff file | `src/services/hephaestus/RedHandoff.ts` |
 | Gate lines, their confinement and slots | `src/services/lifecycle/GateLineRun.ts`, `src/services/lifecycle/GateRun.ts`, `src/services/hephaestus/GateRunSlots.ts` |
 | Gate profiles and the pipeline check | `src/services/hephaestus/GateProfiling.ts`, `src/services/hephaestus/PipelineChecking.ts` |

@@ -53,13 +53,15 @@ import {
   type RecordedGitStep,
   useRecordedGit
 } from '../../testing/RecordedGit.ts';
-import { createScratchDirectory, removeScratchDirectory }             from '../../testing/ScratchWorkspace.ts';
-import { EVERY_TALOS_IS_LIVE, talosChildReadingsWith }                from '../../testing/TalosChildReadings.ts';
-import { testWhenGitIsRecorded }                                      from '../../testing/ToolGuard.ts';
-import { GateRun }                                                    from '../lifecycle/GateRun.ts';
-import type { BoardTransaction }                                      from '../tracker/BoardTransaction.ts';
-import { jobFolderIn }                                                from './HephaestusFiles.ts';
-import { type BuildJobObservation, JobLaunch, type JobLaunchContext } from './JobLaunch.ts';
+import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { EVERY_TALOS_IS_LIVE, talosChildReadingsWith }    from '../../testing/TalosChildReadings.ts';
+import { testWhenGitIsRecorded }                          from '../../testing/ToolGuard.ts';
+import { GateRun }                                        from '../lifecycle/GateRun.ts';
+import type { BoardTransaction }                          from '../tracker/BoardTransaction.ts';
+import type { BuildJobObservation }                       from './@types/BuildJobObservation.ts';
+import type { JobLaunchContext }                          from './@types/JobLaunchContext.ts';
+import { BuildJobPass }                                   from './BuildJobPass.ts';
+import { jobFolderIn }                                    from './HephaestusFiles.ts';
 
 const PIPELINE: Pipeline = {
   version: 5,
@@ -115,7 +117,7 @@ function gatingScene(): GatingScene {
 }
 
 function gateOf(scene: GatingScene, kind: 'build' | 'review', stage: RecordedGitStage, pipeline: Pipeline = PIPELINE): Promise<unknown> {
-  return recordedGit.playStage(stage, () => Promise.resolve(JobLaunch.observeBuildJobs(scene.context, [scene.jobOf(kind)], pipeline)[0]?.gate));
+  return recordedGit.playStage(stage, () => Promise.resolve(BuildJobPass.observeBuildJobs(scene.context, [scene.jobOf(kind)], pipeline)[0]?.gate));
 }
 
 testWhenGitIsRecorded('a review that left the tree it was given runs no gate and is judged passed', async () => {
@@ -170,7 +172,7 @@ function endStepExited(scene: GatingScene, folderName: string, exitCode: number)
 
 function setupOf(scene: GatingScene): Promise<unknown> {
   const job = { ...scene.jobOf('build'), state: 'preparing' } as Job;
-  return recordedGit.playStage([], () => Promise.resolve(JobLaunch.observeBuildJobs(scene.context, [job], TWO_PREPARE_STEPS)[0]?.setup));
+  return recordedGit.playStage([], () => Promise.resolve(BuildJobPass.observeBuildJobs(scene.context, [job], TWO_PREPARE_STEPS)[0]?.setup));
 }
 
 testWhenGitIsRecorded('each prepare step installs as a line of its own: installed only once every step exited 0', async () => {
@@ -217,7 +219,7 @@ testWhenGitIsRecorded('an install step gone with no end of its own is never judg
   });
   const job = { ...scene.jobOf('build'), state: 'preparing' } as Job;
 
-  const [observation] = await recordedGit.playStage([], () => Promise.resolve(JobLaunch.observeBuildJobs(scene.context, [job], TWO_PREPARE_STEPS)));
+  const [observation] = await recordedGit.playStage([], () => Promise.resolve(BuildJobPass.observeBuildJobs(scene.context, [job], TWO_PREPARE_STEPS)));
 
   expect(observation).toMatchObject({ setup: 'installing', lostLine: 'install' });
 });
@@ -252,7 +254,7 @@ testWhenGitIsRecorded('a gate Talos stopped at its time bound judges cannot-run,
 testWhenGitIsRecorded('a gate run runs each prepare step as a step of its own before the first gate', async () => {
   const scene = gatingScene();
   const gateWith = (stage: RecordedGitStage): Promise<unknown> => recordedGit.playStage([HEAD_ON_THE_START_TREE, ...stage], () => Promise.resolve(
-    JobLaunch.observeBuildJobs(scene.context, [scene.jobOf('build')], TWO_PREPARE_STEPS)[0]?.gate
+    BuildJobPass.observeBuildJobs(scene.context, [scene.jobOf('build')], TWO_PREPARE_STEPS)[0]?.gate
   ));
   expect(await gateWith([])).toMatchObject({ verdict: 'running', stepIndex: 0 });
 
@@ -403,7 +405,7 @@ describe('the gate-run manifest', () => {
   testWhenGitIsRecorded('a session resumed after a red handoff starts a run of its own, with a manifest of its own', async () => {
     const scene = gatingScene();
     const resumed = { ...scene.jobOf('build'), childInstance: 2 } as Job;
-    await recordedGit.playStage([HEAD_ON_THE_START_TREE], () => Promise.resolve(JobLaunch.observeBuildJobs(scene.context, [resumed], PIPELINE)));
+    await recordedGit.playStage([HEAD_ON_THE_START_TREE], () => Promise.resolve(BuildJobPass.observeBuildJobs(scene.context, [resumed], PIPELINE)));
 
     expect(existsSync(jobFileOf(scene, 'gate-run-2.json'))).toBe(true);
     expect(existsSync(jobFileOf(scene, 'gate-run.json'))).toBe(false);
@@ -421,7 +423,7 @@ describe('the gate run\'s settlement', () => {
     const scene = gatingScene();
     const change = { board, at: SETTLED_AT } as unknown as BoardTransaction;
 
-    JobLaunch.applyBuildJobObservations(change, { ...scene.context, mainLine: 'main', log: () => undefined }, [{
+    BuildJobPass.applyBuildJobObservations(change, { ...scene.context, mainLine: 'main', log: () => undefined }, [{
       jobId:           job.id,
       setup:           'installed',
       installStepRuns: [],
@@ -517,7 +519,7 @@ describe('a gate\'s cache report', () => {
     const cacheReports = [{ gateName: 'tests', cacheReport: 'partial' as const }, { gateName: 'lint', cacheReport: null }];
     const change = { board, at: SETTLED_AT } as unknown as BoardTransaction;
 
-    JobLaunch.applyBuildJobObservations(change, { ...gatingScene().context, mainLine: 'main', log: () => undefined }, [{
+    BuildJobPass.applyBuildJobObservations(change, { ...gatingScene().context, mainLine: 'main', log: () => undefined }, [{
       jobId:           job.id,
       setup:           'installed',
       installStepRuns: [],
@@ -562,7 +564,7 @@ const PIPELINE_WITH_ENTITIES: Pipeline = {
 describe('a job of an entity', () => {
   function entityGateOf(scene: GatingScene, entity: string): Promise<unknown> {
     const job = { ...scene.jobOf('build'), entity, stage: 1 } as Job;
-    return recordedGit.playStage([HEAD_ON_THE_START_TREE], () => Promise.resolve(JobLaunch.observeBuildJobs(scene.context, [job], PIPELINE_WITH_ENTITIES)[0]?.gate));
+    return recordedGit.playStage([HEAD_ON_THE_START_TREE], () => Promise.resolve(BuildJobPass.observeBuildJobs(scene.context, [job], PIPELINE_WITH_ENTITIES)[0]?.gate));
   }
 
   testWhenGitIsRecorded('runs its entity\'s steps and gates from its first home, under a stamp that names its entity\'s phase hash', async () => {
@@ -588,7 +590,7 @@ describe('a job of an entity', () => {
     const job = {
       ...scene.jobOf('build'), state: 'preparing', entity: 'forge', stage: 1
     } as Job;
-    const setup = (): Promise<unknown> => recordedGit.playStage([], () => Promise.resolve(JobLaunch.observeBuildJobs(scene.context, [job], PIPELINE_WITH_ENTITIES)[0]?.setup));
+    const setup = (): Promise<unknown> => recordedGit.playStage([], () => Promise.resolve(BuildJobPass.observeBuildJobs(scene.context, [job], PIPELINE_WITH_ENTITIES)[0]?.setup));
     expect(await setup()).toBe('installing');
 
     endStepExited(scene, 'install', 0);
@@ -623,11 +625,11 @@ describe('the step run times', () => {
 
   function applyTo(scene: GatingScene, board: ReturnType<typeof boardFixture>['board'], observation: BuildJobObservation): void {
     const change = { board, at: SETTLED_AT } as unknown as BoardTransaction;
-    JobLaunch.applyBuildJobObservations(change, { ...scene.context, mainLine: 'main', log: () => undefined }, [observation]);
+    BuildJobPass.applyBuildJobObservations(change, { ...scene.context, mainLine: 'main', log: () => undefined }, [observation]);
   }
 
   async function observationOf(scene: GatingScene, job: Job, stage: RecordedGitStage, pipeline: Pipeline): Promise<BuildJobObservation> {
-    const [observation] = await recordedGit.playStage(stage, () => Promise.resolve(JobLaunch.observeBuildJobs(scene.context, [job], pipeline)));
+    const [observation] = await recordedGit.playStage(stage, () => Promise.resolve(BuildJobPass.observeBuildJobs(scene.context, [job], pipeline)));
     if (observation === undefined) throw new Error('The scene observed no job.');
     return observation;
   }
@@ -763,9 +765,9 @@ describe('a gate line a start found lost', () => {
     };
     const change = { board, at: SETTLED_AT } as unknown as BoardTransaction;
     const pass = (stage: RecordedGitStage): Promise<void> => recordedGit.playStage(stage, async () => {
-      const observations = JobLaunch.observeBuildJobs(context, board.jobs(), ONE_GATE);
-      JobLaunch.applyBuildJobObservations(change, context, observations);
-      await JobLaunch.runBuildJobEffects(context, board, observations);
+      const observations = BuildJobPass.observeBuildJobs(context, board.jobs(), ONE_GATE);
+      BuildJobPass.applyBuildJobObservations(change, context, observations);
+      await BuildJobPass.runBuildJobEffects(context, board, observations);
     });
     const gateFolder = join(jobFolderIn(scene.context.workspace.trackerDirectory, job.id), 'gate-1');
     return {

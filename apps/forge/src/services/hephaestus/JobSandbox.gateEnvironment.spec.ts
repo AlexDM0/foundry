@@ -15,7 +15,7 @@ import type { ProgramFolders }                            from '../../lib/progra
 import { createPosixShellLine }                           from '../../lib/shell-line/PosixShellLine.ts';
 import { defaultSpecPlatformPorts }                       from '../../testing/DefaultSpecPlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import { JobLaunch }                                      from './JobLaunch.ts';
+import { JobSandbox }                                     from './JobSandbox.ts';
 
 const REPOSITORY = '/home/example/repository';
 const BASE_FOLDERS = ['/usr/bin', '/bin'];
@@ -56,7 +56,7 @@ function gateSearchPathOf(steps: Pipeline): string | undefined {
       monitorFolder,
       workspace:            { rootDirectory: REPOSITORY, trackerDirectory: `${REPOSITORY}/.forge` },
     };
-    return JobLaunch.gateEnvironmentOf(context, steps)['PATH'];
+    return JobSandbox.gateEnvironmentOf(context, steps)['PATH'];
   } finally {
     removeScratchDirectory(monitorFolder);
   }

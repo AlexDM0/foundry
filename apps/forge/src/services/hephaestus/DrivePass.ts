@@ -87,8 +87,11 @@ import { lockTakerOf }                                         from '../tracker/
 import { projectLocationOf }                                   from '../tracker/ProjectLocation.ts';
 import { registeredRepositoryRootsIn }                         from '../tracker/RegisteredRepositoryRoots.ts';
 import type { Workspace }                                      from '../tracker/Workspace.ts';
+import type { BuildJobObservation, TargetCatchUpHandover }     from './@types/BuildJobObservation.ts';
+import type { JobLaunchContext }                               from './@types/JobLaunchContext.ts';
 import type { PresenceUpdate }                                 from './@types/PresenceRecord.ts';
 import { AbandonedPassReason, type PassThrowReading }          from './AbandonedPassReason.ts';
+import { AgentConfigHits }                                     from './AgentConfigHits.ts';
 import { AgentSlots }                                          from './AgentSlots.ts';
 import { AirlockFactsFile, type AirlockAgentPhase }            from './AirlockFactsFile.ts';
 import { AirlockSandboxIncident, type UnmadeAirlockAgentRoot } from './AirlockSandboxIncident.ts';
@@ -103,6 +106,8 @@ import { type ApiBilling, ApiBillingStops, type StoppedSession }                
 import { AssistantBoot, type AssistantFacts }                                        from './AssistantBoot.ts';
 import { type AssistantChatFacts, type AssistantReading, AssistantSession }          from './AssistantSession.ts';
 import type { BoardChildren, ChildLiveness }                                         from './BoardChildren.ts';
+import { BuildJobPass }                                                              from './BuildJobPass.ts';
+import { BuildJobSessions }                                                          from './BuildJobSessions.ts';
 import { CrossingStages, type CrossingStageFacts }                                   from './CrossingStages.ts';
 import type { DependentFixFacts, DependentFixWording }                               from './DependentFixTickets.ts';
 import { type DocumentAgentFacts, type DocumentAgentReading, DocumentAgentSessions } from './DocumentAgentSessions.ts';
@@ -120,39 +125,40 @@ import { type DefaultedIncident, IncidentRouter }                               
 import { InstructionFiles }                                                          from './InstructionFiles.ts';
 import { IntakeSessions, type IntakeFacts }                                          from './IntakeSessions.ts';
 import { type EndedJobSession, JobControlDelivery }                                  from './JobControlDelivery.ts';
-import {
-  BUILD_JOB_CAUSES,
-  type BuildJobObservation,
-  JobLaunch,
-  type JobLaunchContext,
-  type TargetCatchUpHandover
-} from './JobLaunch.ts';
-import { JobResumption }                                     from './JobResumption.ts';
-import { LaunchSettings, type SessionLaunchSettings }        from './LaunchSettings.ts';
-import { LineSandbox }                                       from './LineSandbox.ts';
-import { MachineAgentLimit }                                 from './MachineAgentLimit.ts';
-import { mergedTreeGateStampOf, runMergedTreeGates }         from './MergedTreeGateRun.ts';
-import { createMergedTreeGateRuns }                          from './MergedTreeGateRuns.ts';
-import { NeedTickets, type NeedsSettledFacts }               from './NeedTickets.ts';
-import { PipelineAgentSessions, type PipelineAgentFacts }    from './PipelineAgentSessions.ts';
-import { PipelineChecking }                                  from './PipelineChecking.ts';
-import { Presence }                                          from './Presence.ts';
-import { type ProcessStarts, REAL_PROCESS_STARTS }           from './ProcessStarts.ts';
-import { QuestionRouting }                                   from './QuestionRouting.ts';
-import { ReconcileCauses }                                   from './ReconcileCauses.ts';
-import { RedHandoff }                                        from './RedHandoff.ts';
-import { RefusedForcedStops }                                from './RefusedForcedStops.ts';
-import { Regrouping, type RegroupingReport }                 from './Regrouping.ts';
-import { SessionConfinement }                                from './SessionConfinement.ts';
-import { SessionPlaces, type SessionPlace }                  from './SessionPlace.ts';
-import { StoredFileUnreadable }                              from './StoredFileUnreadable.ts';
-import { stopLiveLinesUnder as stopLiveLinesUnderAt }        from './TalosLines.ts';
-import { thrownNamedOf }                                     from './ThrownNaming.ts';
-import type { UnreadableBoardFiles }                         from './UnreadableBoardFiles.ts';
-import { UnreadableJobFileIncident, type UnreadableJobFile } from './UnreadableJobFileIncident.ts';
-import { type UsageLimitHit, UsageLimits }                   from './UsageLimits.ts';
-import { type FolderMaker, WorkerProfiles }                  from './WorkerProfiles.ts';
-import { ABANDONED_PASSES_BEFORE_NOTICE }                    from './constants/PresenceLimits.ts';
+import { JobLaunch }                                                                 from './JobLaunch.ts';
+import { JobPipelines }                                                              from './JobPipelines.ts';
+import { JobResumption }                                                             from './JobResumption.ts';
+import { JobSandbox }                                                                from './JobSandbox.ts';
+import { JobTicketDocuments }                                                        from './JobTicketDocuments.ts';
+import { LaunchSettings, type SessionLaunchSettings }                                from './LaunchSettings.ts';
+import { LineSandbox }                                                               from './LineSandbox.ts';
+import { MachineAgentLimit }                                                         from './MachineAgentLimit.ts';
+import { MainMergeRounds }                                                           from './MainMergeRounds.ts';
+import { mergedTreeGateStampOf, runMergedTreeGates }                                 from './MergedTreeGateRun.ts';
+import { createMergedTreeGateRuns }                                                  from './MergedTreeGateRuns.ts';
+import { NeedTickets, type NeedsSettledFacts }                                       from './NeedTickets.ts';
+import { PipelineAgentSessions, type PipelineAgentFacts }                            from './PipelineAgentSessions.ts';
+import { PipelineChecking }                                                          from './PipelineChecking.ts';
+import { Presence }                                                                  from './Presence.ts';
+import { type ProcessStarts, REAL_PROCESS_STARTS }                                   from './ProcessStarts.ts';
+import { QuestionRouting }                                                           from './QuestionRouting.ts';
+import { ReconcileCauses }                                                           from './ReconcileCauses.ts';
+import { RedHandoff }                                                                from './RedHandoff.ts';
+import { RefusedForcedStops }                                                        from './RefusedForcedStops.ts';
+import { Regrouping, type RegroupingReport }                                         from './Regrouping.ts';
+import { SessionConfinement }                                                        from './SessionConfinement.ts';
+import { SessionPlaces, type SessionPlace }                                          from './SessionPlace.ts';
+import { StoredFileUnreadable }                                                      from './StoredFileUnreadable.ts';
+import { stopLiveLinesUnder as stopLiveLinesUnderAt }                                from './TalosLines.ts';
+import { TargetCatchUps }                                                            from './TargetCatchUps.ts';
+import { thrownNamedOf }                                                             from './ThrownNaming.ts';
+import type { UnreadableBoardFiles }                                                 from './UnreadableBoardFiles.ts';
+import { UnreadableJobFileIncident, type UnreadableJobFile }                         from './UnreadableJobFileIncident.ts';
+import { type UsageLimitHit, UsageLimits }                                           from './UsageLimits.ts';
+import { type FolderMaker, WorkerProfiles }                                          from './WorkerProfiles.ts';
+import { WorktreeJobs }                                                              from './WorktreeJobs.ts';
+import { BUILD_JOB_CAUSES }                                                          from './constants/BuildJobCauses.ts';
+import { ABANDONED_PASSES_BEFORE_NOTICE }                                            from './constants/PresenceLimits.ts';
 
 /** What a session is told at launch; worded by the command line, since services hold no words. */
 export interface JobLaunchText {
@@ -585,9 +591,9 @@ function observe(request: DrivePassRequest, jobLaunchContext: JobLaunchContext, 
   const targetTips      = Object.fromEntries(targets.map((target) => [target, targetTipOf(location.repositoryRoot, target)]));
   const pipelineReading = boardStore.reads.readPipeline();
   const pipeline        = pipelineReading.verdict === 'readable' ? pipelineReading.pipeline : null;
-  const buildJobs = JobLaunch.observeBuildJobs(jobLaunchContext, jobs, pipeline);
-  const answeredWaiverTrees = JobLaunch.answeredWaiverTreesOf(jobLaunchContext, jobs, progress.decisions ?? []);
-  const ticketIdsTouchingAgentConfig = JobLaunch.ticketIdsTouchingAgentConfigOf(jobLaunchContext, jobs, pipeline);
+  const buildJobs = BuildJobPass.observeBuildJobs(jobLaunchContext, jobs, pipeline);
+  const answeredWaiverTrees = BuildJobPass.answeredWaiverTreesOf(jobLaunchContext, jobs, progress.decisions ?? []);
+  const ticketIdsTouchingAgentConfig = AgentConfigHits.ticketIdsTouchingAgentConfigOf(jobLaunchContext, jobs, pipeline);
   const usageMarker = UsageMarkerFile.read(request.monitorFolder);
   if (usageMarker.verdict === 'malformed') {
     request.log({ kind: 'usage-marker-malformed', markerPath: UsageMarkerFile.pathIn(request.monitorFolder), problem: usageMarker.problem });
@@ -886,12 +892,12 @@ function launchProfileOf(jobLaunchContext: JobLaunchContext, board: Board, job: 
     return EffectReadings.effectReaderProfileOf(sessionProfile, repositoryRoot, jobLaunchContext.workspace.trackerDirectory, place.workingDirectory);
   }
   const isAirlockAgent = job.kind === 'merge-agent';
-  if (!isAirlockAgent && !JobLaunch.isWorktreeJob(job)) return profileOf(jobLaunchContext, job, place, hatchDirectory);
+  if (!isAirlockAgent && !WorktreeJobs.isWorktreeJob(job)) return profileOf(jobLaunchContext, job, place, hatchDirectory);
   const ticket = board.tickets().find((candidate) => candidate.frontmatter.id === job.ticketIds[0]);
   const pipeline = board.pipeline();
   const toolchain = WorkerProfiles.workerToolchainOf(pipeline, ticket?.frontmatter.network ?? [], jobLaunchContext.platformPorts.shellLine, job.entity);
   const refusedPackages = pipeline?.entities === undefined ? [] : CrossingStages.refusedPackagesOf(board.logRecordsSoFar(), job.ticketIds[0] ?? '');
-  const sandboxFacts = JobLaunch.sandboxFactsFor(jobLaunchContext, job, pipeline, isAirlockAgent ? place.checkout : undefined, refusedPackages);
+  const sandboxFacts = JobSandbox.sandboxFactsFor(jobLaunchContext, job, pipeline, isAirlockAgent ? place.checkout : undefined, refusedPackages);
   const profile = WorkerProfiles.profileOf(WorkerProfiles.workerRoleOf(job.role), sandboxFacts, toolchain);
   // In the Airlock the agent cannot ask User: the slot stays held while it works.
   return isAirlockAgent ? { ...profile, askUser: false } : profile;
@@ -909,7 +915,7 @@ export function airlockFactsOf(
   const mergeJob       = board.jobs().find((candidate) => candidate.id === job.parentJobId);
   const resumesSession = JobResumption.sessionOwnerJobIdOf(board.logRecordsSoFar(), job) !== job.id;
   if (mergeJob?.state === 'merging-main') {
-    const conflict = JobLaunch.mainMergeConflictOf(trackerDirectory, mergeJob);
+    const conflict = MainMergeRounds.mainMergeConflictOf(trackerDirectory, mergeJob);
     if (StoredFileUnreadable.isUnreadableFile(conflict)) return { unreadableJobFile: StoredFileUnreadable.unreadableJobFileOn(mergeJob.id, conflict) };
     return {
       mergePlacement:  'before-human-code-review',
@@ -958,7 +964,7 @@ function reviewFindingsOf(
   if (crossingStage?.stage === 'adapt' && ticketId !== undefined && CrossingStages.followsThePackageStages(board.logRecordsSoFar(), ticketId)) return null;
   const ticketBody = board.tickets().find((ticket) => job.ticketIds.includes(ticket.frontmatter.id))?.body ?? '';
   const reviewSection = crossingStage?.stage === 'package-build' ? crossingStage.packageReviewFindings ?? '' : JobResumption.newestReviewSectionOf(ticketBody);
-  const targetCatchUp = JobLaunch.targetCatchUpHandoverOf(trackerDirectory, board.logRecordsSoFar(), job.ticketIds[0] ?? '');
+  const targetCatchUp = TargetCatchUps.targetCatchUpHandoverOf(trackerDirectory, board.logRecordsSoFar(), job.ticketIds[0] ?? '');
   if (StoredFileUnreadable.isUnreadableFile(targetCatchUp)) return targetCatchUp;
   return {
     reviewSection,
@@ -982,7 +988,7 @@ export function launchFactsOf(
   const { trackerDirectory } = request.workspace;
   const { instructions, airlock, place } = launch;
   const pipeline = board.pipeline();
-  const jobGates = pipeline === null ? null : JobLaunch.sessionGatesOf(pipeline, job);
+  const jobGates = pipeline === null ? null : JobPipelines.sessionGatesOf(pipeline, job);
   const gates = jobGates === null ? null : SessionPlaces.gatesFromStartOf(place, jobGates);
   const resumesSession = JobResumption.sessionOwnerJobIdOf(board.logRecordsSoFar(), job) !== job.id;
   const needsSettled = NeedTickets.needsSettledOf(board, job, { mainLine: request.mainLine, resumesSession });
@@ -1001,7 +1007,7 @@ export function launchFactsOf(
     tickets:      board.tickets()
       .filter((ticket) => job.ticketIds.includes(ticket.frontmatter.id))
       .map((ticket) => {
-        const documents = JobLaunch.ticketDocumentReadingsOf(board, job, ticket.frontmatter.id);
+        const documents = JobTicketDocuments.ticketDocumentReadingsOf(board, job, ticket.frontmatter.id);
         return {
           id:     ticket.frontmatter.id,
           title:  ticket.frontmatter.title,
@@ -1034,8 +1040,8 @@ export function launchFactsOf(
 function sessionConfinementRefusalOf(
   request: DrivePassRequest, jobLaunchContext: JobLaunchContext, job: Readonly<Job>, refusal: ConfinementRefusal,
 ): UnmadeAirlockAgentRoot | SessionConfinementRefused | null {
-  if (JobLaunch.isWorktreeJob(job)) {
-    JobLaunch.recordSandboxRefusal(jobLaunchContext, job, { step: WORKER_LAUNCH_STEP, refusal: { code: 'confinement-refused', confinementRefusal: refusal } });
+  if (WorktreeJobs.isWorktreeJob(job)) {
+    JobSandbox.recordSandboxRefusal(jobLaunchContext, job, { step: WORKER_LAUNCH_STEP, refusal: { code: 'confinement-refused', confinementRefusal: refusal } });
     return null;
   }
   if (job.kind === 'merge-agent') return { jobId: job.id, refusal: { code: 'confinement-refused', confinementRefusal: refusal } };
@@ -1141,7 +1147,7 @@ async function launchAgentChild(
   const snapshotContext = { workspace, worktreesRoot: WorktreesFolder.worktreesRootOf(workspace.rootDirectory), mainLine: request.mainLine };
   const place = sessionPlaceOf(snapshotContext, board, job);
   const entityHomeFacts = WorkerProfiles.entityFactsOf(board.pipeline());
-  if (JobLaunch.isWorktreeJob(job) && JobLaunch.deniedRootRefusalRecorded(jobLaunchContext, job, WORKER_LAUNCH_STEP, entityHomeFacts)) return null;
+  if (WorktreeJobs.isWorktreeJob(job) && JobSandbox.deniedRootRefusalRecorded(jobLaunchContext, job, WORKER_LAUNCH_STEP, entityHomeFacts)) return null;
   if (job.kind === 'merge-agent') {
     const unmadeRoot = AirlockSandboxIncident.unmadeRootOf(
       job.id,
@@ -1188,7 +1194,7 @@ async function launchAgentChild(
   const firstMessage     = staleGreenSessionOwner === null || redHandoffTakenOver === null ? text.firstMessage : request.redHandoffMessageOf(redHandoffTakenOver);
   const launchParts      = JobResumption.launchPartsOf(job, firstMessage, resumeLine);
   if (!launchParts.resume && redHandoffTakenOver !== null) RedHandoff.adoptRedHandoff(jobFolder, redHandoffTakenOver);
-  if (JobLaunch.isWorktreeJob(job)) JobLaunch.recordJobStart(jobLaunchContext, board, job);
+  if (WorktreeJobs.isWorktreeJob(job)) JobLaunch.recordJobStart(jobLaunchContext, board, job);
   if (!launchParts.resume) JobResumption.storeFirstMessage(jobFolder, job.childInstance, launchParts.firstMessage);
   const resumesASession   = launchParts.resume || sessionOwnerJobId !== job.id;
   const { workingDirectory } = resumesASession
@@ -1218,12 +1224,12 @@ async function launchAgentChild(
     reportSchema:         reportSchemaOf(board, job),
     ...(billing.billing === undefined ? {} : { billing: billing.billing }),
   };
-  if (JobLaunch.isWorktreeJob(job) || job.kind === 'merge-agent') {
+  if (WorktreeJobs.isWorktreeJob(job) || job.kind === 'merge-agent') {
     const notice = WorkerProfiles.unsignedCommitNoticeOf(launchRequest.profile, repositorySignsCommits(location.repositoryRoot), job.id);
     if (notice !== null) request.log(notice);
   }
-  if (launchRequest.profile.networkDomainGuard?.programPath === null) JobLaunch.logUnstartableGuard(jobLaunchContext, job);
-  if (launchRequest.profile.stageEditGuard?.programPath === null) JobLaunch.logUnstartableGuard(jobLaunchContext, job, 'stage-edits');
+  if (launchRequest.profile.networkDomainGuard?.programPath === null) JobSandbox.logUnstartableGuard(jobLaunchContext, job);
+  if (launchRequest.profile.stageEditGuard?.programPath === null) JobSandbox.logUnstartableGuard(jobLaunchContext, job, 'stage-edits');
   JobLaunch.recordInstructionsRead(jobFolder, job.childInstance, instructions.files);
   JobLaunch.recordLaunchSettings(jobFolder, launchSettings);
   const sessionLaunch = SessionConfinement.sessionLaunchOf(agentAdapter, request.platformPorts.gateConfinement, launchRequest);
@@ -1308,7 +1314,7 @@ function jobsNeedingAChild(
   spawnedInstances: ReadonlySet<string>,
   heldTicketIds: readonly string[],
 ): readonly Readonly<Job>[] {
-  return board.jobs().filter((job) => ((job.state === 'launching' && !JobLaunch.isWorktreeJob(job)) || job.state === 'running')
+  return board.jobs().filter((job) => ((job.state === 'launching' && !WorktreeJobs.isWorktreeJob(job)) || job.state === 'running')
     && job.role !== null
     && job.notLaunched === undefined
     && !job.ticketIds.some((ticketId) => heldTicketIds.includes(ticketId))
@@ -1462,10 +1468,10 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       agentConfigurationFolderNames: request.agentAdapter.configurationNames.folderNames,
       // A gate step runs no agent session, so no network guard hook.
       guardCommand:                  null,
-      ...JobLaunch.cacheFolderFactsOf(jobLaunchContext),
+      ...JobSandbox.cacheFolderFactsOf(jobLaunchContext),
     });
     const facts = { ...sandboxFacts, ...WorkerProfiles.entityFactsOf(pipeline) };
-    const planOf = () => LineSandbox.planOf(JobLaunch.processSandboxRequestOf(jobLaunchContext, facts, confinement), profilePath);
+    const planOf = () => LineSandbox.planOf(JobSandbox.processSandboxRequestOf(jobLaunchContext, facts, confinement), profilePath);
     const deniedRoot = WorkerProfiles.unmadeDeniedRootOf(facts);
     if (deniedRoot !== null) return { verdict: 'refused', refusal: { code: 'denied-root-unmade', deniedRoot } };
     const line = confinedLineOf(platformPorts.gateConfinement, planOf, commandArguments);
@@ -1519,7 +1525,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     mainLine:        request.mainLine,
     platformPorts,
     gateSlots,
-    gateEnvironment: (profiledSteps) => JobLaunch.gateEnvironmentOf(jobLaunchContext, profiledSteps),
+    gateEnvironment: (profiledSteps) => JobSandbox.gateEnvironmentOf(jobLaunchContext, profiledSteps),
     confinedLineIn:  (worktreePath, profileRunId) => (commandArguments, confinement) => {
       const profileFolder = join(hephaestusFilesIn(request.workspace.trackerDirectory).hephaestusDirectory, GATE_PROFILE_SANDBOXES_FOLDER);
       return hephaestusGateLineOf(worktreePath, join(profileFolder, `${profileRunId}.sb`), storedPipeline(), commandArguments, confinement);
@@ -1539,7 +1545,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     mainLine:        request.mainLine,
     platformPorts,
     gateSlots,
-    gateEnvironment: (checkedSteps) => JobLaunch.gateEnvironmentOf(jobLaunchContext, checkedSteps),
+    gateEnvironment: (checkedSteps) => JobSandbox.gateEnvironmentOf(jobLaunchContext, checkedSteps),
     confinedLineIn:  (worktreePath, setupId) => (commandArguments, confinement) => {
       const profileFolder = join(hephaestusFilesIn(request.workspace.trackerDirectory).hephaestusDirectory, PIPELINE_CHECK_SANDBOXES_FOLDER);
       return hephaestusGateLineOf(worktreePath, join(profileFolder, `${setupId}.sb`), storedPipeline(), commandArguments, confinement);
@@ -1607,7 +1613,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
           runRequest: {
             shellLine:       platformPorts.shellLine,
             directory:       worktreePath,
-            environment:     JobLaunch.gateEnvironmentOf(jobLaunchContext, pipeline),
+            environment:     JobSandbox.gateEnvironmentOf(jobLaunchContext, pipeline),
             confinedLineOf:  (commandArguments, confinement) => mergeGateLineOf(worktreePath, pipeline, commandArguments, confinement),
             runLine:         (lineRequest) => request.lineRunner({ ...lineRequest, stopSignal }),
             childFolder:     runFolder,
@@ -1624,7 +1630,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       });
     },
     stopMergedTreeGatesIn: mergedTreeGateRuns.stopRunsIn,
-    mergeAgentReadingOf:   (job) => JobLaunch.sessionReadingOf(jobLaunchContext, job),
+    mergeAgentReadingOf:   (job) => BuildJobSessions.sessionReadingOf(jobLaunchContext, job),
     resolutionLinesOf:     MergeRun.resolutionLinesOf,
     childIsLive:           (job) => {
       const jobFolder = request.boardChildren.jobFolderOf(job.id);
@@ -1756,9 +1762,9 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
         const downAssistants = AssistantSession.endDownAssistants(change.board, assistantReadings, quietAssistantIdsDue.splice(0), change.at);
         const assistantBootRetryDue = assistantBootRetryRequested && !downAssistants.bootFailed;
         assistantBootRetryRequested = false;
-        const buildJobRecords = JobLaunch.applyBuildJobObservations(change, jobLaunchContext, observation.buildJobs);
+        const buildJobRecords = BuildJobPass.applyBuildJobObservations(change, jobLaunchContext, observation.buildJobs);
         const usageResetsAt = UsageLimits.usageResetsAtOf(observation.usageMarker, usageLimitHits);
-        const agentConfigHold = JobLaunch.holdAgentConfigHits(change, jobLaunchContext, observation.ticketIdsTouchingAgentConfig);
+        const agentConfigHold = AgentConfigHits.holdAgentConfigHits(change, jobLaunchContext, observation.ticketIdsTouchingAgentConfig);
         EntityDecisionAnswers.actOnAnswers(change, {
           decisionWordingOf:     request.decisionWordingOf,
           packageNeedWordingOf:  request.packageNeedWordingOf,
@@ -1817,7 +1823,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
           usageWindowObservations,
           stoppedSessions,
           usageResetsAt,
-          attributionTicketIds:         JobLaunch.attributionTicketIdsOf([...change.storedLogRecords, ...buildJobRecords]),
+          attributionTicketIds:         BuildJobPass.attributionTicketIdsOf([...change.storedLogRecords, ...buildJobRecords]),
           agentConfigHeldTicketIds:     agentConfigHold.held,
           nonConvergingTicketIds:       ReviewOutcome.nonConvergingTicketIdsOf(change.board.logRecordsSoFar(), recordedReviewPipelineOf, LIFECYCLE_LIMITS),
           ticketsWaitingForMachineSlot: steps.filter((step) => step.kind === 'await-machine-slot').length,
@@ -1841,7 +1847,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     for (const jobId of written.result.failedEffectReaders) await stopSession(jobId, observation.childObservations.find((child) => child.jobId === jobId)?.instance ?? 1);
     scheduleThePassAtTheReset(written.result.usageResetsAt);
     gateSlots.startRound();
-    await JobLaunch.runBuildJobEffects(jobLaunchContext, written.board, observation.buildJobs);
+    await BuildJobPass.runBuildJobEffects(jobLaunchContext, written.board, observation.buildJobs);
     const snapshotsContext = { workspace: request.workspace, worktreesRoot: WorktreesFolder.worktreesRootOf(request.workspace.rootDirectory) };
     PipelineAgentSessions.removeUnheldSnapshots(written.board, snapshotsContext, triedPipelineAgentSnapshots, request.log);
     DocumentAgentSessions.removeUnheldSnapshots(written.board, snapshotsContext, triedDocumentAgentSnapshots, request.log);
@@ -1956,7 +1962,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     lastFingerprint = settled.childObservations.some((childObservation) => childObservation.events.length > 0) ? null : settled.fingerprint;
     // A job the merge sweep launched after this pass launched children needs one more pass, which its settled fingerprint would skip.
     const jobIdsThisPassSaw = new Set(written.board.jobs().map((job) => job.id));
-    const passIsDue = JobLaunch.someBuildJobAwaitsAPass(written.board, settled.buildJobs) || written.result.waiverAnswersAwaitAPass
+    const passIsDue = BuildJobPass.someBuildJobAwaitsAPass(written.board, settled.buildJobs) || written.result.waiverAnswersAwaitAPass
       || notLaunchedJobIdsToRetry.length > 0 || refusalResolvedSinceItsLaunch;
     if (passIsDue || settled.childObservations.some((childObservation) => !jobIdsThisPassSaw.has(childObservation.jobId))) {
       forcedNext = true;

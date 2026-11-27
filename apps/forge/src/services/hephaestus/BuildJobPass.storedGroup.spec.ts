@@ -15,8 +15,9 @@ import type { RecordedGitStage, RecordedGitStep }         from '../../testing/Re
 import { GIT_CALL_SHAPES, useRecordedGit }                from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }                      from '../../testing/ToolGuard.ts';
+import type { JobLaunchContext }                          from './@types/JobLaunchContext.ts';
+import { BuildJobPass }                                   from './BuildJobPass.ts';
 import { jobFolderIn }                                    from './HephaestusFiles.ts';
-import { JobLaunch, type JobLaunchContext }               from './JobLaunch.ts';
 
 const AT = '2026-10-30T10:00:00+01:00';
 const MAIN_LINE = 'main';
@@ -74,7 +75,7 @@ async function launchInto(target: string, stageOf: (rootDirectory: string) => Re
   }, AT);
   board.moveJob(job.id, 'preparing', AT);
 
-  await recordedGit.playStage(stageOf(rootDirectory), () => JobLaunch.runBuildJobEffects(context, board, []));
+  await recordedGit.playStage(stageOf(rootDirectory), () => BuildJobPass.runBuildJobEffects(context, board, []));
 
   const failureFile = join(jobFolderIn(trackerDirectory, job.id), 'worktree-failure.txt');
   return existsSync(failureFile) ? readFileSync(failureFile, 'utf8') : null;

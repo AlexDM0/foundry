@@ -11,7 +11,7 @@ import { PipelineUtil }                from '../../domain/tracker-model/utils/Pi
 import { TicketDocumentVersionUtil }   from '../../domain/tracker-model/utils/TicketDocumentVersionUtil.ts';
 import { boardFixture, ticketFixture } from '../../testing/BoardFixtures.ts';
 import { loadedRecordFixture }         from '../../testing/TicketDocumentRecordFixtures.ts';
-import { JobLaunch }                   from './JobLaunch.ts';
+import { JobTicketDocuments }          from './JobTicketDocuments.ts';
 
 const SPEC = '## Acceptance\n\nA1. The basket shows.\n';
 const PLAN = '## Files\n\nWork belongs in: src/Basket.ts\n';
@@ -37,7 +37,8 @@ function boardWithDocuments(planApprover: 'person' | 'pipeline'): ReturnType<typ
 
 describe('the documents a job reads', () => {
   test('a builder reads both approved heads; a reviewer the plan only once a person approved it', () => {
-    const readBy = (kind: Job['kind'], planApprover: 'person' | 'pipeline'): string[] => JobLaunch.ticketDocumentReadingsOf(boardWithDocuments(planApprover), jobOf(kind), '004')
+    const readBy = (kind: Job['kind'], planApprover: 'person' | 'pipeline'): string[] => JobTicketDocuments
+      .ticketDocumentReadingsOf(boardWithDocuments(planApprover), jobOf(kind), '004')
       .map((reading) => `${reading.document} ${reading.versionNumber}`);
     expect(readBy('build', 'pipeline')).toEqual(['spec 1', 'plan 1']);
     expect(readBy('review', 'pipeline')).toEqual(['spec 1']);
@@ -45,16 +46,16 @@ describe('the documents a job reads', () => {
   });
 
   test('another job, and a ticket without documents, read none', () => {
-    expect(JobLaunch.ticketDocumentReadingsOf(boardWithDocuments('person'), jobOf('product-owner'), '004')).toEqual([]);
+    expect(JobTicketDocuments.ticketDocumentReadingsOf(boardWithDocuments('person'), jobOf('product-owner'), '004')).toEqual([]);
     const { board } = boardFixture({ tickets: [ticketFixture({ id: '004' })] });
-    expect(JobLaunch.ticketDocumentReadingsOf(board, jobOf('build'), '004')).toEqual([]);
-    expect(JobLaunch.ticketDocumentVersionsOf(board, '004')).toBe('');
+    expect(JobTicketDocuments.ticketDocumentReadingsOf(board, jobOf('build'), '004')).toEqual([]);
+    expect(JobTicketDocuments.ticketDocumentVersionsOf(board, '004')).toBe('');
   });
 });
 
 describe('what Customs compares', () => {
   test('the launch records each document\'s head, in pipeline order', () => {
-    const versions = JobLaunch.ticketDocumentVersionsOf(boardWithDocuments('person'), '004');
+    const versions = JobTicketDocuments.ticketDocumentVersionsOf(boardWithDocuments('person'), '004');
     expect(versions).toBe(`spec:${TicketDocumentVersionUtil.contentHashOf(SPEC)} plan:${TicketDocumentVersionUtil.contentHashOf(PLAN)}`);
   });
 
@@ -62,7 +63,7 @@ describe('what Customs compares', () => {
     const board  = boardWithDocuments('person');
     const ticket = board.ticketByReference('004');
     if (ticket === undefined) throw new Error('The fixture has no ticket 004.');
-    const text = JobLaunch.ticketTextOfCustoms(board, ticket);
+    const text = JobTicketDocuments.ticketTextOfCustoms(board, ticket);
     expect(text.acceptanceText).toBe(SPEC);
     expect(text.ticketBody).toContain('src/Basket.ts');
     expect(text.ticketBody).toContain('Empty basket.');

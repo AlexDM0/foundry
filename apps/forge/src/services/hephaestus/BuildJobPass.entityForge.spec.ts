@@ -49,9 +49,11 @@ import { describeWhenGitIsRecorded }                                            
 import { launchSnapshotOf }                                                                from '../lifecycle/Customs.ts';
 import type { BoardTransaction }                                                           from '../tracker/BoardTransaction.ts';
 import { createLocalRecordAllocation }                                                     from '../tracker/LocalRecordAllocation.ts';
+import type { JobLaunchContext }                                                           from './@types/JobLaunchContext.ts';
+import { BuildJobPass }                                                                    from './BuildJobPass.ts';
 import { jobFolderIn }                                                                     from './HephaestusFiles.ts';
-import { JobLaunch, type JobLaunchContext }                                                from './JobLaunch.ts';
 import { RedHandoff }                                                                      from './RedHandoff.ts';
+import { WorktreeJobs }                                                                    from './WorktreeJobs.ts';
 import { keptRedHandoffOf }                                                                from './testing/KeptRedHandoff.ts';
 
 const AT = '2026-11-17T15:00:00+01:00';
@@ -143,7 +145,7 @@ function launchedBuildOf(entity: EntityForgeEntity, ticketReview: TicketReview =
     agentAdapter:      fakeAgentAdapter(),
     decisionWordingOf: () => WORDING,
   } as unknown as JobLaunchContext;
-  mkdirSync(JobLaunch.worktreeOf(context.workspace, job), { recursive: true });
+  mkdirSync(WorktreeJobs.worktreeOf(context.workspace, job), { recursive: true });
   const jobFolder = jobFolderIn(trackerDirectory, job.id);
   mkdirSync(jobFolder, { recursive: true });
   return {
@@ -177,13 +179,13 @@ function verify(build: ForgeBuild, scenario: EntityForgeScenario, outcome: 'buil
   } = build;
   const commits = commitsOf(scenario);
   enterScenario(scenario, { repositoryDirectory: repository, commits });
-  const worktree = JobLaunch.worktreeOf(context.workspace, job);
+  const worktree = WorktreeJobs.worktreeOf(context.workspace, job);
   const ticket = board.tickets().find((candidate) => candidate.frontmatter.id === SHOP_TICKET.id);
   const jobStart = { startCommit: commits['<start>'], contentHashAtLaunch: ticket?.frontmatter.contentHash ?? '', launchSnapshot: launchSnapshotOf(worktree) };
   writeFileSync(join(jobFolder, 'start.json'), JSON.stringify({ version: JOB_START_FORMAT_VERSION, ...jobStart }));
   for (const state of ['preparing', 'running', 'in-customs'] as const) board.moveJob(job.id, state, AT);
   const headCommit = GitProcess.resolvedCommitOf(worktree, 'HEAD');
-  JobLaunch.applyBuildJobObservations({
+  BuildJobPass.applyBuildJobObservations({
     board, at: AT, workspace: context.workspace, records: createLocalRecordAllocation(context.workspace, board, NO_UNREADABLE_RECORDS, NO_LISTED_TICKET_LOCATIONS)
   } as unknown as BoardTransaction, context, [{
     jobId:           job.id,
