@@ -69,9 +69,9 @@ describe('the state badge', () => {
 
   test('the dot leads the label, hidden, and only a checked badge ends in a hidden check, whatever its tone', () => {
     const checked = renderedBadge(<StateBadge tone="success" label="Done" checked />);
-    const check = checked.lastElementChild;
-    expect([checked.firstElementChild?.getAttribute('aria-hidden'), check?.tagName.toLowerCase(), check?.getAttribute('aria-hidden')])
-      .toEqual(['true', 'svg', 'true']);
+    const check = checked.lastElementChild?.querySelector('svg');
+    expect([checked.firstElementChild?.getAttribute('aria-hidden'), check?.getAttribute('data-icon'), check?.getAttribute('aria-hidden')])
+      .toEqual(['true', 'check', 'true']);
     cleanup();
     expect(renderedBadge(<StateBadge tone="ink" label="Done" />).querySelector('svg')).toBeNull();
   });

@@ -3,7 +3,7 @@
  * leaves, an item the list lost is leaving from the place it held, and every other item is settled.
  */
 
-export type ItemPresence = 'settled' | 'arriving' | 'leaving';
+export type ListItemPresence = 'settled' | 'arriving' | 'leaving';
 
 export interface KeyedItem<Item> {
   readonly key:  string;
@@ -11,7 +11,7 @@ export interface KeyedItem<Item> {
 }
 
 export interface PresentItem<Item> extends KeyedItem<Item> {
-  readonly presence: ItemPresence;
+  readonly presence: ListItemPresence;
 }
 
 /** An item the list lost, with its place in the list that last held it. */
@@ -47,6 +47,6 @@ function presentItemsOf<Item>(
   return presentItems;
 }
 
-export const ItemPresenceUtil = Object.freeze({
+export const ListPresenceUtil = Object.freeze({
   arrivedKeysAfter, departedItemsOf, presentItemsOf, NO_KEYS
 });

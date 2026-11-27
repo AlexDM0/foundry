@@ -6,13 +6,18 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState
 } from 'react';
 
-import type { BoardTranscriptEntryDocument }    from '../../@types/board/ConversationDocument.ts';
-import { Stamp, type StampProps }               from '../../lib/design-system/DesignSystemInterface.ts';
-import type { TranscriptFollower }              from '../@types/BoardServices.ts';
-import { presenceAttributeOf, useItemPresence } from '../shell/ItemPresence.ts';
+import type { BoardTranscriptEntryDocument } from '../../@types/board/ConversationDocument.ts';
+import {
+  presenceAttributeOf,
+  Stamp,
+  type StampProps,
+  useListPresence
+} from '../../lib/design-system/DesignSystemInterface.ts';
+import type { TranscriptFollower } from '../@types/BoardServices.ts';
 
 /**
  * Every entry of the job's transcript so far, followed while mounted; starts empty again for another job. `historyKey` is the job's id once
@@ -67,9 +72,10 @@ export function TranscriptLog({
   label, entries, roleTextOf = (entry) => entry.role, textOf = (entry) => entry.text, stampOf
 }: TranscriptLogProps) {
   // The log mounts with the entries so far; each line the stream brings after rises in, and no line leaves.
-  const presentEntries = useItemPresence(entries, ({ entryKey }) => entryKey).filter(({ presence }) => presence !== 'leaving');
+  const logElement = useRef<HTMLOListElement>(null);
+  const presentEntries = useListPresence(entries, ({ entryKey }) => entryKey, logElement).filter(({ presence }) => presence !== 'leaving');
   return (
-    <ol className="board-transcript" aria-label={label} data-stamped={stampOf === undefined ? undefined : ''}>
+    <ol ref={logElement} className="board-transcript" aria-label={label} data-stamped={stampOf === undefined ? undefined : ''}>
       {presentEntries.map(({ item: entry, presence }) => {
         const stamp = stampOf?.(entry) ?? null;
         return (

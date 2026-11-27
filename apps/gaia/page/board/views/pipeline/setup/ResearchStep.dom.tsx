@@ -130,7 +130,7 @@ describe('the question card', () => {
   test('Answer sends the chosen letter, and the card turns into the answered pill', async () => {
     const { controls } = renderResearch();
     const card = screen.getByRole('group', { name: /Question · browser-tests/u });
-    fireEvent.click(within(card).getByRole('radio', { name: 'No, leave them out' }));
+    fireEvent.click(within(card).getByRole('radio', { name: 'b. No, leave them out' }));
     await clickSettled(within(card).getByRole('button', { name: 'Answer' }));
     expect(controls.sent).toEqual([{
       ...SENT_COMMAND_VERSION, kind: 'pipeline-setup-answer', setupId: 'S1', questionId: 'Q1', answer: { form: 'letters', choices: ['b'] }
@@ -142,7 +142,7 @@ describe('the question card', () => {
   test('the Other answer sends its text', async () => {
     const { controls } = renderResearch();
     const card = screen.getByRole('group', { name: /Question · browser-tests/u });
-    fireEvent.click(within(card).getByRole('radio', { name: 'Other' }));
+    fireEvent.click(within(card).getByRole('radio', { name: /^c\. Other$/u }));
     fireEvent.change(within(card).getByRole('textbox', { name: 'Other answer' }), { target: { value: 'Run them each night' } });
     await clickSettled(within(card).getByRole('button', { name: 'Answer' }));
     expect(controls.sent).toEqual([{
@@ -154,6 +154,7 @@ describe('the question card', () => {
     const { controls } = renderResearch();
     controls.answerNextWith({ verdict: 'refused', refusal: 'Example refusal: no setup is open.' });
     const card = screen.getByRole('group', { name: /Question · browser-tests/u });
+    fireEvent.click(within(card).getByRole('radio', { name: /^a\. /u }));
     await clickSettled(within(card).getByRole('button', { name: 'Answer' }));
     expect(screen.getByText('Example refusal: no setup is open.')).toBeDefined();
     expect(card.getAttribute('data-state')).toBe('asking');

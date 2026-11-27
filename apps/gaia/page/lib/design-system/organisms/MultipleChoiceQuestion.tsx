@@ -1,9 +1,9 @@
 /**
- * A question card: an eyebrow and the question as the legend of a fieldset, then its options as children (a `QuestionOption` for each
- * lettered option, then an optional `QuestionOtherOption` whose words are typed in place), then the answer button. The options are radios of
- * one group, or checkboxes when several may be chosen; the card holds the chosen letters and hands each choice on. Answer waits for a
- * choice, and for words when the Other option is chosen. It glows while it asks; once answered, the green confirmation takes the place of
- * its options. Its options sit stacked, or side by side in equal columns.
+ * A question card: an eyebrow and the question as the legend of a fieldset, an optional context line under it that describes the card,
+ * then its options as children (a `QuestionOption` for each lettered option, then an optional `QuestionOtherOption` whose words are typed
+ * in place), then the answer button. The options are radios of one group, or checkboxes when several may be chosen; the card holds the
+ * chosen letters and hands each choice on. Answer waits for a choice, and for words when the Other option is chosen. It glows while it
+ * asks; once answered, the green confirmation takes the place of its options. Its options sit stacked, or side by side in equal columns.
  */
 import {
   createContext,
@@ -15,6 +15,7 @@ import {
 } from 'react';
 
 import { Button } from '../atoms/Button.tsx';
+import { Icon }   from '../atoms/Icon.tsx';
 import {
   ChoiceFreeText,
   ChoiceInput,
@@ -43,6 +44,8 @@ export interface MultipleChoiceQuestionProps {
   /** The line over the question, such as "Your decision" or "Question · step 3". */
   readonly eyebrow:       string;
   readonly question:      string;
+  /** A line under the question with what the asker found, shown while the card asks; it describes the card. */
+  readonly context?:      string;
   /** The chosen options' letters, the Other option's included; empty while none is chosen. */
   readonly chosen:        readonly string[];
   /** Hands on the letter of the option chosen, or toggled when the question is `multiple`. */
@@ -61,11 +64,13 @@ export interface MultipleChoiceQuestionProps {
 }
 
 export function MultipleChoiceQuestion({
-  eyebrow, question, chosen, onChoose, answerLabel, onAnswer, children, multiple = false, columns = false, answeredText, disabled = false
+  eyebrow, question, context, chosen, onChoose, answerLabel, onAnswer, children, multiple = false, columns = false, answeredText, disabled = false
 }: MultipleChoiceQuestionProps) {
   const groupName = useId();
+  const contextId = useId();
   const [ownWordsAreMissing, setOwnWordsAreMissing] = useState(false);
   const isAnswered = answeredText !== undefined;
+  const showsContext = context !== undefined && context !== '' && !isAnswered;
   const answerIsReady = chosen.length > 0 && !ownWordsAreMissing;
   const choices: QuestionChoices = {
     groupName, inputType: multiple ? 'checkbox' : 'radio', chosen, onChoose, onOwnWordsMissing: setOwnWordsAreMissing
@@ -76,17 +81,17 @@ export function MultipleChoiceQuestion({
       data-layout={columns ? 'columns' : 'stack'}
       data-state={isAnswered ? 'answered' : 'asking'}
       disabled={disabled || isAnswered}
+      aria-describedby={showsContext ? contextId : undefined}
     >
       <legend className="design-system-question-card-legend">
         <span className="design-system-question-card-eyebrow">{eyebrow}</span>
         <span className="design-system-question-card-text">{question}</span>
       </legend>
+      {showsContext ? <p className="design-system-question-card-context" id={contextId}>{context}</p> : null}
       {isAnswered
         ? (
           <p className="design-system-question-card-answered" role="status">
-            <svg className="design-system-question-card-answered-glyph" viewBox="0 0 12 12" aria-hidden="true">
-              <path d="M2 6.5L5 9l5-6" />
-            </svg>
+            <span className="design-system-question-card-answered-glyph"><Icon name="check" label={null} /></span>
             {answeredText}
           </p>
         )
@@ -112,7 +117,7 @@ export interface QuestionOptionProps {
   readonly recommendedLabel?: string;
 }
 
-/** One lettered option of the question around it: its radio or checkbox chooses its letter. */
+/** One lettered option of the question around it: its radio or checkbox, named by its letter and label, chooses its letter. */
 export function QuestionOption({
   letter, label, description, recommendedLabel
 }: QuestionOptionProps) {
@@ -127,7 +132,7 @@ export function QuestionOption({
       {...(description === undefined ? {} : { description })}
       {...(recommendedLabel === undefined ? {} : { marks: <ChoiceMark mark="recommended" text={recommendedLabel} /> })}
       chosen={isChosen}
-      input={<ChoiceInput type={inputType} name={groupName} checked={isChosen} accessibleName={label} onChange={() => onChoose(letter)} />}
+      input={<ChoiceInput type={inputType} name={groupName} checked={isChosen} accessibleName={`${letter}. ${label}`} onChange={() => onChoose(letter)} />}
       variant="card"
       tone="question"
     />
@@ -162,7 +167,7 @@ export function QuestionOtherOption({
       letter={letter}
       label={label}
       chosen={isChosen}
-      input={<ChoiceInput type={inputType} name={groupName} checked={isChosen} accessibleName={label} onChange={() => onChoose(letter)} />}
+      input={<ChoiceInput type={inputType} name={groupName} checked={isChosen} accessibleName={`${letter}. ${label}`} onChange={() => onChoose(letter)} />}
       freeText={<ChoiceFreeText value={text} placeholder={placeholder} accessibleName={textLabel} onChange={onText} />}
       variant="card"
       tone="question"

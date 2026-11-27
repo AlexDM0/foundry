@@ -6,12 +6,12 @@ import type { ReactNode }                from 'react';
 import type { BoardSetupRecordDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import type { BoardSetupStep }           from '../../../../@types/board/BoardVocabulary.ts';
 import {
+  PageHead,
   Row,
   Tag,
   Text,
   View
 } from '../../../../lib/design-system/DesignSystemInterface.ts';
-import { ViewTitle }                                                    from '../../ViewTitle.tsx';
 import { PipelineViewModel, SETUP_STEP_LABELS, type PipelineViewFacts } from '../PipelineViewModel.ts';
 import { BillingStepModel }                                             from './BillingStepModel.ts';
 
@@ -24,7 +24,7 @@ export function SetupTitleRow({ facts }: { readonly facts: PipelineViewFacts }) 
   const pendingTicketCount = BillingStepModel.pendingTicketCountOf(facts.page?.tickets ?? []);
   return (
     <View gap="two">
-      <ViewTitle title="Set up the pipeline" lead={PIPELINE_WHAT_IT_IS} />
+      <PageHead titleElement="h2" title="Set up the pipeline" lead={PIPELINE_WHAT_IT_IS} />
       <Row gap="six" paddingTop="eight">
         <Tag text={setupIsOpen ? 'Setup in progress' : 'Pipeline not set'} tone="warn" />
         <Tag text={BillingStepModel.waitingTicketsTextOf(pendingTicketCount)} tone="neutral" />

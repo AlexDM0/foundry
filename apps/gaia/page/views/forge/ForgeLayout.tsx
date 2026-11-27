@@ -11,7 +11,6 @@
 import type { ReactNode, RefObject } from 'react';
 
 import type { ForgeCommandBody, ForgeStopAgents } from '../../@types/CommandDocument.ts';
-import { ButtonGlyph }                            from '../../components/ButtonGlyph.tsx';
 import { ConditionDot }                           from '../../components/ConditionDot.tsx';
 import { Refusal }                                from '../../components/Refusal.tsx';
 import { ForgeMark }                              from '../../lib/brand/BrandInterface.ts';
@@ -20,6 +19,7 @@ import {
   ChoiceInput,
   ChoiceOption,
   ConfirmStrip,
+  Icon,
   IconButton,
   Menu,
   MenuItem,
@@ -170,7 +170,7 @@ function UpdateForgeStep({
 
 /** Open in new tab in the bar or a notice, compact, its arrow after its words. */
 function OpenInNewTabButton({ disabled, onPress }: { readonly disabled: boolean; readonly onPress: () => void }) {
-  return <Button label={OPEN_IN_NEW_TAB_LABEL} trailing={<ButtonGlyph name="arrow-out-of-square" />} compact disabled={disabled} onPress={onPress} />;
+  return <Button label={OPEN_IN_NEW_TAB_LABEL} trailing={<Icon name="arrow-out-of-square" label={null} />} compact disabled={disabled} onPress={onPress} />;
 }
 
 /** A control Gaia cannot send shows disabled; its title, on the span since a disabled button takes no pointer, names both versions. */
@@ -251,7 +251,7 @@ export function ForgeBarControls(props: ForgeBarControlsProps) {
       )}
       {stop === null ? null : (
         <span className="gaia-forge-frame-stop" ref={stopAnchorRef}>
-          <Button label="Stop" trailing={<ButtonGlyph name="chevron-down" />} compact disabled={!controlsMayAct} onPress={onOpenStop} />
+          <Button label="Stop" trailing={<Icon name="chevron-down" label={null} />} compact disabled={!controlsMayAct} onPress={onOpenStop} />
           {stopIsOpen && controlsMayAct ? (
             <Popover label={stop.label} role="dialog" isOpen onDismiss={onCancelStop} anchorRef={stopAnchorRef} placement="below-end" width="wide">
               <StopQuestionStrip question={stop} {...props} />

@@ -4,18 +4,11 @@
  */
 import { useEffect, useState, type RefObject } from 'react';
 
-const MILLISECONDS_PER_SECOND = 1000;
+import { CssDurationUtil } from './CssDurationUtil.ts';
 
 export interface Presence {
   readonly isShown:   boolean;
   readonly isLeaving: boolean;
-}
-
-function leavingMillisecondsOf(element: Element): number {
-  const style = getComputedStyle(element);
-  if (style.animationName === '' || style.animationName === 'none') return 0;
-  const seconds = (Number.parseFloat(style.animationDuration) || 0) + (Number.parseFloat(style.animationDelay) || 0);
-  return seconds * MILLISECONDS_PER_SECOND;
 }
 
 export function usePresence(isOpen: boolean, element: RefObject<Element | null>): Presence {
@@ -25,7 +18,7 @@ export function usePresence(isOpen: boolean, element: RefObject<Element | null>)
   useEffect(() => {
     if (!presence.isLeaving) return undefined;
     const finish = (): void => setPresence({ isShown: false, isLeaving: false });
-    const duration = element.current === null ? 0 : leavingMillisecondsOf(element.current);
+    const duration = element.current === null ? 0 : CssDurationUtil.animationMillisecondsOf(element.current);
     if (duration === 0) {
       finish();
       return undefined;

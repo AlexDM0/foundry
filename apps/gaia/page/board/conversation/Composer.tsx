@@ -14,13 +14,17 @@ import {
 } from 'react';
 
 import type { BoardCommandDocument } from '../../@types/board/BoardCommandDocument.ts';
-import { Tag, type TagProps }        from '../../lib/design-system/DesignSystemInterface.ts';
-import type { BoardCommandResult }   from '../api/BoardCommandClient.ts';
-import { useControlCommand }         from '../shared/commands/ControlCommandSender.ts';
-import { ChatCueRelayContext }       from './ChatCueRelay.ts';
-import { CHAT_CUES }                 from './ChatSpriteHabitat.ts';
-import { JobLink }                   from './ConversationParts.tsx';
-import { SendButton }                from './SendButton.tsx';
+import {
+  Icon,
+  IconButton,
+  Tag,
+  type TagProps
+} from '../../lib/design-system/DesignSystemInterface.ts';
+import type { BoardCommandResult } from '../api/BoardCommandClient.ts';
+import { useControlCommand }       from '../shared/commands/ControlCommandSender.ts';
+import { ChatCueRelayContext }     from './ChatCueRelay.ts';
+import { CHAT_CUES }               from './ChatSpriteHabitat.ts';
+import { JobLink }                 from './ConversationParts.tsx';
 
 export interface ComposerProps {
   /** The text box's accessible name. */
@@ -113,7 +117,13 @@ export function Composer({
           onKeyDown={sendOnEnter}
           onPaste={passPastedFiles}
         />
-        <SendButton accessibleName={sendLabel} enabled={sender.enabled} onPress={() => void sender.send()} />
+        <IconButton
+          drawing={<Icon name="paper-plane" label={null} />}
+          accessibleName={sendLabel}
+          accent
+          disabled={!sender.enabled}
+          onPress={() => void sender.send()}
+        />
       </div>
       {sender.refusal === null ? null : <span className="board-refusal" role="status">{sender.refusal}</span>}
       {footStart === undefined ? null : <div className="board-composer-foot">{footStart}</div>}

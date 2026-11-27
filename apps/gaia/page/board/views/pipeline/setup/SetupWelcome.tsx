@@ -7,12 +7,12 @@
 import {
   Banner,
   Button,
+  PageHead,
   StateDot,
   Text,
   View
 } from '../../../../lib/design-system/DesignSystemInterface.ts';
 import { useBoardHrefOf }                                                     from '../../../shared/routing/BoardRouteLinks.ts';
-import { ViewTitle }                                                          from '../../ViewTitle.tsx';
 import { PipelineViewModel, type PipelineViewFacts, type UnreadablePipeline } from '../PipelineViewModel.ts';
 import { ProgramPathText }                                                    from '../agent/ProgramPathText.tsx';
 import { PIPELINE_WHAT_IT_IS }                                                from './SetupIntro.tsx';
@@ -42,7 +42,7 @@ export function SetupWelcome({ facts, unreadable }: SetupWelcomeProps) {
     <div className="board-pipeline-welcome">
       <View gap="eight">
         <span className="board-pipeline-welcome-kicker">New forge</span>
-        <ViewTitle title={SetupWelcomeModel.titleOf(facts.project)} lead={WELCOME_LEAD} />
+        <PageHead titleElement="h2" title={SetupWelcomeModel.titleOf(facts.project)} lead={WELCOME_LEAD} />
       </View>
       {unreadable === null ? null : <Banner tone="warn" role="status" text={PipelineViewModel.unreadableTextOf(unreadable)} />}
       <ol className="board-pipeline-welcome-steps" aria-label="Setup steps">

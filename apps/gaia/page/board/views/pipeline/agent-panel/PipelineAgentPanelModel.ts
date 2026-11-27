@@ -212,12 +212,6 @@ function openQuestionIdsOf(questions: readonly BoardSetupQuestionDocument[]): st
   return questions.filter((question) => question.answer === null).map((question) => question.questionId);
 }
 
-/** The first recommended option starts chosen, as drawn, and on a multiple question every recommended one in option order; with none, none. */
-function initialChoiceOf(card: SetupQuestionCard): string[] {
-  if (card.isMultiple) return card.options.map((option) => option.letter).filter((letter) => card.recommendedLetters.includes(letter));
-  return card.recommendedLetters.slice(0, 1);
-}
-
 /**
  * The letters chosen after choosing one: a single question takes the letter alone; a multiple question toggles it, and since an answer is
  * either letters or the Other text, choosing Other drops the letters and choosing a letter drops Other.
@@ -393,7 +387,6 @@ export const PipelineAgentPanelModel = Object.freeze({
   questionCardsOf,
   openQuestionCardsOf,
   openQuestionIdsOf,
-  initialChoiceOf,
   choiceAfterChoosing,
   answerCommandOf,
   answeredTextAfterSending,

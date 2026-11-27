@@ -21,6 +21,7 @@ import {
   Button,
   Card,
   MonoId,
+  PageHead,
   Row,
   StateDot,
   Tag,
@@ -43,7 +44,6 @@ import { useDetailRouting }                                               from '
 import { useQuestionPanelOpener }                                         from '../../shared/routing/QuestionPanelOpener.ts';
 import { StateToneUtil }                                                  from '../../utils/StateToneUtil.ts';
 import { TimeUtil }                                                       from '../../utils/TimeUtil.ts';
-import { ViewTitle }                                                      from '../ViewTitle.tsx';
 import type { KanbanBoard }                                               from './@types/KanbanBoard.ts';
 import { KanbanChangeHighlightModel }                                     from './KanbanChangeHighlightModel.ts';
 import { KanbanDependencyArrowUtil }                                      from './KanbanDependencyArrowUtil.ts';
@@ -751,7 +751,7 @@ export function KanbanView({
 
   return (
     <section className="board-kanban" aria-label="Kanban" ref={viewElement} data-flint-workplace="" data-freshness={streamIsLive ? 'live' : 'snapshot'}>
-      <ViewTitle title="Kanban" lead={KANBAN_LEAD} />
+      <PageHead titleElement="h2" title="Kanban" lead={KANBAN_LEAD} />
       {draftsWaitingCount === 0 ? null : <a className="board-kanban-drafts-link" href={ticketsHref}>{draftsWaitingTextOf(draftsWaitingCount)}</a>}
       {filters.entityFilter === null
         ? frame

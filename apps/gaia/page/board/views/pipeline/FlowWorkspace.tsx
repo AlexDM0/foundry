@@ -7,8 +7,8 @@
  */
 
 import { useEffect, useRef, type ReactNode } from 'react';
+import { PageHead }                          from '../../../lib/design-system/DesignSystemInterface.ts';
 
-import { ViewTitle }                         from '../ViewTitle.tsx';
 import { PipelinePage }                      from './PipelinePage.tsx';
 import type { PipelineViewFacts }            from './PipelineViewModel.ts';
 import { useProfileLogFollower }             from './ProfileLogFollowerContext.ts';
@@ -66,7 +66,7 @@ export function FlowWorkspace({
   const main = (
     <>
       {breadcrumb}
-      <ViewTitle title={title} lead={lead} />
+      <PageHead titleElement="h2" title={title} lead={lead} />
       {notice}
       {levelPage ?? (flow === null
         ? null

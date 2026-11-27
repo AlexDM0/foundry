@@ -1,6 +1,7 @@
 /**
  * The icon button, in a happy-dom document. What matters: it shows its glyph or the caller's drawing, hidden from the accessibility tree,
- * under its accessible name, carries its title, and calls `onPress`, unless it is disabled; a `Tooltip` around it describes it.
+ * under its accessible name, carries its title, and calls `onPress`, unless it is disabled; `accent` marks it as the accent block, and only
+ * then; a `Tooltip` around it describes it.
  */
 import {
   cleanup,
@@ -41,6 +42,20 @@ describe('the icon button', () => {
     const button = screen.getByRole('button', { name: 'Example theme' });
     expect([button.getAttribute('title'), button.firstElementChild?.getAttribute('aria-hidden'), button.querySelector('[data-example-drawing]') !== null])
       .toEqual(['Example theme', 'true', true]);
+  });
+
+  test('accent marks the button as the accent block, which still presses, and only then', () => {
+    const presses: string[] = [];
+    render(
+      <>
+        <IconButton drawing={<svg />} accessibleName="Send the example" accent onPress={() => presses.push('sent')} />
+        <IconButton glyph="close" accessibleName="Close the example panel" onPress={() => undefined} />
+      </>,
+    );
+    const accentButton = screen.getByRole('button', { name: 'Send the example' });
+    fireEvent.click(accentButton);
+    expect([accentButton.hasAttribute('data-accent'), screen.getByRole('button', { name: 'Close the example panel' }).hasAttribute('data-accent'), presses])
+      .toEqual([true, false, ['sent']]);
   });
 
   test('a disabled icon button is disabled and does not call onPress', () => {

@@ -1,8 +1,8 @@
 /**
  * The tag, in a happy-dom document. What matters: each tone sets `data-tone`, and the state tone shows only with the `state` tone, since the
  * other tones have colours of their own; dashed and chip set their attributes; a dot leads the text in the state tone's fill and its shape, and the
- * warning glyph leads it as an svg, both hidden from the accessibility tree so the tag reads as its text alone; each glyph draws its own
- * path; a busy tag shows a turning ring in the glyph's place; a change sets `data-change` and `pops` sets `data-pops`; `href` makes a
+ * warning glyph leads it as an icon, both hidden from the accessibility tree so the tag reads as its text alone; each glyph draws its own
+ * icon; a busy tag shows a turning ring in the glyph's place; a change sets `data-change` and `pops` sets `data-pops`; `href` makes a
  * link, `onPress` a button that calls it, and neither a span; a glyph and busy, a dot without a state tone, the `state` tone without
  * one, and `href` with `onPress` do not compile; and the text is text, never markup.
  */
@@ -66,15 +66,16 @@ describe('the tag', () => {
     render(<Tag text="4 in progress with no owner" tone="warn" glyph="warning" href="#agents" />);
     const link = screen.getByRole('link', { name: '4 in progress with no owner' });
     const glyph = link.firstElementChild;
-    expect([glyph?.tagName.toLowerCase(), glyph?.getAttribute('class'), glyph?.getAttribute('aria-hidden'), glyph?.querySelector('path') === null])
-      .toEqual(['svg', 'design-system-tag-glyph', 'true', false]);
+    const drawing = glyph?.querySelector('svg');
+    expect([glyph?.getAttribute('class'), drawing?.getAttribute('data-icon'), drawing?.getAttribute('aria-hidden')])
+      .toEqual(['design-system-tag-glyph', 'exclamation-triangle', 'true']);
   });
 
-  test('each glyph draws its own path, hidden, and the profile chip is a button named by its time', () => {
+  test('each glyph draws its own icon, hidden, and the profile chip is a button named by its time', () => {
     const glyphs = ['warning', 'stopwatch', 'check', 'plus'] as const;
     const { container } = render(<>{glyphs.map((glyph) => <Tag key={glyph} text={glyph} tone="neutral" glyph={glyph} />)}</>);
-    const paths = [...container.querySelectorAll('.design-system-tag-glyph path')].map((path) => path.getAttribute('d'));
-    expect([paths.length, new Set(paths).size]).toEqual([glyphs.length, glyphs.length]);
+    const icons = [...container.querySelectorAll('.design-system-tag-glyph svg[aria-hidden="true"]')].map((drawing) => drawing.getAttribute('data-icon'));
+    expect(icons).toEqual(['exclamation-triangle', 'stopwatch', 'check', 'plus']);
     cleanup();
     const presses: string[] = [];
     render(<Tag text="62 s" tone="state" stateTone="success" glyph="stopwatch" onPress={() => presses.push('profile')} />);

@@ -623,42 +623,6 @@
   border-radius: var(--r-1);
 }
 
-.board-send-button {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  padding: 0;
-  color: var(--accent-ink-on);
-  background: var(--button);
-  border: 1px solid var(--button);
-  border-radius: var(--r-3);
-  cursor: pointer;
-}
-
-.board-send-icon {
-  display: block;
-  width: 18px;
-  height: 18px;
-}
-
-.board-send-button:not(:disabled):hover {
-  filter: brightness(0.94);
-}
-
-.board-send-button:focus-visible {
-  outline: 2px solid var(--link);
-  outline-offset: 2px;
-}
-
-.board-send-button:disabled {
-  color: var(--ink-4);
-  background: var(--wash);
-  border-color: var(--line);
-  cursor: not-allowed;
-}
-
 .board-path {
   padding: 0 4px;
   font: var(--fs-micro)/1.6 var(--font-mono);

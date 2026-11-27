@@ -2,7 +2,7 @@
  * A section of a view: its head (the title in the title size, an optional count in a quiet pill after it, then whatever the caller adds at
  * its end), then either its list of items or, with none, its empty card in the section's own words.
  */
-import { Fragment, type ReactNode } from 'react';
+import { Fragment, type ReactNode, type Ref } from 'react';
 
 import { EmptyState }       from '../atoms/EmptyState.tsx';
 import type { TextElement } from '../atoms/Text.tsx';
@@ -23,10 +23,12 @@ export interface ListSectionProps<Item> {
   /** Each item renders its own `li`. */
   readonly renderItem:    (item: Item) => ReactNode;
   readonly listLabel?:    string;
+  /** The list's element, such as for `useListPresence`, which reads its leaving items' animation. */
+  readonly listRef?:      Ref<HTMLUListElement>;
 }
 
 export function ListSection<Item>({
-  label, title, titleElement, count, headEnd, emptyText, items, keyOf, renderItem, listLabel
+  label, title, titleElement, count, headEnd, emptyText, items, keyOf, renderItem, listLabel, listRef
 }: ListSectionProps<Item>) {
   return (
     <section className="design-system-section" aria-label={label}>
@@ -36,7 +38,7 @@ export function ListSection<Item>({
       {items.length === 0
         ? <EmptyState text={emptyText} />
         : (
-          <ul className="design-system-list" aria-label={listLabel}>
+          <ul ref={listRef} className="design-system-list" aria-label={listLabel}>
             {items.map((item, position) => <Fragment key={keyOf(item, position)}>{renderItem(item)}</Fragment>)}
           </ul>
         )}

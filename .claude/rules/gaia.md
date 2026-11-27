@@ -168,8 +168,7 @@ page/@types/       the page contract (`FleetDocument`, `CommandDocument`); the s
 page/@types/board/ the page's board contract, Gaia's own, never the forge's
 page/board/        the board's views, Gaia's own; a page view may draw the board, the board imports no page view (`page/views/`) and
                    not the page shell (`page/shell/`) (rule 10)
-page/board/shell/  the board's frame, which composes every tab's view; only `page/board/Board.tsx` and `page/board/testing/` import it,
-                   but `ItemPresence`, which others import until the design-system package replaces it
+page/board/shell/  the board's frame, which composes every tab's view; only `page/board/Board.tsx` and `page/board/testing/` import it
 page/board/views/  one folder per tab or panel; no view imports another
 page/board/shared/ what the board's views and its shell read alike, hoisted once a second of them needs it; imports no view and no
                    shell

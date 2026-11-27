@@ -5,7 +5,15 @@
  * the habitat cued by the first running job. The times tick each second from the injected clock while the event stream is live. The
  * strip is a polite live region, so its ticking times are hidden from assistive technology.
  */
-import { MicroCapsLabel, Tag } from '../../lib/design-system/DesignSystemInterface.ts';
+import { useRef, type RefObject } from 'react';
+
+import {
+  MicroCapsLabel,
+  presenceAttributeOf,
+  type PresentItem,
+  Tag,
+  useListPresence
+} from '../../lib/design-system/DesignSystemInterface.ts';
 
 import { CountTextUtil }                  from '../../shared/utils/CountTextUtil.ts';
 import { FlintSlotHabitat }               from '../flint/FlintSlotHabitat.tsx';
@@ -14,7 +22,6 @@ import { useTickingNow, type BoardClock } from '../shared/BoardClock.ts';
 import { useChangedSinceMount }           from '../shared/ChangedSinceMount.ts';
 import { useBoardHrefOf }                 from '../shared/routing/BoardRouteLinks.ts';
 import { FlintSlotCueUtil }               from '../utils/FlintSlotCueUtil.ts';
-import type { PresentItem }               from '../utils/ItemPresenceUtil.ts';
 import { StateToneUtil }                  from '../utils/StateToneUtil.ts';
 import {
   ActivityStripModel,
@@ -22,7 +29,6 @@ import {
   type ActivityStripFacts,
   type WorkerChip
 } from './ActivityStripModel.ts';
-import { presenceAttributeOf, useItemPresence } from './ItemPresence.ts';
 
 export interface ActivityStripProps {
   readonly facts:          ActivityStripFacts;
@@ -67,10 +73,16 @@ function ActivityCounts({ facts }: { readonly facts: ActivityStripFacts }) {
 }
 
 /** A job that launches pops in; one that ends fades out where it stood. */
-function WorkerJobChips({ presentChips, now }: { readonly presentChips: readonly PresentItem<WorkerChip>[]; readonly now: Date }) {
+interface WorkerJobChipsProps {
+  readonly presentChips: readonly PresentItem<WorkerChip>[];
+  readonly now:          Date;
+  readonly chipsElement: RefObject<HTMLSpanElement | null>;
+}
+
+function WorkerJobChips({ presentChips, now, chipsElement }: WorkerJobChipsProps) {
   const hrefOf = useBoardHrefOf();
   return (
-    <span className="board-activity-jobs" aria-label="Worker jobs">
+    <span ref={chipsElement} className="board-activity-jobs" aria-label="Worker jobs">
       {presentChips.map(({ item: chip, presence }) => {
         const elapsed = ActivityStripModel.elapsedTextOf(chip, now);
         const name = `Job ${chip.jobId}, ${chip.roleLabel}, ${chip.title}`;
@@ -102,7 +114,8 @@ export function ActivityStrip({
   facts, isLive, clock, showsFlintSlot
 }: ActivityStripProps) {
   const now = useTickingNow(clock, isLive && facts.chips.length > 0);
-  const presentChips = useItemPresence(facts.chips, (chip) => chip.jobId);
+  const chipsElement = useRef<HTMLSpanElement>(null);
+  const presentChips = useListPresence(facts.chips, (chip) => chip.jobId, chipsElement);
   const slotsInUse = slotsInUseTextOf(facts);
   const hrefOf = useBoardHrefOf();
   return (
@@ -130,7 +143,7 @@ export function ActivityStrip({
         </div>
         {presentChips.length === 0
           ? <span className="board-activity-idle">{IDLE_ACTIVITY_TEXT}</span>
-          : <WorkerJobChips presentChips={presentChips} now={now} />}
+          : <WorkerJobChips presentChips={presentChips} now={now} chipsElement={chipsElement} />}
       </div>
     </div>
   );

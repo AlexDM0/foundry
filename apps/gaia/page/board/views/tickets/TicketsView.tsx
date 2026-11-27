@@ -8,6 +8,7 @@
 import { useMemo, useRef, useState } from 'react';
 
 import type { BoardDocument }                                               from '../../../@types/board/BoardDocument.ts';
+import { PageHead }                                                         from '../../../lib/design-system/DesignSystemInterface.ts';
 import { SegmentedControl, type SegmentOption }                             from '../../../lib/design-system/DesignSystemInterface.ts';
 import { useTicketsHabitat }                                                from '../../flint/UseTicketsHabitat.ts';
 import type { PreferenceStore }                                             from '../../preferences/PreferenceStore.ts';
@@ -17,7 +18,6 @@ import type { RowMoment }                                                   from
 import { TICKET_SEGMENT_LABELS, TICKET_SEGMENTS, type TicketSegment }       from '../../shared/tickets/TicketSegmentUtil.ts';
 import { FinishedWorkUtil }                                                 from '../../utils/FinishedWorkUtil.ts';
 import { SearchMatchUtil }                                                  from '../../utils/SearchMatchUtil.ts';
-import { ViewTitle }                                                        from '../ViewTitle.tsx';
 import { ActiveSegment }                                                    from './ActiveSegment.tsx';
 import { ActiveTicketsModelUtil }                                           from './ActiveTicketsModel.ts';
 import { FinishedSegment }                                                  from './FinishedSegment.tsx';
@@ -90,7 +90,7 @@ export function TicketsView({ board, boardStore, routeItem }: TicketsViewProps) 
   const searchName = `Search ${TICKET_SEGMENT_LABELS[segment].toLowerCase()}`;
   return (
     <section className="board-tickets" aria-label="Tickets" ref={viewElement} data-flint-workplace="">
-      <ViewTitle title="Tickets" lead="Every ticket of this forge, from its first draft to its landing." />
+      <PageHead titleElement="h2" title="Tickets" lead="Every ticket of this forge, from its first draft to its landing." />
       <div className="board-tickets-bar">
         <SegmentedControl accessibleName="Which tickets" options={options} selected={segment} onSelect={choose} />
         <label className="board-search">

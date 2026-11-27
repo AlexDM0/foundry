@@ -17,7 +17,8 @@ The components sit in three layers, as in atomic design: `atoms/` (one element, 
 as `Dialog`, `Tabs` and `MultipleChoiceQuestion`). Each component has its stylesheet and its DOM spec beside it.
 
 `constants/Spacing.ts` holds the spacing scale, each step the `--space-<size>` token of `styles/tokens.css`, `utils/`
-the helpers that are not components (`ThemeCycleUtil` steps a theme choice on), `@types/` the shared `StateTone` and
+the helpers that are not components (`ThemeCycleUtil` steps a theme choice on; `useListPresence` marks the items a
+list gains and keeps a lost one in place through its leaving animation, its list element handed over by a ref), `@types/` the shared `StateTone` and
 `ThemeChoice`, `styles/` the tokens and the entry stylesheet, and `fonts/` Inter and Newsreader.
 
 Besides the layout and text parts, the library holds form parts (`Checkbox`, `TextField`, `NumberStepper`, `Switch`),

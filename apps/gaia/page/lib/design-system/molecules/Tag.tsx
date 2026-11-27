@@ -7,7 +7,8 @@
  */
 import type { StateDotShape, StateTone } from '../@types/StateTone.ts';
 
-import { StateDot } from '../atoms/StateDot.tsx';
+import { Icon, type IconName } from '../atoms/Icon.tsx';
+import { StateDot }            from '../atoms/StateDot.tsx';
 
 export type TagTone = 'neutral' | 'state' | 'warn' | 'error';
 
@@ -15,11 +16,11 @@ export type TagGlyph = 'warning' | 'stopwatch' | 'check' | 'plus';
 
 export type TagChange = 'changed' | 'new' | 'removed';
 
-const GLYPH_PATH: Readonly<Record<TagGlyph, string>> = Object.freeze({
-  warning:   'M8 2.5l6 11H2z M8 6.5v3.5 M8 11.6v0.4',
-  stopwatch: 'M13.2 9.2a5.2 5.2 0 1 1-10.4 0a5.2 5.2 0 1 1 10.4 0z M8 9.2V6.4 M6.4 1.8h3.2',
-  check:     'M3 8.5l3.2 3.2L13 4.5',
-  plus:      'M8 3v10 M3 8h10',
+const GLYPH_ICON: Readonly<Record<TagGlyph, IconName>> = Object.freeze({
+  warning:   'exclamation-triangle',
+  stopwatch: 'stopwatch',
+  check:     'check',
+  plus:      'plus',
 });
 
 /**
@@ -69,9 +70,7 @@ export function Tag({
     <>
       {busy ? <span className="design-system-tag-spinner" aria-hidden="true" /> : null}
       {glyph === undefined ? null : (
-        <svg className="design-system-tag-glyph" viewBox="0 0 16 16" aria-hidden="true">
-          <path d={GLYPH_PATH[glyph]} />
-        </svg>
+        <span className="design-system-tag-glyph"><Icon name={GLYPH_ICON[glyph]} label={null} /></span>
       )}
       {dot && stateTone !== undefined ? <StateDot tone={stateTone} shape={dotShape} /> : null}
       {text}

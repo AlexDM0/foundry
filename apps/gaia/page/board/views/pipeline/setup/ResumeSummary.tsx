@@ -11,6 +11,7 @@ import {
   ActionBar,
   Button,
   ConfirmStrip,
+  PageHead,
   Row,
   Stepper,
   type StepperStep,
@@ -21,7 +22,6 @@ import {
 import type { BoardRoute }                     from '../../../../shared/BoardRouter.ts';
 import { CommandButton }                       from '../../../shared/commands/CommandButton.tsx';
 import { useBoardHrefOf, useBoardNavigation }  from '../../../shared/routing/BoardRouteLinks.ts';
-import { ViewTitle }                           from '../../ViewTitle.tsx';
 import { PipelineViewModel }                   from '../PipelineViewModel.ts';
 import { AgentSessionModel, type SessionJob }  from '../agent-panel/AgentSessionModel.ts';
 import { ResumeSummaryModel, type ResumeStep } from './ResumeSummaryModel.ts';
@@ -74,7 +74,7 @@ export function ResumeSummary({ setup, jobs }: ResumeSummaryProps) {
           <Row paddingBottom="six">
             <Tag text="Setup in progress" tone="neutral" />
           </Row>
-          <ViewTitle title="Pick up where you left off" lead={ResumeSummaryModel.leadTextOf(setup, sessionState)} />
+          <PageHead titleElement="h2" title="Pick up where you left off" lead={ResumeSummaryModel.leadTextOf(setup, sessionState)} />
         </View>
         <div className="board-pipeline-resume-steps">
           <Stepper label="Setup steps" orientation="vertical" steps={ResumeSummaryModel.resumeStepsOf(setup, sessionState).map((step) => stepperStepOf(step, hrefOf))} />

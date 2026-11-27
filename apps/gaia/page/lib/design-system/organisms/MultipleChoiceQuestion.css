@@ -11,6 +11,7 @@
   content: ""; flex: none; width: 8px; height: 8px; border-radius: var(--r-pill); background: var(--decision-accent);
 }
 .design-system-question-card-text { font-size: var(--fs-title); font-weight: 600; line-height: 21px; color: var(--ink); }
+.design-system-question-card-context { margin: 0; font-size: var(--fs-small); color: var(--ink-4); }
 .design-system-question-card-options { display: flex; flex-direction: column; gap: var(--sp-2); }
 .design-system-question-card[data-layout="columns"] .design-system-question-card-options {
   display: grid; grid-auto-columns: minmax(0, 1fr); grid-auto-flow: column;
@@ -21,7 +22,8 @@
   font-weight: 500; color: var(--pass-ink); background: var(--pass-tint); border-radius: var(--r-2);
   animation: design-system-pop var(--motion-pop) var(--ease-out) both;
 }
-.design-system-question-card-answered-glyph { flex: none; width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2; }
+/* The check is drawn on the icon's 16 grid: 2.67 of its units is a 2px stroke at 12px. */
+.design-system-question-card-answered-glyph { flex: none; width: 12px; height: 12px; --icon-stroke-width: 2.67; }
 
 @media (prefers-reduced-motion: reduce) {
   .design-system-question-card-answered { animation: none; }
