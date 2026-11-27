@@ -1695,7 +1695,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
         PipelineAgentSessions.verifyTurnEnds(change, turnEndContext, pipelineAgentTurnEnds);
         PipelineAgentSessions.pinSnapshotCommit(change, request.mainLine);
         replies.push(...DocumentAgentSessions.verifyTurnEnds(change, turnEndContext, documentAgentTurnEnds, observation.pendingRequests, relayedControlContext));
-        DocumentAgentSessions.settleEndedSessions(change.board, documentAgentSessionEnds, change.at);
+        DocumentAgentSessions.settleEndedSessions(change.board, request.workspace.trackerDirectory, documentAgentSessionEnds, change.at);
         for (const { jobId, report } of effectReadingResults) effectReadings.settle(change.board, jobId, report, change.at);
         const failedEffectReaders = effectReadings.failOverdue(change.board, effectReadingEnds, change.at);
         request.afterHoldPhase?.('child-events', change.board);

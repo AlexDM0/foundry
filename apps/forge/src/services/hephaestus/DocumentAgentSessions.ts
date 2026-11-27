@@ -56,6 +56,8 @@ const SNAPSHOT_TOUCHED_INCIDENT = 'document-snapshot-touched';
 
 const FAILED_CAUSE = 'document-snapshot-touched';
 
+const UNREADABLE_LAUNCH_FILE_CAUSE = 'system-file-unreadable';
+
 /** What the agent's session printed in its current instance, read from its event log. */
 export interface DocumentAgentReading {
   jobId:    string;
@@ -280,11 +282,14 @@ function deliverNextMessage(trackerDirectory: string, board: Board, job: Readonl
   return true;
 }
 
-/** In the hold: a launch file that cannot be read opens its incident, and a job with such an incident open takes no message until a move. */
+/**
+ * In the hold: a launch file that cannot be read opens its incident and retires the job, which ends `replaced` once its session ended, so
+ * the next message launches a fresh agent; a job with such an incident open takes no message until a move.
+ */
 function unreadableFileHoldsDeliveryOf(board: Board, jobFolder: string, job: Readonly<Job>, at: string): boolean {
   const launch = new DeliveryBaseIngestion(join(jobFolder, LAUNCH_FILE)).read();
   if (launch.verdict === 'unreadable') {
-    UnreadableJobFileIncident.openOnce(board, { jobId: job.id, file: jobFileInDataFolderOf(job.id, LAUNCH_FILE), reason: launch.reason }, at);
+    UnreadableJobFileIncident.openAndRetire(board, { jobId: job.id, file: jobFileInDataFolderOf(job.id, LAUNCH_FILE), reason: launch.reason }, at);
   }
   return launch.verdict === 'unreadable' || UnreadableJobFileIncident.standsOpenFor(board, job.id);
 }
@@ -292,7 +297,7 @@ function unreadableFileHoldsDeliveryOf(board: Board, jobFolder: string, job: Rea
 /**
  * Run in the hold after the lifecycle. An idle agent takes the oldest queued message; an idle agent with none has its input closed, and an
  * instance resumed from waiting opens with the next message. A waiting agent whose document is done ends `closed`. A running agent with an
- * unreadable file of its own takes nothing.
+ * unreadable file of its own takes nothing, and one whose launch file cannot be read is retired.
  */
 function deliverWhenIdle(board: Board, readings: readonly DocumentAgentReading[], trackerDirectory: string, resumedFromWaitingJobIds: readonly string[], at: string): void {
   for (const job of board.jobs().filter(isDocumentAgentJob)) {
@@ -312,9 +317,14 @@ function deliverWhenIdle(board: Board, readings: readonly DocumentAgentReading[]
   }
 }
 
-/** Run in the hold where a stopping agent's session ended: it waits for its next message, or ends `closed` once its document is done. */
-function settleEndedSession(board: Board, job: Readonly<Job>, at: string): void {
+/**
+ * Run in the hold where a stopping agent's session ended: it waits for its next message, or ends `closed` once its document is done. One
+ * whose launch file cannot be read could take no message again: it ends `replaced`, and the next message launches a fresh agent.
+ */
+function settleEndedSession(board: Board, trackerDirectory: string, job: Readonly<Job>, at: string): void {
+  const launchFilePath = join(jobFolderIn(trackerDirectory, job.id), LAUNCH_FILE);
   if (documentIsDone(board, job)) board.endJob(job.id, { outcome: 'closed' }, at);
+  else if (new DeliveryBaseIngestion(launchFilePath).read().verdict === 'unreadable') board.endJob(job.id, { outcome: 'replaced', cause: UNREADABLE_LAUNCH_FILE_CAUSE }, at);
   else board.moveJob(job.id, 'awaiting-answer', at);
 }
 
@@ -322,10 +332,10 @@ function settleEndedSession(board: Board, job: Readonly<Job>, at: string): void 
  * Run in the hold after the turn ends were verified: each stopping agent whose session ended settles, so a request of its last turn, which
  * can keep the document open, applied before the agent was judged done. One Customs failed has already ended.
  */
-function settleEndedSessions(board: Board, jobIds: readonly string[], at: string): void {
+function settleEndedSessions(board: Board, trackerDirectory: string, jobIds: readonly string[], at: string): void {
   for (const jobId of jobIds) {
     const job = board.jobById(jobId);
-    if (job?.state === 'stopping' && isDocumentAgentJob(job)) settleEndedSession(board, job, at);
+    if (job?.state === 'stopping' && isDocumentAgentJob(job)) settleEndedSession(board, trackerDirectory, job, at);
   }
 }
 

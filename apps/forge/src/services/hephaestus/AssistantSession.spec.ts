@@ -5,8 +5,8 @@
  * was delivered goes to the fresh one, but for one a network outage or a lease end interrupted, which waits for User's resume as any job; a
  * boot past the failed-boot bound waits for a sweep; User's message waits for an idle point, which the turn a reader shows agrees with; a
  * wind-down once asked completes, the switch on again or not, and one that went down while winding down ends `closed`; a chats file that
- * cannot be read opens its incident on the Assistant in the hold, which then is delivered nothing and never idle, and is never overwritten;
- * and every move outside its incidents is refused at the Hatch.
+ * cannot be read opens its incident on the Assistant in the hold and retires it, a winding-down one too, so a fresh one boots and no
+ * incident stalls, and the file is never overwritten; and every move outside its incidents is refused at the Hatch.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join }                                   from 'node:path';
@@ -406,20 +406,22 @@ describe('User\'s message waits for an idle point (A7)', () => {
 describe('a chats file that cannot be read', () => {
   const OLD_BARE_LIST = '[{"sequence":2,"incidentIds":[],"messageNumber":1}]\n';
 
-  function unreadableChatsFixture(): { board: Board; trackerDirectory: string; chatsFilePath: string } {
+  function unreadableChatsFixture(): { board: Board; records: LogRecord[]; trackerDirectory: string; chatsFilePath: string } {
     const trackerDirectory = createScratchDirectory('assistant-session-unreadable-chats');
     const jobFolder = jobFolderIn(trackerDirectory, ASSISTANT_ID);
     mkdirSync(jobFolder, { recursive: true });
     const chatsFilePath = join(jobFolder, 'assistant-chats.json');
     writeFileSync(chatsFilePath, OLD_BARE_LIST);
-    const { board } = assistantBoard();
-    return { board, trackerDirectory, chatsFilePath };
+    const { board, records } = assistantBoard();
+    return {
+      board, records, trackerDirectory, chatsFilePath
+    };
   }
 
-  test('opens its incident on the Assistant in the hold, once, which then takes no incident, is never idle and is not counted mid-turn', () => {
+  test('opens its incident on the Assistant in the hold and retires it: it takes no incident, its input closes, and the next pass opens no second one', () => {
     const { board, trackerDirectory } = unreadableChatsFixture();
     board.openIncident(BLOCKED, FIXTURE_AT);
-    const readings = [readingOf(1, { lastContextTokens: ASSISTANT_CONTEXT_TOKENS_BEFORE_FRESH })];
+    const readings = [readingOf(0)];
 
     for (let pass = 0; pass < 2; pass += 1) {
       AssistantSession.closeInputWhenIdle(board, readings, trackerDirectory, FIXTURE_AT);
@@ -431,9 +433,49 @@ describe('a chats file that cannot be read', () => {
       ['system-file-unreadable', ASSISTANT_ID, { file: `jobs/${ASSISTANT_ID}/assistant-chats.json`, reason: 'it is not a JSON object' }, null],
     ]);
     const assistant = board.jobById(ASSISTANT_ID) ?? LIVE_ASSISTANT;
-    expect(assistant.state).toBe('running');
+    expect(assistant.state).toBe('stopping');
     expect(AssistantSession.assistantIsIdle(trackerDirectory, board, assistant, readingOf(1))).toBe(false);
     expect(AssistantSession.midTurnJobIdsOf(trackerDirectory, board, [readingOf(0)])).toEqual([]);
+    removeScratchDirectory(trackerDirectory);
+  });
+
+  test('a retired Assistant that has ended is followed by a fresh one, which takes the open incidents', () => {
+    const { board, trackerDirectory } = unreadableChatsFixture();
+    board.openIncident(BLOCKED, FIXTURE_AT);
+    AssistantSession.closeInputWhenIdle(board, [readingOf(0)], trackerDirectory, FIXTURE_AT);
+
+    board.endJob(ASSISTANT_ID, { outcome: 'closed' }, FIXTURE_AT);
+    advance(board, []);
+
+    const [freshAssistant] = board.jobs();
+    expect([freshAssistant?.kind, freshAssistant?.id === ASSISTANT_ID]).toEqual(['assistant', false]);
+    expect(board.incidents().map((incident) => incident.kind)).toEqual(['blocked', 'system-file-unreadable']);
+    removeScratchDirectory(trackerDirectory);
+  });
+
+  test('an Assistant already stopping opens no incident', () => {
+    const { board, trackerDirectory } = unreadableChatsFixture();
+    board.moveJob(ASSISTANT_ID, 'stopping', FIXTURE_AT);
+
+    AssistantSession.closeInputWhenIdle(board, [readingOf(0)], trackerDirectory, FIXTURE_AT);
+
+    expect(board.incidents()).toEqual([]);
+    removeScratchDirectory(trackerDirectory);
+  });
+
+  test('a winding-down Assistant with the switch off still ends: its input closes, and its defaulted incident is not opened again', () => {
+    const { board, records, trackerDirectory } = unreadableChatsFixture();
+    board.setAssistant(false, FIXTURE_AT);
+    AssistantSession.windDownWhileOff(board, FIXTURE_AT);
+
+    for (let pass = 0; pass < 2; pass += 1) {
+      AssistantSession.closeInputWhenIdle(board, [readingOf(0)], trackerDirectory, FIXTURE_AT);
+      advance(board, [readingOf(0)]);
+    }
+
+    expect(board.jobs().map((job) => [job.id, job.state, job.stopRequest])).toEqual([[ASSISTANT_ID, 'stopping', 'wind-down']]);
+    expect(records.filter((record) => record.kind === 'incident-opened')).toHaveLength(1);
+    expect(records.filter((record) => record.kind === 'incident-defaulted')).toMatchObject([{ fields: { cause: 'assistant-off' } }]);
     removeScratchDirectory(trackerDirectory);
   });
 
