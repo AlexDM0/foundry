@@ -14,6 +14,7 @@ import {
   type ListItemPresence,
   ListSection,
   MonoId,
+  PageHead,
   presenceAttributeOf,
   Row,
   Stamp,
@@ -30,7 +31,6 @@ import { useQuestionsHabitat }          from '../../flint/UseQuestionsHabitat.ts
 import { useBoardHrefOf }               from '../../shared/routing/BoardRouteLinks.ts';
 import { useQuestionPanelOpener }       from '../../shared/routing/QuestionPanelOpener.ts';
 import { StateToneUtil }                from '../../utils/StateToneUtil.ts';
-import { ViewTitle }                    from '../ViewTitle.tsx';
 import { NotificationAllowanceControl } from './NotificationAllowanceControl.tsx';
 import {
   QuestionsModelUtil,
@@ -113,7 +113,7 @@ export function QuestionsView({ board, notifier, selectedDecisionId = null }: Qu
   const presentAnswers = useListPresence(model.answeredDecisions, answeredKeyOf, answeredDecisionList);
   return (
     <div className="board-view" ref={viewElement} data-flint-workplace="" data-question-open={selectedDecisionId === null ? undefined : ''}>
-      <ViewTitle title="Questions" lead="Agents stop here when they need User's answer." />
+      <PageHead titleElement="h2" title="Questions" lead="Agents stop here when they need User's answer." />
       <ListSection
         label="Open questions"
         title="Open questions"

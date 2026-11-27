@@ -11,14 +11,18 @@ import {
   useRef,
   useState
 } from 'react';
-import { StateBadge, Text, View } from '../../../lib/design-system/DesignSystemInterface.ts';
+import {
+  PageHead,
+  StateBadge,
+  Text,
+  View
+} from '../../../lib/design-system/DesignSystemInterface.ts';
 
 import type { BoardTabViewProps } from '../../@types/BoardTabViewProps.ts';
 import type { ConnectionState }   from '../../api/BoardEventStreamClient.ts';
 import { TicketIdMark }           from '../../chips/TicketMarks.tsx';
 import { useDetailRouting }       from '../../shared/routing/DetailRouting.ts';
 import { StateToneUtil }          from '../../utils/StateToneUtil.ts';
-import { ViewTitle }              from '../ViewTitle.tsx';
 import type {
   DependencyColumnModel,
   DependencyNodeChip,
@@ -137,7 +141,7 @@ export function WavesView({ canvas, connection }: WavesViewProps) {
   if (canvas.columns.length === 0) {
     return (
       <View gap="sixteen">
-        <ViewTitle title="Waves" lead={WAVES_LEAD} />
+        <PageHead titleElement="h2" title="Waves" lead={WAVES_LEAD} />
         <section className="board-dependencies" aria-label="Dependencies"><p className="board-dependency-empty">{EMPTY_WAVES_TEXT}</p></section>
       </View>
     );
@@ -146,7 +150,7 @@ export function WavesView({ canvas, connection }: WavesViewProps) {
 
   return (
     <View gap="sixteen">
-      <ViewTitle title="Waves" lead={WAVES_LEAD} />
+      <PageHead titleElement="h2" title="Waves" lead={WAVES_LEAD} />
       <section className="board-dependencies" aria-label="Dependencies">
         <div
           className="board-dependency-canvas"

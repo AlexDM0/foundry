@@ -11,7 +11,12 @@ import {
   useState,
   type ReactNode
 } from 'react';
-import { SegmentMeter, StateBadge, StateDot } from '../../../lib/design-system/DesignSystemInterface.ts';
+import {
+  PageHead,
+  SegmentMeter,
+  StateBadge,
+  StateDot
+} from '../../../lib/design-system/DesignSystemInterface.ts';
 
 import type { ConnectionState }  from '../../api/BoardEventStreamClient.ts';
 import { TicketIdMark }          from '../../chips/TicketMarks.tsx';
@@ -22,7 +27,6 @@ import { useBoardHrefOf }        from '../../shared/routing/BoardRouteLinks.ts';
 import { DetailRoute }           from '../../shared/routing/DetailRoute.ts';
 import { useDetailRouting }      from '../../shared/routing/DetailRouting.ts';
 import { StateToneUtil }         from '../../utils/StateToneUtil.ts';
-import { ViewTitle }             from '../ViewTitle.tsx';
 import {
   EpicsModel,
   type EpicCard,
@@ -231,7 +235,7 @@ export function EpicsView({ board, pointedEpicKey, connection }: EpicsViewProps)
       data-flint-workplace=""
       data-freshness={connection === 'live' ? 'live' : 'snapshot'}
     >
-      <ViewTitle title="Epics" lead="Each epic's progress, rolled up from its tickets. A ticket counts under its first epic. Open epics come first." />
+      <PageHead titleElement="h2" title="Epics" lead="Each epic's progress, rolled up from its tickets. A ticket counts under its first epic. Open epics come first." />
       <div className="board-epic-grid">
         {model.emptyText === null
           ? model.cards.map((card) => <EpicCardView key={card.key} card={card} isPointed={card.key === pointedEpicKey} />)

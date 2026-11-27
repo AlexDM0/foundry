@@ -14,6 +14,7 @@ import {
   ChoiceInput,
   ChoiceOption,
   ConfirmStrip,
+  PageHead,
   Tag,
   Text,
   View
@@ -21,7 +22,6 @@ import {
 import { CommandButton }                                                from '../../../shared/commands/CommandButton.tsx';
 import type { CommandWaitExplanation }                                  from '../../../shared/commands/CommandWait.ts';
 import { useBoardHrefOf, useBoardNavigation }                           from '../../../shared/routing/BoardRouteLinks.ts';
-import { ViewTitle }                                                    from '../../ViewTitle.tsx';
 import { PipelinePage }                                                 from '../PipelinePage.tsx';
 import { PipelineViewModel, SETUP_STEP_LABELS, type PipelineViewFacts } from '../PipelineViewModel.ts';
 import { AgentChoiceModel }                                             from '../agent/AgentChoiceModel.ts';
@@ -196,7 +196,7 @@ export function AgentStep({ facts, setup, replacesUnreadablePipeline }: AgentSte
     <div className="board-pipeline-setup-column">
       <View gap="two">
         <Text typeRole="small" mono muted>{PipelineViewModel.stepPositionTextOf(record, 'agent')}</Text>
-        <ViewTitle title={project === '' ? 'Which agent builds this forge' : `Which agent builds ${project}`} lead={STEP_LEAD} />
+        <PageHead titleElement="h2" title={project === '' ? 'Which agent builds this forge' : `Which agent builds ${project}`} lead={STEP_LEAD} />
       </View>
       <VendorChoice agent={agent} chosenVendor={vendor} />
       <AgentProgramPanel

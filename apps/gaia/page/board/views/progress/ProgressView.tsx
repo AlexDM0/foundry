@@ -24,6 +24,7 @@ import {
   Icon,
   Menu,
   MenuItem,
+  PageHead,
   Row,
   StateBadge
 } from '../../../lib/design-system/DesignSystemInterface.ts';
@@ -38,7 +39,6 @@ import { DetailRoute }                                                 from '../
 import { useDetailRouting }                                            from '../../shared/routing/DetailRouting.ts';
 import { GeometryUtil }                                                from '../../utils/GeometryUtil.ts';
 import { StateToneUtil }                                               from '../../utils/StateToneUtil.ts';
-import { ViewTitle }                                                   from '../ViewTitle.tsx';
 import { BoardLifetimeControls }                                       from './BoardLifetimeControls.tsx';
 import { useChartPanelRoom }                                           from './ChartPanelRoom.ts';
 import { EpicRowGrouping, type EpicGroupHeadModel, type EpicRowGroup } from './EpicRowGrouping.ts';
@@ -360,7 +360,7 @@ export function ProgressView({
 
   return (
     <div className="board-progress-view" data-name-column={nameColumnWidth} ref={viewElement} data-flint-workplace="">
-      <ViewTitle
+      <PageHead titleElement="h2"
         title="Gantt"
         lead="Each ticket's builds and reviews over time, grouped by epic. Click a row to open it. Click its number to open the ticket."
       />

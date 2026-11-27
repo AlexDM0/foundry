@@ -12,6 +12,7 @@ import {
   ActionBar,
   Button,
   MonoId,
+  PageHead,
   Row,
   SegmentedControl,
   Tag,
@@ -25,7 +26,6 @@ import { type BoardClock, useTickingNow }                                       
 import { CommandButton }                                                                   from '../../../shared/commands/CommandButton.tsx';
 import { useBoardHrefOf, useBoardNavigation }                                              from '../../../shared/routing/BoardRouteLinks.ts';
 import { TimeUtil }                                                                        from '../../../utils/TimeUtil.ts';
-import { ViewTitle }                                                                       from '../../ViewTitle.tsx';
 import { PipelinePage }                                                                    from '../PipelinePage.tsx';
 import { PipelinePanel }                                                                   from '../PipelinePanel.tsx';
 import { PipelineViewModel, type PipelineViewFacts }                                       from '../PipelineViewModel.ts';
@@ -93,7 +93,7 @@ function SingleConstitutionStep({
             <span className="board-pipeline-constitution-status-dot" data-state={agentState} aria-hidden="true" />
             {ConstitutionStepModel.statusLineOf(agentState)}
           </span>
-          <ViewTitle
+          <PageHead titleElement="h2"
             title="The constitution"
             lead={(
               <>
@@ -346,7 +346,7 @@ function MonorepoConstitutionStep({
       <View gap="sixteen">
         <View gap="two">
           {breadcrumb}
-          <ViewTitle
+          <PageHead titleElement="h2"
             title={entityKey === null ? 'Constitutions' : `${entityKey}’s constitution`}
             lead={entityKey === null
               ? 'One document per entity: each entity’s builder and reviewers read its own first. The Forge level has no constitution of its own.'
@@ -403,7 +403,7 @@ function MonorepoConstitutionStep({
             {ConstitutionStepModel.entityStatusLineOf(agentState, shownKey)}
             <ConstitutionStateTag state={state} />
           </span>
-          <ViewTitle
+          <PageHead titleElement="h2"
             title={`${shownKey}’s constitution`}
             lead={keptForAPerson
               ? `${shownKey} has no constitution of its own.`

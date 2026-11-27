@@ -12,6 +12,7 @@ import { PAGE_CONTRACT_VERSIONS } from '../../../../src/shared/constants/PageCon
 import {
   type ListItemPresence,
   ListSection,
+  PageHead,
   presenceAttributeOf,
   Row,
   Stamp,
@@ -44,7 +45,6 @@ import { useControlCommand }                                          from '../.
 import { useBoardHrefOf }                                             from '../../shared/routing/BoardRouteLinks.ts';
 import { IncidentTrailUtil, type IncidentEntry }                      from '../../utils/IncidentTrailUtil.ts';
 import { TimeUtil }                                                   from '../../utils/TimeUtil.ts';
-import { ViewTitle }                                                  from '../ViewTitle.tsx';
 import { AssistantModelUtil, type AssistantBoard, type AssistantJob } from './AssistantModel.ts';
 
 export interface AssistantViewProps {
@@ -172,7 +172,7 @@ export function AssistantView({ board, followTranscript }: AssistantViewProps) {
   const presentSettledIncidents = useListPresence(model.settledIncidents, incidentKeyOf, settledIncidentList);
   return (
     <div className="board-view">
-      <ViewTitle title="Assistant" lead="Hephaestus's Assistant. Talk to it here; its incidents are on the right." />
+      <PageHead titleElement="h2" title="Assistant" lead="Hephaestus's Assistant. Talk to it here; its incidents are on the right." />
       <div className="board-assistant-layout">
         <ChatCard label="Assistant session">
           <ChatHead assistantIsOn={model.assistantIsOn} job={job} turnCount={ChatThreadModelUtil.turnCountOf(entries)} askingDecisionCount={model.askingDecisionCount} />

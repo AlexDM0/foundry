@@ -15,6 +15,7 @@ import {
   ActionBar,
   Button,
   MonoId,
+  PageHead,
   Skeleton,
   Tag,
   Text,
@@ -27,7 +28,6 @@ import { CommandButton }                             from '../../../shared/comma
 import { useBoardHrefOf, useBoardNavigation }        from '../../../shared/routing/BoardRouteLinks.ts';
 import { StateToneUtil }                             from '../../../utils/StateToneUtil.ts';
 import { TimeUtil }                                  from '../../../utils/TimeUtil.ts';
-import { ViewTitle }                                 from '../../ViewTitle.tsx';
 import { PipelinePage }                              from '../PipelinePage.tsx';
 import { PipelinePanel }                             from '../PipelinePanel.tsx';
 import { PipelineViewModel, type PipelineViewFacts } from '../PipelineViewModel.ts';
@@ -184,7 +184,7 @@ function ResearchPage({
     <>
       <View gap="two">
         <Text typeRole="small" mono muted>{PipelineViewModel.stepPositionTextOf(record, 'research')}</Text>
-        <ViewTitle title={ResearchStepModel.headingOf(facts.project ?? '')} lead={monorepoMode ? MONOREPO_LEAD : SINGLE_MODE_LEAD} />
+        <PageHead titleElement="h2" title={ResearchStepModel.headingOf(facts.project ?? '')} lead={monorepoMode ? MONOREPO_LEAD : SINGLE_MODE_LEAD} />
       </View>
       <span className="board-pipeline-research-status" data-state={state}>
         <span className="board-pipeline-research-status-dot" aria-hidden="true" />

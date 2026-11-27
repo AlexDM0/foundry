@@ -12,6 +12,7 @@ import {
   ActionBar,
   Button,
   Card,
+  PageHead,
   Skeleton,
   Tag,
   Text,
@@ -23,7 +24,6 @@ import { type BoardClock, useTickingNow }                           from '../../
 import { CommandButton }                                            from '../../../shared/commands/CommandButton.tsx';
 import { useBoardHrefOf, useBoardNavigation }                       from '../../../shared/routing/BoardRouteLinks.ts';
 import { TimeUtil }                                                 from '../../../utils/TimeUtil.ts';
-import { ViewTitle }                                                from '../../ViewTitle.tsx';
 import { PipelinePage }                                             from '../PipelinePage.tsx';
 import { PipelinePanel }                                            from '../PipelinePanel.tsx';
 import { PipelineViewModel, type PipelineViewFacts }                from '../PipelineViewModel.ts';
@@ -233,7 +233,7 @@ export function EntitiesStep({
     <>
       <View gap="two">
         <Text typeRole="small" muted>{EntitiesStepModel.statusLineOf(record)}</Text>
-        <ViewTitle
+        <PageHead titleElement="h2"
           title={EntitiesStepModel.headingOf(facts.project ?? '')}
           lead={'An entity is an app, a package or the root. Each gets its own constitution, gates and reviewers. A ticket changes one entity, '
             + 'and crosses into a whitelisted package in stages.'}
