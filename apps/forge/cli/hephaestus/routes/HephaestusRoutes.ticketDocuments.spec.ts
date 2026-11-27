@@ -18,6 +18,7 @@ import type { ForgeTicketDocumentsDocument } from 'forge-contracts/TicketDocumen
 import { EventBroker, type HephaestusEvent }                             from '../../../src/services/hephaestus/EventBroker.ts';
 import type { HephaestusRoutes }                                         from '../../../src/services/hephaestus/HephaestusServer.ts';
 import { TicketDocumentsAssembly }                                       from '../../../src/services/hephaestus/TicketDocumentsAssembly.ts';
+import { createUnreadableBoardFiles }                                    from '../../../src/services/hephaestus/UnreadableBoardFiles.ts';
 import type { BoardStore }                                               from '../../../src/services/store/BoardStore.ts';
 import { readingBoardOfContents }                                        from '../../../src/services/tracker/BoardOfContents.ts';
 import { localStoreLayoutOf }                                            from '../../../src/services/tracker/LocalStoreLayout.ts';
@@ -90,22 +91,23 @@ function routesOf(effectReadings?: EffectReadingSource | null): { routes: Hephae
   const workspace  = requireWorkspace(repositoryDirectory);
   const boardStore = boardStoreIn(context, workspace);
   const routes = hephaestusRoutesOf({
-    commandArguments: createArgumentParser([]),
+    commandArguments:     createArgumentParser([]),
     context,
     workspace,
     boardStore,
-    boardChildren:    talosChildReadingsWith(context.platformPorts),
-    token:            () => null,
-    started:          () => true,
-    broker:           () => null,
-    monitorStream:    () => null,
-    monitorFacts:     () => null,
-    log:              () => undefined,
-    wake:             () => undefined,
-    launchesHeld:     () => false,
-    onRuntimeCommand: () => Promise.resolve('done'),
-    notices:          () => [],
-    hephaestus:       () => ({
+    boardChildren:        talosChildReadingsWith(context.platformPorts),
+    token:                () => null,
+    started:              () => true,
+    broker:               () => null,
+    monitorStream:        () => null,
+    monitorFacts:         () => null,
+    log:                  () => undefined,
+    unreadableBoardFiles: createUnreadableBoardFiles(() => undefined),
+    wake:                 () => undefined,
+    launchesHeld:         () => false,
+    onRuntimeCommand:     () => Promise.resolve('done'),
+    notices:              () => [],
+    hephaestus:           () => ({
       state: 'serving', url: null, generation: 3, codeVersion: 'code-example', installVersion: 1, restartWarning: null, unreadableFiles: []
     }),
     ...(effectReadings === undefined ? {} : { effectReadings: () => effectReadings }),

@@ -23,6 +23,7 @@ import { JobTranscript }                                                       f
 import { MonitorSnapshotAssembly, type MonitorHephaestusFacts }                from '../../../src/services/hephaestus/MonitorSnapshotAssembly.ts';
 import type { MonitorStream }                                                  from '../../../src/services/hephaestus/MonitorStream.ts';
 import { TicketDocumentsAssembly, type ConstitutionNumbers }                   from '../../../src/services/hephaestus/TicketDocumentsAssembly.ts';
+import type { UnreadableBoardFiles }                                           from '../../../src/services/hephaestus/UnreadableBoardFiles.ts';
 import type { StoreReadFace }                                                  from '../../../src/services/store/BoardStore.ts';
 import { readingBoardOfContents }                                              from '../../../src/services/tracker/BoardOfContents.ts';
 import { PictureStore, type PictureStoring }                                   from '../../../src/services/tracker/PictureStore.ts';
@@ -35,14 +36,16 @@ import { MALFORMED_BODY_TEXT, answerControlCommand, type CommandRouteRequest } f
 import { PresenceReader }                                                      from './PresenceReader.ts';
 
 export interface HephaestusRouteRequest extends Omit<BoardStateSource, 'boardReads'>, Omit<CommandRouteRequest, 'context'> {
-  token:         () => string | null;
-  started:       () => boolean;
-  broker:        () => EventBroker | null;
-  monitorStream: () => MonitorStream | null;
+  token:                () => string | null;
+  started:              () => boolean;
+  broker:               () => EventBroker | null;
+  monitorStream:        () => MonitorStream | null;
   /** `null` until Hephaestus took its generation. */
-  monitorFacts:  () => MonitorHephaestusFacts | null;
+  monitorFacts:         () => MonitorHephaestusFacts | null;
   /** Hephaestus's log, for what a route skips while it reads. */
-  log:           (line: string) => void;
+  log:                  (line: string) => void;
+  /** The board header's warnings, for a board-wide file a route finds unreadable. */
+  unreadableBoardFiles: UnreadableBoardFiles;
 }
 
 const SERVER_REFUSAL_TEXT: Readonly<Record<ServerRefusal, string>> = {
@@ -145,7 +148,7 @@ export function hephaestusRoutesOf(request: HephaestusRouteRequest): HephaestusR
   const boardReads = request.boardStore.reads;
   const boardStateSource: BoardStateSource = { ...request, boardReads };
   const presenceSource = {
-    ports: context.platformPorts, workspace, boardReads, files: hephaestusFilesIn(workspace.trackerDirectory)
+    ports: context.platformPorts, workspace, boardReads, files: hephaestusFilesIn(workspace.trackerDirectory), unreadableBoardFiles: request.unreadableBoardFiles
   };
   const ticketDocumentsReads: TicketDocumentsReads = {
     effectReadings:      () => request.effectReadings?.() ?? null,

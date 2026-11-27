@@ -11,16 +11,18 @@ import type { RouteAnswer }                                from '../../../src/se
 import { Presence }                                        from '../../../src/services/hephaestus/Presence.ts';
 import { PresenceDocumentAssembly, type NumberedCrashLog } from '../../../src/services/hephaestus/PresenceDocumentAssembly.ts';
 import { PresenceStatus }                                  from '../../../src/services/hephaestus/PresenceStatus.ts';
+import type { UnreadableBoardFiles }                       from '../../../src/services/hephaestus/UnreadableBoardFiles.ts';
 import type { StoreReadFace }                              from '../../../src/services/store/BoardStore.ts';
 import type { Workspace }                                  from '../../../src/services/tracker/Workspace.ts';
 import { OperationRefusal }                                from '../../../src/shared/OperationRefusal.ts';
 import { LIFECYCLE_LIMITS }                                from '../../../src/shared/constants/LifecycleLimits.ts';
 
 export interface PresenceSource {
-  ports:      PlatformPorts;
-  workspace:  Workspace;
-  boardReads: StoreReadFace;
-  files:      HephaestusFiles;
+  ports:                PlatformPorts;
+  workspace:            Workspace;
+  boardReads:           StoreReadFace;
+  files:                HephaestusFiles;
+  unreadableBoardFiles: UnreadableBoardFiles;
 }
 
 const PRESENCE_STATUS = {
@@ -37,10 +39,14 @@ const CRASH_LOG_NUMBER_PATTERN = /^[1-9]\d*$/;
 
 const STARTING_ANSWER: RouteAnswer = { status: PRESENCE_STATUS.STARTING, body: { refusal: 'starting' } };
 
-/** Every crash log that can be read, oldest first; one that cannot is left out of the list and refused when asked for by its number. */
-function readableCrashLogsOf(files: HephaestusFiles): NumberedCrashLog[] {
+/**
+ * Every crash log that can be read, oldest first; one that cannot is left out of the list, refused when asked for by its number, and
+ * reported as the board header's warning.
+ */
+function readableCrashLogsOf(files: HephaestusFiles, unreadableBoardFiles: UnreadableBoardFiles): NumberedCrashLog[] {
   return CrashLog.list(files).flatMap((crashLogNumber) => {
     const reading = CrashLog.read(files, crashLogNumber);
+    CrashLog.reportUnreadable(reading, crashLogNumber, unreadableBoardFiles);
     return reading.verdict === 'read' ? [{ crashLogNumber, record: reading.record }] : [];
   });
 }
@@ -48,7 +54,7 @@ function readableCrashLogsOf(files: HephaestusFiles): NumberedCrashLog[] {
 /** 503 `starting` until the serving generation wrote its presence with the classification its start gate handed in. */
 function presenceAnswerOf(source: PresenceSource, servedGeneration: number | null): RouteAnswer {
   const {
-    ports, workspace, boardReads, files
+    ports, workspace, boardReads, files, unreadableBoardFiles
   } = source;
   const presenceReading = Presence.readPresence(files);
   if (servedGeneration === null || presenceReading.verdict !== 'read' || presenceReading.record.generation !== servedGeneration) return STARTING_ANSWER;
@@ -66,7 +72,7 @@ function presenceAnswerOf(source: PresenceSource, servedGeneration: number | nul
     liveTalosRecord: PresenceStatus.liveTalosRecordOf(ports, workspace),
     board:           readingBoardOf(progress, listing.tickets, epicListing.epics, draftListing.drafts, storedLog.records, pipeline),
     limits:          LIFECYCLE_LIMITS,
-    crashLogs:       readableCrashLogsOf(files),
+    crashLogs:       readableCrashLogsOf(files, unreadableBoardFiles),
   });
   return { status: PRESENCE_STATUS.ANSWERED, body: document };
 }
@@ -91,4 +97,4 @@ function crashLogAnswerOf(files: HephaestusFiles, writtenNumber: string | null):
   return { status: CRASH_LOG_STATUS.ANSWERED, body: PresenceDocumentAssembly.crashLogDocumentOf(crashLogNumber, reading.record) };
 }
 
-export const PresenceReader = Object.freeze({ presenceAnswerOf, crashLogAnswerOf });
+export const PresenceReader = Object.freeze({ presenceAnswerOf, crashLogAnswerOf, readableCrashLogsOf });

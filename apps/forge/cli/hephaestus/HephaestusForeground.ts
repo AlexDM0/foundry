@@ -707,6 +707,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
         monitorStream:    () => monitorStream,
         monitorFacts:     monitorFactsNow,
         log,
+        unreadableBoardFiles,
         wake:             (forced) => drivePass?.wake(forced),
         launchesHeld:     () => hephaestusState()?.runtimeState === 'held-by-install-change',
         notices:          () => hephaestusState()?.notices ?? [],
