@@ -2,7 +2,7 @@ import { GATE_CACHE_REPORTS }                                  from '../../lib/t
 import { PIPELINE_SETUP_STEPS }                                from '../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
 import type { LogFileProblem, LogListItems, LogRecordProblem } from '../../shared/@types/LogFileProblem.ts';
 import type { BaseStoredFileProblem }                          from '../../shared/@types/StoredFileProblem.ts';
-import { StoredFileProblemWordingUtil }                        from '../utils/StoredFileProblemWordingUtil.ts';
+import { StoredFileProblemWording }                            from '../StoredFileProblemWording.ts';
 
 const LIST_ITEMS_TEXT: Readonly<Record<LogListItems, string>> = {
   'ticket-ids':       'ticket ids',
@@ -46,7 +46,7 @@ function recordSentenceOf(problem: BaseStoredFileProblem | LogRecordProblem): st
     case 'field-not-cache-reports':
       return `${problem.field} is not a gate run's cache reports, a phase and a list of gates each with a gateName and a cacheReport of `
         + `${GATE_CACHE_REPORTS.join(', ')} or null`;
-    default:                           return StoredFileProblemWordingUtil.sentenceOf(problem);
+    default:                           return StoredFileProblemWording.sentenceOf(problem);
   }
 }
 

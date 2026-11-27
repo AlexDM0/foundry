@@ -90,7 +90,7 @@ describe('NoticeWordingUtil.warningsOf', () => {
     }];
     const header = {
       restartWarning:  { successorCodeVersion: 'code-example', step: 'read-jobs', error: 'Example error' },
-      unreadableFiles: [{ file: 'talos/launches-3.ndjson', problem: { code: 'transitional-worded', sentence: 'line 2: its version is not 1' } }],
+      unreadableFiles: [{ file: 'talos/launches-3.ndjson', problem: { code: 'registry-line-field-malformed', field: 'kind', lineNumber: 2 } }],
     };
     expect(NoticeWordingUtil.warningsOf(notices, header)).toEqual([
       { kind: 'restart-failed', text: 'the restart to code code-example failed at read-jobs: Example error' },

@@ -178,9 +178,4 @@ describe('the launch of a session', () => {
     expect(SessionConfinement.sessionLaunchOf(adapter, windows, unconfined)).toEqual({ verdict: 'runs', plan: adapter.planOf(unconfined) });
     expect(windows.plans).toEqual([]);
   });
-
-  test('a launch that cannot run confined throws for a session host, which reports the throw as its refusal', () => {
-    const request = launchRequestOf(roleProfileOf('builder'));
-    expect(() => SessionConfinement.confinedPlanOf(adapterOf('none'), fakeGateConfinement('unavailable'), request)).toThrow(FAKE_MISSING_TOOLS_REASON);
-  });
 });

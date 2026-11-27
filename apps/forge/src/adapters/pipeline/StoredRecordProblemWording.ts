@@ -1,5 +1,5 @@
-import type { StoredRecordProblem }     from '../../lib/tracker-model/@types/StoredRecordProblem.ts';
-import { StoredFileProblemWordingUtil } from '../utils/StoredFileProblemWordingUtil.ts';
+import type { StoredRecordProblem } from '../../lib/tracker-model/@types/StoredRecordProblem.ts';
+import { StoredFileProblemWording } from '../StoredFileProblemWording.ts';
 
 /** The words of the field checks the pipeline's stored records share; a record that is no JSON object is "the document". */
 function sentenceOf(problem: StoredRecordProblem): string {
@@ -18,7 +18,7 @@ function sentenceOf(problem: StoredRecordProblem): string {
     case 'format-version-not-read':
       return `${problem.field} is ${JSON.stringify(problem.storedValue) ?? 'missing'}, and this build reads ${problem.readVersion}`;
     case 'not-a-json-object':              return 'the document is not a JSON object';
-    default:                               return StoredFileProblemWordingUtil.sentenceOf(problem);
+    default:                               return StoredFileProblemWording.sentenceOf(problem);
   }
 }
 

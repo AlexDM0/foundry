@@ -1,4 +1,4 @@
-import { StoredFileProblemWordingUtil }                 from '../utils/StoredFileProblemWordingUtil.ts';
+import { StoredFileProblemWording }                     from '../StoredFileProblemWording.ts';
 import type { CrashLogMalformedField, CrashLogProblem } from './@types/CrashLogProblem.ts';
 
 const CODE_VERSION_AND_STARTED_AT_SENTENCE = 'codeVersion and startedAt are each a string or null';
@@ -23,7 +23,7 @@ const MALFORMED_FIELD_SENTENCES: Readonly<Record<CrashLogMalformedField, string>
 function sentenceOf(problem: CrashLogProblem): string {
   switch (problem.code) {
     case 'crash-log-field-malformed': return MALFORMED_FIELD_SENTENCES[problem.field];
-    default:                          return StoredFileProblemWordingUtil.sentenceOf(problem);
+    default:                          return StoredFileProblemWording.sentenceOf(problem);
   }
 }
 

@@ -11,7 +11,8 @@ import {
   readdirSync,
   readFileSync
 } from 'node:fs';
-import { join } from 'node:path';
+import { join }               from 'node:path';
+import type { HephaestusLog } from '../../adapters/@types/HephaestusLogRecord.ts';
 
 import { SnapshotStartIngestion, type SnapshotStart }                                     from '../../adapters/snapshot-start/SnapshotStartIngestion.ts';
 import { createSnapshotStartWriter }                                                      from '../../adapters/snapshot-start/SnapshotStartWriter.ts';
@@ -346,7 +347,7 @@ function removeUnheldSnapshots(
   board: Board,
   context: Pick<SnapshotContext, 'workspace' | 'worktreesRoot'>,
   triedSnapshots: Set<string>,
-  log: (line: string) => void,
+  log: HephaestusLog,
   removalPrimitives: WorktreeRemovalPrimitives = REAL_WORKTREE_REMOVAL_PRIMITIVES,
 ): void {
   const snapshotsFolder = join(context.worktreesRoot, PIPELINE_AGENT_SNAPSHOT_FOLDER);
@@ -358,7 +359,7 @@ function removeUnheldSnapshots(
     if (name === openSetupId || triedSnapshots.has(snapshot)) continue;
     triedSnapshots.add(snapshot);
     const removal = GitWorktrees.removeWithRetry({ repositoryDirectory: repositoryRoot, worktreePath: snapshot, force: 'force' }, removalPrimitives);
-    if (removal.verdict === 'left') log(`The pipeline agent snapshot ${snapshot} is a leftover: ${removal.reason}`);
+    if (removal.verdict === 'left') log({ kind: 'pipeline-agent-snapshot-left-over', snapshotPath: snapshot, removalReason: removal.reason });
   }
 }
 

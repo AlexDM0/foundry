@@ -7,11 +7,14 @@
 import { createHash }              from 'node:crypto';
 import { mkdirSync }               from 'node:fs';
 import { basename, dirname, join } from 'node:path';
+import type { HephaestusLog }      from '../../adapters/@types/HephaestusLogRecord.ts';
 
+import { unreadablePipelineGateOf }        from '../../adapters/gate-outcome/UnreadablePipelineGate.ts';
 import { MachineConfigFile }               from '../../adapters/machine-config/MachineConfigFile.ts';
 import type { StartClassificationVerdict } from '../../adapters/presence/@types/StartClassificationVerdict.ts';
 import type { RedHandoffFacts }            from '../../adapters/red-handoff/RedHandoffIngestion.ts';
 import type { ForcedStopRefusals }         from '../../adapters/refused-forced-stops/@types/ForcedStopRefusals.ts';
+import type { ReportProblem }              from '../../adapters/reports/@types/ReportProblem.ts';
 import {
   ADAPT_BUILDER_REPORT_SCHEMA,
   AIRLOCK_AGENT_REPORT_SCHEMA,
@@ -23,9 +26,7 @@ import {
 } from '../../adapters/reports/ReportSchemas.ts';
 import type { JsonSchema }                           from '../../adapters/reports/ReportValidation.ts';
 import { type UsageMarkerReading, UsageMarkerFile }  from '../../adapters/usage-marker/UsageMarkerFile.ts';
-import { UsageMarkerProblemWording }                 from '../../adapters/usage-marker/UsageMarkerProblemWording.ts';
 import type { UsageWindowObservation }               from '../../adapters/usage-marker/UsageWindowsFile.ts';
-import { UnreadableFileProblemWordingUtil }          from '../../adapters/utils/UnreadableFileProblemWordingUtil.ts';
 import type { AgentAdapter, AgentEndingName }        from '../../lib/agent-launch/AgentAdapter.ts';
 import type { AgentConfinement, AgentLaunchRequest } from '../../lib/agent-launch/AgentLaunchRequest.ts';
 import type { WorkerProfile }                        from '../../lib/agent-launch/WorkerProfile.ts';
@@ -144,7 +145,6 @@ import { StoredFileUnreadable }                              from './StoredFileU
 import { stopLiveLinesUnder as stopLiveLinesUnderAt }        from './TalosLines.ts';
 import type { UnreadableBoardFiles }                         from './UnreadableBoardFiles.ts';
 import { UnreadableJobFileIncident, type UnreadableJobFile } from './UnreadableJobFileIncident.ts';
-import { unreadablePipelineGateOf }                          from './UnreadablePipelineGate.ts';
 import { type UsageLimitHit, UsageLimits }                   from './UsageLimits.ts';
 import { type FolderMaker, WorkerProfiles }                  from './WorkerProfiles.ts';
 import { ABANDONED_PASSES_BEFORE_NOTICE }                    from './constants/PresenceLimits.ts';
@@ -300,6 +300,8 @@ export interface DrivePassRequest {
   /** Code on disk differs from the code in memory while the install version does not: a notice only. */
   newCodeOnDisk?:                () => boolean;
   decisionWordingOf:             (draft: DecisionDraft) => DecisionWording;
+  /** An invalid report's problem as a refused merge names it. */
+  reportProblemSentenceOf:       (problem: ReportProblem) => string;
   /** The ticket a crossing ticket's package change becomes once User turns it into a need (E19, E22). */
   packageNeedWordingOf:          (facts: PackageNeedFacts) => PackageNeedWording;
   /** The ticket of a dependent that a crossing ticket's package change breaks, once User has it fixed in the group (E26). */
@@ -318,7 +320,7 @@ export interface DrivePassRequest {
   /** What the pipeline agent reads when User's check of its setup record ends. */
   setupMessageWordingOf:         (message: SetupMessage) => string;
   homeDirectory:                 string;
-  log:                           (line: string) => void;
+  log:                           HephaestusLog;
   /** Where a stale landing lock record the pass took over goes, so the caller words it into its log. */
   onStaleLockTakenOver:          LockTaker['onStaleTakenOver'];
   /** The pass stops acting at once; the caller ends Hephaestus `hephaestus-lock-taken`. */
@@ -546,7 +548,7 @@ function observe(request: DrivePassRequest, jobLaunchContext: JobLaunchContext, 
     const liveness          = children.livenessOf(jobFolder, job.childInstance);
     const events            = children.eventsAfter(jobFolder, job.childInstance, afterSequence);
     const recognisedEndings = children.recognisedEndingsOf(jobFolder, job.childInstance);
-    if (events === 'malformed') request.log(`The event log of job ${job.id}, child instance ${job.childInstance}, is malformed; its events wait.`);
+    if (events === 'malformed') request.log({ kind: 'child-event-log-malformed', jobId: job.id, childInstance: job.childInstance, });
     const lostCause = liveness.verdict === 'lost' && job.role !== null
       ? Regrouping.settleLostChildIn(
         workspace.trackerDirectory, request.platformPorts, request.unreadableBoardFiles, request.log, jobFolder, job.childInstance, forcedStopRetryJobIds.has(job.id),
@@ -577,8 +579,7 @@ function observe(request: DrivePassRequest, jobLaunchContext: JobLaunchContext, 
   const ticketIdsTouchingAgentConfig = JobLaunch.ticketIdsTouchingAgentConfigOf(jobLaunchContext, jobs, pipeline);
   const usageMarker = UsageMarkerFile.read(request.monitorFolder);
   if (usageMarker.verdict === 'malformed') {
-    const markerProblem = UsageMarkerProblemWording.sentenceOf(usageMarker.problem);
-    request.log(`The usage marker ${UsageMarkerFile.pathIn(request.monitorFolder)} is malformed (${markerProblem}); no limit is held by it.`);
+    request.log({ kind: 'usage-marker-malformed', markerPath: UsageMarkerFile.pathIn(request.monitorFolder), problem: usageMarker.problem });
   }
   return {
     childObservations,
@@ -1027,7 +1028,7 @@ function sessionConfinementRefusalOf(
     return null;
   }
   if (job.kind === 'merge-agent') return { jobId: job.id, reason };
-  request.log(`The session of job ${job.id} did not launch: ${reason}; the next pass tries again.`);
+  request.log({ kind: 'session-confinement-refused', jobId: job.id, confinementRefusal: reason });
   return { sessionConfinementRefusedFor: job.id };
 }
 
@@ -1075,7 +1076,9 @@ function agentSearchFoldersOf(request: DrivePassRequest, board: Board, job: Read
   const launch = AgentTools.forgeLaunchToolsOf(board.pipeline(), {
     platformPorts: request.platformPorts, homeDirectory: request.homeDirectory, monitorFolder: request.monitorFolder, rootDirectory: request.workspace.rootDirectory
   });
-  for (const refused of launch.refusedTools) request.log(`The tool ${refused.name} is left off the search path of job ${job.id}: ${refused.reason}.`);
+  for (const refused of launch.refusedTools) request.log({
+    kind: 'tool-left-off-search-path', toolName: refused.name, jobId: job.id, resolverRefusal: refused.reason,
+  });
   return [...AgentTools.toolFoldersOf(launch.tools), dirname(programPath)];
 }
 
@@ -1084,8 +1087,9 @@ function unreadableJobFileRefusalOf(
   request: Pick<DrivePassRequest, 'log'>, job: Readonly<Job>, unreadable: UnreadableJobFile | StoredFileUnreadable
 ): UnreadableJobFileRefusal {
   const unreadableJobFile = StoredFileUnreadable.isUnreadableFile(unreadable) ? StoredFileUnreadable.unreadableJobFileOn(job.id, unreadable) : unreadable;
-  const sentence = UnreadableFileProblemWordingUtil.sentenceOf(unreadableJobFile.problem);
-  request.log(`Job ${job.id} did not launch: its launch reads ${unreadableJobFile.file}, which cannot be read (${sentence}).`);
+  request.log({
+    kind: 'job-file-unreadable-at-launch', jobId: job.id, file: unreadableJobFile.file, problem: unreadableJobFile.problem
+  });
   return { unreadableJobFile };
 }
 
@@ -1108,7 +1112,7 @@ async function launchAgentChild(
   const { workspace, agentAdapter } = request;
   const billing = PipelineAgentSessions.launchBillingOf(board, job);
   if (billing.verdict === 'not-chosen') {
-    request.log(`The pipeline agent of job ${job.id} did not launch: its setup has no billing yet, and it launches once one is chosen.`);
+    request.log({ kind: 'pipeline-agent-awaits-billing', jobId: job.id });
     return { setupBillingNotChosenFor: job.id };
   }
   const billingReadiness = AgentBillingUtil.launchReadinessOf(agentAdapter.billingOptions, billing.billing, request.agentVariableIsSet);
@@ -1140,14 +1144,14 @@ async function launchAgentChild(
       request.folderMaker,
     );
     if (unmadeRoot !== null) {
-      request.log(`The Airlock agent of job ${job.id} did not launch: ${unmadeRoot.reason}.`);
+      request.log({ kind: 'airlock-agent-root-unmade', jobId: job.id, sandboxRefusal: unmadeRoot.reason });
       return unmadeRoot;
     }
   }
   const airlock = airlockFactsOf(board, workspace.trackerDirectory, job, place.checkout);
   if (airlock !== null && airlock !== 'conflicts-unknown' && 'unreadableJobFile' in airlock) return unreadableJobFileRefusalOf(request, job, airlock.unreadableJobFile);
   if (airlock === 'conflicts-unknown') {
-    request.log(`The Airlock agent of job ${job.id} did not launch: neither its kept facts nor git tell which files conflict.`);
+    request.log({ kind: 'airlock-agent-conflicts-unknown', jobId: job.id });
     return { airlockConflictsUnknownFor: job.id };
   }
   const effectReading    = effectReadings.factsOf(board, job, location.repositoryRoot, request.mainLine);
@@ -1221,13 +1225,14 @@ async function launchAgentChild(
     plan:                           sessionLaunch.plan,
     treeStopAtEndGraceMilliseconds: JobLaunch.treeStopAtEndOf(job).treeStopAtEndGraceMilliseconds ?? null,
   });
-  const jobWords = `${job.kind}${job.ticketIds.length === 0 ? '' : ` #${job.ticketIds.join(', #')}`}`;
+  const launchedChild = {
+    jobId: job.id, childInstance: job.childInstance, jobKind: job.kind, ticketIds: job.ticketIds
+  };
   if (launched.verdict === 'talos-unavailable' || launched.verdict === 'refused') {
-    const why = launched.verdict === 'refused' ? `Talos refused it (${launched.reason})` : 'no Talos took it';
-    request.log(`Child instance ${job.childInstance} of job ${job.id} (${jobWords}) did not launch: ${why}; the next pass tries again.`);
+    request.log({ kind: 'child-instance-not-launched', ...launchedChild, talosRefusal: launched.verdict === 'refused' ? launched.reason : null });
     return { talosDidNotLaunch: job.id };
   }
-  request.log(`Launched child instance ${job.childInstance} of job ${job.id} (${jobWords}) under Talos.`);
+  request.log({ kind: 'child-instance-launched', ...launchedChild });
   return null;
 }
 
@@ -1611,17 +1616,20 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       const jobFolder = request.boardChildren.jobFolderOf(job.id);
       return request.boardChildren.livenessOf(jobFolder, job.childInstance).verdict === 'live';
     },
-    stopMergeAgent:        async (job) => { await stopSession(job.id, job.childInstance); },
-    startHoldsOrphans:     startKind !== null && ReconcileCauses.startLeavesWorkWaiting(startKind),
-    decisionWordingOf:     request.decisionWordingOf,
-    keepAirlockFacts:      (mergeJob, facts) => AirlockFactsFile.keep(request.boardChildren.jobFolderOf(mergeJob.id), facts),
-    keptAirlockFactsOf:    (mergeJob) => AirlockFactsFile.keptFactsOf(request.boardChildren.jobFolderOf(mergeJob.id), mergeJob.id),
-    jobFolderOf:           (job) => request.boardChildren.jobFolderOf(job.id),
-    jobFolderOfId:         (jobId) => request.boardChildren.jobFolderOf(jobId),
-    redHandoffResumes:     LIFECYCLE_LIMITS.RED_HANDOFF_RESUMES_BEFORE_PARKING,
-    dispatchIsStopped:     () => request.boardStore.reads.requireProgress().hephaestusState === 'paused',
-    reportDeclinedCleanup: (declined) => {
-      request.log(`Git declined the ${declined.cleanup} cleanup of ${declined.groupBranch}: ${declined.reason}`);
+    stopMergeAgent:          async (job) => { await stopSession(job.id, job.childInstance); },
+    startHoldsOrphans:       startKind !== null && ReconcileCauses.startLeavesWorkWaiting(startKind),
+    decisionWordingOf:       request.decisionWordingOf,
+    reportProblemSentenceOf: request.reportProblemSentenceOf,
+    keepAirlockFacts:        (mergeJob, facts) => AirlockFactsFile.keep(request.boardChildren.jobFolderOf(mergeJob.id), facts),
+    keptAirlockFactsOf:      (mergeJob) => AirlockFactsFile.keptFactsOf(request.boardChildren.jobFolderOf(mergeJob.id), mergeJob.id),
+    jobFolderOf:             (job) => request.boardChildren.jobFolderOf(job.id),
+    jobFolderOfId:           (jobId) => request.boardChildren.jobFolderOf(jobId),
+    redHandoffResumes:       LIFECYCLE_LIMITS.RED_HANDOFF_RESUMES_BEFORE_PARKING,
+    dispatchIsStopped:       () => request.boardStore.reads.requireProgress().hephaestusState === 'paused',
+    reportDeclinedCleanup:   (declined) => {
+      request.log({
+        kind: 'cleanup-declined', cleanup: declined.cleanup, groupBranch: declined.groupBranch, gitMessage: declined.reason
+      });
       declinedCleanups = [...declinedCleanups.filter((earlier) => earlier.cleanup !== declined.cleanup || earlier.groupBranch !== declined.groupBranch), declined];
     },
     mainConstitutionOf:     (constitutionPath) => InstructionFiles.mainConstitutionOf(request.workspace.rootDirectory, request.mainLine, constitutionPath),
@@ -1947,7 +1955,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       const update = write();
       if (update.verdict === 'no-record') Presence.reportUnreadablePresence(update.reading, request.unreadableBoardFiles);
     } catch (thrown) {
-      request.log(`Presence could not record the pass: ${describedThrowOf(thrown)}`);
+      request.log({ kind: 'presence-unrecorded', thrownMessage: describedThrowOf(thrown) });
     }
   }
 
@@ -1963,18 +1971,18 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     lastAbandonedPass = abandoned;
     // A forced pass stays forced, so the next wake-up tries it again even when nothing observed changed.
     forcedNext ||= forced;
-    request.log(`Drive pass abandoned (${abandoned.reason}); it waits for the next wake-up: ${abandoned.detail}`);
+    request.log({ kind: 'pass-abandoned', reason: abandoned.reason, refusalMessage: abandoned.detail });
     const at = request.formatStamp(request.now());
     recordInPresence(() => Presence.recordAbandonedPass(presenceFiles, request.generation, abandoned.reason, abandoned.detail, at));
   }
 
   async function crashOnPassThrow(thrown: unknown): Promise<void> {
     stopped = true;
-    request.log(`Drive pass crashed: ${describedThrowOf(thrown)}; the crash path runs and no further pass runs.`);
+    request.log({ kind: 'pass-crashed', thrownMessage: describedThrowOf(thrown) });
     try {
       await request.onPassCrashed(thrown);
     } catch (crashPathThrow) {
-      request.log(`The crash path of the drive pass threw: ${describedThrowOf(crashPathThrow)}`);
+      request.log({ kind: 'pass-crash-path-threw', thrownMessage: describedThrowOf(crashPathThrow) });
     }
   }
 
@@ -2029,7 +2037,9 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     await gateProfiling.settleAtStart();
     await pipelineChecking.settleAtStart();
     leftoverWorktrees.push(...report.leftoverWorktrees);
-    for (const lost of report.lost) request.log(`Child instance ${lost.instance} of job ${lost.jobId} is lost (${lost.cause ?? FORCED_STOP_REFUSED_INTERRUPTION}).`);
+    for (const lost of report.lost) request.log({
+      kind: 'child-instance-lost', jobId: lost.jobId, childInstance: lost.instance, cause: lost.cause ?? FORCED_STOP_REFUSED_INTERRUPTION,
+    });
     wake(true);
     await (running ?? Promise.resolve());
     startIsBeingReconciled = false;

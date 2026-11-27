@@ -1,4 +1,4 @@
-import { StoredFileProblemWordingUtil }                 from '../utils/StoredFileProblemWordingUtil.ts';
+import { StoredFileProblemWording }                     from '../StoredFileProblemWording.ts';
 import type { PresenceMalformedField, PresenceProblem } from './@types/PresenceProblem.ts';
 
 const MALFORMED_FIELD_SENTENCES: Readonly<Record<PresenceMalformedField, string>> = {
@@ -15,7 +15,7 @@ const MALFORMED_FIELD_SENTENCES: Readonly<Record<PresenceMalformedField, string>
 function sentenceOf(problem: PresenceProblem): string {
   switch (problem.code) {
     case 'presence-field-malformed': return MALFORMED_FIELD_SENTENCES[problem.field];
-    default:                         return StoredFileProblemWordingUtil.sentenceOf(problem);
+    default:                         return StoredFileProblemWording.sentenceOf(problem);
   }
 }
 

@@ -18,6 +18,7 @@ import { boardReadsOf, boardStoreIn }                               from '../../
 import type { CommandContext }                                      from '../../CommandContext.ts';
 import type { CommandHandler }                                      from '../../CommandHandler.ts';
 import { loggingLockTakerOf }                                       from '../../StaleLockWording.ts';
+import { TrackerListWording }                                       from '../../TrackerListWording.ts';
 import type { ArgumentParser }                                      from '../../arguments/ArgumentParser.ts';
 import { OutputUtil }                                               from '../../utils/OutputUtil.ts';
 
@@ -75,7 +76,8 @@ async function listTheBoard(context: CommandContext, branchNamespace: string): P
   const tracker = { trackerId, prefix: projectLocationOf(workspace.rootDirectory).projectPrefix, branchNamespace };
   const listing = await listTracker(list, tracker, context.now, loggingLockTakerOf(context.platformPorts.processSupervision, context.standardError));
   if (listing.verdict === 'not-listed') {
-    context.standardError(`The repository's tracker list ${list.files.trackerListFilePath} was not written (${listing.reason}); another tracker could take this namespace.`);
+    const failureText = TrackerListWording.failureTextOf(listing.cause);
+    context.standardError(`The repository's tracker list ${list.files.trackerListFilePath} was not written (${failureText}); another tracker could take this namespace.`);
   }
 }
 

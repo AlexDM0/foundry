@@ -1,7 +1,7 @@
-import { PRODUCT_NAMES }                from '../../shared/constants/ProductNames.ts';
-import { OLDER_FORMAT_ADVICE }          from '../constants/OlderFormatAdvice.ts';
-import { StoredFileProblemWordingUtil } from '../utils/StoredFileProblemWordingUtil.ts';
-import type { DraftFileProblem }        from './@types/DraftFileProblem.ts';
+import { PRODUCT_NAMES }            from '../../shared/constants/ProductNames.ts';
+import { StoredFileProblemWording } from '../StoredFileProblemWording.ts';
+import { OLDER_FORMAT_ADVICE }      from '../constants/OlderFormatAdvice.ts';
+import type { DraftFileProblem }    from './@types/DraftFileProblem.ts';
 
 const MISSING_VALUE_TEXT = 'missing';
 
@@ -23,7 +23,7 @@ function sentenceOf(problem: DraftFileProblem): string {
     case 'item-numbers-below-first':  return `nextNoteNumber and nextQuestionNumber have to be whole numbers of at least ${problem.firstItemNumber}`;
     case 'entity-not-an-entity-key':  return `${problem.field} is not an entity key that is not blank`;
     case 'crosses-malformed':         return `${problem.field} is not a list of entity keys that are not blank`;
-    default:                          return StoredFileProblemWordingUtil.sentenceOf(problem);
+    default:                          return StoredFileProblemWording.sentenceOf(problem);
   }
 }
 

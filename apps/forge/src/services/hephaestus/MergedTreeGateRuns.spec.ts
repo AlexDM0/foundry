@@ -24,6 +24,7 @@ import {
 import type { MergedTreeGate }                            from '../../adapters/gate-outcome/@types/MergedTreeGate.ts';
 import { MERGED_TREE_GATE_OUTCOME_FORMAT_VERSION }        from '../../adapters/gate-outcome/MergedTreeGateOutcomeIngestion.ts';
 import type { GateRunStamp }                              from '../../lib/tracker-model/@types/GatePhase.ts';
+import { detailsLoggerOf }                                from '../../testing/LoggedDetails.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { firstValueOf, waitUntil }                        from '../../testing/WaitUntil.ts';
 import { LinePausedError }                                from '../lifecycle/GateRun.ts';
@@ -83,7 +84,7 @@ function runsUnderTest(): RunsUnderTest {
   const runs = createMergedTreeGateRuns({
     boardFolder,
     wake:               (forced) => wakes.push(forced),
-    log:                (sentence) => sentences.push(sentence),
+    log:                detailsLoggerOf(sentences),
     stopLiveLinesUnder: () => Promise.resolve(),
   });
   const requestOf = (overrides: Partial<MergedTreeGateRunRequest> = {}): MergedTreeGateRunRequest => ({

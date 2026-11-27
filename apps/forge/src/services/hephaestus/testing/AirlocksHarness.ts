@@ -8,6 +8,7 @@ import { join }      from 'node:path';
 
 import type { KeptAirlockFacts }                          from '../../../adapters/airlock-facts/AirlockFactsIngestion.ts';
 import type { MergedTreeGate }                            from '../../../adapters/gate-outcome/@types/MergedTreeGate.ts';
+import { ReportProblemWording }                           from '../../../adapters/reports/ReportProblemWording.ts';
 import { RepositoryLandings }                             from '../../../lib/git/RepositoryLandings.ts';
 import type { GatePhase }                                 from '../../../lib/tracker-model/@types/GatePhase.ts';
 import type { GateRunCacheReports, GateRunStepRuns, Job } from '../../../lib/tracker-model/@types/Job.ts';
@@ -229,13 +230,14 @@ export function createRecordedAirlocksHarness(
   };
   const mergeJob = (): Readonly<Job> | undefined => board.airlockHolderOf('main');
   const slots = createAirlocks({
-    repositoryRoot: repository,
-    mainLine:       'main',
-    branchNames:    branchNamesOf(null),
+    repositoryRoot:          repository,
+    mainLine:                'main',
+    branchNames:             branchNamesOf(null),
     worktreesRoot,
     worktreeOf,
-    limits:         { ...AIRLOCK_LIMITS, ...limits },
-    agentNaming:    fakeAgentAdapter(),
+    limits:                  { ...AIRLOCK_LIMITS, ...limits },
+    agentNaming:             fakeAgentAdapter(),
+    reportProblemSentenceOf: ReportProblemWording.sentenceOf,
     get refDeniesHold() {
       return settings.refDeniesHold;
     },

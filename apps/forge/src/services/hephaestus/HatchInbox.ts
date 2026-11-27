@@ -51,14 +51,14 @@ const HATCH_READABLE_STATES: ReadonlySet<JobState> = new Set([
  */
 const RELAYED_COMMAND_CONTEXT: ControlContext = Object.freeze({
   setupMessageWordingOf: (message: SetupMessage): string => {
-    throw new Error(`A relayed command reached the setup message ${message.kind}, which only User's own commands send.`);
+    throw new OperationRefusal('unrepaired', { kind: 'relayed-command-sent-setup-message', messageKind: message.kind });
   },
   mainConstitutionOf: (): never => {
-    throw new Error('A relayed command reached the reading of main\'s constitution, which only User\'s own commands read.');
+    throw new OperationRefusal('unrepaired', { kind: 'relayed-command-read-main-constitution' });
   },
   liveHephaestusOf:      () => null,
   offeredBillingModesOf: (vendor: string): never => {
-    throw new Error(`A relayed command reached the billing of ${vendor}, which only User's own commands set.`);
+    throw new OperationRefusal('unrepaired', { kind: 'relayed-command-judged-billing', vendor });
   },
 });
 
@@ -152,9 +152,16 @@ function refusedReply(requestId: string, status: OperationRefusal['status'], det
   };
 }
 
+/** A Bouncer defect is never answered as a refusal: it fails the hold, so no write the command made before it is kept. */
+const BOUNCER_DEFECT_KINDS: ReadonlySet<OperationRefusalDetail['kind']> = new Set([
+  'relayed-command-sent-setup-message', 'relayed-command-read-main-constitution', 'relayed-command-judged-billing',
+]);
+
 function replyOfRefusal(requestId: string, thrown: unknown): HatchReply {
   if (thrown instanceof BoardRefusal) return refusedReply(requestId, 'refused', { kind: 'board-refusal', boardRefusal: thrown.detail });
-  if (thrown instanceof OperationRefusal && thrown.detail !== null) return refusedReply(requestId, thrown.status, thrown.detail);
+  if (thrown instanceof OperationRefusal && thrown.detail !== null && !BOUNCER_DEFECT_KINDS.has(thrown.detail.kind)) {
+    return refusedReply(requestId, thrown.status, thrown.detail);
+  }
   throw thrown;
 }
 

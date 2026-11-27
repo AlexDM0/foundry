@@ -1,5 +1,5 @@
-import { StoredFileProblemWordingUtil } from '../utils/StoredFileProblemWordingUtil.ts';
-import type { TicketDocumentsProblem }  from './@types/TicketDocumentsProblem.ts';
+import { StoredFileProblemWording }    from '../StoredFileProblemWording.ts';
+import type { TicketDocumentsProblem } from './@types/TicketDocumentsProblem.ts';
 
 function sentenceOf(problem: TicketDocumentsProblem): string {
   switch (problem.code) {
@@ -13,7 +13,7 @@ function sentenceOf(problem: TicketDocumentsProblem): string {
     case 'field-not-one-of':         return `${problem.field} is not one of ${problem.allowedValues.join(', ')}`;
     case 'field-not-true':           return `${problem.field} is not true`;
     case 'kind-held-twice':          return `${problem.field} holds a kind twice`;
-    default:                         return StoredFileProblemWordingUtil.sentenceOf(problem);
+    default:                         return StoredFileProblemWording.sentenceOf(problem);
   }
 }
 

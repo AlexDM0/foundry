@@ -67,7 +67,7 @@ export function createLocalRecordAllocation(
     locationOf:             (reference) => singleRecordFilePathOf(workspace, reference),
     storedTicketLocationOf: (ticketId) => {
       const location = ticketLocations.get(ticketId);
-      if (location === undefined) throw new Error(`Ticket #${ticketId} was changed in a hold that neither listed nor allocated it, so the store holds no file for it.`);
+      if (location === undefined) throw new OperationRefusal('unrepaired', { kind: 'ticket-file-not-allocated', ticketId });
       return location;
     },
   };

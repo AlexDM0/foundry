@@ -13,8 +13,8 @@ import {
 } from 'node:fs';
 import path, { join, relative, resolve } from 'node:path';
 
-import type { LaunchSnapshot }  from '../../adapters/@types/LaunchSnapshot.ts';
-import { ReportProblemWording } from '../../adapters/reports/ReportProblemWording.ts';
+import type { LaunchSnapshot } from '../../adapters/@types/LaunchSnapshot.ts';
+import type { ReportProblem }  from '../../adapters/reports/@types/ReportProblem.ts';
 import {
   ADAPT_BUILDER_REPORT_SCHEMA,
   AIRLOCK_AGENT_REPORT_SCHEMA,
@@ -290,10 +290,14 @@ export interface CustomsSubject {
   agentNaming:               AgentNaming;
 }
 
-/** `facts` name what failed: paths, commits or labels, never words. */
-export type CheckVerdict = { verdict: 'passed' } | { verdict: 'refused'; reason: VerificationRefusalReason; facts: readonly string[] };
+/** `facts` name what failed: paths, commits or labels, never words; an invalid report's `reportProblems` are worded where they are shown. */
+export type CheckVerdict =
+  | { verdict: 'passed' }
+  | { verdict: 'refused'; reason: VerificationRefusalReason; facts: readonly string[]; reportProblems?: readonly ReportProblem[] };
 
-export type CustomsVerdict = { verdict: 'verified' } | { verdict: 'refused'; check: VerificationCheck; reason: VerificationRefusalReason; facts: readonly string[] };
+export type CustomsVerdict =
+  | { verdict: 'verified' }
+  | { verdict: 'refused'; check: VerificationCheck; reason: VerificationRefusalReason; facts: readonly string[]; reportProblems?: readonly ReportProblem[] };
 
 type VerificationCheckRun = (subject: CustomsSubject) => CheckVerdict;
 
@@ -437,7 +441,9 @@ function reportListOf(report: unknown, field: string): Record<string, unknown>[]
 function reportIsValidWithItsHead(subject: CustomsSubject): CheckVerdict {
   if (subject.role === 'pipeline-agent' || subject.role === 'document-agent') return refused('report-invalid', ['no report']);
   const verdict = reportVerdictOf(reportSchemaOf(subject.role, crossingStageNameOf(subject)), subject.report);
-  if (verdict.verdict === 'invalid') return refused('report-invalid', verdict.problems.map(ReportProblemWording.sentenceOf));
+  if (verdict.verdict === 'invalid') return {
+    verdict: 'refused', reason: 'report-invalid', facts: [], reportProblems: verdict.problems
+  };
   const headCommit = worktreeCommitOf(subject.worktreePath, 'HEAD');
   if (headCommit === null) return refused('git-failed', ['HEAD']);
   const reportedHead = String(reportFieldOf(subject.report, 'headCommit'));
@@ -1214,9 +1220,7 @@ export function agentConfigTouchedBeforeLaunch(
 export function clearCustoms(subject: CustomsSubject): CustomsVerdict {
   for (const check of CHECKS_OF_ROLE[subject.role]) {
     const verdict = CUSTOMS_CHECKS[check](subject);
-    if (verdict.verdict === 'refused') return {
-      verdict: 'refused', check, reason: verdict.reason, facts: verdict.facts
-    };
+    if (verdict.verdict === 'refused') return { ...verdict, check };
   }
   return { verdict: 'verified' };
 }

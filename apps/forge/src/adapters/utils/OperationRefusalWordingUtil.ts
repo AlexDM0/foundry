@@ -1072,6 +1072,18 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
       return `git did not list the branches (${detail.reason}). ${NOTHING_WAS_WRITTEN}`;
     case 'namespace-not-free':
       return `${namespaceRefusalText(detail.refusal, detail.wantedNamespace)} ${NOTHING_WAS_WRITTEN}`;
+    case 'merge-job-holds-no-slot':
+      return `Merge job ${detail.jobId} holds no slot.`;
+    case 'crash-log-number-not-free':
+      return `No crash log number was free after ${detail.attempts} attempts in ${detail.crashLogDirectory}.`;
+    case 'ticket-file-not-allocated':
+      return `Ticket #${detail.ticketId} was changed in a hold that neither listed nor allocated it, so the store holds no file for it.`;
+    case 'relayed-command-sent-setup-message':
+      return `A relayed command reached the setup message ${detail.messageKind}, which only User's own commands send.`;
+    case 'relayed-command-read-main-constitution':
+      return 'A relayed command reached the reading of main\'s constitution, which only User\'s own commands read.';
+    case 'relayed-command-judged-billing':
+      return `A relayed command reached the billing of ${detail.vendor}, which only User's own commands set.`;
   }
 }
 

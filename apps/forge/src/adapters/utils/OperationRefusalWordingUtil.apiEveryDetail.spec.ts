@@ -412,6 +412,14 @@ const SAMPLE_OF_KIND: { readonly [Kind in DetailKind]: Extract<OperationRefusalD
   'namespace-board-has-jobs':     { kind: 'namespace-board-has-jobs', jobCount: 2 },
   'namespace-branch-list-failed': { kind: 'namespace-branch-list-failed', reason: 'Example reason' },
   'namespace-not-free':           { kind: 'namespace-not-free', refusal: { reason: 'board-has-branches', branches: ['ticket-003'] }, wantedNamespace: 'web' },
+
+  // Defects of forge's own code, worded as their throws were.
+  'merge-job-holds-no-slot':                { kind: 'merge-job-holds-no-slot', jobId: 'J3' },
+  'crash-log-number-not-free':              { kind: 'crash-log-number-not-free', attempts: 5, crashLogDirectory: '/example/hephaestus/crash-logs' },
+  'ticket-file-not-allocated':              { kind: 'ticket-file-not-allocated', ticketId: '004' },
+  'relayed-command-sent-setup-message':     { kind: 'relayed-command-sent-setup-message', messageKind: 'setup-opened' },
+  'relayed-command-read-main-constitution': { kind: 'relayed-command-read-main-constitution' },
+  'relayed-command-judged-billing':         { kind: 'relayed-command-judged-billing', vendor: 'example-vendor' },
 };
 
 /**

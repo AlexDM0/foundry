@@ -123,7 +123,15 @@ export type OperationRefusalDetail =
   | { kind: 'namespace-board-has-jobs'; jobCount: number }
   /** `reason` is git's own. */
   | { kind: 'namespace-branch-list-failed'; reason: string }
-  | { kind: 'namespace-not-free'; refusal: BranchNamespaceRefusal; wantedNamespace: string };
+  | { kind: 'namespace-not-free'; refusal: BranchNamespaceRefusal; wantedNamespace: string }
+  /** The states below are defects of forge's own code, which nothing a person does reaches; each is `unrepaired`. */
+  | { kind: 'merge-job-holds-no-slot'; jobId: string }
+  | { kind: 'crash-log-number-not-free'; attempts: number; crashLogDirectory: string }
+  | { kind: 'ticket-file-not-allocated'; ticketId: string }
+  /** The Bouncer admits no User setup command from a session, so a relayed command that reaches one of these steps is a Bouncer defect. */
+  | { kind: 'relayed-command-sent-setup-message'; messageKind: string }
+  | { kind: 'relayed-command-read-main-constitution' }
+  | { kind: 'relayed-command-judged-billing'; vendor: string };
 
 export function reasonCodeOf(detail: OperationRefusalDetail): string {
   if (detail.kind === 'role-command-refused') return detail.reason;

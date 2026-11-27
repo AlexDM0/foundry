@@ -8,11 +8,11 @@
  */
 import { existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { join }                               from 'node:path';
+import type { HephaestusLog }                 from '../../adapters/@types/HephaestusLogRecord.ts';
 
 import { DeliveryBaseIngestion }                                                          from '../../adapters/delivery-base/DeliveryBaseIngestion.ts';
 import { createDeliveryBaseWriter }                                                       from '../../adapters/delivery-base/DeliveryBaseWriter.ts';
 import { SeenHeadIngestion }                                                              from '../../adapters/seen-head/SeenHeadIngestion.ts';
-import { SeenHeadProblemWording }                                                         from '../../adapters/seen-head/SeenHeadProblemWording.ts';
 import { createSeenHeadWriter }                                                           from '../../adapters/seen-head/SeenHeadWriter.ts';
 import { SnapshotStartIngestion, type SnapshotStart }                                     from '../../adapters/snapshot-start/SnapshotStartIngestion.ts';
 import { createSnapshotStartWriter }                                                      from '../../adapters/snapshot-start/SnapshotStartWriter.ts';
@@ -341,13 +341,10 @@ function settleEndedSessions(board: Board, trackerDirectory: string, jobIds: rea
 }
 
 /** The head's content hash the agent saw last; one that cannot be read is logged and taken as none, so the line carries the head again. */
-function seenHeadHashOf(jobFolder: string, log: (line: string) => void): string | null {
+function seenHeadHashOf(jobFolder: string, log: HephaestusLog): string | null {
   const seenHeadFilePath = join(jobFolder, SEEN_HEAD_FILE);
   const seenHead = new SeenHeadIngestion(seenHeadFilePath).read();
-  if (seenHead.verdict === 'unreadable') {
-    const sentence = SeenHeadProblemWording.sentenceOf(seenHead.problem);
-    log(`The document agent's seen head ${seenHeadFilePath} is unreadable, so its next line carries the head again: ${sentence}`);
-  }
+  if (seenHead.verdict === 'unreadable') log({ kind: 'seen-head-unreadable', seenHeadFilePath, problem: seenHead.problem });
   return seenHead.verdict === 'readable' ? seenHead.contentHash : null;
 }
 
@@ -356,7 +353,7 @@ function seenHeadHashOf(jobFolder: string, log: (line: string) => void): string 
  * Each line rewrites the seen head, which heals one that could not be read.
  */
 async function sendDeliveries(
-  children: BoardChildren, trackerDirectory: string, board: Board, adapter: Pick<AgentAdapter, 'chatLineOf'>, log: (line: string) => void,
+  children: BoardChildren, trackerDirectory: string, board: Board, adapter: Pick<AgentAdapter, 'chatLineOf'>, log: HephaestusLog,
 ): Promise<void> {
   for (const job of board.jobs().filter((candidate) => isDocumentAgentJob(candidate) && candidate.state === 'running')) {
     const jobFolder = children.jobFolderOf(job.id);
@@ -461,7 +458,7 @@ function removeUnheldSnapshots(
   board: Board,
   context: Pick<SnapshotContext, 'workspace' | 'worktreesRoot'>,
   triedSnapshots: Set<string>,
-  log: (line: string) => void,
+  log: HephaestusLog,
   removalPrimitives: WorktreeRemovalPrimitives = REAL_WORKTREE_REMOVAL_PRIMITIVES,
 ): void {
   const snapshotsFolder = join(context.worktreesRoot, DOCUMENT_AGENT_SNAPSHOT_FOLDER);
@@ -477,7 +474,7 @@ function removeUnheldSnapshots(
     if (triedSnapshots.has(snapshot)) continue;
     triedSnapshots.add(snapshot);
     const removal = GitWorktrees.removeWithRetry({ repositoryDirectory: repositoryRoot, worktreePath: snapshot, force: 'force' }, removalPrimitives);
-    if (removal.verdict === 'left') log(`The document agent snapshot ${snapshot} is a leftover: ${removal.reason}`);
+    if (removal.verdict === 'left') log({ kind: 'document-agent-snapshot-left-over', snapshotPath: snapshot, removalReason: removal.reason });
   }
 }
 

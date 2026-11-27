@@ -55,9 +55,9 @@ export interface SkippedJournalLine {
  */
 export type LandingJournalReading =
   | { verdict: 'readable'; landings: RepositoryLanding[]; skippedLines: SkippedJournalLine[] }
-  | { verdict: 'unreadable'; reason: string };
+  | { verdict: 'unreadable'; systemError: string };
 
-export type LandingAppend = { verdict: 'appended' } | { verdict: 'unwritable'; reason: string };
+export type LandingAppend = { verdict: 'appended' } | { verdict: 'unwritable'; systemError: string };
 
 export interface RepositoryTracker {
   trackerId:       string;
@@ -72,13 +72,13 @@ export type TrackerListReading =
   | { verdict: 'readable'; trackers: RepositoryTracker[] }
   | { verdict: 'newer-version'; version: number }
   | { verdict: 'malformed'; problems: string[]; trackers: RepositoryTracker[] }
-  | { verdict: 'unreadable'; reason: string };
+  | { verdict: 'unreadable'; systemError: string };
 
 export type TrackerListWrite =
   | { verdict: 'written' }
   | { verdict: 'newer-version'; version: number }
   | { verdict: 'malformed'; problems: string[] }
-  | { verdict: 'unwritable' | 'unreadable'; reason: string };
+  | { verdict: 'unwritable' | 'unreadable'; systemError: string };
 
 /** `folderName` is the product's own folder name, which the caller derives, so two products never share one journal. */
 function landingFilesOf(gitCommonDirectory: string, folderName: string): RepositoryLandingFiles {
@@ -90,17 +90,17 @@ function landingFilesOf(gitCommonDirectory: string, folderName: string): Reposit
   };
 }
 
-function reasonOf(error: unknown): string {
+function systemErrorOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-type StoredText = { verdict: 'read'; text: string | null } | { verdict: 'unreadable'; reason: string };
+type StoredText = { verdict: 'read'; text: string | null } | { verdict: 'unreadable'; systemError: string };
 
 function storedTextOf(filePath: string): StoredText {
   try {
     return { verdict: 'read', text: readFileSync(filePath, 'utf8') };
   } catch (error) {
-    return errorCodeOf(error) === ABSENT_FILE_CODE ? { verdict: 'read', text: null } : { verdict: 'unreadable', reason: reasonOf(error) };
+    return errorCodeOf(error) === ABSENT_FILE_CODE ? { verdict: 'read', text: null } : { verdict: 'unreadable', systemError: systemErrorOf(error) };
   }
 }
 
@@ -165,14 +165,14 @@ function journalLineOf(landing: RepositoryLanding): string {
 /** Under the lock: every line already stored stays as it is, whatever it holds, and the landing is added as the last line. */
 function appendLanding(files: RepositoryLandingFiles, landing: RepositoryLanding): LandingAppend {
   const stored = storedTextOf(files.journalFilePath);
-  if (stored.verdict === 'unreadable') return { verdict: 'unwritable', reason: stored.reason };
+  if (stored.verdict === 'unreadable') return { verdict: 'unwritable', systemError: stored.systemError };
   const storedText    = stored.text ?? '';
   const separatorLine = storedText === '' || storedText.endsWith(LINE_END) ? '' : LINE_END;
   try {
     writeFileAtomically(files.journalFilePath, `${storedText}${separatorLine}${journalLineOf(landing)}`);
     return { verdict: 'appended' };
   } catch (error) {
-    return { verdict: 'unwritable', reason: reasonOf(error) };
+    return { verdict: 'unwritable', systemError: systemErrorOf(error) };
   }
 }
 
@@ -240,7 +240,7 @@ function writeTrackerEntry(files: RepositoryLandingFiles, tracker: RepositoryTra
     writeFileAtomically(files.trackerListFilePath, VersionedRegistryUtil.textOf(document));
     return { verdict: 'written' };
   } catch (error) {
-    return { verdict: 'unwritable', reason: reasonOf(error) };
+    return { verdict: 'unwritable', systemError: systemErrorOf(error) };
   }
 }
 

@@ -47,6 +47,7 @@ import {
 } from '../../src/testing/FakeAgentAdapter.ts';
 import { queueOnCurrentGreen }       from '../../src/testing/GreenQueue.ts';
 import { LIVE_HOLDERS_LOCK_TAKER }   from '../../src/testing/LockTakers.ts';
+import { detailsLoggerOf }           from '../../src/testing/LoggedDetails.ts';
 import { nativePlatformPorts }       from '../../src/testing/NativePlatformPorts.ts';
 import { stopProcessesReachingInto } from '../../src/testing/ProcessesInFolder.ts';
 import { useRecordedGit }            from '../../src/testing/RecordedGit.ts';
@@ -90,7 +91,7 @@ function childReadings(): BoardChildren {
 /** The board's Talos, started at the case's first DrivePass as Hephaestus's start starts it. */
 async function boardTalosOfTheCase(): Promise<ScratchBoardTalos> {
   boardTalos ??= await startScratchBoardTalos({
-    workspace: requireWorkspace(repositoryDirectory), platformPorts: ports, monitorFolder, log: (line) => hephaestusLog.push(line)
+    workspace: requireWorkspace(repositoryDirectory), platformPorts: ports, monitorFolder, log: detailsLoggerOf(hephaestusLog)
   });
   return boardTalos;
 }
@@ -135,7 +136,7 @@ async function drivePassWith(
     monitorFolder,
     mainLine:             RECORDED_FLOW_MAIN_LINE,
     inheritedEnvironment: withRecordedGitFirstOnPath({}, requireRecordedFlow()),
-    log:                  (line) => hephaestusLog.push(line),
+    log:                  detailsLoggerOf(hephaestusLog),
     ...(afterHoldPhase === undefined ? {} : { afterHoldPhase }),
   });
   // A test that timed out while Talos started arrives here after its teardown, so its pass never runs.

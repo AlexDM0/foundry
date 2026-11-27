@@ -1,4 +1,4 @@
-import { StoredFileProblemWordingUtil }      from '../utils/StoredFileProblemWordingUtil.ts';
+import { StoredFileProblemWording }          from '../StoredFileProblemWording.ts';
 import type { MergedTreeGateOutcomeProblem } from './@types/MergedTreeGateOutcomeProblem.ts';
 
 function sentenceOf(problem: MergedTreeGateOutcomeProblem): string {
@@ -12,7 +12,7 @@ function sentenceOf(problem: MergedTreeGateOutcomeProblem): string {
     case 'not-a-hash-by-entity':         return `"${problem.field}" is not a hash by entity`;
     case 'not-cache-reports':            return `"${problem.field}" is not the cache reports of a gate run`;
     case 'not-step-runs':                return `"${problem.field}" is not the step lines of a gate run`;
-    default:                             return StoredFileProblemWordingUtil.sentenceOf(problem);
+    default:                             return StoredFileProblemWording.sentenceOf(problem);
   }
 }
 

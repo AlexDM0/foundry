@@ -17,6 +17,7 @@ import { RefusalDocumentUtil }                            from '../../../src/ada
 import { hephaestusFilesIn }                              from '../../../src/services/hephaestus/HephaestusFiles.ts';
 import { createUnreadableBoardFiles }                     from '../../../src/services/hephaestus/UnreadableBoardFiles.ts';
 import { OperationRefusal }                               from '../../../src/shared/OperationRefusal.ts';
+import { detailsLoggerOf }                                from '../../../src/testing/LoggedDetails.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../../src/testing/ScratchWorkspace.ts';
 import { PresenceReader }                                 from './PresenceReader.ts';
 
@@ -57,7 +58,7 @@ describe('the crash logs of the presence document', () => {
     writeFileSync(join(files.crashLogDirectory, 'crash-3.json'), '{ not a crash log');
     writeFileSync(join(files.crashLogDirectory, 'crash-4.json'), JSON.stringify({ crashLogVersion: 0 }));
     const loggedLines: string[] = [];
-    const unreadableBoardFiles = createUnreadableBoardFiles((line) => loggedLines.push(line));
+    const unreadableBoardFiles = createUnreadableBoardFiles(detailsLoggerOf(loggedLines));
     expect(PresenceReader.readableCrashLogsOf(files, unreadableBoardFiles)).toEqual([]);
     expect(unreadableBoardFiles.files().map(({ file }) => file)).toEqual(['hephaestus/crash-logs/crash-3.json', 'hephaestus/crash-logs/crash-4.json']);
     PresenceReader.readableCrashLogsOf(files, unreadableBoardFiles);

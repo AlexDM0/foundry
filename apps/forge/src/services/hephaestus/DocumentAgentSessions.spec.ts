@@ -28,6 +28,7 @@ import {
   test
 } from 'bun:test';
 
+import type { HephaestusLog, HephaestusLogRecord }                                      from '../../adapters/@types/HephaestusLogRecord.ts';
 import { HatchFormatUtil }                                                              from '../../adapters/hatch/utils/HatchFormatUtil.ts';
 import { createSnapshotStartWriter }                                                    from '../../adapters/snapshot-start/SnapshotStartWriter.ts';
 import type { WorkerProfile }                                                           from '../../lib/agent-launch/WorkerProfile.ts';
@@ -41,6 +42,7 @@ import { boardFixture, ticketFixture, type BoardFixture }                       
 import { ECHOED_CONTROL_CONTEXT }                                                       from '../../testing/EchoedControlContext.ts';
 import { fakeAgentAdapter }                                                             from '../../testing/FakeAgentAdapter.ts';
 import { createFixtureRecordAllocation, NO_UNREADABLE_RECORDS }                         from '../../testing/FixtureRecordAllocation.ts';
+import { detailsLoggerOf }                                                              from '../../testing/LoggedDetails.ts';
 import { useRecordedGit }                                                               from '../../testing/RecordedGit.ts';
 import { DOCUMENT_AGENT_SNAPSHOT_FOLDER_NAME }                                          from '../../testing/RecordedGitScenarioCalls.ts';
 import { GIT_SCENARIOS }                                                                from '../../testing/RecordedGitScenarios.ts';
@@ -78,8 +80,8 @@ interface SessionFixture extends BoardFixture {
   trackerDirectory: string;
   children:         BoardChildren;
   sentLines:        () => string[];
-  loggedLines:      string[];
-  log:              (line: string) => void;
+  loggedRecords:    HephaestusLogRecord[];
+  log:              HephaestusLog;
 }
 
 function sessionFixture(record: LoadedTicketDocumentRecord, jobs: Job[], status: TicketStatus = 'draft'): SessionFixture {
@@ -100,9 +102,9 @@ function sessionFixture(record: LoadedTicketDocumentRecord, jobs: Job[], status:
     },
   } as unknown as BoardChildren;
   const sentLines = (): string[] => inputs.flatMap((input) => (input.act === 'write-line' ? [input.line] : []));
-  const loggedLines: string[] = [];
+  const loggedRecords: HephaestusLogRecord[] = [];
   return {
-    ...fixture, rootDirectory, trackerDirectory, children, sentLines, loggedLines, log: (line) => loggedLines.push(line)
+    ...fixture, rootDirectory, trackerDirectory, children, sentLines, loggedRecords, log: (record) => loggedRecords.push(record)
   };
 }
 
@@ -305,8 +307,7 @@ describe('the messages', () => {
 
     await DocumentAgentSessions.sendDeliveries(fixture.children, fixture.trackerDirectory, fixture.board, CHAT_ADAPTER, fixture.log);
 
-    expect(fixture.loggedLines).toHaveLength(1);
-    expect(fixture.loggedLines[0]).toContain('is unreadable, so its next line carries the head again');
+    expect(fixture.loggedRecords).toEqual([{ kind: 'seen-head-unreadable', seenHeadFilePath, problem: { code: 'not-json', parserError: expect.any(String) } }]);
     expect(fixture.sentLines()).toHaveLength(1);
     expect(fixture.sentLines()[0]).toContain('The spec at version 1:');
     expect(readFileSync(seenHeadFilePath, 'utf8')).toBe(seenHeadAtLaunch);
@@ -465,7 +466,7 @@ describe('a document\'s snapshot', () => {
     const removed: string[] = [];
     const logged: string[] = [];
     const tried = new Set<string>();
-    const removeUnheld = (): void => DocumentAgentSessions.removeUnheldSnapshots(fixture.board, context, tried, (line) => logged.push(line), removalThatSucceeds(removed));
+    const removeUnheld = (): void => DocumentAgentSessions.removeUnheldSnapshots(fixture.board, context, tried, detailsLoggerOf(logged), removalThatSucceeds(removed));
     mkdirSync(snapshot, { recursive: true });
 
     removeUnheld();

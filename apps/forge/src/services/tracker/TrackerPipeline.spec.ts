@@ -350,7 +350,7 @@ describe('writeTracker', () => {
       },
     }));
 
-    expect(String(failure)).toContain('#009');
+    expect(failure).toMatchObject({ detail: { kind: 'ticket-file-not-allocated', ticketId: '009' } });
     expect(storedFileContentsOf(workspace)).toEqual(storedBefore);
   });
 

@@ -19,15 +19,6 @@ const ERROR_THROW_PATTERN = /\bthrow\s+new\s+Error\s*\(\s*([^\n]*)/g;
 
 /** `<path>: throw new Error(<the thrown text's first line>`, sorted by path. */
 const ALLOWED_THROWS: readonly string[] = [
-  'cli/HephaestusRemote.ts: throw new Error(\'This process has no program command to start a detached Hephaestus from.\');',
-  'cli/documents/DocumentRelay.ts: throw new Error(\'A relayed document verb returned from its relay.\');',
-  'cli/hephaestus/HephaestusForeground.ts: throw new Error(`job ${job.id} has no readable child instance or cursor`);',
-  'cli/hephaestus/HephaestusForeground.ts: throw new Error(`child ${job.childInstance} of job ${job.id} has no readable child record`);',
-  'cli/hephaestus/HephaestusForeground.ts: throw new Error(`the event log of child ${job.childInstance} of job ${job.id} is malformed`);',
-  'cli/hephaestus/HephaestusForeground.ts: throw new Error(\'Hephaestus crashed and is stopping, so no pass runs.\');',
-  'cli/hephaestus/HephaestusForeground.ts: throw new Error(`${message} This is a crash of Talos: Hephaestus stops.`);',
-  'cli/hephaestus/routes/PresenceReader.ts: throw new Error(`Crash log ${crashLogNumber} cannot be read: ${CrashLogProblemWording.sentenceOf(reading.problem)}.`);',
-  'cli/tickets/TicketTransition.ts: throw new Error(`No ticket verb moves a ticket to ${targetStatus} through the legality matrix.`);',
   // Its string-answering path rules feed `AgentAdapter.planOf`, which takes no verdict yet: that is a change of the agent port.
   'src/lib/claude-code/AgentHostFactsFor.ts: throw new Error(`no Claude Code host facts exist for the platform ${platform}`);',
   // Reached only on a platform with no host facts or by a planted adapter; it goes with the agent port's planning verdict.
@@ -49,15 +40,6 @@ const ALLOWED_THROWS: readonly string[] = [
   'src/lib/tracker-model/TicketStageRows.ts: throw new Error(`Ticket #${ticketId} returned to a package once; a second return opens the decision second-return.`);',
   'src/lib/tracker-model/utils/PipelineDraftEditUtil.ts: throw new Error(`${field} is not a draft field.`);',
   'src/lib/tracker-model/utils/PipelineDraftEditUtil.ts: throw new Error(`${field} is not a field of an entity.`);',
-  'src/services/hephaestus/Airlocks.ts: throw new Error(`Merge job ${job.id} holds no slot.`);',
-  'src/services/hephaestus/CrashLog.ts: throw new Error(`No crash log number was free after ${CRASH_LOG_CREATION_ATTEMPTS} attempts in ${files.crashLogDirectory}.`);',
-  'src/services/hephaestus/HatchInbox.ts: throw new Error(`A relayed command reached the setup message ${message.kind}, which only User\'s own commands send.`);',
-  'src/services/hephaestus/HatchInbox.ts: throw new Error(\'A relayed command reached the reading of main\\\'s constitution, which only User\\\'s own commands read.\');',
-  'src/services/hephaestus/HatchInbox.ts: throw new Error(`A relayed command reached the billing of ${vendor}, which only User\'s own commands set.`);',
-  'src/services/hephaestus/MergedTreeGateRuns.ts: throw new Error(\'the run was stopped while it ran\');',
-  'src/services/hephaestus/SessionConfinement.ts: throw new Error(`the session cannot run confined: ${launch.reason}`);',
-  'src/services/tracker/LocalRecordAllocation.ts: throw new Error(`Ticket #${ticketId} was changed in a hold that neither listed nor allocated it, '
-    + 'so the store holds no file for it.`);',
 ];
 
 function isScannedShippingCode(path: string): boolean {
@@ -93,12 +75,12 @@ function violationsOfPlanted(path: string, plantedText: string): readonly string
 }
 
 describe('the scan saw the program', () => {
-  test('it reads the shipping code of cli/ and src/ and finds allowlisted throws in both', () => {
+  test('it reads the shipping code of cli/ and src/, and finds the allowlisted throws of src/lib/', () => {
     const scannedPaths = SOURCES.map((source) => source.path).filter(isScannedShippingCode);
     expect(scannedPaths.length).toBeGreaterThan(300);
-    expect(scannedPaths).toEqual(expect.arrayContaining(['cli/Main.ts', 'src/shared/OperationRefusal.ts', 'talos.ts']));
-    expect(ALLOWED_THROWS.some((key) => key.startsWith('cli/'))).toBe(true);
-    expect(ALLOWED_THROWS.some((key) => key.startsWith('src/'))).toBe(true);
+    expect(scannedPaths).toEqual(expect.arrayContaining(['cli/Main.ts', 'src/services/hephaestus/DrivePass.ts', 'src/shared/OperationRefusal.ts', 'talos.ts']));
+    expect(ALLOWED_THROWS.length).toBeGreaterThan(0);
+    expect(ALLOWED_THROWS.every((key) => key.startsWith('src/lib/'))).toBe(true);
   });
 
   test('every throw in shipping code is allowlisted, and every allowlist entry is found', () => {

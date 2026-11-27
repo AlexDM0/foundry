@@ -4,26 +4,26 @@
  */
 import { expect, test } from 'bun:test';
 
-import { transitionalWordedProblemOf } from '../../shared/TransitionalWordedProblem.ts';
-import { createUnreadableBoardFiles }  from './UnreadableBoardFiles.ts';
+import { detailsLoggerOf }            from '../../testing/LoggedDetails.ts';
+import { createUnreadableBoardFiles } from './UnreadableBoardFiles.ts';
 
 const NOT_A_JSON_OBJECT = { code: 'not-a-json-object' } as const;
 
-const LINE_VERSION_DIFFERS = transitionalWordedProblemOf('line 1: its version is not 1');
+const LINE_KIND_MALFORMED = { code: 'registry-line-field-malformed', field: 'kind', lineNumber: 1 } as const;
 
 test('a reported file is kept and logged once, with its first problem', () => {
   const logged: string[] = [];
-  const unreadableFiles = createUnreadableBoardFiles((line) => logged.push(line));
+  const unreadableFiles = createUnreadableBoardFiles(detailsLoggerOf(logged));
   unreadableFiles.report({ file: 'crash-logs/crash-2.json', problem: NOT_A_JSON_OBJECT });
   unreadableFiles.report({ file: 'crash-logs/crash-2.json', problem: { code: 'version-differs', field: 'crashLogVersion', expectedVersion: 2 } });
-  unreadableFiles.report({ file: 'talos/launches-4.ndjson', problem: LINE_VERSION_DIFFERS });
+  unreadableFiles.report({ file: 'talos/launches-4.ndjson', problem: LINE_KIND_MALFORMED });
   expect(unreadableFiles.files()).toEqual([
     { file: 'crash-logs/crash-2.json', problem: NOT_A_JSON_OBJECT },
-    { file: 'talos/launches-4.ndjson', problem: LINE_VERSION_DIFFERS },
+    { file: 'talos/launches-4.ndjson', problem: LINE_KIND_MALFORMED },
   ]);
   expect(logged).toEqual([
     'Hephaestus cannot read the board file crash-logs/crash-2.json (it is not a JSON object); the board header warns until Hephaestus restarts.',
-    'Hephaestus cannot read the board file talos/launches-4.ndjson (line 1: its version is not 1); the board header warns until Hephaestus restarts.',
+    'Hephaestus cannot read the board file talos/launches-4.ndjson (line 1: kind is neither agent nor line); the board header warns until Hephaestus restarts.',
   ]);
 });
 

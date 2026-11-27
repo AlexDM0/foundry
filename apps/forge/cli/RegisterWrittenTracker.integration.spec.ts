@@ -312,9 +312,15 @@ testWhenGitIsRecorded('a board whose progress record the store reads as absent o
     now:                  () => FIRST_NOW,
   };
   const absent = await recordedGit.playStage([], async () => registerWithTheMonitor({ ...request, progress: { verdict: 'absent' } }));
-  expect(absent).toEqual({ verdict: 'not-registered-unreadable-tracker', reason: 'its progress file is absent' });
-  const unreadable = await recordedGit.playStage([], async () => registerWithTheMonitor({ ...request, progress: { verdict: 'unreadable', reason: 'Example reason' } }));
-  expect(unreadable).toEqual({ verdict: 'not-registered-unreadable-tracker', reason: 'Example reason' });
+  expect(absent).toEqual({ verdict: 'not-registered-unreadable-tracker', progress: { verdict: 'absent' } });
+  const unreadableProgress = {
+    verdict: 'unreadable',
+    tracker: {
+      verdict: 'unreadable', unreadableFile: 'progress-file', filePath: '/example/progress.json', problem: { code: 'not-a-json-object' }
+    }
+  } as const;
+  const unreadable = await recordedGit.playStage([], async () => registerWithTheMonitor({ ...request, progress: unreadableProgress }));
+  expect(unreadable).toEqual({ verdict: 'not-registered-unreadable-tracker', progress: unreadableProgress });
   expect(existsSync(registryFilePath())).toBe(false);
 });
 

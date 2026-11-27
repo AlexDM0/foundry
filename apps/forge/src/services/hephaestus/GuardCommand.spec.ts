@@ -1,7 +1,7 @@
 /**
  * The guard command decider on real files in a scratch folder. What matters: Hephaestus's own command is taken whole only when its runtime
  * and its entry script are absolute files outside the repository, after links are resolved both ways; any other command is refused with the
- * part and the cause, which the launch log words. Symlinks matter because a Bun bin shim is a link into a checkout.
+ * part and the cause, which the launch log record carries. Symlinks matter because a Bun bin shim is a link into a checkout.
  */
 import { mkdirSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join }                                  from 'node:path';
@@ -79,19 +79,4 @@ test('inside the repository: a runtime under a repository root named through a l
     .toEqual({
       verdict: 'refused', part: 'runtime', cause: 'inside-repository', path: insideRuntime
     });
-});
-
-test('the reason names the part, and the path and the repository when there is one', () => {
-  expect(GuardCommand.refusalReasonOf({
-    verdict: 'refused', part: 'entry-script', cause: 'missing', path: null
-  }, repository))
-    .toBe('the entry script is not in Hephaestus\'s command');
-  expect(GuardCommand.refusalReasonOf({
-    verdict: 'refused', part: 'runtime', cause: 'missing', path: 'bun'
-  }, repository))
-    .toBe('the Bun runtime bun is not an absolute path to a file');
-  expect(GuardCommand.refusalReasonOf({
-    verdict: 'refused', part: 'runtime', cause: 'inside-repository', path: '/example/bun'
-  }, repository))
-    .toBe(`the Bun runtime /example/bun lies inside the repository ${repository}`);
 });

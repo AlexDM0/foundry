@@ -1,4 +1,4 @@
-import { StoredFileProblemWordingUtil }          from '../utils/StoredFileProblemWordingUtil.ts';
+import { StoredFileProblemWording }              from '../StoredFileProblemWording.ts';
 import type { HeartbeatField, HeartbeatProblem } from './@types/HeartbeatProblem.ts';
 
 const MALFORMED_FIELD_SENTENCES: Readonly<Record<HeartbeatField, string>> = {
@@ -10,7 +10,7 @@ const MALFORMED_FIELD_SENTENCES: Readonly<Record<HeartbeatField, string>> = {
 function sentenceOf(problem: HeartbeatProblem): string {
   switch (problem.code) {
     case 'heartbeat-field-malformed': return MALFORMED_FIELD_SENTENCES[problem.field];
-    default:                          return StoredFileProblemWordingUtil.sentenceOf(problem);
+    default:                          return StoredFileProblemWording.sentenceOf(problem);
   }
 }
 

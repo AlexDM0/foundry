@@ -8,9 +8,9 @@
  */
 import { existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { join }                               from 'node:path';
+import type { HephaestusLog }                 from '../../adapters/@types/HephaestusLogRecord.ts';
 
 import { GateProfileOutputIngestion }                                                     from '../../adapters/gate-profile-output/GateProfileOutputIngestion.ts';
-import { GateProfileOutputProblemWording }                                                from '../../adapters/gate-profile-output/GateProfileOutputProblemWording.ts';
 import { createGateProfileOutputWriter }                                                  from '../../adapters/gate-profile-output/GateProfileOutputWriter.ts';
 import { TurboConfigurationProblemWording }                                               from '../../adapters/turbo-configuration/TurboConfigurationProblemWording.ts';
 import { GitProcess }                                                                     from '../../lib/git/GitProcess.ts';
@@ -69,7 +69,7 @@ export interface GateProfilingContext {
   hold:               <Result>(mutate: (hold: GateProfileHold) => Result) => Promise<Result>;
   /** Asks for a pass, so the next queued run may take the freed slot. */
   wake:               () => void;
-  log:                (line: string) => void;
+  log:                HephaestusLog;
   runGateLines:       typeof GateLineRun.runOnce;
   runLine:            LineRunner;
   /** Sends `stop` to every live line under the folder and waits, bounded, for their ends. */
@@ -187,7 +187,7 @@ function createGateProfiling(context: GateProfilingContext): GateProfiling {
 
   function removeWorktree(worktreePath: string): void {
     const removal = GitWorktrees.removeWithRetry({ repositoryDirectory: repositoryRoot, worktreePath, force: 'force' }, removalPrimitives);
-    if (removal.verdict === 'left') context.log(`The gate profile worktree ${worktreePath} is a leftover: ${removal.reason}`);
+    if (removal.verdict === 'left') context.log({ kind: 'gate-profile-worktree-left-over', worktreePath, removalReason: removal.reason });
   }
 
   function appendOutput(profileRunId: string, text: string): void {
@@ -234,7 +234,7 @@ function createGateProfiling(context: GateProfilingContext): GateProfiling {
         board.recordPipelineStepsRan(profiledStepRunsOf(lines, run.entity), run.phase, at);
       });
     } catch (failure) {
-      context.log(`Gate profile ${run.profileRunId} failed and waits for the next start: ${failure instanceof Error ? failure.message : String(failure)}`);
+      context.log({ kind: 'gate-profile-failed', profileRunId: run.profileRunId, thrownMessage: failure instanceof Error ? failure.message : String(failure) });
     } finally {
       context.gateSlots.release(holder);
       if (existsSync(worktreePath)) removeWorktree(worktreePath);
@@ -290,7 +290,7 @@ function outputFilePathOf(trackerDirectory: string, profileRunId: string): strin
  * line that cannot be read keeps its number and is not sent: it is one piece of shown output, which nothing decides on. The first such line
  * after `afterLineNumber` is logged once per follower, since each stream request and reconnect follows the file again from its start.
  */
-function outputFollowerOf(trackerDirectory: string, profileRunId: string, afterLineNumber: number, log: (line: string) => void): GateProfileOutputFollower {
+function outputFollowerOf(trackerDirectory: string, profileRunId: string, afterLineNumber: number, log: HephaestusLog): GateProfileOutputFollower {
   const outputFilePath = outputFilePathOf(trackerDirectory, profileRunId);
   const ingestion = new GateProfileOutputIngestion(outputFilePath);
   let lineNumber = 0;
@@ -300,8 +300,7 @@ function outputFollowerOf(trackerDirectory: string, profileRunId: string, afterL
     const reading = ingestion.read();
     if (reading.verdict === 'absent') return [];
     if (reading.verdict === 'unreadable') {
-      const problemSentence = GateProfileOutputProblemWording.sentenceOf(reading.problem);
-      if (!unreadableFileLogged) log(`The gate profile output ${outputFilePath} could not be read (${problemSentence}); its stream waits.`);
+      if (!unreadableFileLogged) log({ kind: 'gate-profile-output-unreadable', outputFilePath, problem: reading.problem });
       unreadableFileLogged = true;
       return [];
     }
@@ -312,8 +311,9 @@ function outputFollowerOf(trackerDirectory: string, profileRunId: string, afterL
       if (lineReading.verdict === 'readable') {
         lines.push({ lineNumber, text: lineReading.text });
       } else if (!unreadableLineLogged) {
-        const problemSentence = GateProfileOutputProblemWording.sentenceOf(lineReading.problem);
-        log(`Line ${lineNumber} of the gate profile output ${outputFilePath} could not be read (${problemSentence}); it and any later unreadable line are not sent.`);
+        log({
+          kind: 'gate-profile-output-line-unreadable', outputFilePath, lineNumber, problem: lineReading.problem
+        });
         unreadableLineLogged = true;
       }
     }

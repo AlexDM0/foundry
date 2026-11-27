@@ -2,8 +2,8 @@
  * The gate every start of a board's forge passes before it takes a Hephaestus lock: it reads what the generation before it left, classifies the start,
  * writes the crash log of a crash it finds, and answers whether the start may serve. `start`, the foreground entry and `status` read it.
  */
+import type { HephaestusLog }                             from '../../adapters/@types/HephaestusLogRecord.ts';
 import type { CrashLogJob, CrashLogRecord }               from '../../adapters/crash-log/@types/CrashLogRecord.ts';
-import { HeartbeatProblemWording }                        from '../../adapters/heartbeat/HeartbeatProblemWording.ts';
 import type { PresenceRecord }                            from '../../adapters/presence/@types/PresenceRecord.ts';
 import type { StartClassificationVerdict }                from '../../adapters/presence/@types/StartClassificationVerdict.ts';
 import type { PlatformPorts }                             from '../../lib/platform-ports/PlatformPortsFor.ts';
@@ -39,7 +39,7 @@ export interface StartGateRequest {
   /** Where the gate reports a board-wide file it could not read; the start goes on as an unreadable reading lets it. */
   unreadableBoardFiles: UnreadableBoardFiles;
   /** Where the gate logs a file it could not read that the next write heals. */
-  log:                  (line: string) => void;
+  log:                  HephaestusLog;
 }
 
 /** A Talos record that cannot be read, or names no process, keeps no boot of its own, so it reads as lost in this boot, as the crash path reads it. */
@@ -159,7 +159,7 @@ function admit(request: StartGateRequest): StartGateVerdict {
   const evidence = evidenceOf(request);
   Presence.reportUnreadablePresence(evidence.presence, request.unreadableBoardFiles);
   if (evidence.heartbeat.verdict === 'unreadable') {
-    request.log(`heartbeat.json could not be read (${HeartbeatProblemWording.sentenceOf(evidence.heartbeat.problem)}); the start classifies without a last beat.`);
+    request.log({ kind: 'heartbeat-unreadable-at-start', problem: evidence.heartbeat.problem });
   }
   const classification = StartClassification.classify(evidence);
   if (!crashToLogOf(classification)) return { verdict: 'serve', classification, crashLogNumber: null };

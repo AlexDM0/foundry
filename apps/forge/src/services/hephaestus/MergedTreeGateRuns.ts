@@ -11,11 +11,11 @@ import {
   readdirSync,
   rmSync
 } from 'node:fs';
-import { basename, join } from 'node:path';
+import { join }               from 'node:path';
+import type { HephaestusLog } from '../../adapters/@types/HephaestusLogRecord.ts';
 
 import type { MergedTreeGate }                                               from '../../adapters/gate-outcome/@types/MergedTreeGate.ts';
 import { MergedTreeGateOutcomeIngestion, type MergedTreeGateOutcomeReading } from '../../adapters/gate-outcome/MergedTreeGateOutcomeIngestion.ts';
-import { MergedTreeGateOutcomeProblemWording }                               from '../../adapters/gate-outcome/MergedTreeGateOutcomeProblemWording.ts';
 import { createMergedTreeGateOutcomeWriter }                                 from '../../adapters/gate-outcome/MergedTreeGateOutcomeWriter.ts';
 import type { GatePhase, GateRunStamp }                                      from '../../lib/tracker-model/@types/GatePhase.ts';
 import type { EntityKey }                                                    from '../../lib/tracker-model/@types/Pipeline.ts';
@@ -25,7 +25,6 @@ export const MERGED_TREE_GATE_RUNS_FOLDER = 'merge-gates';
 export const MERGED_TREE_GATE_OUTCOME_FILE = 'outcome.json';
 
 const RUN_FOLDER_NAME_CHARACTERS = 16;
-const SHORT_TREE_CHARACTERS = 12;
 
 export interface MergedTreeGateRunRequest {
   worktreePath:  string;
@@ -71,7 +70,7 @@ export interface MergedTreeGateRuns {
 export interface MergedTreeGateRunsRequest {
   boardFolder:        string;
   wake:               (forced: boolean) => void;
-  log:                (sentence: string) => void;
+  log:                HephaestusLog;
   /** Sends `stop` to every live line under the folder and waits, bounded, for their ends. */
   stopLiveLinesUnder: (folder: string) => Promise<void>;
 }
@@ -98,8 +97,8 @@ function keptOutcomeIn(runFolder: string): MergedTreeGateOutcomeReading {
   return new MergedTreeGateOutcomeIngestion(join(runFolder, MERGED_TREE_GATE_OUTCOME_FILE)).read();
 }
 
-function runDescriptionOf(key: MergedTreeGateRunKey): string {
-  return `${basename(key.worktreePath)} at tree ${key.treeId.slice(0, SHORT_TREE_CHARACTERS)} in phase ${key.phase}`;
+function runNamedOf(key: MergedTreeGateRunKey): { worktreePath: string; treeId: string; phase: GatePhase } {
+  return { worktreePath: key.worktreePath, treeId: key.treeId, phase: key.phase };
 }
 
 function failureMessageOf(failure: unknown): string {
@@ -120,25 +119,32 @@ export function createMergedTreeGateRuns(request: MergedTreeGateRunsRequest): Me
    * whose line a clean quit of Talos paused wakes a pass, which asks again once a Talos serves the board.
    */
   async function runToItsEnd(runRequest: MergedTreeGateRunRequest, runFolder: string, run: RunInFlight): Promise<void> {
-    const description = runDescriptionOf(runRequest);
+    const runNamed = runNamedOf(runRequest);
     const stopSignal = run.stopController.signal;
-    let ending: { verdict: 'kept'; gate: MergedTreeGate } | { verdict: 'not-kept'; failureMessage: string; paused: boolean };
+    let ending: { verdict: 'kept'; gate: MergedTreeGate } | { verdict: 'stopped' } | { verdict: 'not-kept'; failureMessage: string; paused: boolean };
     try {
       const gate = await runRequest.run(runFolder, stopSignal);
-      if (stopSignal.aborted) throw new Error('the run was stopped while it ran');
-      createMergedTreeGateOutcomeWriter(join(runFolder, MERGED_TREE_GATE_OUTCOME_FILE)).write(gate);
-      ending = { verdict: 'kept', gate };
+      if (stopSignal.aborted) {
+        ending = { verdict: 'stopped' };
+      } else {
+        createMergedTreeGateOutcomeWriter(join(runFolder, MERGED_TREE_GATE_OUTCOME_FILE)).write(gate);
+        ending = { verdict: 'kept', gate };
+      }
     } catch (failure) {
       ending = { verdict: 'not-kept', failureMessage: failureMessageOf(failure), paused: failure instanceof LinePausedError };
     }
     runsInFlight.delete(runFolder);
     if (run.removeFolderAtEnd) rmSync(runFolder, { recursive: true, force: true });
+    if (ending.verdict === 'stopped') {
+      request.log({ kind: 'merged-tree-gate-stopped-while-running', ...runNamed });
+      return;
+    }
     if (ending.verdict === 'not-kept') {
-      request.log(`The merged-tree gate of ${description} ended with no outcome: ${ending.failureMessage}`);
+      request.log({ kind: 'merged-tree-gate-ended-without-outcome', ...runNamed, thrownMessage: ending.failureMessage });
       if (ending.paused) request.wake(true);
       return;
     }
-    request.log(`The merged-tree gate of ${description} ended: ${ending.gate.outcome}.`);
+    request.log({ kind: 'merged-tree-gate-ended', ...runNamed, outcome: ending.gate.outcome });
     request.wake(true);
   }
 
@@ -153,11 +159,8 @@ export function createMergedTreeGateRuns(request: MergedTreeGateRunsRequest): Me
     if ([...runsInFlight.values()].some((run) => run.worktreePath === runRequest.worktreePath)) return 'running';
     mkdirSync(runFolder, { recursive: true });
     // A kept outcome that cannot be read is no outcome: the run starts again and its own outcome replaces it.
-    if (kept.verdict === 'unreadable') {
-      const problemSentence = MergedTreeGateOutcomeProblemWording.sentenceOf(kept.problem);
-      request.log(`The kept outcome of the merged-tree gate of ${runDescriptionOf(runRequest)} cannot be read (${problemSentence}).`);
-    }
-    request.log(`The merged-tree gate of ${runDescriptionOf(runRequest)} started.`);
+    if (kept.verdict === 'unreadable') request.log({ kind: 'merged-tree-gate-kept-outcome-unreadable', ...runNamedOf(runRequest), problem: kept.problem });
+    request.log({ kind: 'merged-tree-gate-started', ...runNamedOf(runRequest) });
     const run: RunInFlight = {
       worktreePath: runRequest.worktreePath, ownerJobId: runRequest.ownerJobId, stopController: new AbortController(), removeFolderAtEnd: false, ended: Promise.resolve()
     };
@@ -202,10 +205,7 @@ export function createMergedTreeGateRuns(request: MergedTreeGateRunsRequest): Me
       if (runsInFlight.has(runFolder)) continue;
       const kept = keptOutcomeIn(runFolder);
       if (kept.verdict === 'readable') continue;
-      if (kept.verdict === 'unreadable') {
-        const problemSentence = MergedTreeGateOutcomeProblemWording.sentenceOf(kept.problem);
-        request.log(`The merged-tree gate run folder ${name} is removed: its kept outcome cannot be read (${problemSentence}).`);
-      }
+      if (kept.verdict === 'unreadable') request.log({ kind: 'merged-tree-gate-run-folder-removed', runFolderName: name, problem: kept.problem });
       rmSync(runFolder, { recursive: true, force: true });
     }
   }

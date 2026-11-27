@@ -1,11 +1,11 @@
-import { StoredFileProblemWordingUtil } from '../utils/StoredFileProblemWordingUtil.ts';
-import type { AgentSlotProblem }        from './@types/AgentSlotProblem.ts';
+import { StoredFileProblemWording } from '../StoredFileProblemWording.ts';
+import type { AgentSlotProblem }    from './@types/AgentSlotProblem.ts';
 
 function sentenceOf(problem: AgentSlotProblem): string {
   switch (problem.code) {
     case 'field-not-a-string':           return `its "${problem.field}" is not a string`;
     case 'field-not-a-process-identity': return `its "${problem.field}" is not a process identity`;
-    default:                             return StoredFileProblemWordingUtil.sentenceOf(problem);
+    default:                             return StoredFileProblemWording.sentenceOf(problem);
   }
 }
 

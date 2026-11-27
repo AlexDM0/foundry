@@ -26,10 +26,10 @@ import type {
   ProgressVocabulary,
   ProgressWholeNumberUnit
 }                                from '../../shared/@types/ProgressFileProblem.ts';
-import { PRODUCT_NAMES }                from '../../shared/constants/ProductNames.ts';
-import { OLDER_FORMAT_ADVICE }          from '../constants/OlderFormatAdvice.ts';
-import { StoredFileProblemWordingUtil } from '../utils/StoredFileProblemWordingUtil.ts';
-import { COMMENT_VIEWS }                from './constants/StoredQuestionAnchor.ts';
+import { PRODUCT_NAMES }            from '../../shared/constants/ProductNames.ts';
+import { StoredFileProblemWording } from '../StoredFileProblemWording.ts';
+import { OLDER_FORMAT_ADVICE }      from '../constants/OlderFormatAdvice.ts';
+import { COMMENT_VIEWS }            from './constants/StoredQuestionAnchor.ts';
 
 const EXPECTATION_WORDS: Readonly<Record<ProgressFieldExpectation, string>> = {
   'a-string':                             'a string',
@@ -148,7 +148,7 @@ function sentenceOf(problem: ProgressFileProblem): string {
     case 'document-without-anchor':
       return `${problem.field} names a document without an anchor, or an anchor without a document`;
     default:
-      return StoredFileProblemWordingUtil.sentenceOf(problem);
+      return StoredFileProblemWording.sentenceOf(problem);
   }
 }
 

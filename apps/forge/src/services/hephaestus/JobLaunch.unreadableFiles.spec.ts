@@ -12,7 +12,6 @@ import { afterEach, expect, test }  from 'bun:test';
 import type { Job }                                                   from '../../lib/tracker-model/@types/Job.ts';
 import type { Pipeline }                                              from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { Board }                                                 from '../../lib/tracker-model/Board.ts';
-import { transitionalWordedProblemOf }                                from '../../shared/TransitionalWordedProblem.ts';
 import { boardFixture, ticketFixture }                                from '../../testing/BoardFixtures.ts';
 import { createScratchDirectory, removeScratchDirectory }             from '../../testing/ScratchWorkspace.ts';
 import type { BoardTransaction }                                      from '../tracker/BoardTransaction.ts';
@@ -100,9 +99,11 @@ function applyPass(scene: UnreadableFileScene, observation: BuildJobObservation,
   JobLaunch.applyBuildJobObservations({ board: scene.board, at } as unknown as BoardTransaction, scene.context, [observation]);
 }
 
-/** The facts a transitional problem opens its incident with, until the file's format carries problems of its own. */
-function transitionalFactsOf(file: string, sentence: unknown): Record<string, unknown> {
-  return { file, problem: 'transitional-worded', sentence };
+/** The facts a field of the wrong shape opens its incident with: the field and what it must hold, stored as text. */
+function mistypedFieldFactsOf(file: string, field: string, expected: string): Record<string, string> {
+  return {
+    file, problem: 'field-is-not', field, expected
+  };
 }
 
 /** The facts a file of another version opens its incident with: its problem's values stored as text. */
@@ -166,36 +167,36 @@ test('a judged gate run whose job\'s start cannot be read records nothing, and t
 
 test('a reading of the observation that met an unreadable file opens its incident and moves the job nowhere', () => {
   const scene = sceneIn('gating');
-  const gateProblem = transitionalWordedProblemOf('it is not a JSON object');
+  const gateProblem = { code: 'not-a-json-object' } as const;
   const gate = { verdict: 'unreadable-file', file: `jobs/${scene.job.id}/gate-run.json`, problem: gateProblem } as const;
 
   applyPass(scene, observationOf(scene, { gate }));
 
-  expect(unreadableFileIncidentsOf(scene.board)).toEqual([[scene.job.id, transitionalFactsOf(gate.file, gate.problem.sentence)]]);
+  expect(unreadableFileIncidentsOf(scene.board)).toEqual([[scene.job.id, { file: gate.file, problem: 'not-a-json-object' }]]);
   expect(scene.board.jobById(scene.job.id)?.state).toBe('gating');
   expect(JobLaunch.someBuildJobAwaitsAPass(scene.board, [observationOf(scene, { gate })])).toBe(false);
 });
 
 test('a job whose own red handoff facts cannot be read takes no step on its calls: it is neither stopped nor wound down past any budget', () => {
   const scene = sceneIn('running');
-  const unreadableRedHandoffProblem = transitionalWordedProblemOf('its "resume" is not a count');
+  const unreadableRedHandoffProblem = { code: 'field-is-not', field: 'resume', expected: 'a-count' } as const;
   const unreadableRedHandoff = { verdict: 'unreadable-file', file: `jobs/${scene.job.id}/red-handoff.json`, problem: unreadableRedHandoffProblem } as const;
 
   applyPass(scene, observationOf(scene, { calls: 10_000, unreadableRedHandoff }));
 
-  expect(unreadableFileIncidentsOf(scene.board)).toEqual([[scene.job.id, transitionalFactsOf(unreadableRedHandoff.file, unreadableRedHandoff.problem.sentence)]]);
+  expect(unreadableFileIncidentsOf(scene.board)).toEqual([[scene.job.id, mistypedFieldFactsOf(unreadableRedHandoff.file, 'resume', 'a-count')]]);
   expect(scene.board.incidents().map((incident) => incident.kind)).not.toContain('out-of-calls');
   expect(scene.board.jobById(scene.job.id)?.state).toBe('running');
 });
 
 test('a sandbox refusal kept that cannot be read is still a refused line: the incident opens and the job neither ends nor moves', () => {
   const scene = sceneIn('gating');
-  const sandboxRefusalProblem = transitionalWordedProblemOf('its "reason" is not text');
+  const sandboxRefusalProblem = { code: 'field-is-not', field: 'reason', expected: 'text' } as const;
   const sandboxRefusal = { verdict: 'unreadable-file', file: `jobs/${scene.job.id}/sandbox-refusal.json`, problem: sandboxRefusalProblem } as const;
 
   applyPass(scene, observationOf(scene, { sandboxRefusal }));
 
-  expect(unreadableFileIncidentsOf(scene.board)).toEqual([[scene.job.id, transitionalFactsOf(sandboxRefusal.file, sandboxRefusal.problem.sentence)]]);
+  expect(unreadableFileIncidentsOf(scene.board)).toEqual([[scene.job.id, mistypedFieldFactsOf(sandboxRefusal.file, 'reason', 'text')]]);
   expect(scene.board.incidents().map((incident) => incident.kind)).not.toContain('sandbox-unavailable');
   expect(scene.board.jobById(scene.job.id)?.state).toBe('gating');
 });
@@ -220,7 +221,7 @@ test('a park on the incident stops the job, and the passes after it open no seco
 test('a fresh agent asked for a job whose child was never launched ends the job replaced, though no child ever ends', () => {
   const scene = sceneIn('running');
   const launchSettingsFile = `jobs/${scene.job.id}/launch-settings.json`;
-  UnreadableJobFileIncident.openOnce(scene.board, { jobId: scene.job.id, file: launchSettingsFile, problem: transitionalWordedProblemOf('example reason') }, AT);
+  UnreadableJobFileIncident.openOnce(scene.board, { jobId: scene.job.id, file: launchSettingsFile, problem: { code: 'not-a-json-object' } }, AT);
   scene.board.requestJobStop(scene.job.id, 'fresh', AT);
   expect(scene.board.jobById(scene.job.id)?.state).toBe('stopping');
 
@@ -232,7 +233,7 @@ test('a fresh agent asked for a job whose child was never launched ends the job 
 
 test('a job asked for a fresh agent ends once its session does, though its red handoff facts cannot be read', () => {
   const scene = sceneIn('running');
-  const unreadableRedHandoffProblem = transitionalWordedProblemOf('its "resume" is not a count');
+  const unreadableRedHandoffProblem = { code: 'field-is-not', field: 'resume', expected: 'a-count' } as const;
   const unreadableRedHandoff = { verdict: 'unreadable-file', file: `jobs/${scene.job.id}/red-handoff.json`, problem: unreadableRedHandoffProblem } as const;
   scene.board.requestJobStop(scene.job.id, 'fresh', AT);
 

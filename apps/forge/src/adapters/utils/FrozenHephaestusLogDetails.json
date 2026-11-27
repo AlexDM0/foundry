@@ -1,0 +1,1149 @@
+[
+  {
+    "case": "serving",
+    "record": {
+      "kind": "hephaestus-serving",
+      "url": "http://127.0.0.1:4100",
+      "generation": 3,
+      "codeVersion": "a1b2c3d4",
+      "installVersion": 50,
+      "agentVendor": "example-vendor"
+    },
+    "details": "Hephaestus serving http://127.0.0.1:4100 under Hephaestus lock 3 (code a1b2c3d4, install version 50, agents example-vendor)."
+  },
+  {
+    "case": "stop signal",
+    "record": {
+      "kind": "stop-signal-received"
+    },
+    "details": "Stop signal received."
+  },
+  {
+    "case": "runtime command hephaestus-stop now",
+    "record": {
+      "kind": "runtime-command-received",
+      "command": "hephaestus-stop",
+      "now": true
+    },
+    "details": "hephaestus-stop received (now)."
+  },
+  {
+    "case": "runtime command hephaestus-restart",
+    "record": {
+      "kind": "runtime-command-received",
+      "command": "hephaestus-restart",
+      "now": false
+    },
+    "details": "hephaestus-restart received."
+  },
+  {
+    "case": "runtime command talos-restart",
+    "record": {
+      "kind": "runtime-command-received",
+      "command": "talos-restart",
+      "now": false
+    },
+    "details": "talos-restart received."
+  },
+  {
+    "case": "talos asked to quit, talos 4",
+    "record": {
+      "kind": "talos-asked-to-quit-for-restart",
+      "talosStartNumber": 4,
+      "outcome": "done"
+    },
+    "details": "Talos 4 was asked to quit for a clean restart: done."
+  },
+  {
+    "case": "talos asked to quit, talos none",
+    "record": {
+      "kind": "talos-asked-to-quit-for-restart",
+      "talosStartNumber": null,
+      "outcome": "nothing-to-do"
+    },
+    "details": "Talos none was asked to quit for a clean restart: nothing-to-do."
+  },
+  {
+    "case": "board state unreadable",
+    "record": {
+      "kind": "board-state-unreadable-for-event-stream",
+      "thrownMessage": "progress.json is locked"
+    },
+    "details": "The board state could not be read for the event stream: progress.json is locked"
+  },
+  {
+    "case": "restart refused",
+    "record": {
+      "kind": "restart-refused",
+      "step": "read-jobs",
+      "restartError": "job J4 has no readable child instance or cursor"
+    },
+    "details": "The restart was refused at read-jobs: job J4 has no readable child instance or cursor. This Hephaestus keeps driving."
+  },
+  {
+    "case": "handing over",
+    "record": {
+      "kind": "handover-started",
+      "generation": 3
+    },
+    "details": "Handing the board over to the code on disk (Hephaestus lock 3)."
+  },
+  {
+    "case": "released",
+    "record": {
+      "kind": "released-to-successor"
+    },
+    "details": "Released the board to the successor."
+  },
+  {
+    "case": "successor started",
+    "record": {
+      "kind": "successor-started",
+      "processId": 4242
+    },
+    "details": "Started the successor as process 4242; exiting."
+  },
+  {
+    "case": "successor could not serve",
+    "record": {
+      "kind": "successor-could-not-serve",
+      "predecessorGeneration": 3,
+      "errorMessage": "the successor could not be started"
+    },
+    "details": "The successor of Hephaestus lock 3 could not serve, so no Hephaestus is on the board: the successor could not be started"
+  },
+  {
+    "case": "stop wait failed late",
+    "record": {
+      "kind": "stop-wait-failed-late",
+      "waitName": "the server stop",
+      "thrownMessage": "the socket closed twice"
+    },
+    "details": "After the stop went on, the server stop failed: the socket closed twice"
+  },
+  {
+    "case": "stop wait cut short",
+    "record": {
+      "kind": "stop-wait-cut-short",
+      "waitName": "the drive pass",
+      "boundMilliseconds": 4000
+    },
+    "details": "The stop went on without the drive pass, which did not end within 4000 ms."
+  },
+  {
+    "case": "crashed staying off",
+    "record": {
+      "kind": "crashed-staying-off"
+    },
+    "details": "Crashed; staying off, keeping the Hephaestus lock and the registry entry, until a start by hand."
+  },
+  {
+    "case": "taken over",
+    "record": {
+      "kind": "taken-over-stopping"
+    },
+    "details": "A newer Hephaestus took the board over; stopping without acting."
+  },
+  {
+    "case": "stopped",
+    "record": {
+      "kind": "hephaestus-stopped"
+    },
+    "details": "Hephaestus stopped; its Hephaestus lock is released."
+  },
+  {
+    "case": "talos started after lost",
+    "record": {
+      "kind": "talos-started",
+      "talosStartNumber": 2,
+      "previousTalos": "lost",
+      "sweptOrphans": 3
+    },
+    "details": "Started Talos 2 (the one before lost, 3 orphans swept)."
+  },
+  {
+    "case": "talos started after none",
+    "record": {
+      "kind": "talos-started",
+      "talosStartNumber": 1,
+      "previousTalos": "none",
+      "sweptOrphans": 0
+    },
+    "details": "Started Talos 1 (the one before none, 0 orphans swept)."
+  },
+  {
+    "case": "talos attached",
+    "record": {
+      "kind": "talos-attached",
+      "talosStartNumber": 2
+    },
+    "details": "Attached to Talos 2."
+  },
+  {
+    "case": "talos connection closed",
+    "record": {
+      "kind": "talos-connection-closed",
+      "talosStartNumber": 2
+    },
+    "details": "The connection to Talos 2 closed; the next pass ensures a Talos."
+  },
+  {
+    "case": "no talos serves, talos-protocol-differs",
+    "record": {
+      "kind": "no-talos-serves",
+      "reason": "talos-protocol-differs"
+    },
+    "details": "No Talos serves the board (talos-protocol-differs); the next pass tries again."
+  },
+  {
+    "case": "no talos serves, endpoint-does-not-fit",
+    "record": {
+      "kind": "no-talos-serves",
+      "reason": "endpoint-does-not-fit"
+    },
+    "details": "No Talos serves the board (endpoint-does-not-fit); the next pass tries again."
+  },
+  {
+    "case": "no talos serves, start-refused",
+    "record": {
+      "kind": "no-talos-serves",
+      "reason": "start-refused"
+    },
+    "details": "No Talos serves the board (start-refused); the next pass tries again."
+  },
+  {
+    "case": "no talos serves, not-serving",
+    "record": {
+      "kind": "no-talos-serves",
+      "reason": "not-serving"
+    },
+    "details": "No Talos serves the board (not-serving); the next pass tries again."
+  },
+  {
+    "case": "crashed, crash log written",
+    "record": {
+      "kind": "crashed",
+      "component": "talos",
+      "generation": 3,
+      "crashLogPath": "/board/hephaestus/crash-logs/crash-2.json",
+      "crashLog": "written"
+    },
+    "details": "Crashed (talos) under Hephaestus lock 3; the crash log is /board/hephaestus/crash-logs/crash-2.json (written)."
+  },
+  {
+    "case": "crashed, crash log not-written",
+    "record": {
+      "kind": "crashed",
+      "component": "talos",
+      "generation": 3,
+      "crashLogPath": null,
+      "crashLog": "not-written"
+    },
+    "details": "Crashed (talos) under Hephaestus lock 3; the crash log is not written (not-written)."
+  },
+  {
+    "case": "staying off after a crash",
+    "record": {
+      "kind": "staying-off-after-crash",
+      "crashedGeneration": 5,
+      "suspected": false,
+      "startOrigin": "successor",
+      "crashLogPath": "/board/hephaestus/crash-logs/crash-1.json"
+    },
+    "details": "Staying off after a crash of Hephaestus lock 5: started by successor, so only a start by the user serves; the crash log is /board/hephaestus/crash-logs/crash-1.json."
+  },
+  {
+    "case": "staying off after a crash suspected of no generation",
+    "record": {
+      "kind": "staying-off-after-crash",
+      "crashedGeneration": null,
+      "suspected": true,
+      "startOrigin": "successor",
+      "crashLogPath": "/board/hephaestus/crash-logs/crash-1.json"
+    },
+    "details": "Staying off after a crash of a Hephaestus lock nothing names suspected before the machine restarted: started by successor, so only a start by the user serves; the crash log is /board/hephaestus/crash-logs/crash-1.json."
+  },
+  {
+    "case": "lost cause unreadable",
+    "record": {
+      "kind": "lost-cause-unreadable",
+      "lostCausePath": "/board/talos/children/J3/child-2.lost-cause",
+      "storedText": "gone fishing"
+    },
+    "details": "The lost cause /board/talos/children/J3/child-2.lost-cause names no interruption cause (\"gone fishing\"); it is settled again."
+  },
+  {
+    "case": "lost child stop refused",
+    "record": {
+      "kind": "lost-child-stop-refused",
+      "childFolder": "J3",
+      "instance": 2,
+      "talosStartNumber": 4
+    },
+    "details": "The forced stop of J3#2, a child of the lost Talos 4, was refused."
+  },
+  {
+    "case": "talos stopped after its quit wait",
+    "record": {
+      "kind": "talos-stopped-after-quit-wait",
+      "talosStartNumber": 4
+    },
+    "details": "Talos 4 did not quit within its wait and was stopped."
+  },
+  {
+    "case": "talos lost",
+    "record": {
+      "kind": "talos-lost",
+      "talosStartNumber": 4,
+      "sweptOrphans": 2
+    },
+    "details": "Talos 4 was lost; 2 of its children were swept."
+  },
+  {
+    "case": "talos endpoint does not fit",
+    "record": {
+      "kind": "talos-endpoint-does-not-fit",
+      "talosStartNumber": 4,
+      "endpoint": "/tmp/forge/talos-4.sock"
+    },
+    "details": "Talos 4 cannot start: its endpoint /tmp/forge/talos-4.sock does not fit this platform."
+  },
+  {
+    "case": "talos did not serve, record never claimed",
+    "record": {
+      "kind": "talos-did-not-serve",
+      "talosStartNumber": 4,
+      "recordState": null
+    },
+    "details": "Talos 4 did not serve: it never claimed its record."
+  },
+  {
+    "case": "talos did not serve, record quit",
+    "record": {
+      "kind": "talos-did-not-serve",
+      "talosStartNumber": 4,
+      "recordState": "quit"
+    },
+    "details": "Talos 4 did not serve: its record reads quit."
+  },
+  {
+    "case": "talos protocol differs",
+    "record": {
+      "kind": "talos-protocol-differs",
+      "talosStartNumber": 4,
+      "protocolVersion": 7
+    },
+    "details": "Talos 4, started from the program on disk, answers protocol version 7: no Talos starts again."
+  },
+  {
+    "case": "talos did not welcome",
+    "record": {
+      "kind": "talos-did-not-welcome",
+      "talosStartNumber": 4,
+      "answer": "silent"
+    },
+    "details": "Talos 4 serves but did not welcome Hephaestus: silent."
+  },
+  {
+    "case": "crash log leaves out presence",
+    "record": {
+      "kind": "crash-log-leaves-out-presence",
+      "generation": 3,
+      "problem": {
+        "code": "presence-field-malformed",
+        "field": "ending"
+      }
+    },
+    "details": "The crash log of Hephaestus lock 3 leaves out presence.json, which cannot be read: ending is neither null nor an ending"
+  },
+  {
+    "case": "crash log leaves out heartbeat",
+    "record": {
+      "kind": "crash-log-leaves-out-heartbeat",
+      "generation": 3,
+      "problem": {
+        "code": "not-json",
+        "parserError": "Unexpected end of JSON input"
+      }
+    },
+    "details": "The crash log of Hephaestus lock 3 leaves out heartbeat.json, which cannot be read: it is not valid JSON (Unexpected end of JSON input)"
+  },
+  {
+    "case": "crash log unwritten",
+    "record": {
+      "kind": "crash-log-unwritten",
+      "generation": 3,
+      "thrownMessage": "ENOSPC: no space left on device"
+    },
+    "details": "The crash log of Hephaestus lock 3 could not be written: ENOSPC: no space left on device"
+  },
+  {
+    "case": "crashed ending unwritten",
+    "record": {
+      "kind": "crashed-ending-unwritten",
+      "generation": 3,
+      "thrownMessage": "ENOSPC: no space left on device"
+    },
+    "details": "The crashed ending of Hephaestus lock 3 could not be written: ENOSPC: no space left on device"
+  },
+  {
+    "case": "lease renewal unstoppable",
+    "record": {
+      "kind": "lease-renewal-unstoppable",
+      "thrownMessage": "the timer is gone"
+    },
+    "details": "The lease renewal could not be stopped: the timer is gone"
+  },
+  {
+    "case": "registry crash unwritten",
+    "record": {
+      "kind": "registry-crash-unwritten",
+      "thrownMessage": "ENOSPC: no space left on device"
+    },
+    "details": "The registry could not be told of the crash: ENOSPC: no space left on device"
+  },
+  {
+    "case": "board file unreadable",
+    "record": {
+      "kind": "board-file-unreadable",
+      "file": "hephaestus/presence.json",
+      "problem": {
+        "code": "version-differs",
+        "field": "presenceVersion",
+        "expectedVersion": 2
+      }
+    },
+    "details": "Hephaestus cannot read the board file hephaestus/presence.json (its presenceVersion is not 2); the board header warns until Hephaestus restarts."
+  },
+  {
+    "case": "heartbeat unreadable, rewritten",
+    "record": {
+      "kind": "heartbeat-unreadable-rewritten",
+      "problem": {
+        "code": "heartbeat-field-malformed",
+        "field": "sequence"
+      }
+    },
+    "details": "heartbeat.json could not be read (sequence is not a whole number from 1); this beat rewrites it."
+  },
+  {
+    "case": "heartbeat unreadable at a start",
+    "record": {
+      "kind": "heartbeat-unreadable-at-start",
+      "problem": {
+        "code": "not-utf8-text"
+      }
+    },
+    "details": "heartbeat.json could not be read (it is not UTF-8 text); the start classifies without a last beat."
+  },
+  {
+    "case": "stale lock record, holder gone",
+    "record": {
+      "kind": "stale-lock-record-taken-over",
+      "recordPath": "/board/.forge/lock/generation-7",
+      "reason": {
+        "kind": "holder-gone",
+        "processId": 5150
+      }
+    },
+    "details": "The lock record /board/.forge/lock/generation-7 was stale and is taken over: the process 5150 it names is gone."
+  },
+  {
+    "case": "stale lock record, unreadable",
+    "record": {
+      "kind": "stale-lock-record-taken-over",
+      "recordPath": "/board/.forge/lock/generation-7",
+      "reason": {
+        "kind": "unreadable",
+        "problem": {
+          "code": "state-not-a-generation-state",
+          "field": "state"
+        }
+      }
+    },
+    "details": "The lock record /board/.forge/lock/generation-7 was stale and is taken over: it could not be read (its \"state\" is not one of held, released)."
+  },
+  {
+    "case": "stale hephaestus lock, holder gone",
+    "record": {
+      "kind": "stale-hephaestus-lock-taken-over",
+      "generation": 3,
+      "hephaestusLockFilePath": "/board/hephaestus/lock-2.json",
+      "reason": {
+        "kind": "holder-gone",
+        "processId": 6160
+      }
+    },
+    "details": "Generation 3 took over the stale Hephaestus lock /board/hephaestus/lock-2.json: the process 6160 it names is gone."
+  },
+  {
+    "case": "stale hephaestus lock, unreadable",
+    "record": {
+      "kind": "stale-hephaestus-lock-taken-over",
+      "generation": 3,
+      "hephaestusLockFilePath": "/board/hephaestus/lock-2.json",
+      "reason": {
+        "kind": "unreadable",
+        "problem": {
+          "code": "field-not-a-number",
+          "field": "port"
+        }
+      }
+    },
+    "details": "Generation 3 took over the stale Hephaestus lock /board/hephaestus/lock-2.json: it could not be read (its \"port\" is not a number)."
+  },
+  {
+    "case": "stale hephaestus lock, removed before its read",
+    "record": {
+      "kind": "stale-hephaestus-lock-taken-over",
+      "generation": 3,
+      "hephaestusLockFilePath": "/board/hephaestus/lock-2.json",
+      "reason": {
+        "kind": "unreadable",
+        "problem": null
+      }
+    },
+    "details": "Generation 3 took over the stale Hephaestus lock /board/hephaestus/lock-2.json: it could not be read (unknown)."
+  },
+  {
+    "case": "agent slot taken over, unreadable",
+    "record": {
+      "kind": "agent-slot-taken-over",
+      "slotPath": "/monitor/agent-slots/slot-2",
+      "reason": {
+        "kind": "unreadable",
+        "problem": {
+          "code": "field-not-a-string",
+          "field": "jobId"
+        }
+      }
+    },
+    "details": "The agent slot /monitor/agent-slots/slot-2 was stale and is taken over: it could not be read (its \"jobId\" is not a string)."
+  },
+  {
+    "case": "agent slot taken over, names no Hephaestus",
+    "record": {
+      "kind": "agent-slot-taken-over",
+      "slotPath": "/monitor/agent-slots/slot-2",
+      "reason": {
+        "kind": "names-no-hephaestus"
+      }
+    },
+    "details": "The agent slot /monitor/agent-slots/slot-2 was stale and is taken over: it names no Hephaestus."
+  },
+  {
+    "case": "agent slot taken over, Hephaestus gone",
+    "record": {
+      "kind": "agent-slot-taken-over",
+      "slotPath": "/monitor/agent-slots/slot-2",
+      "reason": {
+        "kind": "hephaestus-gone",
+        "processId": 7170
+      }
+    },
+    "details": "The agent slot /monitor/agent-slots/slot-2 was stale and is taken over: the Hephaestus 7170 it names is gone."
+  },
+  {
+    "case": "agent slot unreadable",
+    "record": {
+      "kind": "agent-slot-unreadable",
+      "slotPath": "/monitor/agent-slots/slot-2",
+      "problem": {
+        "code": "bytes-unreadable",
+        "systemError": "EACCES: permission denied"
+      }
+    },
+    "details": "The agent slot /monitor/agent-slots/slot-2 could not be read (it could not be read (EACCES: permission denied)); it is left in place."
+  },
+  {
+    "case": "gate run slot taken over, unreadable",
+    "record": {
+      "kind": "gate-run-slot-taken-over",
+      "slotPath": "/monitor/gate-run-slots/slot-1",
+      "reason": {
+        "kind": "unreadable",
+        "problem": {
+          "code": "names-no-holder"
+        }
+      }
+    },
+    "details": "The gate run slot /monitor/gate-run-slots/slot-1 was stale and is taken over: it could not be read (it names no holder)."
+  },
+  {
+    "case": "gate run slot taken over, holder not live",
+    "record": {
+      "kind": "gate-run-slot-taken-over",
+      "slotPath": "/monitor/gate-run-slots/slot-1",
+      "reason": {
+        "kind": "holder-not-live",
+        "holder": "/board/talos/children/J3-gate"
+      }
+    },
+    "details": "The gate run slot /monitor/gate-run-slots/slot-1 was stale and is taken over: its holder /board/talos/children/J3-gate is no longer live."
+  },
+  {
+    "case": "gate run slot unreadable",
+    "record": {
+      "kind": "gate-run-slot-unreadable",
+      "slotPath": "/monitor/gate-run-slots/slot-1",
+      "problem": {
+        "code": "bytes-unreadable",
+        "systemError": "EACCES: permission denied"
+      }
+    },
+    "details": "The gate run slot /monitor/gate-run-slots/slot-1 could not be read (it could not be read (EACCES: permission denied)); it is left in place."
+  },
+  {
+    "case": "merged-tree gate ended with no outcome",
+    "record": {
+      "kind": "merged-tree-gate-ended-without-outcome",
+      "worktreePath": "/worktrees/ticket-7",
+      "treeId": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "phase": "merge",
+      "thrownMessage": "the run was stopped while it ran"
+    },
+    "details": "The merged-tree gate of ticket-7 at tree bbbbbbbbbbbb in phase merge ended with no outcome: the run was stopped while it ran"
+  },
+  {
+    "case": "merged-tree gate stopped while it ran",
+    "record": {
+      "kind": "merged-tree-gate-stopped-while-running",
+      "worktreePath": "/worktrees/ticket-7",
+      "treeId": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "phase": "merge"
+    },
+    "details": "The merged-tree gate of ticket-7 at tree bbbbbbbbbbbb in phase merge ended with no outcome: the run was stopped while it ran"
+  },
+  {
+    "case": "merged-tree gate ended",
+    "record": {
+      "kind": "merged-tree-gate-ended",
+      "worktreePath": "/worktrees/ticket-7",
+      "treeId": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "phase": "merge",
+      "outcome": "failed"
+    },
+    "details": "The merged-tree gate of ticket-7 at tree bbbbbbbbbbbb in phase merge ended: failed."
+  },
+  {
+    "case": "merged-tree gate kept outcome unreadable",
+    "record": {
+      "kind": "merged-tree-gate-kept-outcome-unreadable",
+      "worktreePath": "/worktrees/ticket-7",
+      "treeId": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "phase": "merge",
+      "problem": {
+        "code": "not-a-gate-outcome",
+        "field": "gate.outcome"
+      }
+    },
+    "details": "The kept outcome of the merged-tree gate of ticket-7 at tree bbbbbbbbbbbb in phase merge cannot be read (\"gate.outcome\" is no gate outcome)."
+  },
+  {
+    "case": "merged-tree gate started",
+    "record": {
+      "kind": "merged-tree-gate-started",
+      "worktreePath": "/worktrees/ticket-7",
+      "treeId": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "phase": "merge"
+    },
+    "details": "The merged-tree gate of ticket-7 at tree bbbbbbbbbbbb in phase merge started."
+  },
+  {
+    "case": "merged-tree gate run folder removed",
+    "record": {
+      "kind": "merged-tree-gate-run-folder-removed",
+      "runFolderName": "0123456789abcdef",
+      "problem": {
+        "code": "not-json",
+        "parserError": "JSON Parse error: Unexpected EOF"
+      }
+    },
+    "details": "The merged-tree gate run folder 0123456789abcdef is removed: its kept outcome cannot be read (it is not valid JSON (JSON Parse error: Unexpected EOF))."
+  },
+  {
+    "case": "lease renewal without connection",
+    "record": {
+      "kind": "lease-renewal-without-connection"
+    },
+    "details": "The lease renewal found no connection to Talos."
+  },
+  {
+    "case": "lease renewal unanswered",
+    "record": {
+      "kind": "lease-renewal-unanswered"
+    },
+    "details": "Talos did not answer a lease renewal."
+  },
+  {
+    "case": "lease renewal refused",
+    "record": {
+      "kind": "lease-renewal-refused",
+      "reason": "quitting"
+    },
+    "details": "Talos refused a lease renewal: quitting."
+  },
+  {
+    "case": "lease renewal withheld",
+    "record": {
+      "kind": "lease-renewal-withheld",
+      "passNumber": 3
+    },
+    "details": "The lease renewal is withheld: pass 3 has run for more than one renewal interval."
+  },
+  {
+    "case": "gate profile worktree left over",
+    "record": {
+      "kind": "gate-profile-worktree-left-over",
+      "worktreePath": "/worktrees/gate-profiles/P3",
+      "removalReason": "git worktree remove failed: locked."
+    },
+    "details": "The gate profile worktree /worktrees/gate-profiles/P3 is a leftover: git worktree remove failed: locked."
+  },
+  {
+    "case": "gate profile failed",
+    "record": {
+      "kind": "gate-profile-failed",
+      "profileRunId": "P3",
+      "thrownMessage": "the hold timed out"
+    },
+    "details": "Gate profile P3 failed and waits for the next start: the hold timed out"
+  },
+  {
+    "case": "gate profile output unreadable",
+    "record": {
+      "kind": "gate-profile-output-unreadable",
+      "outputFilePath": "/board/gate-profile-runs/P3.ndjson",
+      "problem": {
+        "code": "bytes-unreadable",
+        "systemError": "EACCES: permission denied"
+      }
+    },
+    "details": "The gate profile output /board/gate-profile-runs/P3.ndjson could not be read (it could not be read (EACCES: permission denied)); its stream waits."
+  },
+  {
+    "case": "gate profile output line unreadable",
+    "record": {
+      "kind": "gate-profile-output-line-unreadable",
+      "outputFilePath": "/board/gate-profile-runs/P3.ndjson",
+      "lineNumber": 2,
+      "problem": {
+        "code": "text-not-a-string",
+        "field": "text"
+      }
+    },
+    "details": "Line 2 of the gate profile output /board/gate-profile-runs/P3.ndjson could not be read (its \"text\" is not a string); it and any later unreadable line are not sent."
+  },
+  {
+    "case": "pipeline check worktree left over",
+    "record": {
+      "kind": "pipeline-check-worktree-left-over",
+      "worktreePath": "/worktrees/pipeline-checks/S1",
+      "removalReason": "git worktree remove failed: locked."
+    },
+    "details": "The pipeline check worktree /worktrees/pipeline-checks/S1 is a leftover: git worktree remove failed: locked."
+  },
+  {
+    "case": "pipeline check failed",
+    "record": {
+      "kind": "pipeline-check-failed",
+      "setupId": "S1",
+      "thrownMessage": "the hold timed out"
+    },
+    "details": "Pipeline check of setup S1 failed and waits for the next start: the hold timed out"
+  },
+  {
+    "case": "gate red",
+    "record": {
+      "kind": "gate-red",
+      "jobId": "J3",
+      "ticketId": "003",
+      "gate": "test",
+      "treeId": "4b825dc642cb",
+      "outputFile": "gate.log"
+    },
+    "details": "The test gate of job J3 (#003) is red on 4b825dc642cb; its output is in gate.log."
+  },
+  {
+    "case": "guard cannot start, entry script not in the command",
+    "record": {
+      "kind": "guard-cannot-start",
+      "jobId": "J3",
+      "ticketId": "003",
+      "guard": "network",
+      "reason": {
+        "kind": "command-refused",
+        "part": "entry-script",
+        "cause": "missing",
+        "path": null,
+        "repositoryRoot": "/example/repository"
+      }
+    },
+    "details": "The network guard of job J3 (#003) cannot start, so its shell commands and web fetches are denied: the entry script is not in Hephaestus's command."
+  },
+  {
+    "case": "guard cannot start, runtime not an absolute file",
+    "record": {
+      "kind": "guard-cannot-start",
+      "jobId": "J3",
+      "ticketId": "003",
+      "guard": "stage-edits",
+      "reason": {
+        "kind": "command-refused",
+        "part": "runtime",
+        "cause": "missing",
+        "path": "bun",
+        "repositoryRoot": "/example/repository"
+      }
+    },
+    "details": "The stage edit guard of job J3 (#003) cannot start, so its file edits are denied: the Bun runtime bun is not an absolute path to a file."
+  },
+  {
+    "case": "guard cannot start, runtime inside the repository",
+    "record": {
+      "kind": "guard-cannot-start",
+      "jobId": "J3",
+      "ticketId": "003",
+      "guard": "network",
+      "reason": {
+        "kind": "command-refused",
+        "part": "runtime",
+        "cause": "inside-repository",
+        "path": "/example/repository/bun",
+        "repositoryRoot": "/example/repository"
+      }
+    },
+    "details": "The network guard of job J3 (#003) cannot start, so its shell commands and web fetches are denied: the Bun runtime /example/repository/bun lies inside the repository /example/repository."
+  },
+  {
+    "case": "guard cannot start, command not an absolute runtime path",
+    "record": {
+      "kind": "guard-cannot-start",
+      "jobId": "J3",
+      "ticketId": "003",
+      "guard": "network",
+      "reason": {
+        "kind": "not-an-absolute-runtime-path"
+      }
+    },
+    "details": "The network guard of job J3 (#003) cannot start, so its shell commands and web fetches are denied: its command is not an absolute runtime path."
+  },
+  {
+    "case": "line refused by its sandbox",
+    "record": {
+      "kind": "line-refused",
+      "jobId": "J3",
+      "ticketId": "003",
+      "step": "build",
+      "sandboxRefusal": "the folder /example/repository/app does not exist"
+    },
+    "details": "The build line of job J3 (#003) did not run: the folder /example/repository/app does not exist."
+  },
+  {
+    "case": "line launched, confined",
+    "record": {
+      "kind": "line-launched",
+      "jobId": "J3",
+      "ticketId": "003",
+      "step": "build",
+      "instance": 2,
+      "confinement": "sandbox-exec"
+    },
+    "details": "Launched the build line of job J3 (#003), instance 2, under Talos under sandbox-exec."
+  },
+  {
+    "case": "line launched, unconfined",
+    "record": {
+      "kind": "line-launched",
+      "jobId": "J3",
+      "ticketId": "003",
+      "step": "build",
+      "instance": 1,
+      "confinement": null
+    },
+    "details": "Launched the build line of job J3 (#003), instance 1, under Talos, unconfined by design."
+  },
+  {
+    "case": "line not launched, Talos refused it",
+    "record": {
+      "kind": "line-not-launched",
+      "jobId": "J3",
+      "step": "build",
+      "instance": 2,
+      "talosRefusal": "folder-outside-board"
+    },
+    "details": "The build line of job J3, instance 2, did not launch: Talos refused it (folder-outside-board); the next pass tries again."
+  },
+  {
+    "case": "line not launched, no Talos",
+    "record": {
+      "kind": "line-not-launched",
+      "jobId": "J3",
+      "step": "build",
+      "instance": 1,
+      "talosRefusal": null
+    },
+    "details": "The build line of job J3, instance 1, did not launch: no Talos took it; the next pass tries again."
+  },
+  {
+    "case": "merge line launched",
+    "record": {
+      "kind": "merge-line-launched",
+      "jobId": "J3",
+      "ticketId": "003",
+      "step": "target-merge",
+      "mergedTip": "9fceb02d0ae5",
+      "branch": "forge/003"
+    },
+    "details": "Launched the target-merge line of job J3 (#003) under Talos, merging 9fceb02d0ae5 into forge/003."
+  },
+  {
+    "case": "fresh worktree differs",
+    "record": {
+      "kind": "fresh-worktree-differs",
+      "jobId": "J3",
+      "changedFileCount": 4
+    },
+    "details": "The fresh worktree of job J3 already differs from its commit in 4 file(s), as line-ending normalisation leaves it."
+  },
+  {
+    "case": "worktree creation failed",
+    "record": {
+      "kind": "worktree-creation-failed",
+      "jobId": "J3",
+      "worktreeFailure": "fatal: invalid reference: main"
+    },
+    "details": "Creating the worktree of job J3 failed: fatal: invalid reference: main"
+  },
+  {
+    "case": "seen head unreadable, base problem",
+    "record": {
+      "kind": "seen-head-unreadable",
+      "seenHeadFilePath": "/board/jobs/J3/document-agent-seen-head.json",
+      "problem": {
+        "code": "not-a-json-object"
+      }
+    },
+    "details": "The document agent's seen head /board/jobs/J3/document-agent-seen-head.json is unreadable, so its next line carries the head again: it is not a JSON object"
+  },
+  {
+    "case": "seen head unreadable, own problem",
+    "record": {
+      "kind": "seen-head-unreadable",
+      "seenHeadFilePath": "/board/jobs/J3/document-agent-seen-head.json",
+      "problem": {
+        "code": "not-text-or-null",
+        "field": "contentHash"
+      }
+    },
+    "details": "The document agent's seen head /board/jobs/J3/document-agent-seen-head.json is unreadable, so its next line carries the head again: its contentHash is neither text nor null"
+  },
+  {
+    "case": "document agent snapshot left over",
+    "record": {
+      "kind": "document-agent-snapshot-left-over",
+      "snapshotPath": "/worktrees/document-agent-snapshots/J3",
+      "removalReason": "git worktree remove --force /worktrees/document-agent-snapshots/J3 exited with 128: fatal: not a working tree"
+    },
+    "details": "The document agent snapshot /worktrees/document-agent-snapshots/J3 is a leftover: git worktree remove --force /worktrees/document-agent-snapshots/J3 exited with 128: fatal: not a working tree"
+  },
+  {
+    "case": "pipeline agent snapshot left over",
+    "record": {
+      "kind": "pipeline-agent-snapshot-left-over",
+      "snapshotPath": "/worktrees/pipeline-agent-snapshots/S1",
+      "removalReason": "git worktree remove --force /worktrees/pipeline-agent-snapshots/S1 could not be started."
+    },
+    "details": "The pipeline agent snapshot /worktrees/pipeline-agent-snapshots/S1 is a leftover: git worktree remove --force /worktrees/pipeline-agent-snapshots/S1 could not be started."
+  },
+  {
+    "case": "child event log malformed",
+    "record": {
+      "kind": "child-event-log-malformed",
+      "jobId": "J3",
+      "childInstance": 2
+    },
+    "details": "The event log of job J3, child instance 2, is malformed; its events wait."
+  },
+  {
+    "case": "usage marker malformed",
+    "record": {
+      "kind": "usage-marker-malformed",
+      "markerPath": "/monitor/usage-limit.json",
+      "problem": {
+        "code": "resets-at-not-a-stamp",
+        "field": "resetsAt"
+      }
+    },
+    "details": "The usage marker /monitor/usage-limit.json is malformed (its \"resetsAt\" is not a stamp); no limit is held by it."
+  },
+  {
+    "case": "usage marker not json",
+    "record": {
+      "kind": "usage-marker-malformed",
+      "markerPath": "/monitor/usage-limit.json",
+      "problem": {
+        "code": "not-json",
+        "parserError": "Unexpected end of JSON input"
+      }
+    },
+    "details": "The usage marker /monitor/usage-limit.json is malformed (it is not valid JSON (Unexpected end of JSON input)); no limit is held by it."
+  },
+  {
+    "case": "session confinement refused",
+    "record": {
+      "kind": "session-confinement-refused",
+      "jobId": "J4",
+      "confinementRefusal": "the platform has no sandbox for this session"
+    },
+    "details": "The session of job J4 did not launch: the platform has no sandbox for this session; the next pass tries again."
+  },
+  {
+    "case": "tool left off the search path",
+    "record": {
+      "kind": "tool-left-off-search-path",
+      "toolName": "example-tool",
+      "jobId": "J4",
+      "resolverRefusal": "it lies inside the repository"
+    },
+    "details": "The tool example-tool is left off the search path of job J4: it lies inside the repository."
+  },
+  {
+    "case": "job file unreadable at launch",
+    "record": {
+      "kind": "job-file-unreadable-at-launch",
+      "jobId": "J5",
+      "file": "/board/children/J5/launch.json",
+      "problem": {
+        "code": "not-a-json-object"
+      }
+    },
+    "details": "Job J5 did not launch: its launch reads /board/children/J5/launch.json, which cannot be read (it is not a JSON object)."
+  },
+  {
+    "case": "pipeline agent awaits billing",
+    "record": {
+      "kind": "pipeline-agent-awaits-billing",
+      "jobId": "J6"
+    },
+    "details": "The pipeline agent of job J6 did not launch: its setup has no billing yet, and it launches once one is chosen."
+  },
+  {
+    "case": "airlock agent root unmade",
+    "record": {
+      "kind": "airlock-agent-root-unmade",
+      "jobId": "J7",
+      "sandboxRefusal": "the denied root /example/root cannot be made"
+    },
+    "details": "The Airlock agent of job J7 did not launch: the denied root /example/root cannot be made."
+  },
+  {
+    "case": "airlock agent conflicts unknown",
+    "record": {
+      "kind": "airlock-agent-conflicts-unknown",
+      "jobId": "J7"
+    },
+    "details": "The Airlock agent of job J7 did not launch: neither its kept facts nor git tell which files conflict."
+  },
+  {
+    "case": "commits unsigned despite signing",
+    "record": {
+      "kind": "commits-unsigned-despite-signing",
+      "jobId": "J4"
+    },
+    "details": "Job J4 commits unsigned although the repository sets commit.gpgsign: no gpg-agent socket reaches its sandbox."
+  },
+  {
+    "case": "child instance not launched, talos refused",
+    "record": {
+      "kind": "child-instance-not-launched",
+      "jobId": "J8",
+      "childInstance": 1,
+      "jobKind": "build",
+      "ticketIds": [
+        "012",
+        "013"
+      ],
+      "talosRefusal": "folder-outside-board"
+    },
+    "details": "Child instance 1 of job J8 (build #012, #013) did not launch: Talos refused it (folder-outside-board); the next pass tries again."
+  },
+  {
+    "case": "child instance not launched, no talos",
+    "record": {
+      "kind": "child-instance-not-launched",
+      "jobId": "J9",
+      "childInstance": 3,
+      "jobKind": "assistant",
+      "ticketIds": [],
+      "talosRefusal": null
+    },
+    "details": "Child instance 3 of job J9 (assistant) did not launch: no Talos took it; the next pass tries again."
+  },
+  {
+    "case": "child instance launched",
+    "record": {
+      "kind": "child-instance-launched",
+      "jobId": "J8",
+      "childInstance": 1,
+      "jobKind": "build",
+      "ticketIds": [
+        "012"
+      ]
+    },
+    "details": "Launched child instance 1 of job J8 (build #012) under Talos."
+  },
+  {
+    "case": "cleanup declined",
+    "record": {
+      "kind": "cleanup-declined",
+      "cleanup": "refresh",
+      "groupBranch": "main",
+      "gitMessage": "fatal: 'example' contains modified or untracked files, use --force to delete it"
+    },
+    "details": "Git declined the refresh cleanup of main: fatal: 'example' contains modified or untracked files, use --force to delete it"
+  },
+  {
+    "case": "presence unrecorded",
+    "record": {
+      "kind": "presence-unrecorded",
+      "thrownMessage": "EACCES: permission denied"
+    },
+    "details": "Presence could not record the pass: EACCES: permission denied"
+  },
+  {
+    "case": "pass abandoned",
+    "record": {
+      "kind": "pass-abandoned",
+      "reason": "tracker-lock-held",
+      "refusalMessage": "The tracker lock is held by another process."
+    },
+    "details": "Drive pass abandoned (tracker-lock-held); it waits for the next wake-up: The tracker lock is held by another process."
+  },
+  {
+    "case": "pass crashed",
+    "record": {
+      "kind": "pass-crashed",
+      "thrownMessage": "Example failure"
+    },
+    "details": "Drive pass crashed: Example failure; the crash path runs and no further pass runs."
+  },
+  {
+    "case": "pass crash path threw",
+    "record": {
+      "kind": "pass-crash-path-threw",
+      "thrownMessage": "Example failure"
+    },
+    "details": "The crash path of the drive pass threw: Example failure"
+  },
+  {
+    "case": "child instance lost",
+    "record": {
+      "kind": "child-instance-lost",
+      "jobId": "J8",
+      "childInstance": 2,
+      "cause": "talos-lost"
+    },
+    "details": "Child instance 2 of job J8 is lost (talos-lost)."
+  }
+]

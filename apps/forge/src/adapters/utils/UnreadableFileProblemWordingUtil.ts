@@ -6,6 +6,7 @@ import type { Incident }                        from '../../lib/tracker-model/@t
 import type { StoredFileProblem }               from '../../shared/@types/StoredFileProblem.ts';
 import { StoredFileProblemFactsUtil }           from '../../shared/utils/StoredFileProblemFactsUtil.ts';
 import type { UnreadableFileProblem }           from '../@types/UnreadableFileProblem.ts';
+import { StoredFileProblemWording }             from '../StoredFileProblemWording.ts';
 import { AirlockFactsProblemWording }           from '../airlock-facts/AirlockFactsProblemWording.ts';
 import { AssistantChatsProblemWording }         from '../assistant-chats/AssistantChatsProblemWording.ts';
 import { CrashLogProblemWording }               from '../crash-log/CrashLogProblemWording.ts';
@@ -21,7 +22,6 @@ import { SnapshotStartProblemWording }          from '../snapshot-start/Snapshot
 import { StageStatementProblemWording }         from '../stage-statement/StageStatementProblemWording.ts';
 import { WaiverProposalsProblemWording }        from '../waiver-proposals/WaiverProposalsProblemWording.ts';
 import { JobFileShapeUtil }                     from './JobFileShapeUtil.ts';
-import { StoredFileProblemWordingUtil }         from './StoredFileProblemWordingUtil.ts';
 
 const FILE_FACT = 'file';
 
@@ -34,8 +34,7 @@ function sentenceOf(problem: UnreadableFileProblem): string {
     case 'not-json':
     case 'not-a-json-object':
     case 'version-differs':
-    case 'transitional-worded':
-      return StoredFileProblemWordingUtil.sentenceOf(problem);
+      return StoredFileProblemWording.sentenceOf(problem);
     case 'field-is-not':
       return JobFileShapeUtil.fieldProblemSentenceOf(problem);
     case 'not-the-phase':

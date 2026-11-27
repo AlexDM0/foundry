@@ -84,7 +84,9 @@ function crashLogAnswerOf(files: HephaestusFiles, writtenNumber: string | null):
   if (crashLogNumber === null) return noCrashLogAnswerOf(null);
   const reading = CrashLog.read(files, crashLogNumber);
   if (reading.verdict === 'absent') return noCrashLogAnswerOf(crashLogNumber);
-  if (reading.verdict === 'unreadable') throw new Error(`Crash log ${crashLogNumber} cannot be read: ${CrashLogProblemWording.sentenceOf(reading.problem)}.`);
+  if (reading.verdict === 'unreadable') {
+    throw new OperationRefusal('unrepaired', `Crash log ${crashLogNumber} cannot be read: ${CrashLogProblemWording.sentenceOf(reading.problem)}.`);
+  }
   return HephaestusServer.routeAnswerOf('answered', PresenceDocumentAssembly.crashLogDocumentOf(crashLogNumber, reading.record));
 }
 

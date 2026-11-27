@@ -81,18 +81,10 @@ function sessionLaunchOf(adapter: AgentAdapter, gateConfinement: GateConfinement
   return line.verdict === 'refused' ? line : { verdict: 'runs', plan: { ...plan, argv: line.argv } };
 }
 
-/** For a launch that turns a refusal into a thrown error, as a session host's launch does. */
-function confinedPlanOf(adapter: AgentAdapter, gateConfinement: GateConfinement, request: AgentLaunchRequest): AgentLaunchPlan {
-  const launch = sessionLaunchOf(adapter, gateConfinement, request);
-  if (launch.verdict === 'refused') throw new Error(`the session cannot run confined: ${launch.reason}`);
-  return launch.plan;
-}
-
 export const SessionConfinement = Object.freeze({
   confinementVerdictOf,
   launchConfinementOf,
   refusalOf,
   planOf,
   sessionLaunchOf,
-  confinedPlanOf,
 });

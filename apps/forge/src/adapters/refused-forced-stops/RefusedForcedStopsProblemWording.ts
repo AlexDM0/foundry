@@ -1,4 +1,4 @@
-import { StoredFileProblemWordingUtil }   from '../utils/StoredFileProblemWordingUtil.ts';
+import { StoredFileProblemWording }       from '../StoredFileProblemWording.ts';
 import type { RefusedForcedStopsProblem } from './@types/RefusedForcedStopsProblem.ts';
 
 const MALFORMED_FIELD_SENTENCES = {
@@ -9,7 +9,7 @@ const MALFORMED_FIELD_SENTENCES = {
 function sentenceOf(problem: RefusedForcedStopsProblem): string {
   switch (problem.code) {
     case 'refused-forced-stops-field-malformed': return MALFORMED_FIELD_SENTENCES[problem.field];
-    default:                                     return StoredFileProblemWordingUtil.sentenceOf(problem);
+    default:                                     return StoredFileProblemWording.sentenceOf(problem);
   }
 }
 

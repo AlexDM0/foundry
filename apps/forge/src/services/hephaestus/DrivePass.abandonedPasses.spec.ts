@@ -19,6 +19,7 @@ import { OperationRefusal }                                  from '../../shared/
 import { createScratchDrivePass }                            from '../../testing/DrivePassHarness.ts';
 import { fakeAgentAdapter }                                  from '../../testing/FakeAgentAdapter.ts';
 import { fakeGateConfinement }                               from '../../testing/FakeGateConfinement.ts';
+import { detailsLoggerOf }                                   from '../../testing/LoggedDetails.ts';
 import { nativePlatformPorts }                               from '../../testing/NativePlatformPorts.ts';
 import { useRecordedGit }                                    from '../../testing/RecordedGit.ts';
 import { RECORDED_FLOW_MAIN_LINE }                           from '../../testing/RecordedGitFlow.ts';
@@ -70,7 +71,7 @@ function startedDrivePass(): DrivePass {
       }],
       context: ''
     }),
-    log:            (line) => hephaestusLog.push(line),
+    log:            detailsLoggerOf(hephaestusLog),
     afterHoldPhase: (phase) => {
       if (phase !== 'relayed-commands') return;
       holdsEntered += 1;

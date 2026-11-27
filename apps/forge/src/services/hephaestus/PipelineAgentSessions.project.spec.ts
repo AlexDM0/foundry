@@ -150,7 +150,7 @@ function journalLanding(commit: string): void {
   const appended = RepositoryLandings.appendLanding(files, {
     trackerId: 'gaia-tracker-example', target: TWO_TRACKER_MAIN_LINE, previousTip: COMMITS['<start>'], commit
   });
-  if (appended.verdict !== 'appended') throw new Error(`the journal took no line: ${appended.reason}`);
+  if (appended.verdict !== 'appended') throw new Error(`the journal took no line: ${appended.systemError}`);
 }
 
 describeWhenGitIsRecorded('a pipeline agent\'s turn end beside a sibling tracker', () => {

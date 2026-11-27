@@ -9,6 +9,7 @@ import { expect, test } from 'bun:test';
 import type { BoardRefusalDetail }     from '../../lib/tracker-model/BoardRefusal.ts';
 import type { UnreadableTracker }      from '../../shared/@types/UnreadableTracker.ts';
 import { OperationRefusal }            from '../../shared/OperationRefusal.ts';
+import type { OperationRefusalDetail } from '../../shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }               from '../../shared/constants/ProductNames.ts';
 import { ROOT_OVERRIDE_VARIABLE }      from '../../shared/constants/RootOverrideVariable.ts';
 import { OperationRefusalWordingUtil } from './OperationRefusalWordingUtil.ts';
@@ -193,4 +194,17 @@ test('a document refusal names its ticket, document and versions', () => {
   expect(OperationRefusalWordingUtil.boardRefusalMessageOf({
     reason: 'document-version-moved', ticketId: '004', document: 'plan', version: null, headNumber: 1
   })).toContain('The plan of #004 is at version 1, not empty: read it again first.');
+});
+
+test.each<[OperationRefusalDetail, string]>([
+  [{ kind: 'merge-job-holds-no-slot', jobId: 'J3' }, 'Merge job J3 holds no slot.'],
+  [{ kind: 'crash-log-number-not-free', attempts: 5, crashLogDirectory: '/example/crash-logs' }, 'No crash log number was free after 5 attempts in /example/crash-logs.'],
+  [{ kind: 'ticket-file-not-allocated', ticketId: '004' }, 'Ticket #004 was changed in a hold that neither listed nor allocated it, so the store holds no file for it.'],
+  [{ kind: 'relayed-command-sent-setup-message', messageKind: 'setup-opened' }, 'A relayed command reached the setup message setup-opened, which only User\'s own commands send.'],
+  [{ kind: 'relayed-command-read-main-constitution' }, 'A relayed command reached the reading of main\'s constitution, which only User\'s own commands read.'],
+  [{ kind: 'relayed-command-judged-billing', vendor: 'example-vendor' }, 'A relayed command reached the billing of example-vendor, which only User\'s own commands set.'],
+])('a defect of forge\'s own code is worded as its throw was, in both channels: %p', (detail, sentence) => {
+  const refusal = new OperationRefusal('unrepaired', detail);
+  expect(OperationRefusalWordingUtil.messageOf(refusal)).toBe(sentence);
+  expect(OperationRefusalWordingUtil.apiMessageOf(refusal)).toBe(sentence);
 });

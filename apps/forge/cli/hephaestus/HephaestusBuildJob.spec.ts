@@ -52,6 +52,7 @@ import {
 import { FAKE_CONFINER_ARGV, FAKE_MISSING_TOOLS_REASON, fakeGateConfinement } from '../../src/testing/FakeGateConfinement.ts';
 import { type LoggedGitCall, startGitCallLog }                                from '../../src/testing/GitCallLog.ts';
 import { inheritedEnvironment }                                               from '../../src/testing/InheritedEnvironment.ts';
+import { detailsLoggerOf }                                                    from '../../src/testing/LoggedDetails.ts';
 import { nativePlatformPorts }                                                from '../../src/testing/NativePlatformPorts.ts';
 import { useRecordedGit }                                                     from '../../src/testing/RecordedGit.ts';
 import {
@@ -190,7 +191,7 @@ async function drivePassPlaying(steps: readonly FakeAgentStep[], gateConfinement
     mainLine:             RECORDED_FLOW_MAIN_LINE,
     decisionWordingOf:    (draft) => HephaestusWording.decisionWordingOf(draft, fakeAgentAdapter()),
     redHandoffMessageOf:  HephaestusWording.redHandoffMessageOf,
-    log:                  (line) => hephaestusLog.push(line),
+    log:                  detailsLoggerOf(hephaestusLog),
     afterHoldPhase:       (phase, board) => {
       recordBuildStateChanges(phase, board);
       afterEachHoldPhase(board);
@@ -600,7 +601,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'Hatch folder watches', () => 
       monitorFolder,
       inheritedEnvironment: inheritedEnvironment(),
       mainLine:             RECORDED_FLOW_MAIN_LINE,
-      log:                  (line) => hephaestusLog.push(line),
+      log:                  detailsLoggerOf(hephaestusLog),
       watchHatchFolder:     (hatchDirectory) => watchedHatchFolders.push(hatchDirectory),
     });
     await passUntil(drivePass, () => loggedEntries('job-launched').some((entry) => entry.fields['kind'] === 'build'), 'the build launch');
@@ -637,7 +638,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a network guard that cannot s
       monitorFolder,
       inheritedEnvironment: inheritedEnvironment(),
       mainLine:             RECORDED_FLOW_MAIN_LINE,
-      log:                  (line) => hephaestusLog.push(line),
+      log:                  detailsLoggerOf(hephaestusLog),
     });
     await passUntil(drivePass, builderLaunched, 'the build launch');
 

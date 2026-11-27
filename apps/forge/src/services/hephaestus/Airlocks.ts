@@ -11,6 +11,7 @@ import { join }                                 from 'node:path';
 
 import type { KeptAirlockFacts }       from '../../adapters/airlock-facts/AirlockFactsIngestion.ts';
 import type { MergedTreeGate }         from '../../adapters/gate-outcome/@types/MergedTreeGate.ts';
+import type { ReportProblem }          from '../../adapters/reports/@types/ReportProblem.ts';
 import { readCurrentBranch }           from '../../lib/git/BranchIntegration.ts';
 import { GitProcess }                  from '../../lib/git/GitProcess.ts';
 import { GitWorktrees }                from '../../lib/git/GitWorktrees.ts';
@@ -47,6 +48,7 @@ import { MergeQueueUtil, type MergeForecast }                                  f
 import { PipelineUtil }                                                        from '../../lib/tracker-model/utils/PipelineUtil.ts';
 import { TicketStageUtil }                                                     from '../../lib/tracker-model/utils/TicketStageUtil.ts';
 import type { BranchNames }                                                    from '../../shared/BranchNames.ts';
+import { OperationRefusal }                                                    from '../../shared/OperationRefusal.ts';
 import type { AirlockLimits }                                                  from '../../shared/constants/AirlockLimits.ts';
 import { RED_HANDOFF_RESUME_CALL_BUDGET }                                      from '../../shared/constants/HephaestusLimits.ts';
 import { EntityFoldersUtil }                                                   from '../../shared/utils/EntityFoldersUtil.ts';
@@ -87,26 +89,26 @@ export type MergedTreeGateAsk = (
 
 export interface AirlocksContext {
   /** The main checkout's root, where the main line is fast-forwarded and git runs: never a project folder, as git runs at a toplevel only. */
-  repositoryRoot:         string;
+  repositoryRoot:          string;
   /**
    * Present for a tracker in a project folder of its repository: its landings take the repository's landing lock and are journaled, a
    * sibling's journaled landing requeues a slot silently, and a held main line waits only for the paths its fast-forward changes.
    */
-  sharedRepository?:      SharedRepositoryLanding;
+  sharedRepository?:       SharedRepositoryLanding;
   /**
    * `ProjectLocation.projectPrefix`, present for a tracker in a project folder of its repository only: a conflict resolution is also held
    * to the data folders, the project's folder and its reach, and the agent configuration.
    */
-  projectPrefix?:         string;
-  mainLine:               string;
-  branchNames:            BranchNames;
+  projectPrefix?:          string;
+  mainLine:                string;
+  branchNames:             BranchNames;
   /** Where the group worktrees and the refresh worktrees live, beside the ticket worktrees. */
-  worktreesRoot:          string;
-  worktreeOf:             (ticketId: string) => string;
-  limits:                 AirlockLimits;
+  worktreesRoot:           string;
+  worktreeOf:              (ticketId: string) => string;
+  limits:                  AirlockLimits;
   /** With the per-job ref denies holding, a target moved by someone else requeues silently; an unconfined job may have moved it itself. */
-  refDeniesHold:          boolean;
-  hold:                   AirlockHoldRunner;
+  refDeniesHold:           boolean;
+  hold:                    AirlockHoldRunner;
   /**
    * The gate of the tree with the gates of `phase`, read afresh as the run starts: `merge` for an Airlock's merged tree, the row's own phase
    * for a stale green. On a pipeline with entities `gatedEntities` names whose gates run: the landing's gate set, or the ticket's entity for
@@ -114,43 +116,45 @@ export interface AirlocksContext {
    * stamp of what it read. `ownerJobId` is the merge job whose slot waits on the run, `null` for a stale green's: a run whose owner left the
    * board stops.
    */
-  mergedTreeGateOf:       MergedTreeGateAsk;
+  mergedTreeGateOf:        MergedTreeGateAsk;
   /** The agent's configuration names, which a resolution may not change, and its attribution. */
-  agentNaming:            AgentNaming;
+  agentNaming:             AgentNaming;
   /** After the hold its outcome settled, the run's kept outcome goes, so the next gate of the same tree runs again. */
-  mergedTreeGateSettled:  (worktreePath: string, treeId: string, phase: GatePhase, gatedEntities: readonly EntityKey[] | undefined, gate: MergedTreeGate) => void;
+  mergedTreeGateSettled:   (worktreePath: string, treeId: string, phase: GatePhase, gatedEntities: readonly EntityKey[] | undefined, gate: MergedTreeGate) => void;
   /** Stops every merged-tree gate still running in the worktree and awaits its end: the slot that freed it no longer waits on its outcome. */
-  stopMergedTreeGatesIn:  (worktreePath: string) => Promise<void>;
-  mergeAgentReadingOf:    (job: Readonly<Job>) => MergeAgentReading;
+  stopMergedTreeGatesIn:   (worktreePath: string) => Promise<void>;
+  mergeAgentReadingOf:     (job: Readonly<Job>) => MergeAgentReading;
   /** The lines the resolution at the worktree's HEAD changed against git's automatic merge; `null` when git cannot tell. */
-  resolutionLinesOf:      (worktreePath: string) => number | null;
+  resolutionLinesOf:       (worktreePath: string) => number | null;
   /** The job's own child, an agent or a line, is alive. */
-  childIsLive:            (job: Readonly<Job>) => boolean;
-  stopMergeAgent:         (job: Readonly<Job>) => Promise<void>;
+  childIsLive:             (job: Readonly<Job>) => boolean;
+  stopMergeAgent:          (job: Readonly<Job>) => Promise<void>;
   /**
    * The start this Hephaestus serves after leaves interrupted work waiting (not a handover or a first start): its first sweep restores each
    * slot it finds with no live holder and holds its ticket for User's resume instead of requeuing it.
    */
-  startHoldsOrphans?:     boolean;
-  decisionWordingOf:      (draft: DecisionDraft) => DecisionWording;
+  startHoldsOrphans?:      boolean;
+  decisionWordingOf:       (draft: DecisionDraft) => DecisionWording;
+  /** An invalid report's problem as the merge-refused decision names it. */
+  reportProblemSentenceOf: (problem: ReportProblem) => string;
   /** Keeps an Airlock incident's facts beside the merge job, for the agent its move or default launches once the incident is closed. */
-  keepAirlockFacts:       (mergeJob: Readonly<Job>, facts: KeptAirlockFacts) => void;
+  keepAirlockFacts:        (mergeJob: Readonly<Job>, facts: KeptAirlockFacts) => void;
   /** The facts kept beside the merge job: `absent` when none were kept, `unreadable` when the merge job's file cannot be read. */
-  keptAirlockFactsOf:     (mergeJob: Readonly<Job>) => KeptAirlockFactsAnswer;
+  keptAirlockFactsOf:      (mergeJob: Readonly<Job>) => KeptAirlockFactsAnswer;
   /** The job's own folder, where a merge-gate fixer's red handoff is written for its resumed session. */
-  jobFolderOf:            (job: Readonly<Job>) => string;
+  jobFolderOf:             (job: Readonly<Job>) => string;
   /** An ended job's folder, where a stale green turned red is written for the next session of its kind. */
-  jobFolderOfId:          (jobId: string) => string;
+  jobFolderOfId:           (jobId: string) => string;
   /** How often a fixer whose fix left the merged tree red is resumed before the merge parks. */
-  redHandoffResumes:      number;
+  redHandoffResumes:       number;
   /** `pause` opens no new slot; a slot already open finishes. */
-  dispatchIsStopped:      () => boolean;
+  dispatchIsStopped:       () => boolean;
   /** A removal git declined after a refresh or a release: Hephaestus logs it and shows it as a notice while the leftover stands. */
-  reportDeclinedCleanup:  (declined: DeclinedCleanup) => void;
+  reportDeclinedCleanup:   (declined: DeclinedCleanup) => void;
   /** A constitution on the main line's tip as git answers for its project path, read afresh at each call. */
-  mainConstitutionOf:     (constitutionPath: string) => MainConstitutionReading;
+  mainConstitutionOf:      (constitutionPath: string) => MainConstitutionReading;
   /** The repository sets `commit.gpgsign`, so a constitution commit git cannot make is an unsigned one. */
-  repositorySignsCommits: () => boolean;
+  repositorySignsCommits:  () => boolean;
 }
 
 function gateRanFieldsOf(tree: string, outcome: GateOutcome, cacheReports: GateRunCacheReports | undefined): LogRecordFieldsOf<'gate-ran'> {
@@ -336,7 +340,7 @@ function reportFieldOf(report: unknown, field: string): unknown {
 }
 
 function slotOf(job: Readonly<Job>): Readonly<Airlock> {
-  if (job.airlock === undefined) throw new Error(`Merge job ${job.id} holds no slot.`);
+  if (job.airlock === undefined) throw new OperationRefusal('unrepaired', { kind: 'merge-job-holds-no-slot', jobId: job.id });
   return job.airlock;
 }
 
@@ -1158,7 +1162,8 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     const verdict = MergeRun.reReviewVerdictOf(worktree, resolutionCommit, report, context.agentNaming);
     if (verdict.verdict === 'customs-refused') {
       const cause = verdict.reason === 'report-invalid' ? MERGE_REFUSED_CAUSES.noReport : MERGE_REFUSED_CAUSES.reReviewFailed;
-      await refuseMerge(job, cause, `The conflict re-review of job ${agent.id} was refused: ${verdict.reason} ${verdict.facts.join(', ')}`.trim());
+      const facts = [...verdict.facts, ...(verdict.reportProblems ?? []).map(context.reportProblemSentenceOf)];
+      await refuseMerge(job, cause, `The conflict re-review of job ${agent.id} was refused: ${verdict.reason} ${facts.join(', ')}`.trim());
       return true;
     }
     if (verdict.verdict === 'claims-refused') {

@@ -31,6 +31,7 @@ import { fileReplaceFor }                                     from '../../lib/at
 import type { PlatformPorts }                                 from '../../lib/platform-ports/PlatformPortsFor.ts';
 import { defaultSpecPlatformPorts }                           from '../../testing/DefaultSpecPlatformPorts.ts';
 import { createFakeWindowsKernel, fakeWindowsSupervision }    from '../../testing/FakeWindowsKernel.ts';
+import { detailsLoggerOf }                                    from '../../testing/LoggedDetails.ts';
 import { PlantedChild }                                       from '../../testing/PlantedChild.ts';
 import { createScratchDirectory, removeScratchDirectory }     from '../../testing/ScratchWorkspace.ts';
 import { EVERY_TALOS_IS_LIVE, talosChildReadingsWith }        from '../../testing/TalosChildReadings.ts';
@@ -216,7 +217,7 @@ describe('a slot file that the platform refuses to create or move', () => {
     scratchDirectories.push(scratch);
     const folder = join(scratch, 'slots');
     const slots = GateRunSlots.createGateRunSlots({
-      ports: defaultSpecPlatformPorts(), folder, limit: 1, holderIsLive: () => holderIsLive, retryMilliseconds: 1, log: (line) => loggedLines.push(line),
+      ports: defaultSpecPlatformPorts(), folder, limit: 1, holderIsLive: () => holderIsLive, retryMilliseconds: 1, log: detailsLoggerOf(loggedLines),
     });
     const slotPath = join(folder, 'slot-1');
     mkdirSync(folder, { recursive: true });
@@ -265,7 +266,7 @@ describe('a slot file that the platform refuses to create or move', () => {
     scratchDirectories.push(scratch);
     const folder = join(scratch, 'slots');
     const slots = GateRunSlots.createGateRunSlots({
-      ports: defaultSpecPlatformPorts(), folder, limit: 1, holderIsLive: () => true, retryMilliseconds: 1, log: (line) => loggedLines.push(line),
+      ports: defaultSpecPlatformPorts(), folder, limit: 1, holderIsLive: () => true, retryMilliseconds: 1, log: detailsLoggerOf(loggedLines),
     });
     const slotPath = join(folder, 'slot-1');
     mkdirSync(slotPath, { recursive: true });

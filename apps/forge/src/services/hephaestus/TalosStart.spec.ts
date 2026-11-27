@@ -35,6 +35,7 @@ import {
 import { type TalosRecord, talosRecordTextOf }            from '../../lib/talos/TalosRecord.ts';
 import { talosStartFileOf }                               from '../../lib/talos/TalosStartFile.ts';
 import { TALOS_PROTOCOL_VERSION }                         from '../../lib/talos/constants/TalosProtocol.ts';
+import { detailsLoggerOf }                                from '../../testing/LoggedDetails.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import type { TalosConnection, TalosConnectionOutcome }   from './TalosConnection.ts';
@@ -249,8 +250,8 @@ function contextWith(
       return undefined;
     },
     hold:                 createTalosStartHold(),
-    log:                  (sentence) => logged.push(sentence),
-    unreadableBoardFiles: createUnreadableBoardFiles((sentence) => logged.push(sentence)),
+    log:                  detailsLoggerOf(logged),
+    unreadableBoardFiles: createUnreadableBoardFiles(detailsLoggerOf(logged)),
   };
   return {
     context, spawned, logged, connects

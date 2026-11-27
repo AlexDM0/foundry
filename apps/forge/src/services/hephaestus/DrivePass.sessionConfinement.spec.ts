@@ -27,6 +27,7 @@ import {
   fakeGateConfinement
 } from '../../testing/FakeGateConfinement.ts';
 import { LIVE_HOLDERS_LOCK_TAKER }                             from '../../testing/LockTakers.ts';
+import { detailsLoggerOf }                                     from '../../testing/LoggedDetails.ts';
 import { nativePlatformPorts }                                 from '../../testing/NativePlatformPorts.ts';
 import { useRecordedGit }                                      from '../../testing/RecordedGit.ts';
 import { RECORDED_FLOW_MAIN_LINE }                             from '../../testing/RecordedGitFlow.ts';
@@ -113,7 +114,7 @@ function startedHephaestus(adapter: AgentAdapter, gateConfinement: FakeGateConfi
       }],
       context: ''
     }),
-    log: (line) => hephaestusLog.push(line),
+    log: detailsLoggerOf(hephaestusLog),
   });
 }
 

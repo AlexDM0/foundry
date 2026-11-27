@@ -76,6 +76,7 @@ import {
   NETWORK_OUTAGE_FAKE_AGENT_STEPS
 } from '../../testing/FakeAgentAdapter.ts';
 import { LIVE_HOLDERS_LOCK_TAKER }                                  from '../../testing/LockTakers.ts';
+import { detailsLoggerOf }                                          from '../../testing/LoggedDetails.ts';
 import { nativePlatformPorts }                                      from '../../testing/NativePlatformPorts.ts';
 import { PlantedChild }                                             from '../../testing/PlantedChild.ts';
 import { stopProcessesReachingInto }                                from '../../testing/ProcessesInFolder.ts';
@@ -177,7 +178,7 @@ let talosBounds: TalosStartBounds = TALOS_START_BOUNDS;
 /** The board's Talos, which outlives every Hephaestus of the case as it outlives a real one; a lost one is followed by the next. */
 async function boardTalosOfTheCase(): Promise<ScratchBoardTalos> {
   boardTalos ??= await startScratchBoardTalos({
-    workspace: sessionWorkspace, platformPorts: ports, monitorFolder, log: (line) => hephaestusLog.push(line), bounds: talosBounds,
+    workspace: sessionWorkspace, platformPorts: ports, monitorFolder, log: detailsLoggerOf(hephaestusLog), bounds: talosBounds,
   });
   return boardTalos;
 }
@@ -269,7 +270,7 @@ async function startedHephaestus(
     resumeMessage:       RESUME_MESSAGE,
     redHandoffMessageOf: (facts) => `Red handoff: ${facts.name}, resume ${facts.resume}`,
     answerMessageOf:     (answer) => `${ANSWER_MESSAGE_PREFIX} ${JSON.stringify(answer)}`,
-    log:                 (line) => hephaestusLog.push(line),
+    log:                 detailsLoggerOf(hephaestusLog),
     ...(afterHoldPhase === undefined ? {} : { afterHoldPhase }),
     ...startFields,
   });
@@ -494,7 +495,7 @@ function renewalOf(serving: Pick<ForgeServing, 'generation' | 'holder'>): LeaseR
     // Always idle, so only a stop, a kill or a held main thread lets the lease run out, never a slow pass of the case.
     passProgress:         { passInFlight: () => null },
     wallNowMilliseconds:  () => Date.now(),
-    log:                  (line) => hephaestusLog.push(line),
+    log:                  detailsLoggerOf(hephaestusLog),
     onRenewed:            () => {
       Presence.writeHeartbeat(forgeFiles(), serving.generation, LocalTimeUtil.formatLocalIso(new Date()), () => undefined);
     },
@@ -513,7 +514,7 @@ function crashPathContextOf(serving: ForgeServing): CrashPathContext {
     stopLeaseRenewal:     () => serving.renewal?.stop(),
     writeRegistryCrash:   (report) => registerTheForge(report),
     stampNow:             () => SESSION_STAMP,
-    log:                  (line) => hephaestusLog.push(line),
+    log:                  detailsLoggerOf(hephaestusLog),
   };
 }
 

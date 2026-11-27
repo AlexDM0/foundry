@@ -8,6 +8,7 @@
  */
 import { existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { join }                               from 'node:path';
+import type { HephaestusLog }                 from '../../adapters/@types/HephaestusLogRecord.ts';
 
 import { GitProcess }                                                                     from '../../lib/git/GitProcess.ts';
 import { GitWorktrees, REAL_WORKTREE_REMOVAL_PRIMITIVES, type WorktreeRemovalPrimitives } from '../../lib/git/GitWorktrees.ts';
@@ -52,7 +53,7 @@ export interface PipelineCheckingContext {
   hold:                  <Result>(mutate: (hold: PipelineCheckHold) => Result) => Promise<Result>;
   /** Asks for a pass, so a waiting gate may take the freed slot. */
   wake:                  () => void;
-  log:                   (line: string) => void;
+  log:                   HephaestusLog;
   runProposalTwice:      typeof ProposalTwiceRun.runProposalTwice;
   runLine:               LineRunner;
   /** Sends `stop` to every live line under the folder and waits, bounded, for their ends. */
@@ -133,7 +134,7 @@ function createPipelineChecking(context: PipelineCheckingContext): PipelineCheck
 
   function removeWorktree(worktreePath: string): void {
     const removal = GitWorktrees.removeWithRetry({ repositoryDirectory: repositoryRoot, worktreePath, force: 'force' }, removalPrimitives);
-    if (removal.verdict === 'left') context.log(`The pipeline check worktree ${worktreePath} is a leftover: ${removal.reason}`);
+    if (removal.verdict === 'left') context.log({ kind: 'pipeline-check-worktree-left-over', worktreePath, removalReason: removal.reason });
   }
 
   /** The record keeps the end, and the session of the check's level hears it in the same hold; a record that moved on keeps nothing. */
@@ -188,7 +189,7 @@ function createPipelineChecking(context: PipelineCheckingContext): PipelineCheck
         else recordEnding(board, level, ending, at);
       });
     } catch (failure) {
-      context.log(`Pipeline check of setup ${setupId} failed and waits for the next start: ${failure instanceof Error ? failure.message : String(failure)}`);
+      context.log({ kind: 'pipeline-check-failed', setupId, thrownMessage: failure instanceof Error ? failure.message : String(failure) });
     } finally {
       context.gateSlots.release(holder);
       if (existsSync(worktreePath)) removeWorktree(worktreePath);

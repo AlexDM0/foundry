@@ -73,7 +73,7 @@ function listedTrackersOrRefuse(list: RepositoryTrackerList): RepositoryTracker[
     case 'malformed':
       throw new OperationRefusal('refused', listUnreadableTextOf(list, reading.problems.join('; ')));
     case 'unreadable':
-      throw new OperationRefusal('refused', listUnreadableTextOf(list, reading.reason));
+      throw new OperationRefusal('refused', listUnreadableTextOf(list, reading.systemError));
   }
 }
 

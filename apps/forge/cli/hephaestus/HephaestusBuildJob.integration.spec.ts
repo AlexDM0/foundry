@@ -45,6 +45,7 @@ import {
   fakeStartedLine
 } from '../../src/testing/FakeAgentAdapter.ts';
 import { inheritedEnvironment }      from '../../src/testing/InheritedEnvironment.ts';
+import { detailsLoggerOf }           from '../../src/testing/LoggedDetails.ts';
 import { nativePlatformPorts }       from '../../src/testing/NativePlatformPorts.ts';
 import { stopProcessesReachingInto } from '../../src/testing/ProcessesInFolder.ts';
 import { useRecordedGit }            from '../../src/testing/RecordedGit.ts';
@@ -93,7 +94,7 @@ let boardTalos: ScratchBoardTalos | null = null;
 /** The board's Talos, started at the case's first DrivePass as Hephaestus's start starts it. */
 async function boardTalosOfTheCase(): Promise<ScratchBoardTalos> {
   boardTalos ??= await startScratchBoardTalos({
-    workspace: requireWorkspace(repositoryDirectory), platformPorts: ports, monitorFolder, log: (line) => hephaestusLog.push(line)
+    workspace: requireWorkspace(repositoryDirectory), platformPorts: ports, monitorFolder, log: detailsLoggerOf(hephaestusLog)
   });
   return boardTalos;
 }
@@ -187,7 +188,7 @@ async function drivePassPlaying(
     mainLine:             RECORDED_FLOW_MAIN_LINE,
     decisionWordingOf:    (draft) => HephaestusWording.decisionWordingOf(draft, fakeAgentAdapter()),
     redHandoffMessageOf:  HephaestusWording.redHandoffMessageOf,
-    log:                  (line) => hephaestusLog.push(line),
+    log:                  detailsLoggerOf(hephaestusLog),
     afterHoldPhase:       recordBuildStateChanges,
   });
 }

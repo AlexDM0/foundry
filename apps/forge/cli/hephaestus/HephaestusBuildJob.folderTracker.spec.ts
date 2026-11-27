@@ -31,6 +31,7 @@ import {
 } from '../../src/testing/FakeAgentAdapter.ts';
 import { type LoggedGitCall, startGitCallLog } from '../../src/testing/GitCallLog.ts';
 import { inheritedEnvironment }                from '../../src/testing/InheritedEnvironment.ts';
+import { detailsLoggerOf }                     from '../../src/testing/LoggedDetails.ts';
 import { nativePlatformPorts }                 from '../../src/testing/NativePlatformPorts.ts';
 import { useRecordedGit }                      from '../../src/testing/RecordedGit.ts';
 import {
@@ -108,7 +109,7 @@ function drivePassPlaying(steps: readonly FakeAgentStep[]): DrivePass {
     branchNames:          branchNamesOf(RECORDED_FOLDER_FLOW_PROJECT.namespace),
     decisionWordingOf:    (draft) => HephaestusWording.decisionWordingOf(draft, fakeAgentAdapter()),
     redHandoffMessageOf:  HephaestusWording.redHandoffMessageOf,
-    log:                  (line) => hephaestusLog.push(line),
+    log:                  detailsLoggerOf(hephaestusLog),
     afterHoldPhase:       (_phase, board) => afterEachHoldPhase(board),
   });
 }

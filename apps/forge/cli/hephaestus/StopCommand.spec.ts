@@ -40,6 +40,7 @@ import { PRODUCT_NAMES }                                                        
 import { instantSleepsOf }                                                          from '../../src/testing/InstantSleeps.ts';
 import { lockRetryWaitsDuring }                                                     from '../../src/testing/LockRetryWaits.ts';
 import { LIVE_HOLDERS_LOCK_TAKER }                                                  from '../../src/testing/LockTakers.ts';
+import { detailsLoggerOf }                                                          from '../../src/testing/LoggedDetails.ts';
 import { nativePlatformPorts }                                                      from '../../src/testing/NativePlatformPorts.ts';
 import { useRecordedGit }                                                           from '../../src/testing/RecordedGit.ts';
 import { useRecordedProcessTable }                                                  from '../../src/testing/RecordedProcessTable.ts';
@@ -421,7 +422,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the bounded 
     await waitOutTheStopWaits([
       { name: 'the drive pass', run: () => new Promise<void>(() => undefined) },
       { name: 'the server stop', run: async () => { laterWaitsStarted.push('the server stop'); } },
-    ], (line) => logLines.push(line), SHORT_STOP_WAIT_MILLISECONDS);
+    ], detailsLoggerOf(logLines), SHORT_STOP_WAIT_MILLISECONDS);
     await closeTheStoppedHephaestus(request, hephaestusFilesIn(request.workspace.trackerDirectory), { generation, releaseLock: true });
 
     expect(performance.now() - startedAt).toBeLessThan(SHORT_STOP_WAIT_MILLISECONDS + ONE_SECOND_MILLISECONDS);
@@ -511,7 +512,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the bounded 
     await waitOutTheStopWaits([
       { name: 'the drive pass', run: async () => { await Promise.resolve(); ended.push('the drive pass'); } },
       { name: 'the server stop', run: async () => { ended.push('the server stop'); } },
-    ], (line) => logLines.push(line), HEPHAESTUS_STOP_WAIT_MILLISECONDS);
+    ], detailsLoggerOf(logLines), HEPHAESTUS_STOP_WAIT_MILLISECONDS);
 
     expect(ended).toEqual(['the drive pass', 'the server stop']);
     expect(logLines).toEqual([]);

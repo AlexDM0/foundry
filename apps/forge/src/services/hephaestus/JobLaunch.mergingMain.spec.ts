@@ -29,7 +29,6 @@ import type { Pipeline }                                 from '../../lib/tracker
 import { Board }                                         from '../../lib/tracker-model/Board.ts';
 import { createLogger }                                  from '../../lib/tracker-model/Logger.ts';
 import { branchNamesOf }                                 from '../../shared/BranchNames.ts';
-import { transitionalWordedProblemOf }                   from '../../shared/TransitionalWordedProblem.ts';
 import { PRODUCT_NAMES }                                 from '../../shared/constants/ProductNames.ts';
 import { boardFixture, ticketFixture }                   from '../../testing/BoardFixtures.ts';
 import { type FrameRecordingTalos, frameRecordingTalos } from '../../testing/FrameRecordingTalos.ts';
@@ -508,7 +507,7 @@ testWhenGitIsRecorded('a re-reviewer in Customs whose verdict cannot be read is 
   const reReviewer = scene.reReviewer();
   if (reReviewer === undefined) throw new Error('No conflict re-reviewer was launched.');
   for (const state of ['running', 'in-customs'] as const) scene.board.moveJob(reReviewer.id, state, AT);
-  const verdict = { verdict: 'unreadable-file', file: `jobs/${reReviewer.id}/verdict.json`, problem: transitionalWordedProblemOf('it is not a JSON object') } as const;
+  const verdict = { verdict: 'unreadable-file', file: `jobs/${reReviewer.id}/verdict.json`, problem: { code: 'not-a-json-object' } } as const;
   const change = { board: scene.board, at: AT } as unknown as BoardTransaction;
 
   JobLaunch.applyBuildJobObservations(change, scene.context, [{

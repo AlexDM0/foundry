@@ -13,11 +13,12 @@ import {
 } from 'node:path';
 
 import { storedFileTextOf }                                              from '../../adapters/StoredFileText.ts';
-import { StoredFileProblemWordingUtil }                                  from '../../adapters/utils/StoredFileProblemWordingUtil.ts';
 import { writeFileAtomically }                                           from '../../lib/atomic-file/AtomicFile.ts';
 import { GitProcess }                                                    from '../../lib/git/GitProcess.ts';
 import { LocalTimeUtil }                                                 from '../../lib/local-time/LocalTimeUtil.ts';
 import { VersionedRegistryUtil, type RegistryEntry, type RegistryShape } from '../../lib/versioned-registry/VersionedRegistryUtil.ts';
+import type { BaseStoredFileProblem }                                    from '../../shared/@types/StoredFileProblem.ts';
+import type { UnreadableTracker }                                        from '../../shared/@types/UnreadableTracker.ts';
 import { refusalIsOperationRefusal }                                     from '../../shared/OperationRefusal.ts';
 import { type LockTaker, withLockAt }                                    from './GenerationLock.ts';
 import { MONITOR_REGISTRY_FILES }                                        from './constants/MonitorRegistryFiles.ts';
@@ -26,7 +27,13 @@ import { MONITOR_REGISTRY_FILES }                                        from '.
 export type ProgressRegistrationReading =
   | { verdict: 'readable'; trackerId: string; project: string }
   | { verdict: 'absent' }
-  | { verdict: 'unreadable'; reason: string };
+  | { verdict: 'unreadable'; tracker: Extract<UnreadableTracker, { verdict: 'unreadable' }> };
+
+/** Why the registry could not take the entry: its file unreadable, its lock held by another process, or the OS's error on the write. */
+export type RegistryWriteFailure =
+  | { failure: 'registry-unreadable'; problem: BaseStoredFileProblem }
+  | { failure: 'lock-held' }
+  | { failure: 'write-failed'; systemError: string };
 
 export interface MonitorRegistrationRequest {
   /** The repository folder the board governs. */
@@ -79,9 +86,9 @@ export type MonitorRegistrationOutcome =
   | { verdict: 'registered'; registryFilePath: string }
   | { verdict: 'registered-over-malformed'; registryFilePath: string; problems: string[] }
   | { verdict: 'not-registered-temporary-tracker' }
-  | { verdict: 'not-registered-unreadable-tracker'; reason: string }
+  | { verdict: 'not-registered-unreadable-tracker'; progress: Exclude<ProgressRegistrationReading, { verdict: 'readable' }> }
   | { verdict: 'not-registered-newer-version'; registryFilePath: string; version: number }
-  | { verdict: 'not-registered-unwritable'; registryFilePath: string; reason: string };
+  | { verdict: 'not-registered-unwritable'; registryFilePath: string; cause: RegistryWriteFailure };
 
 const REGISTRY_SHAPE: RegistryShape = { supportedVersion: MONITOR_REGISTRY_FILES.SUPPORTED_VERSION, entriesKey: MONITOR_REGISTRY_FILES.ENTRIES_KEY };
 
@@ -116,9 +123,9 @@ function gitOriginOf(rootDirectory: string): string | null {
   return origin.length > 0 ? origin : null;
 }
 
-function errorReasonOf(error: unknown): string {
-  if (refusalIsOperationRefusal(error)) return 'its lock is held by another process';
-  return error instanceof Error ? error.message : String(error);
+function writeFailureOf(error: unknown): RegistryWriteFailure {
+  if (refusalIsOperationRefusal(error)) return { failure: 'lock-held' };
+  return { failure: 'write-failed', systemError: error instanceof Error ? error.message : String(error) };
 }
 
 interface Registration {
@@ -151,7 +158,9 @@ function updatedEntry(storedEntry: RegistryEntry | undefined, registration: Regi
 function registerUnderTheLock(registration: Registration): MonitorRegistrationOutcome {
   const { registryFilePath, trackerId } = registration;
   const storedText = storedFileTextOf(registryFilePath);
-  if (storedText.verdict === 'unreadable') return { verdict: 'not-registered-unwritable', registryFilePath, reason: StoredFileProblemWordingUtil.sentenceOf(storedText.problem) };
+  if (storedText.verdict === 'unreadable') {
+    return { verdict: 'not-registered-unwritable', registryFilePath, cause: { failure: 'registry-unreadable', problem: storedText.problem } };
+  }
   const reading = VersionedRegistryUtil.readingOf(storedText.verdict === 'readable' ? storedText.text : null, REGISTRY_SHAPE);
   if (reading.verdict === 'newer-version') return { verdict: 'not-registered-newer-version', registryFilePath, version: reading.version };
 
@@ -167,8 +176,7 @@ export async function registerWithTheMonitor(request: MonitorRegistrationRequest
     rootDirectory, progress, monitorFolder, temporaryDirectories, command, program, now, hephaestus, presence, lockTaker
   } = request;
   if (trackerLiesInATemporaryFolder(rootDirectory, temporaryDirectories)) return { verdict: 'not-registered-temporary-tracker' };
-  if (progress.verdict === 'absent') return { verdict: 'not-registered-unreadable-tracker', reason: 'its progress file is absent' };
-  if (progress.verdict === 'unreadable') return { verdict: 'not-registered-unreadable-tracker', reason: progress.reason };
+  if (progress.verdict !== 'readable') return { verdict: 'not-registered-unreadable-tracker', progress };
 
   const registryFilePath = join(monitorFolder, MONITOR_REGISTRY_FILES.REGISTRY_FILE_NAME);
   const registration: Registration = {
@@ -190,6 +198,6 @@ export async function registerWithTheMonitor(request: MonitorRegistrationRequest
     mkdirSync(monitorFolder, { recursive: true });
     return await withLockAt(join(monitorFolder, MONITOR_REGISTRY_FILES.LOCK_DIRECTORY_NAME), () => registerUnderTheLock(registration), now, lockTaker);
   } catch (error) {
-    return { verdict: 'not-registered-unwritable', registryFilePath, reason: errorReasonOf(error) };
+    return { verdict: 'not-registered-unwritable', registryFilePath, cause: writeFailureOf(error) };
   }
 }

@@ -10,6 +10,7 @@ import {
   relative
 } from 'node:path';
 
+import type { HephaestusLogRecord } from '../../adapters/@types/HephaestusLogRecord.ts';
 import type {
   CommitSigning,
   NetworkDomainGuard,
@@ -131,10 +132,12 @@ function commitSigningOf(directories: GpgDirectories | null, hostPaths: HostPath
   return { kind: 'agent-sockets', sockets: keyboxdSocket === null ? [agentSocket] : [agentSocket, keyboxdSocket] };
 }
 
-/** The one line a repository that signs its commits gets when a worker's profile commits unsigned; `null` when nothing is lost. */
-function unsignedCommitNoticeOf(profile: Pick<WorkerProfile, 'commitSigning'>, repositorySignsCommits: boolean, jobId: string): string | null {
+/** The one record a repository that signs its commits gets logged when a worker's profile commits unsigned; `null` when nothing is lost. */
+function unsignedCommitNoticeOf(
+  profile: Pick<WorkerProfile, 'commitSigning'>, repositorySignsCommits: boolean, jobId: string,
+): Extract<HephaestusLogRecord, { kind: 'commits-unsigned-despite-signing' }> | null {
   if (!repositorySignsCommits || profile.commitSigning.kind !== 'unsigned') return null;
-  return `Job ${jobId} commits unsigned although the repository sets commit.gpgsign: no gpg-agent socket reaches its sandbox.`;
+  return { kind: 'commits-unsigned-despite-signing', jobId };
 }
 
 /** Each credential path the vendor names, then GnuPG's home: whole while commits go unsigned, only its private keys while an agent signs. */

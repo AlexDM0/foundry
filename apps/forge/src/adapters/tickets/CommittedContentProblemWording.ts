@@ -1,5 +1,5 @@
 import type { CommittedContentProblem } from '../../shared/@types/CommittedContentProblem.ts';
-import { StoredFileProblemWordingUtil } from '../utils/StoredFileProblemWordingUtil.ts';
+import { StoredFileProblemWording }     from '../StoredFileProblemWording.ts';
 import { COMMITTED_CONTENT_MISSING }    from './CommittedContentFile.ts';
 
 function contentSentenceOf(problem: CommittedContentProblem): string {
@@ -7,7 +7,7 @@ function contentSentenceOf(problem: CommittedContentProblem): string {
     case 'no-content-under-the-hash':   return `no content is kept under the hash ${problem.contentHash}`;
     case 'not-a-title-and-body':        return 'it is not an object of a text "title" and a text "body"';
     case 'title-and-body-hash-differs': return `its title and body do not hash to ${problem.contentHash}`;
-    default:                            return StoredFileProblemWordingUtil.sentenceOf(problem);
+    default:                            return StoredFileProblemWording.sentenceOf(problem);
   }
 }
 

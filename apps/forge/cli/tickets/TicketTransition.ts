@@ -2,6 +2,7 @@
 import { TicketPhraseUtil }                   from '../../src/adapters/utils/TicketPhraseUtil.ts';
 import type { TicketStatus }                  from '../../src/lib/tracker-model/@types/Ticket.ts';
 import type { ControlCommandOf }              from '../../src/shared/@types/ControlCommand.ts';
+import { OperationRefusal }                   from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                      from '../../src/shared/constants/ProductNames.ts';
 import { applyCommandOfVerbThenReadNextLine } from '../ApplyCommandOfVerb.ts';
 import type { CommandContext }                from '../CommandContext.ts';
@@ -27,7 +28,7 @@ function moveCommandOf(
   };
   if (targetStatus === 'abandoned') return { kind: 'ticket-abandon', ticketReference, ...moveDetails };
   if (targetStatus === 'committed') return { kind: 'ticket-reopen', ticketReference, ...moveDetails };
-  throw new Error(`No ticket verb moves a ticket to ${targetStatus} through the legality matrix.`);
+  throw new OperationRefusal('unrepaired', `No ticket verb moves a ticket to ${targetStatus} through the legality matrix.`);
 }
 
 export async function transitionOneTicket(

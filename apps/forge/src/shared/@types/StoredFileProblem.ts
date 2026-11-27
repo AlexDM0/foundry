@@ -12,6 +12,3 @@ export type BaseStoredFileProblem =
   | StoredFileProblem<'not-json'> & { readonly parserError: string }
   | StoredFileProblem<'not-a-json-object'>
   | StoredFileProblem<'version-differs'> & { readonly field: string; readonly expectedVersion: number };
-
-/** A reason a caller not yet converted still words itself, carried until its format declares its problems. */
-export type TransitionalWordedProblem = StoredFileProblem<'transitional-worded'> & { readonly sentence: string };

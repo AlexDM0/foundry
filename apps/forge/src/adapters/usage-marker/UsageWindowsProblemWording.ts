@@ -1,5 +1,5 @@
-import { StoredFileProblemWordingUtil } from '../utils/StoredFileProblemWordingUtil.ts';
-import type { UsageWindowsProblem }     from './@types/UsageWindowsProblem.ts';
+import { StoredFileProblemWording } from '../StoredFileProblemWording.ts';
+import type { UsageWindowsProblem } from './@types/UsageWindowsProblem.ts';
 
 function sentenceOf(problem: UsageWindowsProblem): string {
   switch (problem.code) {
@@ -9,7 +9,7 @@ function sentenceOf(problem: UsageWindowsProblem): string {
     case 'window-length-hours-not-a-number-or-null': return `its window "${problem.window}" has no number or null "lengthHours"`;
     case 'window-utilization-not-a-number':          return `its window "${problem.window}" has no number "utilization"`;
     case 'window-resets-at-not-a-stamp':             return `its window "${problem.window}" has no stamp "resetsAt"`;
-    default:                                         return StoredFileProblemWordingUtil.sentenceOf(problem);
+    default:                                         return StoredFileProblemWording.sentenceOf(problem);
   }
 }
 

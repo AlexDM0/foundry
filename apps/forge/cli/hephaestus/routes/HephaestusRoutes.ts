@@ -6,6 +6,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join }                     from 'node:path';
 
+import type { HephaestusLog }    from '../../../src/adapters/@types/HephaestusLogRecord.ts';
 import { RefusalDocumentUtil }   from '../../../src/adapters/utils/RefusalDocumentUtil.ts';
 import type { LogRecord }        from '../../../src/lib/tracker-model/@types/LogRecord.ts';
 import { BoardDocumentAssembly } from '../../../src/services/hephaestus/BoardDocumentAssembly.ts';
@@ -45,7 +46,7 @@ export interface HephaestusRouteRequest extends Omit<BoardStateSource, 'boardRea
   /** `null` until Hephaestus took its generation. */
   monitorFacts:         () => MonitorHephaestusFacts | null;
   /** Hephaestus's log, for what a route skips while it reads. */
-  log:                  (line: string) => void;
+  log:                  HephaestusLog;
   /** The board header's warnings, for a board-wide file a route finds unreadable. */
   unreadableBoardFiles: UnreadableBoardFiles;
 }

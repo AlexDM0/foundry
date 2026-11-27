@@ -4,7 +4,6 @@
  */
 import { expect, test } from 'bun:test';
 
-import { transitionalWordedProblemOf }      from '../../shared/TransitionalWordedProblem.ts';
 import { StoredFileProblemFactsUtil }       from '../../shared/utils/StoredFileProblemFactsUtil.ts';
 import { UnreadableFileProblemWordingUtil } from './UnreadableFileProblemWordingUtil.ts';
 
@@ -13,7 +12,7 @@ const FILE = 'jobs/J2/start.json';
 test.each([
   [{ code: 'version-differs', field: 'version', expectedVersion: 1 } as const, 'its version is not 1'],
   [{ code: 'not-json', parserError: 'JSON Parse error: Unexpected EOF' } as const, 'it is not valid JSON (JSON Parse error: Unexpected EOF)'],
-  [transitionalWordedProblemOf('its "resume" is not a count'), 'its "resume" is not a count'],
+  [{ code: 'field-is-not', field: 'resume', expected: 'a-count' } as const, 'its "resume" is not a count'],
   [{ code: 'field-is-not', field: 'launchSnapshot.refs', expected: 'a-record-of-commits' } as const, 'its "launchSnapshot.refs" is not a record of commits'],
   [{ code: 'not-the-phase', field: 'phase', expectedPhase: 'build' } as const, 'its "phase" is not the phase "build"'],
   [{ code: 'chat-not-an-object', field: 'chats[1]' } as const, 'its chats[1] is not an object'],

@@ -1,5 +1,5 @@
 import type { MachineConfigUnwritableProblem } from '../../shared/@types/MachineConfigProblem.ts';
-import { StoredFileProblemWordingUtil }        from '../utils/StoredFileProblemWordingUtil.ts';
+import { StoredFileProblemWording }            from '../StoredFileProblemWording.ts';
 
 function sentenceOf(problem: MachineConfigUnwritableProblem): string {
   switch (problem.code) {
@@ -8,7 +8,7 @@ function sentenceOf(problem: MachineConfigUnwritableProblem): string {
     case 'version-newer':               return `its version ${problem.version} is newer than this program reads`;
     case 'agents-not-an-object':        return 'its "agents" is not an object';
     case 'agent-names-no-program-path': return `its agent "${problem.vendor}" names no "programPath"`;
-    default:                            return StoredFileProblemWordingUtil.sentenceOf(problem);
+    default:                            return StoredFileProblemWording.sentenceOf(problem);
   }
 }
 

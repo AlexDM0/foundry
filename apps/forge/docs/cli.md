@@ -1428,6 +1428,7 @@ fixed word, and the sentence a client shows.
 | `pause [--json]` | Store `hephaestusState` `paused` through the write pipeline, logged as a `hephaestus-set` record, with Hephaestus up or down: a paused Hephaestus starts no new job. `--json` prints `{hephaestusState, previousState}`. |
 | `unpause [--json]` | Undo a pause: store `hephaestusState` `running` the same way. `--json` prints `{hephaestusState, previousState}`. `resume` is another verb, which restarts interrupted work. |
 | `crash-log [<number>] [--json]` | Print the crash log `<data>/hephaestus/crash-logs/crash-<number>.json`, the newest when no number is given: its heading (number, path, when and by whom it was recorded), the component and the crashed Hephaestus lock generation, the classification and its evidence, the error and its stack, the jobs as the crash found them, then the tail of `hephaestus.log`. `--json` prints the stored log with `number` and `path` added. It reads files only, takes no lock and writes nothing, so it works with the forge up or down. With no log, or none of that number, it is refused `no-crash-log` at exit 1. [After a crash](#after-a-crash) has the whole path. |
+| `hephaestus-log [--follow] [--json]` | Print [`<data>/hephaestus.log`](#datahephaestuslog), each record as its `at` and its `details`, as standard error showed them. A line that is no record is skipped and named on standard error ("Line `<n>` of `<path>` is no log record (`<problem>`); it is skipped."). `--follow` keeps printing what is appended until a stop signal. `--json` prints `{logFilePath, records}`, each record `{lineNumber, at, kind, details}`; with `--follow`, one such JSON line per record. It reads files only, takes no lock and writes nothing, so it works with the forge up or down; a log that cannot be read is refused at exit 2. |
 | `version [--json]` | Print `{ answerVersion, codeVersion, installVersion, contracts, talosProtocolVersion, monitorFolder }`: a content hash of the program's shipping files on disk, the install version this program writes, the Hephaestus API contracts this program serves as `GET /api/identity` names them, the protocol version of the Talos this program starts, and the monitor folder. Read-only; it needs no tracker and checks no install version. |
 
 #### The start gate
@@ -3302,6 +3303,18 @@ removes it. A journal that cannot be read, another `version`, or an entry breaki
 2 until it is repaired or removed; `status`, which takes no lock, reports it on standard error and replays nothing. A
 journal that cannot be removed fails that command at exit 2 with `hold-journal-unremovable`, and the next command
 replays it.
+
+### `<data>/hephaestus.log`
+
+Hephaestus's own log, appended in place one line per record and never rewritten. A line is one JSON object:
+`{"at": "<local stamp>", "kind": "<kind>", ...the kind's keys, "details": "<sentence>"}`. The keys carry values only:
+ids, numbers, codes, paths, and a stored file's problem as `{code, ...its values}` (for example
+`{"code": "heartbeat-field-malformed", "field": "sequence"}`), never a sentence; a message from outside forge, such as
+an error a write threw, is a fact under a key that says whose it is (`thrownMessage`). `details` is the sentence
+standard error shows after the same stamp. The kinds and their keys are the union `HephaestusLogRecord` in
+`src/adapters/@types/HephaestusLogRecord.ts`. A line that is no record, such as what a successor or a
+restart preflight printed before it had its logger, is skipped by every reader. `hephaestus-log` prints the file, and
+a crash log's `logTail` keeps each record as `<at> <details>`.
 
 ### Lock and slot records
 

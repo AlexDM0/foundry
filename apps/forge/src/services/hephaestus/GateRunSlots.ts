@@ -7,9 +7,9 @@
 import { existsSync, mkdirSync } from 'node:fs';
 import { dirname, join }         from 'node:path';
 
+import type { HephaestusLog }                                                 from '../../adapters/@types/HephaestusLogRecord.ts';
 import type { GateRunSlotProblem }                                            from '../../adapters/gate-run-slot/@types/GateRunSlotProblem.ts';
 import { GateRunSlotIngestion, type GateRunHolding, type GateRunSlotReading } from '../../adapters/gate-run-slot/GateRunSlotIngestion.ts';
-import { GateRunSlotProblemWording }                                          from '../../adapters/gate-run-slot/GateRunSlotProblemWording.ts';
 import { createGateRunSlotWriter }                                            from '../../adapters/gate-run-slot/GateRunSlotWriter.ts';
 import { removeHeldFile }                                                     from '../../lib/atomic-file/AtomicFile.ts';
 import type { FileReplace }                                                   from '../../lib/atomic-file/FileReplace.ts';
@@ -33,7 +33,7 @@ export interface GateRunSlotsOptions {
   /** Whether a held-file failure on a slot create means a taken slot rather than a fault; this process's platform decides when not given. */
   heldCreateMeansTaken?: boolean;
   /** Where a stale slot taken over is logged, and a slot left in place, once, when its bytes cannot be read at all. */
-  log:                   (line: string) => void;
+  log:                   HephaestusLog;
 }
 
 export interface GateRunSlots {
@@ -135,7 +135,7 @@ function createGateRunSlots(options: GateRunSlotsOptions): GateRunSlots {
 
   function logUnreadableSlotOnce(slotPath: string, problem: GateRunSlotProblem): void {
     if (!unreadableSlotPathsLogged.has(slotPath)) {
-      options.log(`The gate run slot ${slotPath} could not be read (${GateRunSlotProblemWording.sentenceOf(problem)}); it is left in place.`);
+      options.log({ kind: 'gate-run-slot-unreadable', slotPath, problem });
     }
     unreadableSlotPathsLogged.add(slotPath);
   }
@@ -176,10 +176,10 @@ function createGateRunSlots(options: GateRunSlotsOptions): GateRunSlots {
   function freedIfStale(slotPath: string, judged: JudgedSlot, ownHolding: GateRunHolding): void {
     if (judged.verdict === 'readable' && options.holderIsLive(judged.holding)) return;
     if (!StaleSlotTakeOver.staleSlotFreed(slotPath, judged.storedText, slotTakerFor(ownHolding))) return;
-    const staleReason = judged.verdict === 'unreadable'
-      ? `it could not be read (${GateRunSlotProblemWording.sentenceOf(judged.problem)})`
-      : `its holder ${judged.holding.holder} is no longer live`;
-    options.log(`The gate run slot ${slotPath} was stale and is taken over: ${staleReason}.`);
+    const reason = judged.verdict === 'unreadable'
+      ? { kind: 'unreadable', problem: judged.problem } as const
+      : { kind: 'holder-not-live', holder: judged.holding.holder } as const;
+    options.log({ kind: 'gate-run-slot-taken-over', slotPath, reason });
   }
 
   function tryAcquire(holder: string): boolean {

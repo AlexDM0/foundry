@@ -17,6 +17,7 @@ import {
 } from 'bun:test';
 
 import { GATE_PROFILE_OUTPUT_FORMAT_VERSION }             from '../../adapters/gate-profile-output/GateProfileOutputIngestion.ts';
+import { detailsLoggerOf }                                from '../../testing/LoggedDetails.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { GATE_PROFILE_RUNS_FOLDER, GateProfiling }        from './GateProfiling.ts';
 
@@ -27,7 +28,7 @@ let trackerDirectory = '';
 let loggedLines: string[] = [];
 
 function followerAfter(afterLineNumber: number): ReturnType<typeof GateProfiling.outputFollowerOf> {
-  return GateProfiling.outputFollowerOf(trackerDirectory, PROFILE_RUN_ID, afterLineNumber, (line) => loggedLines.push(line));
+  return GateProfiling.outputFollowerOf(trackerDirectory, PROFILE_RUN_ID, afterLineNumber, detailsLoggerOf(loggedLines));
 }
 
 beforeEach(() => {

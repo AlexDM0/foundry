@@ -2,10 +2,10 @@
  * `presence.json` and `heartbeat.json` under the board's `hephaestus` folder: a generation's start, its abandoned passes and how it ended, and
  * its beats at each renewal Talos confirmed. Every write is synchronous and atomic, so a dying process can still make it; a read is a verdict.
  */
+import type { HephaestusLog }                       from '../../adapters/@types/HephaestusLogRecord.ts';
 import type { HeartbeatProblem }                    from '../../adapters/heartbeat/@types/HeartbeatProblem.ts';
 import type { HeartbeatRecord }                     from '../../adapters/heartbeat/@types/HeartbeatRecord.ts';
 import { HeartbeatIngestion }                       from '../../adapters/heartbeat/HeartbeatIngestion.ts';
-import { HeartbeatProblemWording }                  from '../../adapters/heartbeat/HeartbeatProblemWording.ts';
 import { createHeartbeatWriter }                    from '../../adapters/heartbeat/HeartbeatWriter.ts';
 import { HEARTBEAT_FORMAT_VERSION }                 from '../../adapters/heartbeat/constants/HeartbeatFileVersions.ts';
 import type { PresenceProblem }                     from '../../adapters/presence/@types/PresenceProblem.ts';
@@ -97,10 +97,10 @@ function beatOfTheCurrentRecordAbove(storedGeneration: number | null, generation
  * During a restart the predecessor and the successor both beat: a process beats only while the stored beat is not of a newer generation
  * whose record is current, so the old generation's last beat never hides the new one's, and an ended run's beat never silences a new run.
  */
-function writeHeartbeat(files: HephaestusFiles, generation: number, at: string, log: (line: string) => void): HeartbeatWrite {
+function writeHeartbeat(files: HephaestusFiles, generation: number, at: string, log: HephaestusLog): HeartbeatWrite {
   const stored = readHeartbeat(files);
   // The beat below rewrites the file whole, so an unreadable one heals at once and is only logged.
-  if (stored.verdict === 'unreadable') log(`heartbeat.json could not be read (${HeartbeatProblemWording.sentenceOf(stored.problem)}); this beat rewrites it.`);
+  if (stored.verdict === 'unreadable') log({ kind: 'heartbeat-unreadable-rewritten', problem: stored.problem });
   const storedGeneration = stored.verdict === 'read' ? stored.record.generation : null;
   if (beatOfTheCurrentRecordAbove(storedGeneration, generation, files)) return { verdict: 'newer-generation-beats', storedGeneration };
   const sequence = stored.verdict === 'read' && storedGeneration === generation ? stored.record.sequence + 1 : 1;

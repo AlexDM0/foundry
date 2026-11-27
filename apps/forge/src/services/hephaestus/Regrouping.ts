@@ -10,6 +10,7 @@ import {
   relative,
   sep
 } from 'node:path';
+import type { HephaestusLog } from '../../adapters/@types/HephaestusLogRecord.ts';
 
 import { GitProcess }                                                     from '../../lib/git/GitProcess.ts';
 import type { PlatformPorts }                                             from '../../lib/platform-ports/PlatformPortsFor.ts';
@@ -56,7 +57,7 @@ function settleLostChildIn(
   boardFolder: string,
   ports: PlatformPorts,
   unreadableBoardFiles: UnreadableBoardFiles,
-  log: (line: string) => void,
+  log: HephaestusLog,
   childFolder: string,
   instance: number,
   retryRefusedStop = true,
@@ -123,7 +124,7 @@ function awaitsItsSpawn(job: Readonly<Job>): boolean {
 
 /** Reads and acts outside the lock; the first pass's one hold then applies everything it found. A live child is read by the passes alone. */
 function regroup(
-  children: BoardChildren, ports: PlatformPorts, workspace: Workspace, boardReads: StoreReadFace, unreadableBoardFiles: UnreadableBoardFiles, log: (line: string) => void,
+  children: BoardChildren, ports: PlatformPorts, workspace: Workspace, boardReads: StoreReadFace, unreadableBoardFiles: UnreadableBoardFiles, log: HephaestusLog,
 ): RegroupingReport {
   const jobs   = boardReads.requireProgress().jobs ?? [];
   const report: RegroupingReport = { lost: [], respawnJobIds: [], leftoverWorktrees: leftoverWorktreesOf(workspace, jobs) };

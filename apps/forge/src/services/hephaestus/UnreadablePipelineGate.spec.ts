@@ -14,12 +14,12 @@ import {
   test
 } from 'bun:test';
 
+import { UNREADABLE_PIPELINE_STEP, unreadablePipelineGateOf } from '../../adapters/gate-outcome/UnreadablePipelineGate.ts';
 import { LIVE_HOLDERS_LOCK_TAKER }                            from '../../testing/LockTakers.ts';
 import { createScratchDirectory, removeScratchDirectory }     from '../../testing/ScratchWorkspace.ts';
 import type { BoardStore }                                    from '../store/BoardStore.ts';
 import { createLocalFilesBoardStore }                         from '../store/LocalFilesBoardStore.ts';
 import { workspacePathsFor }                                  from '../tracker/Workspace.ts';
-import { UNREADABLE_PIPELINE_STEP, unreadablePipelineGateOf } from './UnreadablePipelineGate.ts';
 
 const STARTED_AT = '2026-11-17T09:00:00+01:00';
 const CHANGED_AT = '2026-11-17T10:00:00+01:00';

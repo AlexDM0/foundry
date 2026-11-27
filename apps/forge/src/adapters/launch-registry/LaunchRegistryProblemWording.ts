@@ -1,4 +1,4 @@
-import { StoredFileProblemWordingUtil }                          from '../utils/StoredFileProblemWordingUtil.ts';
+import { StoredFileProblemWording }                              from '../StoredFileProblemWording.ts';
 import type { LaunchRegistryLineProblem, LaunchRegistryProblem } from './@types/LaunchRegistryProblem.ts';
 
 const MALFORMED_FIELD_SENTENCES = {
@@ -11,8 +11,8 @@ const MALFORMED_FIELD_SENTENCES = {
 /** One line's problem, as it reads without the line's number. */
 function lineSentenceOf(problem: LaunchRegistryLineProblem): string {
   switch (problem.code) {
-    case 'registry-line-not-json':          return StoredFileProblemWordingUtil.sentenceOf({ code: 'not-json', parserError: problem.parserError });
-    case 'registry-line-not-a-json-object': return StoredFileProblemWordingUtil.sentenceOf({ code: 'not-a-json-object' });
+    case 'registry-line-not-json':          return StoredFileProblemWording.sentenceOf({ code: 'not-json', parserError: problem.parserError });
+    case 'registry-line-not-a-json-object': return StoredFileProblemWording.sentenceOf({ code: 'not-a-json-object' });
     case 'registry-line-field-malformed':   return MALFORMED_FIELD_SENTENCES[problem.field];
   }
 }
@@ -24,7 +24,7 @@ function sentenceOf(problem: LaunchRegistryProblem): string {
     case 'registry-line-field-malformed':
       return `line ${problem.lineNumber}: ${lineSentenceOf(problem)}`;
     default:
-      return StoredFileProblemWordingUtil.sentenceOf(problem);
+      return StoredFileProblemWording.sentenceOf(problem);
   }
 }
 

@@ -62,6 +62,7 @@ import {
 } from '../../testing/FakeAgentAdapter.ts';
 import { fakeGateConfinement }                                              from '../../testing/FakeGateConfinement.ts';
 import { GONE_HOLDERS_LOCK_TAKER, LIVE_HOLDERS_LOCK_TAKER, specLockHolder } from '../../testing/LockTakers.ts';
+import { detailsLoggerOf }                                                  from '../../testing/LoggedDetails.ts';
 import { nativePlatformPorts }                                              from '../../testing/NativePlatformPorts.ts';
 import { GIT_CALL_SHAPES, useRecordedGit }                                  from '../../testing/RecordedGit.ts';
 import { RECORDED_FLOW_MAIN_LINE }                                          from '../../testing/RecordedGitFlow.ts';
@@ -618,7 +619,7 @@ function startedHephaestus(
     resumeMessage:       RESUME_MESSAGE,
     redHandoffMessageOf: (facts) => `Red handoff: ${facts.name}, resume ${facts.resume}`,
     answerMessageOf:     (answer) => `${ANSWER_MESSAGE_PREFIX} ${JSON.stringify(answer)}`,
-    log:                 (line) => hephaestusLog.push(line),
+    log:                 detailsLoggerOf(hephaestusLog),
     ...(afterHoldPhase === undefined ? {} : { afterHoldPhase }),
     ...requestOverrides,
   }));

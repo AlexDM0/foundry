@@ -10,7 +10,8 @@ import {
   rmSync,
   writeFileSync
 } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, join }                              from 'node:path';
+import type { HephaestusLog, UnstartableGuardReason } from '../../adapters/@types/HephaestusLogRecord.ts';
 
 import { GateRunManifestIngestion, type GateRunManifest, type ManifestStepEntity } from '../../adapters/gate-manifest/GateRunManifestIngestion.ts';
 import { createGateRunManifestWriter }                                             from '../../adapters/gate-manifest/GateRunManifestWriter.ts';
@@ -154,7 +155,7 @@ export interface JobLaunchContext {
   gateSlots:            GateRunSlots;
   windDownMessage:      string;
   decisionWordingOf:    (draft: DecisionDraft) => DecisionWording;
-  log:                  (line: string) => void;
+  log:                  HephaestusLog;
   /** The lines the merge commit at the worktree's HEAD changed against git's automatic merge; `null` when git cannot tell. */
   resolutionLinesOf:    (worktreePath: string) => number | null;
   /** Absent for a tracker at its repository's root, which shares no landing journal with siblings. */
@@ -1661,7 +1662,9 @@ function settleJudgedGate(hold: HoldContext, job: Readonly<Job>, gate: Extract<G
     return false;
   }
   if (gate.outcome === 'failed') {
-    hold.context.log(`The ${gate.step ?? ''} gate of job ${job.id} (#${ticketIdOf(job)}) is red on ${gate.treeId}; its output is in ${GATE_LOG_FILE}.`);
+    hold.context.log({
+      kind: 'gate-red', jobId: job.id, ticketId: ticketIdOf(job), gate: gate.step ?? '', treeId: gate.treeId, outputFile: GATE_LOG_FILE
+    });
     if (dependentGateIsRedPastItsResumes(hold, job, gate.step ?? '')) {
       openDependentBrokenDecision(hold, job, gate.step ?? '');
       endJob(hold, job, { outcome: 'failed', cause: BUILD_JOB_CAUSES.gateFailed });
@@ -2476,21 +2479,20 @@ function guardCommandOf(context: Pick<JobLaunchContext, 'programCommand' | 'work
 /** The guards a Hephaestus renders into a job's settings: the network guard and, for a job of an entity, the stage edit guard. */
 type ToolCallGuardKind = 'network' | 'stage-edits';
 
-const UNSTARTABLE_GUARD_WORDS: Readonly<Record<ToolCallGuardKind, { guard: string; calls: string }>> = {
-  'network':     { guard: 'network guard', calls: 'shell commands and web fetches' },
-  'stage-edits': { guard: 'stage edit guard', calls: 'file edits' },
-};
-
 /** Called for a launch whose guard renders no hook, so the owner reads why the calls it would check are denied. */
 function logUnstartableGuard(
   context: Pick<JobLaunchContext, 'programCommand' | 'workspace' | 'log'>, job: Readonly<Job>, guardKind: ToolCallGuardKind = 'network'
 ): void {
-  const verdict = GuardCommand.guardCommandOf(context.programCommand, context.workspace.rootDirectory);
-  const reason = verdict.verdict === 'refused'
-    ? GuardCommand.refusalReasonOf(verdict, context.workspace.rootDirectory)
-    : 'its command is not an absolute runtime path';
-  const { guard, calls } = UNSTARTABLE_GUARD_WORDS[guardKind];
-  context.log(`The ${guard} of job ${job.id} (#${ticketIdOf(job)}) cannot start, so its ${calls} are denied: ${reason}.`);
+  const repositoryRoot = context.workspace.rootDirectory;
+  const verdict = GuardCommand.guardCommandOf(context.programCommand, repositoryRoot);
+  const reason: UnstartableGuardReason = verdict.verdict === 'refused'
+    ? {
+      kind: 'command-refused', part: verdict.part, cause: verdict.cause, path: verdict.path, repositoryRoot
+    }
+    : { kind: 'not-an-absolute-runtime-path' };
+  context.log({
+    kind: 'guard-cannot-start', jobId: job.id, ticketId: ticketIdOf(job), guard: guardKind, reason
+  });
 }
 
 /** What a worker's stored `writes` are judged by at launch: Hephaestus's `PATH` and the host's path rules. */
@@ -2558,7 +2560,9 @@ function recordSandboxRefusal(context: JobLaunchContext, job: Readonly<Job>, ref
   const jobFolder = jobFolderOf(context.workspace, job);
   mkdirSync(jobFolder, { recursive: true });
   createSandboxRefusalWriter(join(jobFolder, JOB_FILES.sandboxRefusal)).write(refusal);
-  context.log(`The ${refusal.step} line of job ${job.id} (#${ticketIdOf(job)}) did not run: ${refusal.reason}.`);
+  context.log({
+    kind: 'line-refused', jobId: job.id, ticketId: ticketIdOf(job), step: refusal.step, sandboxRefusal: refusal.reason
+  });
 }
 
 /**
@@ -2630,8 +2634,14 @@ async function spawnLineChild(
   });
   if (launched.verdict === 'talos-unavailable') return launched;
   const availability = gateConfinement.availability();
-  const confinementWords = availability.verdict === 'confined' ? ` under ${availability.mechanism}` : ', unconfined by design';
-  context.log(`Launched the ${folderName} line of job ${job.id} (#${ticketIdOf(job)}), instance ${instance}, under Talos${confinementWords}.`);
+  context.log({
+    kind:        'line-launched',
+    jobId:       job.id,
+    ticketId:    ticketIdOf(job),
+    step:        folderName,
+    instance,
+    confinement: availability.verdict === 'confined' ? availability.mechanism : null,
+  });
   return { verdict: 'spawned', supervisor: launched.supervisor };
 }
 
@@ -2663,8 +2673,9 @@ async function launchLineChild(
     timeBoundMilliseconds: launch.timeBoundMilliseconds,
   });
   if (launched.verdict === 'talos-unavailable' || launched.verdict === 'refused') {
-    const why = launched.verdict === 'refused' ? `Talos refused it (${launched.reason})` : 'no Talos took it';
-    context.log(`The ${folderName} line of job ${job.id}, instance ${instance}, did not launch: ${why}; the next pass tries again.`);
+    context.log({
+      kind: 'line-not-launched', jobId: job.id, step: folderName, instance, talosRefusal: launched.verdict === 'refused' ? launched.reason : null
+    });
     return { verdict: 'talos-unavailable' };
   }
   return { verdict: 'spawned', supervisor: context.boardChildren.recordOf(lineFolder, instance)?.talos ?? null };
@@ -2700,7 +2711,14 @@ async function launchMergeIntoTree(
     timeBoundMilliseconds: null,
   });
   if (launched.verdict === 'talos-unavailable') return;
-  context.log(`Launched the ${files.childFolder} line of job ${job.id} (#${ticketIdOf(job)}) under Talos, merging ${record.mergedTip} into ${branchOf(context, job)}.`);
+  context.log({
+    kind:      'merge-line-launched',
+    jobId:     job.id,
+    ticketId:  ticketIdOf(job),
+    step:      files.childFolder,
+    mergedTip: record.mergedTip,
+    branch:    branchOf(context, job),
+  });
 }
 
 /** After the hold: what a prepared review job's catch-up asks of git and Talos, read afresh like a gate step. */
@@ -2756,7 +2774,7 @@ function recordAnUnnormalisedCheckout(context: JobLaunchContext, job: Readonly<J
   if (changedPaths === null || changedPaths.length === 0) return;
   mkdirSync(jobFolderOf(context.workspace, job), { recursive: true });
   writeFileAtomically(join(jobFolderOf(context.workspace, job), JOB_FILES.worktreeUnnormalised), `${changedPaths.join('\n')}\n`);
-  context.log(`The fresh worktree of job ${job.id} already differs from its commit in ${changedPaths.length} file(s), as line-ending normalisation leaves it.`);
+  context.log({ kind: 'fresh-worktree-differs', jobId: job.id, changedFileCount: changedPaths.length });
 }
 
 /** A group ticket's branch forks off the group's tip, so the group's worktree is created from the main line's tip at its first launch. */
@@ -2789,7 +2807,7 @@ function createWorktree(context: JobLaunchContext, job: Readonly<Job>): void {
 function recordWorktreeFailure(context: JobLaunchContext, job: Readonly<Job>, errorText: string): void {
   mkdirSync(jobFolderOf(context.workspace, job), { recursive: true });
   writeFileAtomically(join(jobFolderOf(context.workspace, job), JOB_FILES.worktreeFailure), `${errorText}\n`);
-  context.log(`Creating the worktree of job ${job.id} failed: ${errorText}`);
+  context.log({ kind: 'worktree-creation-failed', jobId: job.id, worktreeFailure: errorText });
 }
 
 /**

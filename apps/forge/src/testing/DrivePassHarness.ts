@@ -6,6 +6,8 @@
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join }            from 'node:path';
+import type { HephaestusLog }       from '../adapters/@types/HephaestusLogRecord.ts';
+import { ReportProblemWording }     from '../adapters/reports/ReportProblemWording.ts';
 
 import type { AgentAdapter }                                      from '../lib/agent-launch/AgentAdapter.ts';
 import { createDarwinSeatbelt }                                   from '../lib/gate-confinement/DarwinSeatbelt.ts';
@@ -47,7 +49,7 @@ interface ScratchDrivePassRequired {
   mainLine:                  string;
   /** The connection to the board's Talos, read at each act: the recorded stages' in a default spec, a scratch Talos's in a real-system one. */
   talosConnection:           () => TalosConnection | null;
-  log:                       (line: string) => void;
+  log:                       HephaestusLog;
   /** The start stamp the Hephaestus lock names, one no process had: `1` when absent. Starts a spec crashes at one generation differ by it. */
   hephaestusLockStartStamp?: string;
 }
@@ -92,6 +94,7 @@ export function createScratchDrivePass(request: ScratchDrivePassRequest): DriveP
     installVersionChanged:        () => false,
     agentVariableIsSet:           () => false,
     decisionWordingOf:            () => ({ questions: [], context: '' }),
+    reportProblemSentenceOf:      ReportProblemWording.sentenceOf,
     packageNeedWordingOf:         () => ({ title: 'Example need', body: '' }),
     dependentFixWordingOf:        () => ({ title: 'Example fix', body: '' }),
     launchTextOf:                 () => ({ firstMessage: 'Example first message', roleBrief: 'Example role' }),
@@ -105,9 +108,9 @@ export function createScratchDrivePass(request: ScratchDrivePassRequest): DriveP
     branchNames:                  branchNamesOf(null),
     unreadableBoardFiles:         createUnreadableBoardFiles(request.log),
     onStaleLockTakenOver:         () => {},
-    onHephaestusLockTakenOver:    () => request.log('taken over'),
+    onHephaestusLockTakenOver:    () => request.log({ kind: 'taken-over-stopping' }),
     onPassCrashed:                () => {
-      request.log('crashed');
+      request.log({ kind: 'crashed-staying-off' });
       return Promise.resolve();
     },
   };
@@ -131,7 +134,7 @@ export interface ScratchBoardTalosRequest {
   workspace:     Workspace;
   platformPorts: PlatformPorts;
   monitorFolder: string;
-  log:           (line: string) => void;
+  log:           HephaestusLog;
   /** The lease and tick bounds the Talos is started with; absent, Hephaestus's own. A row that waits out a lease shortens it. */
   bounds?:       TalosStartBounds;
 }

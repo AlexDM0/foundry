@@ -6,6 +6,7 @@
  */
 import type { TargetMergeSettlement } from '../../adapters/merge-settlement/MergeSettlementIngestion.ts';
 import type { MergeSides }            from '../../adapters/merge-sides/MergeSidesIngestion.ts';
+import type { ReportProblem }         from '../../adapters/reports/@types/ReportProblem.ts';
 import { readMergeResolutionDiff }    from '../../lib/git/BranchDiffs.ts';
 import {
   mergeIn,
@@ -145,7 +146,7 @@ const CLAIM_RESULTS_REFUSING_A_RE_REVIEW: readonly unknown[] = ['does-not-hold',
 
 export type ReReviewVerdict =
   | { verdict: 'holds' }
-  | { verdict: 'customs-refused'; reason: VerificationRefusalReason; facts: readonly string[] }
+  | { verdict: 'customs-refused'; reason: VerificationRefusalReason; facts: readonly string[]; reportProblems?: readonly ReportProblem[] }
   | { verdict: 'claims-refused'; acceptanceItems: readonly string[] };
 
 function claimsOf(report: unknown): readonly Readonly<Record<string, unknown>>[] {
@@ -163,7 +164,7 @@ function reReviewVerdictOf(worktreePath: string, resolutionCommit: string, repor
   } as const;
   for (const check of [CUSTOMS_CHECKS.V1, CUSTOMS_CHECKS.V2]) {
     const verdict = check(subject);
-    if (verdict.verdict === 'refused') return { verdict: 'customs-refused', reason: verdict.reason, facts: verdict.facts };
+    if (verdict.verdict === 'refused') return { ...verdict, verdict: 'customs-refused' };
   }
   const acceptanceItems = claimsOf(report).filter((claim) => CLAIM_RESULTS_REFUSING_A_RE_REVIEW.includes(claim['result'])).map((claim) => String(claim['item']));
   return acceptanceItems.length === 0 ? { verdict: 'holds' } : { verdict: 'claims-refused', acceptanceItems };

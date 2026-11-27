@@ -3,10 +3,10 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join }                                   from 'node:path';
 import { expect, test }                           from 'bun:test';
 
-import { createScratchDirectory }       from '../../testing/ScratchWorkspace.ts';
-import FROZEN_PROBLEMS                  from './FrozenStoredFileBaseProblems.json';
-import { StoredFileProblemWordingUtil } from './StoredFileProblemWordingUtil.ts';
-import { StoredJsonDocumentUtil }       from './StoredJsonDocumentUtil.ts';
+import { createScratchDirectory }   from '../../testing/ScratchWorkspace.ts';
+import { StoredFileProblemWording } from '../StoredFileProblemWording.ts';
+import FROZEN_PROBLEMS              from './FrozenStoredFileBaseProblems.json';
+import { StoredJsonDocumentUtil }   from './StoredJsonDocumentUtil.ts';
 
 const NOT_UTF8_CASE = 'the bytes are not UTF-8';
 
@@ -27,7 +27,7 @@ for (const { case: problemCase, stored, sentence } of FROZEN_PROBLEMS) {
     else mkdirSync(filePath);
     const document = StoredJsonDocumentUtil.documentAt(filePath, 1);
     expect(document.verdict).toBe('unreadable');
-    const reason = document.verdict === 'unreadable' ? StoredFileProblemWordingUtil.sentenceOf(document.problem) : '';
+    const reason = document.verdict === 'unreadable' ? StoredFileProblemWording.sentenceOf(document.problem) : '';
     expect(reason).toBe(sentence.replace('{systemError}', systemErrorOf(filePath)));
   });
 }
