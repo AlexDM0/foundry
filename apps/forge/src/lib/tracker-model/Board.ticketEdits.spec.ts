@@ -1,10 +1,7 @@
 /**
- * A body edit changes the body alone: no stamp, no log record, and the ticket is marked for writing only when its body changed. The text
- * takes the body's own line ending, and a body holding none takes the frontmatter's, so a one-line CRLF body does not gain an LF. A new
- * title renames the ticket's own row and a heading reading exactly as `ticket add` generates it, logs one record, stamps nothing, and
- * never renames a review bar or a heading someone changed by hand. A ticket's content is fixed from committed onward: a command's edit is
- * refused with the status in every status past `ready-for-review`, while the board's own record in the body lands in every status and moves the
- * content hash to the new content, so agents build from what the board wrote.
+ * A body edit changes the body alone and keeps its line ending, so a one-line CRLF body does not gain an LF; a new title renames only the
+ * ticket's own row and a generated heading, never a hand-changed one. Past `ready-for-review` a command's edit is refused, while the board's
+ * own record lands in every status and moves the content hash, so agents build from what the board wrote.
  */
 import { describe, expect, test } from 'bun:test';
 

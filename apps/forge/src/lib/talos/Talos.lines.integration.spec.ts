@@ -1,10 +1,7 @@
 /**
- * Line children end to end with the Talos binary and small `bun -e` children. What matters: a line's stdout lines are numbered in its event
- * log and its stderr is in its log; its record names Talos and the child and how it ended; a stop reaches a group below the child; a line
- * past its time bound ends `time-bound`, while a Talos suspended longer than the bound adds the suspension to the allowance and leaves it out
- * of the run time; `stop-lines` ends every line; a launch outside the board is refused and a launch of a known child spawns nothing; and a
- * failed synchronous call, or a synchronous-calls thread that dies, ends Talos with exit 2 and its cause in its log. The dead thread is
- * planted in a Talos run in this process, over a thread entry that loads the real one and exits once it answered `open-event-log`.
+ * Line children end to end with the Talos binary and small `bun -e` children: logs, records, stops, time bounds that leave a suspension out,
+ * refused launches, and a failed synchronous call or a dead thread ending Talos with exit 2. The dead thread is planted in a Talos run in this
+ * process, over a thread entry that loads the real one and exits once it answered `open-event-log`.
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join }                                    from 'node:path';

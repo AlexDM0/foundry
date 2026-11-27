@@ -1,8 +1,7 @@
 /**
- * The gate writes: which phases a gate runs in and their run order. What matters: with no phases a new gate runs in every
- * phase and a replaced one keeps its phases, so the verbs as typed before phases existed still mean the same; with phases a gate runs in
- * exactly those, keeping its place where it was; a reorder takes only the gates the phase runs, each once; and a refusal writes and logs
- * nothing, so an order sent to a board with no pipeline never stores one.
+ * The gate writes for which phases a gate runs in and their order: with no phases a new gate runs in every phase and a replaced one keeps
+ * its own, so the verbs typed before phases existed mean the same; a reorder takes only the phase's gates, each once; a refusal writes and
+ * logs nothing.
  */
 import { describe, expect, test } from 'bun:test';
 

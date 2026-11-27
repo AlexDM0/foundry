@@ -1,8 +1,7 @@
 /**
- * Merge prediction, first as a table over planted git runs, then against real git in a scratch repository. What matters is that the
- * status and the tree decide together: exit 1 with no tree (an unresolvable revision) is a failed prediction, never a conflict with no
- * files, while a conflict listing no file is still a conflict. A `--stdin` batch reads its inverted per-record status, and a batch that
- * exits non-zero fails every pair, which `predictMerges` then predicts singly so one bad revision costs only its own pair.
+ * Merge prediction, as a table over planted git runs and against real git: exit 1 with no tree is a failed prediction, never a conflict, while
+ * a conflict listing no file is still a conflict. A `--stdin` batch reads its inverted per-record status, and one that exits non-zero fails
+ * every pair, which `predictMerges` then predicts singly so one bad revision costs only its own pair.
  */
 import { existsSync } from 'node:fs';
 import { join }       from 'node:path';

@@ -1,8 +1,7 @@
 /**
- * The ticket and its row move together, the legality table holds unless the caller skips it, and every move except one to review ends the
- * reviewer's bar. Refusals are asserted by reason code, never by wording. The moves a ticket offers follow its status and its hold, for
- * every status held and unheld, a live job keeps it from delivery by hand, and the merge accept waits for a clean prediction. In the
- * spec-then-plan route a ticket without documents, a need's or a fix's, is still readied from its body, and one with documents by them.
+ * The ticket and its row move together, the legality table holds unless the caller skips it, and every move but one to review ends the
+ * reviewer's bar; refusals are asserted by reason code, never by wording. In the spec-then-plan route a ticket without documents is still
+ * readied from its body, and one with documents by them.
  */
 import { describe, expect, test } from 'bun:test';
 

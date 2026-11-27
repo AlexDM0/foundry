@@ -1,8 +1,7 @@
 /**
- * Claude Code on Windows reads a rule path in its normalised form, `C:\Users\alice` as `/c/Users/alice` and `//c/Users/alice` anchored
- * at the root, and a `claudeMdExcludes` entry as a glob, where a backslash escapes. A native path written as it is matches nothing and no
- * error says so. These cases feed `node:path` win32 paths to every place the adapter renders a path, on any host, and hold that none
- * keeps a backslash or a drive colon.
+ * Claude Code on Windows reads a rule path normalised (`C:\Users\alice` as `/c/Users/alice`) and a `claudeMdExcludes` entry as a glob, where
+ * a backslash escapes, so a native path silently matches nothing. These cases feed win32 paths to every place the adapter renders a path and
+ * hold that none keeps a backslash or a drive colon.
  */
 import { win32 } from 'node:path';
 

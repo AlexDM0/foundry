@@ -1,9 +1,7 @@
 /**
- * The user's decisions on the Board. What matters: a decision carries an agent's questions exactly as asked; the first answer wins and
- * every later one is refused `decision-already-answered`, as is an answer to a withdrawn one; an answer must give one text per question
- * and is stored keyed by each question's text; a replayed question request, still open or already answered, never opens a second decision;
- * and a decision leaves the board in the hold that answers or withdraws it, its id never reused. An option keeps the consequences its asker
- * noted, and an option without them gets no consequence key, so a decision of today's shape is stored as before.
+ * The user's decisions on the Board: a decision carries an agent's questions exactly as asked; the first answer wins, later ones and answers
+ * to a withdrawn one are refused; an answer gives one text per question, keyed by its text; a replayed request never opens a second decision;
+ * and an option without noted consequences gets no consequence key, so today's decisions are stored as before.
  */
 import { describe, expect, test } from 'bun:test';
 

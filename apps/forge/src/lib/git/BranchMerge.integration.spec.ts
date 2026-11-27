@@ -1,8 +1,6 @@
 /**
- * Merging into a worktree and undoing it, against real git in scratch repositories. What matters is that each outcome is told apart (a
- * merge commit, a commit already held, a conflict naming its files), that a reset lands exactly on the recorded commit, that a
- * resolution's leftovers are found, and that the repository's own hooks never run: a failing hook planted where the repository points
- * `core.hooksPath` stops a plain git merge, yet not this one.
+ * Merging into a worktree and undoing it, against real git in scratch repositories: each outcome is told apart, a reset lands exactly on the
+ * recorded commit, a resolution's leftovers are found, and the repository's own hooks never run, even where `core.hooksPath` points.
  */
 import {
   chmodSync,

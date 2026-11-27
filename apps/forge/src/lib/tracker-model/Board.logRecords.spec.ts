@@ -1,8 +1,7 @@
 /**
- * Pins the bytes log.jsonl stores for every record kind the Board logs: `src/testing/EveryBoardLogRecord.ts` drives the Board's own
- * changes, each record serialised the way `src/adapters/log/LogFileWriter.ts` writes it, against a frozen table. JSON keeps key order,
- * so a record built in another order would change the stored file while every structural comparison still passed. To retake the table,
- * print `storedLinesOf` and paste it.
+ * Pins the bytes log.jsonl stores for every record kind, driven by `src/testing/EveryBoardLogRecord.ts` against a frozen table: JSON keeps
+ * key order, so a record built in another order changes the stored file while every structural comparison still passes. To retake the
+ * table, print `storedLinesOf` and paste it.
  */
 import { expect, test } from 'bun:test';
 
@@ -15,12 +14,9 @@ const LOGGED_AT = '2026-09-26T10:15:00+02:00';
 const RECORD_KIND_COUNT = Object.keys(LOG_RECORD_SCHEMA).length - RETIRED_LOG_RECORD_KINDS.length;
 
 /**
- * Six kinds are logged twice: `draft-claimed`, plainly and as a forced takeover, since the two store different fields, `draft-opened`,
- * since a closed draft cannot then be abandoned, `ticket-held`, since a wind-down holds its job's ticket, `pipeline-approval-set`, since
- * merge approval is switched on for the accept, `gate-profile-requested`, since a profile that ended cannot then be stopped, and
- * `pipeline-setup-opened`, since a started-over record cannot then be applied. Four are logged three times: `decision-opened` and
- * `incident-opened`, since a closed one cannot be closed again another way and an escalation opens a decision of its own, and
- * `job-launched` and `job-ended`, since a merge claim launches its own job and a closed product owner is reopened.
+ * Six kinds are logged twice (`draft-claimed`, `draft-opened`, `ticket-held`, `pipeline-approval-set`, `gate-profile-requested`,
+ * `pipeline-setup-opened`) and four three times (`decision-opened`, `incident-opened`, `job-launched`, `job-ended`), each repeat storing
+ * different fields or reaching a state the first record closes off.
  */
 const RECORD_COUNT = RECORD_KIND_COUNT + 6 + 8;
 

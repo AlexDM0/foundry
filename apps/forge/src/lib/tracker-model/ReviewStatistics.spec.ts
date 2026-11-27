@@ -1,8 +1,7 @@
 /**
- * The joins `review-stats` stands on, each on a small Board: a ticket counts once however many passes it has, the change-size bucket
- * edges sit on the stated bounds, only free-standing review bars count as review tokens, a record naming no ticket on the board is left
- * out, a bundle's tickets recorded on its one bar count apart, and a ratio over nothing is null. The full hand-computed table over every
- * split is `cli/measurement/review-stats/ReviewStatsCommand.spec.ts`.
+ * The joins `review-stats` stands on, each on a small Board: a ticket counts once, bucket edges sit on the stated bounds, only free-standing
+ * review bars count, unknown tickets are left out, a bundle's tickets count apart, and a ratio over nothing is null. The full hand-computed
+ * table is `cli/measurement/review-stats/ReviewStatsCommand.spec.ts`.
  */
 import { describe, expect, test } from 'bun:test';
 

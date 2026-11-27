@@ -1,8 +1,6 @@
 /**
- * The composition root: a frozen record for every platform, the one with no adapter included, so a process starts whatever it runs on. What
- * matters is closure: on darwin, linux and win32 every port of the record is a real adapter, reached through its selector, and on an unknown
- * platform every port is the one that refuses. Each probe below is watched both ways, so a selector that loses a platform branch fails here.
- * A probe never changes a file outside the scratch folder.
+ * The composition root: on darwin, linux and win32 every port of the frozen record is a real adapter, reached through its selector, and on
+ * an unknown platform every port refuses. Each probe is watched both ways, so a selector that loses a platform branch fails here.
  */
 import { join } from 'node:path';
 import {

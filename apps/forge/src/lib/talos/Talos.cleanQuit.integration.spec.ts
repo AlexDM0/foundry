@@ -1,8 +1,6 @@
 /**
- * The clean quit end to end with the Talos binary, its wait 300 milliseconds. What matters: a `quit` ends an agent that ends at its turn end
- * and one that does not, and a line, all `paused`; Talos records `quit` with the reason and exits within the wait and the stop sweep, also
- * when the agents' launches carry the grace of a worktree job's tree stop at the end; and a `hello` of another protocol does the same with
- * `protocol-mismatch`.
+ * The clean quit end to end with the Talos binary, its wait 300 milliseconds: a `quit` ends every agent and line `paused`, and Talos records
+ * `quit` with the reason and exits within the wait and the stop sweep; a `hello` of another protocol does the same with `protocol-mismatch`.
  */
 import {
   afterEach,

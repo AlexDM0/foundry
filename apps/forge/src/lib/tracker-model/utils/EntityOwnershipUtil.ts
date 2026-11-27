@@ -76,7 +76,7 @@ function dependentsOf(entities: PipelineEntities, changedKeys: readonly EntityKe
 
 /**
  * The entities whose gates judge a landing: the owner of every changed path and every entity that consumes one, in the pipeline's order. A
- * root-owned path, such as a `reach` path at the root, is a change of the root entity, which every entity consumes (E4, E60).
+ * root-owned path, such as a `reach` path at the root, is a change of the root entity, which every entity consumes.
  */
 function gatedEntitiesOf(entities: PipelineEntities, changedPaths: readonly string[]): EntityKey[] {
   const changedKeys = [...pathsByOwnerOf(entities, changedPaths).keys()];
@@ -103,7 +103,7 @@ function stageOrderOf(entities: PipelineEntities, packageKeys: readonly EntityKe
 }
 
 /**
- * The paths a ticket of an entity may not name as its work (E85): owned neither by the entity nor by a package it whitelists, and outside
+ * The paths a ticket of an entity may not name as its work: owned neither by the entity nor by a package it whitelists, and outside
  * every path of its `reach`, a file or a folder.
  */
 function pathsOutsideEntityOf(entities: PipelineEntities, entityKey: EntityKey, repositoryPaths: readonly string[]): string[] {

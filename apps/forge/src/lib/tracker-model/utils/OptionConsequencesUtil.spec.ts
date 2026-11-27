@@ -1,8 +1,6 @@
 /**
- * The rule `question options` reads an agent's notes by, and how notes reach the options of the question they describe. What matters: the
- * notes are untrusted JSON, so every malformed form is a verdict naming its field and never a throw, and a read note is trimmed; a note
- * reaches an option only through the question's text and the option's own label, so an option no note names keeps its label and
- * description alone, with no consequence key; and a stored fact is copied as it is, so a read keeps a file byte-identical.
+ * The rule `question options` reads an agent's notes by: the notes are untrusted JSON, so a malformed one is a verdict naming its field and
+ * never a throw; a note reaches an option only through the question's text and the option's label; and a stored fact is copied as it is.
  */
 import { describe, expect, test } from 'bun:test';
 

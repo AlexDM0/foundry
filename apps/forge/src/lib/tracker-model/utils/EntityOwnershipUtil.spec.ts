@@ -1,11 +1,7 @@
 /**
- * Ownership of a pipeline's entities. What matters: a path in no home is the root entity's (E1), named by its key when the pipeline holds a
- * root entity and `root` when it does not; a deeper home wins over the one around it (E2), whatever order the entities come in, and a home
- * holds only whole folder names; a file moved across a border is a change of both entities (E5). A change reaches every consumer, also
- * through another, and a change of the root entity reaches every entity. A landing gates the entities its paths are in and their consumers
- * (E60), every entity for a root-owned path (E4). Package stages run a package before the packages that consume it. A ticket of an entity
- * may name as its work only paths its entity or a package it whitelists owns, or a path inside its `reach` (E85): a path of a deeper home
- * inside its own home is outside it.
+ * Ownership of a pipeline's entities: a path in no home is the root entity's, a deeper home wins, a move across a border changes both; a
+ * change reaches every consumer and gates them; packages stage before their consumers; and a ticket's work stays within its entity, its
+ * whitelisted packages and its `reach`.
  */
 import { describe, expect, test } from 'bun:test';
 

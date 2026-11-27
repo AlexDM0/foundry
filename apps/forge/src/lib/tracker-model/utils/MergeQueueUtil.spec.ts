@@ -1,8 +1,7 @@
 /**
- * The merge queue's order and the group refresh's trigger. What matters is that each of the five keys decides only when every key above it
- * ties, that a failed prediction orders as conflicting, that only clean candidates count as conflicts caused, and that no tie-break ever
- * lifts a lower priority over a higher. With merge approval on, the press order alone decides: readiness, then ticket id, whatever the
- * priority or the prediction. A refresh is due by the count or by a conflicting group tip, and never beside a queued release.
+ * The merge queue's order and the group refresh's trigger: each key decides only when every key above it ties and no tie-break lifts a
+ * lower priority over a higher; with merge approval on the press order alone decides; and a refresh is due by the count or by a conflicting
+ * group tip, never beside a queued release.
  */
 import { describe, expect, test } from 'bun:test';
 

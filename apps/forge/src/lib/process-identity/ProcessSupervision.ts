@@ -52,10 +52,9 @@ export interface ProcessSupervision {
    */
   readonly treeMembersOf:             (leader: ProcessIdentity, earlierMembers?: readonly ProcessTreeMember[]) => readonly ProcessTreeMember[] | null;
   /**
-   * The tree the recorded leader led: while the leader lives, only when it still is the recorded process; once it is gone, only while
-   * the tree has members and none of them predates the leader. An empty or recycled tree is never stopped. `treeMembers` is what
-   * `treeMembersOf` has just answered, and its other groups are stopped with the tree. A platform with no way to `ask` answers `no-ask-stage`
-   * to that stage and stops nothing.
+   * The tree the recorded leader led: while the leader lives, only if it still is the recorded process; once gone, only while the tree has
+   * members none of which predates the leader. `treeMembers` is what `treeMembersOf` just answered, its other groups stopped with the tree; a
+   * platform with no way to `ask` answers `no-ask-stage` to that stage and stops nothing.
    */
   readonly stopTree:                  (leader: ProcessIdentity, stage: ProcessStopStage, treeMembers?: readonly ProcessTreeMember[]) => ProcessTreeStopOutcome;
   /** That one process alone; the caller has checked its identity. */

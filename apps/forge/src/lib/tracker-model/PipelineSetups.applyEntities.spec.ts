@@ -1,14 +1,7 @@
 /**
- * Apply of a draft over entities. What matters: the Apply refuses to remove or rename an entity a ticket that is not delivered or abandoned
- * names (E91), and refuses to turn a stored pipeline without entities into entities while a ticket is in progress, in review or reviewed
- * (E94), where a first setup and a committed ticket refuse nothing. The forge has no constitution of its own beside entities, so its empty
- * draft refuses nothing: each entity's drafted text that main lacks waits for the commit, each drafted entity takes main's blob of its file
- * as its base, an entity with no draft adopts the file main holds byte for byte, and stage 2 refuses an entity's text main does not hold,
- * naming the entity. Stage 2 refuses E91 and E94 again, for a ticket that started or took the removed entity while the request waited. The
- * first Apply that stores entities starts one product owner, as an intake of the words the caller gives, for the committed tickets without an
- * entity, its launch record naming them; an Apply over a pipeline that already had entities, or one with no such ticket, starts none. An
- * Apply over a pipeline with entities that adds an entity touches no open ticket and starts no product owner (E90), and one that moves an
- * entity's home keeps the entity's key on its open tickets (E92).
+ * Apply of a draft over entities: at both stages it refuses to remove or rename an entity an open ticket names, or to turn a pipeline into
+ * entities while a ticket is in flight; drafted entity texts wait for the commit; and the first Apply that stores entities starts one
+ * product owner for the committed tickets without one.
  */
 import { describe, expect, test } from 'bun:test';
 

@@ -1,10 +1,7 @@
 /**
- * The one check of a pipeline's entities that the pipeline file and the entities draft share. What matters: a valid layout has no refusal, a home
- * inside another home among it; each refusal comes with the keys it names: more than one entity of kind root, two entities with the same
- * home (a trailing slash ignored), a `reach` path inside or above the home of another entity that is not the root entity (E9: a root-owned
- * path such as the lockfile, the root entity's own home or the entity's own home stays allowed), an unknown key in a whitelist or in
- * `dependsOn`, a whitelisted entity that is not a package (the root entity included) or has no review, and a circle in `dependsOn`, a
- * self-dependency and a root entity that names a dependency included.
+ * The one check of a pipeline's entities that the pipeline file and the entities draft share: a valid layout has no refusal, and each
+ * refusal (two roots, a shared home, a `reach` into another entity's home, an unknown or unfit whitelist or dependency, a circle) names
+ * its keys.
  */
 import { describe, expect, test } from 'bun:test';
 

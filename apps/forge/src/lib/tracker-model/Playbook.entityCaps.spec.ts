@@ -1,10 +1,7 @@
 /**
- * An entity's cap in the Playbook (strategy 5.8, E72): the most jobs of one entity that hold a slot at once, under the
- * board's limit, which keeps its default. What matters: the cap counts every running build or review job whose `entity` is that entity,
- * whatever ticket it serves, a package stage's job of another entity's ticket included, and the launches this pass keeps; a candidate past
- * its cap gives its place to the next candidate of another entity, so the cap never wastes a board slot; the board's limit still bounds the
- * launches the caps let through; a job that holds no slot does not count; an entity without a cap has the board's limit alone; and a forge
- * without entities launches by the board's limit alone, whatever cap a fact names.
+ * An entity's cap in the Playbook: the most jobs of one entity holding a slot at once, counting every running build or review of it
+ * whatever ticket it serves; a candidate past its cap gives its place to another entity's, the board's limit still bounds every launch,
+ * and a forge without entities launches by the board's limit alone.
  */
 import { describe, expect, test } from 'bun:test';
 

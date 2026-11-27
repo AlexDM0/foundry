@@ -1,10 +1,7 @@
 /**
- * Failed passes as a log reading. What matters: only `failed` and `does-not-hold` count, and only on the ticket's own jobs; a start from
- * review is rework and keeps the count, while a start from anywhere else, an unhold or a clearing begins it again; a crash, `replaced` or
- * `stopped` is never a failed pass; nor is a review that does not hold after a `built` build, which resumes the builder against the
- * resume bound instead, while one that resumes nobody still counts. On a forge with entities a ticket that crosses into no package counts
- * its build and review stages together, as today; once it crosses, the passes count per entity and stage: a launch into another stage
- * starts with no counts, two entities in one stage count apart, and the ticket's count is the highest of them.
+ * Failed passes as a log reading: only `failed` and `does-not-hold` on the ticket's own jobs count, rework from review keeps the count and
+ * any other start resets it; crashes, stops and a review that resumes its builder never count; and once a ticket crosses into a package
+ * the passes count per entity and stage, the ticket's count being the highest.
  */
 import { describe, expect, test } from 'bun:test';
 

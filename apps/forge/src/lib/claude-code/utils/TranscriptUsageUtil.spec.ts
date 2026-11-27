@@ -210,10 +210,8 @@ describe('the tokens spent at an oversized context', () => {
 });
 
 /**
- * The profile is what a caller compares agents by, so each field is pinned on its
- * own against a constructed transcript, including the two that are easy to read off the wrong place:
- * the excerpt, which must come from the brief and not from an attachment stapled to the same turn,
- * and the injected characters, which must be counted wherever the attachment happens to be nested.
+ * The profile is what a caller compares agents by, so each field is pinned on its own: the excerpt must come from the brief, not an
+ * attachment stapled to the same turn, and the injected characters must be counted wherever the attachment is nested.
  */
 describe('the profile of a whole transcript', () => {
   const NESTED_INSTRUCTIONS = '# CLAUDE.md\nThe rules of this folder.';

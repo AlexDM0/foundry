@@ -1,8 +1,7 @@
 /**
- * The adapter's `subagentUsagesOf` over constructed transcripts under a scratch home. What matters: a planted transcript's profile reaches
- * the port's row with its shell edits as `shellEditScriptCount` and its total input summed, a workflow run's agents are read beside a plain
- * one while its journal and each agent's `.meta.json` are not, a workflow agent's excerpt is the script's prompt, and without a folder the
- * project's own folder under the home's `.claude`, or under `CLAUDE_CONFIG_DIR` when the adapter was given one, is read and answered.
+ * The adapter's `subagentUsagesOf` over constructed transcripts under a scratch home: shell edits count as `shellEditScriptCount`, a workflow
+ * run's agents are read beside a plain one but not its journal or `.meta.json` files, and without a folder the project's folder under the
+ * home's `.claude`, or under `CLAUDE_CONFIG_DIR` when given, is read.
  */
 import { mkdirSync, realpathSync, writeFileSync } from 'node:fs';
 import { join }                                   from 'node:path';

@@ -1,10 +1,7 @@
 /**
- * One contract for the `GateConfinement` port: an adapter wraps the argv exactly when it answers `confined`, and every other answer hands the
- * argv back unchanged, since refusing to run is not this port's to decide. Seatbelt runs on a fake table, confined and not; a real child under
- * the native adapter is held by `src/services/hephaestus/LineSandbox.integration.spec.ts`.
- * Each mapped rule has two cases. The bubblewrap argv is rendered on a fake tree, and a planted break of the argv must fail its check, so the
- * table runs on any machine. Seatbelt runs a real child for each rule in `GateConfinement.contract.integration.spec.ts`. A denied path that
- * does not exist must not show in the argv, because a bind would make its mount point on the host.
+ * One contract for the `GateConfinement` port: an adapter wraps the argv exactly when it answers `confined` and otherwise hands it back, since
+ * refusing to run is not this port's to decide. The bubblewrap argv is rendered on a fake tree, so the table runs on any machine, a planted
+ * break must fail its check, and a denied path that does not exist stays out of the argv, because a bind would make its mount point on the host.
  */
 import { describe, expect, test } from 'bun:test';
 

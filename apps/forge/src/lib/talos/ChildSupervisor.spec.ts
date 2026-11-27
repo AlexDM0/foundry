@@ -1,8 +1,7 @@
 /**
- * The child supervisor over fake calls and a fake spawn. What matters: a stop or `stop-lines` that arrives while a launch still reads the
- * child's identity signals the tree once the identity is read, instead of answering `done` and signalling nothing, which would leave the
- * child running and a clean quit waiting on it for ever; and a record is written before its state is broadcast, an ended one after its event
- * log is closed, so a client that hears of a state reads it in the record and the whole log beside it.
+ * The child supervisor over fake calls and a fake spawn: a stop that arrives while a launch still reads the child's identity signals the tree once it
+ * is read, rather than answering `done` and leaving the child running and a clean quit waiting for ever; and a record is written before its state is
+ * broadcast, an ended one after its event log is closed, so a client that hears of a state finds it in the record and the whole log beside it.
  */
 import { expect, test } from 'bun:test';
 

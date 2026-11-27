@@ -1,8 +1,7 @@
 /**
  * One contract for the `ShellLine` port: a line stays one argument, an exit reads the same however it was made, and a line that never ran
- * never reads as passed. The POSIX adapter also runs real lines: a pass, a failure, one that cannot run, joined output and exactly the
- * environment it is handed. The platform without an adapter refuses. The display line, which an agent reads and nothing spawns, is each
- * grammar's own: POSIX joins with `&&`, no grammar puts a step on each line.
+ * never reads as passed. The POSIX adapter also runs real lines; the platform without an adapter refuses. The display line, which an agent
+ * reads and nothing spawns, is each grammar's own.
  */
 import { expect, test } from 'bun:test';
 

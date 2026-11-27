@@ -1,8 +1,7 @@
 /**
- * Worktree readiness and removal on a scratch repository whose worktrees folder lies inside the checkout, as the tool lays it out. What
- * matters: a remnant folder there never reads as the checkout above it, under the ceiling or through the readiness check; a removal that a
- * held working directory declines succeeds once the holder is gone, within the bounded tries; a worktree git declines for files it would
- * lose still stands and never reaches the hand deletion; and a remnant git no longer knows is deleted.
+ * Worktree readiness and removal with the worktrees folder inside the checkout: a remnant folder never reads as the checkout above it, a held
+ * working directory's removal succeeds once the holder is gone, a worktree git declines for files it would lose still stands, and a remnant
+ * git no longer knows is deleted.
  */
 import {
   existsSync,

@@ -1,8 +1,7 @@
 /**
- * The clean quit over the child supervisor, its calls and spawn faked and its wait on a fake timer. What matters: an agent that ends at its
- * turn end within the wait ends `paused` with its own exit code, its quit act in its event log first; one that does not is stopped only once
- * the wait is over and still ends `paused`; lines are stopped at once, not after the wait; nothing is launched while quitting; Talos records
- * `quit` only after every end; and a lease end runs the agent half alone, leaving lines and agents launched during its wait running.
+ * The clean quit with its calls, spawn and wait faked: an agent that ends at its turn end within the wait ends `paused` with its own exit
+ * code, one that does not is stopped once the wait is over; lines stop at once; nothing launches while quitting; Talos records `quit` after
+ * every end; and a lease end runs the agent half alone.
  */
 import { expect, test } from 'bun:test';
 

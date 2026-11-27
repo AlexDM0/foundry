@@ -166,7 +166,7 @@ export type PipelineNodeKind =
 /** `proposed` while the agent's proposal is not applied; `changed`, `new` and `removed` against the applied pipeline while editing. */
 export type PipelineNodeMark = 'unchanged' | 'proposed' | 'changed' | 'new' | 'removed';
 
-/** Where a merge of main into the ticket's tree sits: before review (Q5), before User's code review, or in the merge train. */
+/** Where a merge of main into the ticket's tree sits: before review, before User's code review, or in the merge train. */
 export type MergePlacement = 'before-review' | 'before-human-code-review' | 'airlock';
 
 /** Whose model and effort a merge step's derived meter shows: the ticket's last worker, or the builder. */

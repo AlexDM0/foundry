@@ -1,8 +1,7 @@
 /**
- * The line merge and edit mapping a ticket document's saves and proposals land through. What matters: changes of the two sides on other
- * lines both apply; a change both sides made alike applies once; where the two overlap the person's text wins and the head's change comes
- * back as overridden; an edit made on an older version moves by the lines added before it and lands only where its original lines still
- * stand; edits apply from the bottom so none moves another; and each edit's replacement is found where it ends up.
+ * The line merge and edit mapping a ticket document's saves and proposals land through: changes on other lines both apply, a shared change
+ * applies once, the person's text wins an overlap, an edit on an older version lands only where its lines still stand, and edits apply
+ * from the bottom.
  */
 import { describe, expect, test } from 'bun:test';
 

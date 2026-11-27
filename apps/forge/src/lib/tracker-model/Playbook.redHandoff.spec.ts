@@ -1,8 +1,7 @@
 /**
- * A red handoff's ladder, read from the log: a job interrupted `handoff-red` resumes its own session, never a new job, while its handoff
- * cycle has resumes left; the red after the last resume ends it and parks its ticket with a `parked` decision; a builder or reviewer
- * counts alike; and a fresh build after a session the vendor could not resume keeps the attempt and the count. What matters is that no
- * red gate launches a new session while the old one can be resumed, and that the third red parks.
+ * A red handoff's ladder, read from the log: a job interrupted `handoff-red` resumes its own session while its cycle has resumes left, a
+ * builder and a reviewer alike, and the red after the last resume parks its ticket; a fresh build after an unresumable session keeps the
+ * count.
  */
 import { describe, expect, test } from 'bun:test';
 

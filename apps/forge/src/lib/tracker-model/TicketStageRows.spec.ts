@@ -1,11 +1,6 @@
 /**
- * A crossing ticket's stage and seals on its row. What matters: a ticket whose row stores no stage reads none and is in `build`, so its
- * first move is into a package build; a move the stage table does not allow is refused as a programming error and leaves the row as it
- * was; a seal is added beside the seals the row holds; and a package review's bar is closed without a move of the ticket. Each stage start
- * and seal is logged as its own record; a package return (E41, E65) lifts only the returned package's seal, counts on the row from one,
- * and logs the lift, the return and the start in that order, while a move that is no return lifts and counts nothing. The owner agreed to
- * one way back (E45): a second return opens `second-return` once, keeps the stage and the count, and logs no return; a direct second
- * move is refused as a programming error.
+ * A crossing ticket's stage and seals on its row: no stored stage reads as `build`, an illegal move is refused and leaves the row, seals
+ * add up, each start and seal is logged, a package return lifts its seal and counts, and a second return opens `second-return` instead.
  */
 import { describe, expect, test } from 'bun:test';
 

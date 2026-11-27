@@ -1,8 +1,7 @@
 /**
- * An agent's question through its life on the Board. What matters: `decide`'s letters resolve to the agent's own option labels, and every
- * malformed choice is refused before anything is written; answering moves a job waiting on that answer alone back to `running`; a ticket
- * job ended `replaced` or `stopped` leaves its question on the ticket, held `awaiting answer (E<n>)`, and the answer goes under `##
- * Questions` and lifts the hold; and a question incident escalates with exactly the agent's words.
+ * An agent's question through its life on the Board: `decide`'s letters resolve to the agent's own labels and a malformed choice is refused
+ * before anything is written; an answer frees a job waiting on it alone; a question of a ticket job ended `replaced` or `stopped` holds the
+ * ticket `awaiting answer (E<n>)` until answered; and a question incident escalates with exactly the agent's words.
  */
 import { describe, expect, test } from 'bun:test';
 

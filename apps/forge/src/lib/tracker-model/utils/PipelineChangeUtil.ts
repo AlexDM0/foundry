@@ -1,8 +1,7 @@
 /**
- * What a draft pipeline changes against a base one, field by field: the change list User reads before Apply, and the field names Apply's
- * log record carries. A field compares by its stored value, with the defaults the tracker model owns filled in: an absent approval or
- * instruction list equals its default, so writing a default out is no change. An entity's fields compare inside it, and an entity only
- * one side holds compares with an empty one, so each of its gates, steps and settings is its own row.
+ * What a draft pipeline changes against a base one, field by field, for the list User reads before Apply and Apply's log record. Fields
+ * compare with the tracker model's defaults filled in, so writing a default out is no change; an entity only one side holds compares with
+ * an empty one.
  */
 import { GATE_PHASES, type GatePhase } from '../@types/GatePhase.ts';
 import type {

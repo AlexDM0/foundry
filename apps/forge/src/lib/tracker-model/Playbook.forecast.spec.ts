@@ -1,8 +1,6 @@
 /**
- * The ticket forecast held to the Playbook across seeded interleavings of the lifecycle. What matters: the forecast never drifts from what
- * the Playbook does. Before each pass, a ticket the pass launches a build or review on forecasts exactly that step first, with its attempt
- * or round and nothing current; after each pass, a ticket with a live build, review or merge job forecasts that job's step first, named by
- * the job and marked current. The run proves it checked each kind, and a forecast or Playbook mutant is watched breaking the agreement.
+ * The ticket forecast held to the Playbook across seeded interleavings: before each pass a launched step is forecast first, after each
+ * pass a live job's step is forecast first and current; the run proves it checked each kind and watches a mutant break the agreement.
  */
 import { describe, expect, test } from 'bun:test';
 

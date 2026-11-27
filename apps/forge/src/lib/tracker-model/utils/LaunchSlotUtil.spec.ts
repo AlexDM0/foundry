@@ -1,8 +1,6 @@
 /**
- * Which jobs hold a launch slot. What matters is that the rule reads the job's kind and never its role: a merge-agent job runs as its
- * ticket's builder or reviewer, yet it never waits behind builds, so a role rule would count a job no gate holds back. A build or review
- * that waits for an answer or was interrupted is the same job and keeps its slot, so its state never frees one. A document agent is the one
- * kind whose state frees its slot: it waits for its next message with no session.
+ * Which jobs hold a launch slot: the rule reads the job's kind, never its role, since a merge-agent job runs as a builder or reviewer yet
+ * never waits behind builds; a waiting or interrupted build or review keeps its slot, and only a document agent's waiting frees one.
  */
 import { expect, test } from 'bun:test';
 

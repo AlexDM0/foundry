@@ -1,8 +1,7 @@
 /**
- * A ticket's failed passes as a log reading: its jobs ended `failed` or `does-not-hold` since it was last started from `committed` or unheld.
- * Clock-free and restart-proof; an interruption, a resume, `replaced`, `stopped` or a usage limit is never a failed pass, and neither is a
- * review that does not hold while the ticket's newest build was `built`: that review resumes the builder, counted against its cycle's resumes.
- * On a forge with entities the passes count per entity and stage, from zero when a stage starts, once the ticket crosses into a package.
+ * A ticket's failed passes as a log reading: its jobs ended `failed` or `does-not-hold` since it was last started from `committed` or
+ * unheld. An interruption, resume, `replaced`, `stopped`, usage limit or a review that resumes the builder is never one. Once the ticket
+ * crosses into a package, passes count per entity and stage.
  */
 import type { JobKind, JobOutcome }      from '../@types/Job.ts';
 import type { LogRecord, LogRecordKind } from '../@types/LogRecord.ts';

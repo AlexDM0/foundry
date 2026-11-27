@@ -8,10 +8,9 @@ import type { QuestionOptionNotes } from './OptionConsequences.ts';
 import type { EntityKey }           from './Pipeline.ts';
 
 /**
- * `pipeline-agent` reads the repository and proposes its pipeline, or advises on the one it has; it never touches a ticket.
- * `constitution-commit` commits an Apply's `CONSTITUTION.md` and lands it on the main line through the Airlock, with no gate.
- * `document-agent` writes one ticket document, its role naming which, in a read-only snapshot of the main line; `effect-reading` reads
- * what a document version names in the main line's tree, outside the agent slots.
+ * `pipeline-agent` proposes or advises on the pipeline and never touches a ticket; `constitution-commit` lands an Apply's `CONSTITUTION.md`
+ * through the Airlock with no gate; `document-agent` writes one ticket document in a read-only snapshot of the main line; `effect-reading`
+ * reads what a document version names in the main line's tree, outside the agent slots.
  */
 export type JobKind =
   | 'build'
@@ -89,14 +88,8 @@ export type JobOutcome =
   | 'closed';
 
 /**
- * `talos-lost` and `agent-crashed` are the crashes a resume counts; the others never count. `handoff-red` is a handoff whose gate or Customs
- * check went red: the same session is resumed to fix it, counted on its own bound. `forced-stop-refused` is a lost child whose process tree
- * refused the forced stop: the job is never resumed while it holds this cause, and a later pass gives it the cause the next stop settles.
- * `authentication-failed` is a session whose API key was refused: it resumes once User answers the decision that names the failure.
- * `talos-paused` is a clean quit of Talos, resumed by itself as a reboot is; `lease-ended` (Talos stopped the agents of a Hephaestus that lost
- * its lease) and `network-outage` (the agent ended on an outage its retries did not outlast) wait for User's resume. `forge-stopped` is a
- * child that ended with a stop of the forge on purpose, and `forge-crashed` one gone with the forge's crash (Hephaestus or Talos); the
- * next start finds either gone, and the job waits for User's resume. `RESUME_POLICY_OF_CAUSE` names each cause's resume policy.
+ * Only `talos-lost` and `agent-crashed` count against a job's crash resumes; `RESUME_POLICY_OF_CAUSE` names how each cause resumes.
+ * `handoff-red` resumes the same session to fix a red gate or Customs check, counted on its own bound.
  */
 export type InterruptionCause =
   | 'talos-lost'
@@ -105,13 +98,13 @@ export type InterruptionCause =
   | 'answer-delivery'
   | 'usage-limit'
   | 'handoff-red'
-  | 'forced-stop-refused'
+  | 'forced-stop-refused'   // the lost child's process tree refused the forced stop; a later pass gives the cause the next stop settles
   | 'authentication-failed'
-  | 'talos-paused'
-  | 'lease-ended'
-  | 'network-outage'
-  | 'forge-stopped'
-  | 'forge-crashed';
+  | 'talos-paused'          // a clean quit of Talos
+  | 'lease-ended'           // Talos stopped the agents of a Hephaestus that lost its lease
+  | 'network-outage'        // the agent ended on an outage its own retries did not outlast
+  | 'forge-stopped'         // the child ended with a deliberate stop of the forge
+  | 'forge-crashed';        // the child went with a crash of Hephaestus or Talos
 
 /**
  * `re-reviewing`: a conflict re-reviewer judges a resolution that changed more lines than `airlock.reReview.thresholdLines`.

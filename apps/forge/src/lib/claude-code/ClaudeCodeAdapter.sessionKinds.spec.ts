@@ -1,11 +1,7 @@
 /**
- * The settings file each of the six session kinds launches with, rendered from its worker profile on each OS. What matters: on Windows no
- * session carries a `sandbox` key, so no `failIfUnavailable` and no `autoAllowBashIfSandboxed`, since Claude Code exits at startup there
- * when the sandbox must run; on macOS and Linux every session keeps its sandbox with `failIfUnavailable: true`, byte for byte as
- * `testing/fixtures/frozen-session-settings.json` holds. Its `profiles` are the six kinds' profiles as `src/services/hephaestus/` built them
- * (`WorkerProfiles.profileOf`, the product owner's through `IntakeSessions.productOwnerProfileOf`, the pipeline agent's through
- * `PipelineAgentSessions.pipelineAgentProfileOf`); its `settings` were rendered from them with the code before Windows sessions ran unconfined. Retake
- * the settings only from such code, rendering these same requests and writing each settings object under its key.
+ * The settings each of the six session kinds launches with, per OS: on Windows no `sandbox` key, since Claude Code exits at startup there
+ * when the sandbox must run; on macOS and Linux the sandbox with `failIfUnavailable: true`, as `testing/fixtures/frozen-session-settings.json`
+ * holds. Retake its settings only from code before Windows sessions ran unconfined, rendering its same `profiles` under each key.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';

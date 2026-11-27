@@ -17,7 +17,7 @@ import type { DocumentMessageState, DocumentProposalState, TicketDocumentKind } 
 import type { EntityRefusalReason }                                             from './utils/EntityValidationUtil.ts';
 import type { OptionNotesProblem }                                              from './utils/OptionConsequencesUtil.ts';
 
-/** A ticket whose Brief names files that neither its entity nor a package it whitelists owns, outside its `reach` (E85). */
+/** A ticket whose Brief names files that neither its entity nor a package it whitelists owns, outside its `reach`. */
 export interface TicketWorkOutsideEntity {
   ticketId: string;
   entity:   string;

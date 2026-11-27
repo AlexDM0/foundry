@@ -1,9 +1,7 @@
 /**
- * A crossing ticket's stages on the Board, on the entity-forge fixture's pipeline where the shop crosses into the package. What matters: the
- * Playbook reads the stage the ticket's row stores, so the job it launches runs in the stage's entity and number and the launch record names
- * both (an entity's cap counts jobs by them, E72); a review stage launches the package's reviewer; a ticket of the shop with no stage runs as
- * stage 1 of the shop; a forge without entities launches a job with neither key. Each review stage has its own bar: the bar stores its stage
- * and its name carries the stage's entity, its round counted within the stage, while a bar of a forge without entities stays as it was.
+ * A crossing ticket's stages on the entity-forge fixture, where the shop crosses into the package: the Playbook launches the job in the
+ * stage's entity and number and the launch record names both, so an entity's cap counts jobs by them; each review stage has its own bar,
+ * its round counted within the stage; a forge without entities launches and stores neither key.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -26,7 +24,7 @@ const PACKAGE_BUILD: TicketStage  = { name: 'package-build', entity: UI_KIT.key 
 const PACKAGE_REVIEW: TicketStage = { name: 'package-review', entity: UI_KIT.key };
 const HOME_REVIEW: TicketStage    = { name: 'review', entity: SHOP.key };
 
-/** Ticket 001 of the shop with its row: in progress with the `stage` its row holds when given, else ready to build. */
+/** The shop's first ticket with its row: in progress with the `stage` its row holds when given, else ready to build. */
 function boardWithTheShopTicket(pipeline: Pipeline, stage?: TicketStage): Board {
   const { board } = boardFixture({
     pipeline,

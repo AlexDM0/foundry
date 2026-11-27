@@ -175,7 +175,7 @@ export interface SetupEdit {
 
 export type ApplyRequestState = 'committing' | 'held' | 'refused';
 
-/** E91 and E94, which stage 2 gives again when a ticket started or took an entity while the request waited. */
+/** The two refusals stage 2 gives again when a ticket started or took an entity while the request waited. */
 export type EntityChangeRefusalReason = 'entity-named-by-tickets' | 'entities-while-tickets-in-flight';
 
 /**

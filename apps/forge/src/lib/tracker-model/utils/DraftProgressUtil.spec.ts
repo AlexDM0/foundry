@@ -1,9 +1,6 @@
 /**
- * Where a ticket being written stands. What matters: a spec-then-plan draft is at its spec until the spec is approved, then at its plan,
- * and in review while that document's head waits for User's approval; an open question of the stage's document waits on User before an
- * edit that waits for Apply, which waits before the approval, each since its own stamp; the agent is the stage's live document agent; a
- * ticket in `ready-for-review` waits for its review on either route, since its move; and a draft of the one-ticket route and a ticket past
- * review have no progress.
+ * Where a ticket being written stands: at its spec until approved, then at its plan, each in review while its head awaits User; open
+ * questions wait before edits awaiting Apply, which wait before approval; and a one-ticket draft or a ticket past review has no progress.
  */
 import { describe, expect, test } from 'bun:test';
 

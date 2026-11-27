@@ -161,7 +161,7 @@ export const LOG_RECORD_SCHEMA = {
   'entity-assigned':                { subject: 'ticket', fields: { entity: 'text', reason: 'text', by: 'entity-assigner' } },
   // A build stage's job of the ticket declared work it needs in another entity; Hephaestus files that work as its own ticket.
   'need-declared':                  { subject: 'ticket', fields: { entity: 'text', title: 'text', byJob: 'text' } },
-  // E26: Hephaestus filed tickets of a dependent entity in the crossing ticket's group, which wait on the crossing ticket.
+  // Hephaestus filed tickets of a dependent entity in the crossing ticket's group, which wait on the crossing ticket.
   'dependent-fix-filed':            { subject: 'ticket', fields: { entity: 'text', fixTicketIds: 'ticket-ids' } },
   // The ticket's spec and plan opened: from now on its documents, not its body, judge its readiness.
   'ticket-documents-opened':        { subject: 'ticket', fields: NO_FIELDS },

@@ -1,12 +1,7 @@
 /**
- * When the Playbook starts a ticket document's agent. What matters: the spec agent starts once the record opens with no spec, as the
- * Board's open move leaves it; the plan
- * agent once the spec is approved, and again for a newer approved spec while no edit for it is open, once per spec version, a spec
- * version known by its head number, so a spec whose text went back to an approved older one still counts as newer; a plan the agent wrote
- * for an older spec is due too, and a waiting plan agent given an older spec is replaced for it; a queued message starts the agent, or
- * resumes the one waiting for it; nothing starts while an agent works the document, once an agent picked the
- * ticket up, or by itself after an agent failed; an interrupted agent with its question open resumes at once, since its question stopped
- * no session; and a document agent's turn is first in line for a slot, before any build.
+ * When the Playbook starts a ticket document's agent: the spec agent once the record opens, the plan agent once per newer approved spec
+ * version, a queued message's agent, and an interrupted agent with its question open at once; nothing while an agent works the document,
+ * after pickup or after a failure; and a document agent's turn is first in line for a slot.
  */
 import { describe, expect, test } from 'bun:test';
 

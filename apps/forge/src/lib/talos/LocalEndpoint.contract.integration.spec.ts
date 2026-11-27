@@ -1,8 +1,7 @@
 /**
- * One contract for the `LocalEndpoint` port, run on the socket adapter on injected and real primitives and on the pipe adapter over a fake
- * listener: an endpoint is one per instance, a frame crosses a bound endpoint, a taken endpoint fails the listen with a verdict, a release
- * frees it and never throws. The socket adapter adds what a file leaves behind, a real crash among it; the pipe adapter what makes its name
- * safe: drawn at random for each launch, and no file touched. The platform without an adapter refuses instead.
+ * One contract for the `LocalEndpoint` port, on the socket adapter and on the pipe adapter over a fake listener: a frame crosses a bound
+ * endpoint, a taken endpoint fails the listen with a verdict, a release never throws. The pipe's name is drawn at random for each launch,
+ * and the platform without an adapter refuses.
  */
 import { EventEmitter } from 'node:events';
 import {

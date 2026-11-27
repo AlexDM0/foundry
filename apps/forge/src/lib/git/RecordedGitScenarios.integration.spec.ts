@@ -1,10 +1,7 @@
 /**
- * Records the git scenarios the Customs, document agent and review outcome specs replay
- * (`src/services/lifecycle/Customs.pipelineAgent.spec.ts`, `Customs.verification.spec.ts`, `Customs.provenance.spec.ts`,
- * `src/services/hephaestus/DocumentAgentSessions.spec.ts` and `ReviewOutcome.settled.spec.ts`): each case builds a scenario's state with
- * real git and runs in it the calls `src/testing/RecordedGitScenarioCalls.ts` names, so each answer is recorded under the scenario. A call
- * the production code makes and the data does not name fails its replaying spec as unrecorded. `bun run record src/lib/git/GitProcess.ts`
- * runs this spec and writes the answers to `src/testing/recordings/<os>/`.
+ * Records the git scenarios the Customs, document agent and review outcome specs replay: each case builds its state with real git and runs
+ * the calls `src/testing/RecordedGitScenarioCalls.ts` names. `bun run record src/lib/git/GitProcess.ts` writes the answers to
+ * `src/testing/recordings/<os>/`; a call the data does not name fails its replaying spec as unrecorded.
  */
 import { mkdirSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname, join }                          from 'node:path';

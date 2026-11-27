@@ -198,8 +198,8 @@ const SERVER_ERROR_STATUS_LEAST = 500;
 const SERVER_ERROR_STATUS_MOST = 599;
 
 /**
- * A session whose own retries ran out on an unreachable host or a provider overload (P23), told by the closing line's fields and at least
- * one `api_retry` line before it, never by its text. The overload's 5xx status is not recorded yet: it rests on the 429 result's shape.
+ * A session whose own retries ran out on an unreachable host or a provider overload, told by the closing line's fields and at least one
+ * `api_retry` line before it, never by its text. The overload's 5xx status is not recorded yet: it rests on the 429 result's shape.
  */
 const NETWORK_OUTAGE_ENDING: PlanEndingPattern = {
   name:               'network-outage',

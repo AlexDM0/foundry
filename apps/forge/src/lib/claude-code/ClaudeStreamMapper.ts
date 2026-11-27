@@ -243,7 +243,7 @@ function contextTokensOf(usage: StreamRecord | null): number | null {
   return numberAt(lastIteration, 'input_tokens') + numberAt(lastIteration, 'cache_creation_input_tokens') + numberAt(lastIteration, 'cache_read_input_tokens');
 }
 
-/** P10: an `is_error` result with `api_error_status` 429 is the limit whatever its `subtype`; a refused key answers 401 or 403. */
+/** An `is_error` result with `api_error_status` 429 is the limit whatever its `subtype`; a refused key answers 401 or 403. */
 function failureOf(record: StreamRecord, isError: boolean): AgentResultFailure | null {
   const httpStatus = nullableNumberAt(record, 'api_error_status');
   const text = stringAt(record, 'result');

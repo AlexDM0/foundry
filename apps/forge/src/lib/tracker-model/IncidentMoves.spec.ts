@@ -1,8 +1,7 @@
 /**
- * The moves under an incident and each kind's default, on the Board (design sections 5.4 and 8.3). What matters: an answer reaches the
- * waiting job and, for a malformed ticket, the ticket's `## Questions`; a note never closes; a park stops the waiting job and keeps the
- * agent's questions in front of User, and stops a build job holding an unreadable file, so it cannot open the incident again; and every
- * kind's default is planted, a merge gate's parking and a big resolution's review included.
+ * The moves under an incident and each kind's default, on the Board: an answer reaches the waiting job (and a malformed ticket's
+ * `## Questions`), a note never closes, a park stops the waiting job and keeps its questions in front of User, and every kind's default
+ * is planted.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -29,7 +28,7 @@ const wordingOf = (draft: DecisionDraft) => ({
   context: ''
 });
 
-/** A board with ticket 001 built by J1, waiting on the question an incident of the given kind carries. */
+/** A board with ticket `001` built by `J1`, waiting on the question an incident of the given kind carries. */
 function boardWithWaitingQuestion(kind: IncidentKind) {
   const fixture = boardFixture({ tickets: [ticketFixture({ id: '001', status: 'in-progress', task: 1 })] });
   fixture.board.launchJob({
@@ -96,7 +95,7 @@ describe('ticket park', () => {
   });
 
   describe('under an unreadable file of the job', () => {
-    /** Ticket 001's job of `kind`, moved through `states`, holding a system-file-unreadable incident. */
+    /** Ticket `001`'s job of `kind`, moved through `states`, holding a system-file-unreadable incident. */
     function boardWithUnreadableFileOf(kind: 'build' | 'merge', states: readonly SteppedJobState[]) {
       const fixture = boardFixture({ tickets: [ticketFixture({ id: '001', status: 'in-progress', task: 1 })] });
       fixture.board.launchJob({

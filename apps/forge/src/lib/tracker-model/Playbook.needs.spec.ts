@@ -1,10 +1,7 @@
 /**
- * The Playbook's rules for a need on a pipeline with entities (strategy section 4.3), each claim watched failing under the mutant of its line.
- * What matters: a ticket with an unsettled dependency launches nothing whatever its status, and one whose need's ticket is only reviewed
- * still waits, while a forge without entities keeps today's rebuild and review for a started ticket that waits; a build that ended
- * `needs-declared` runs its stage again in the same attempt once its needs are delivered; a need's ticket runs at the highest priority of
- * itself and the open tickets that wait on it, also through a need of a need, and a worker's finding is no need; an abandoned need's ticket
- * leaves the waiting ticket's `dependsOn` and opens a decision; and an open need decision holds the ticket it names.
+ * The Playbook's rules for a need on a pipeline with entities, each watched failing under its line's mutant: an unsettled need holds its
+ * ticket, a `needs-declared` build reruns its stage once its needs are delivered, a need's ticket takes the highest waiting priority, and
+ * an abandoned need opens a decision that holds the ticket.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -42,7 +39,7 @@ function launchesExactly(ticketIds: readonly string[]): (steps: readonly Playboo
   return (steps) => launchedTicketIdsOf(steps).join(' ') === ticketIds.join(' ');
 }
 
-/** Ticket 001's build J1 of `web` declared a need, filed as ticket 002 of `design-system`, and ended `needs-declared`. */
+/** Ticket `001`'s build `J1` of `web` declared a need, filed as ticket `002` of `design-system`, and ended `needs-declared`. */
 const NEED_DECLARED: LogRecord[] = [stagedLaunchedRecord('J1', 'build', '001', 'web', 1), endedRecord('J1', 'needs-declared')];
 
 const WAITING_TICKET = ticketOf('001', 'in-progress', { dependsOn: ['002'], entity: 'web' });

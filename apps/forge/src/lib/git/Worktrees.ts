@@ -1,9 +1,6 @@
 /**
- * Preparing and repairing linked worktrees, as verdicts: adding one on a new branch from a recorded commit, reading what a fresh one already
- * differs in, pruning the records of
- * vanished ones, removing a stale `index.lock`, and saving what a worktree holds beside its commit to a patch file. Removing a worktree
- * is `GitWorktrees.removeWithRetry`. Git run in a worktree is held below the worktree's parent, so a folder without its `.git` never reads
- * as the checkout above it.
+ * Preparing and repairing linked worktrees, as verdicts; removing one is `GitWorktrees.removeWithRetry`. Git run in a worktree is held below
+ * the worktree's parent, so a folder without its `.git` never reads as the checkout above it.
  */
 import { unlinkSync }       from 'node:fs';
 import { isAbsolute, join } from 'node:path';

@@ -1,8 +1,7 @@
 /**
- * A session started in a project folder of a checkout nested in the main checkout. Its Edit and Write rules reach the profile's write root,
- * the whole checkout, rather than the folder it starts in; and `claudeMdExcludes` names the main checkout's instruction files and rules
- * above the checkout, which Claude Code's upward walk would read beside the checkout's own copies, a rules folder by a glob of its files
- * since a bare folder excludes nothing. A profile without either key renders as it always did.
+ * A session started in a project folder of a checkout nested in the main checkout: its Edit and Write rules reach the whole checkout, and
+ * `claudeMdExcludes` names the main checkout's instruction files and rules above it, a rules folder by a glob since a bare folder excludes
+ * nothing. A profile without either key renders as it always did.
  */
 import { join } from 'node:path';
 

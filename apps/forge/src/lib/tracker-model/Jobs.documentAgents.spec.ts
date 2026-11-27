@@ -1,8 +1,7 @@
 /**
- * The Board's step that starts a ticket document's agent. What matters: with no agent on the board a fresh one launches in its document's
- * role, a plan agent carrying the approved spec version it writes for as its attempt, the spec's head number; an agent waiting for its next
- * message resumes its session in its next instance instead of a second agent launching; and a waiting plan agent given an older spec is
- * closed and a fresh one launches for the approved spec.
+ * The Board's step that starts a ticket document's agent: a fresh agent launches in its document's role (a plan agent's attempt is the
+ * approved spec's head number), a waiting agent resumes instead of a second one launching, and a waiting plan agent given an older spec is
+ * replaced.
  */
 import { describe, expect, test } from 'bun:test';
 

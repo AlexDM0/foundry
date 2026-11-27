@@ -1,8 +1,6 @@
 /**
- * The line diff a ticket document's comments move with. What matters: equal versions have no hunk; an insert, a deletion and a replace
- * each come out as one hunk with its lines and its place on both sides; a comment outside every hunk shifts by the lines before it; a
- * comment on replaced lines moves to the replacement, so a changed line keeps its comment; it is orphaned only when all its lines were
- * deleted or its quote is gone from its new lines; and past the cell limit the changed middle is one hunk, never a slow search.
+ * The line diff a ticket document's comments move with: one hunk per insert, deletion or replace; a comment shifts with the lines before
+ * it, follows a replacement and is orphaned only when its lines or quote are gone; past the cell limit the changed middle is one hunk.
  */
 import { describe, expect, test } from 'bun:test';
 

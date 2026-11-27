@@ -1,14 +1,7 @@
 /**
- * The forge's agent and the billing it decides on the Board. What matters: a first setup starts with its agent, at the billing step, which
- * no Continue leaves until the record holds a billing, and with a billing it opens past it; a billing must be one of the ways the agent's
- * vendor bills, and none is taken while a record names no agent; a change of agent keeps a billing the new vendor bills by and otherwise
- * clears it and asks the billing step again, every later done step needing a recheck; an update takes the stored pipeline's agent; Apply
- * stores the record's agent and its billing, an update with none keeping the stored one; the forge's agent goes into the stored pipeline and
- * the open record alike, or into the record alone while no pipeline is stored, and a billing its new vendor does not bill by is never kept
- * silently: the stored pipeline's and an update or advise record's, which have no billing step, refuse the change unless a billing the
- * vendor offers comes with it, while a first setup's record asks its billing step again; the tools need a stored pipeline, and go into an open
- * update's draft too, so its Apply keeps them; and a launch refused for the agent's program stands on its job, logged once, until it is
- * tried again.
+ * The forge's agent and the billing it decides, on the Board: a first setup holds at the billing step until the record holds a billing the
+ * agent's vendor bills by; a change of agent never keeps a billing its new vendor does not offer; Apply stores both; and a launch refused
+ * for the agent's program stands on its job, logged once, until it is tried again.
  */
 import { describe, expect, test } from 'bun:test';
 

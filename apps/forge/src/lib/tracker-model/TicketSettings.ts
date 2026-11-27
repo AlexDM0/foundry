@@ -113,7 +113,7 @@ export class TicketSettings {
 
   /**
    * Set only while no agent has claimed the ticket, as its network is; `updated` is not stamped, and the reason is logged, never stored.
-   * Hephaestus acting on User's answer to `work-in-other-entity` moves a started ticket too (E15), so its next build starts afresh there.
+   * Hephaestus acting on User's answer to `work-in-other-entity` moves a started ticket too, so its next build starts afresh there.
    */
   setTicketEntity(ticketId: string, assignment: EntityAssignment, at: string, options: { allowsPastCommitted?: boolean } = {}): TicketChanged {
     const ticket          = this.records.requireTicket(ticketId);

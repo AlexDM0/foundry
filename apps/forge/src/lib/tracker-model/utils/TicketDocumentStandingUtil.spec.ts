@@ -1,8 +1,6 @@
 /**
- * Where a ticket document stands. What matters: each of the six standings is reached by the facts the plan names and no others; staleness
- * is judged on content hashes, never on stamps; a plan approved on a spec version that is no longer the spec's approved head is out of
- * date, also while the spec waits for its next approval; a plan not approved at its head whose head the agent wrote for an older spec
- * version is out of date too, while one a person wrote is judged as before; and a record that lacks a document reads it unwritten.
+ * Where a ticket document stands: each of the six standings is reached by its facts alone, staleness is judged on content hashes, and a
+ * plan approved on or written for an older spec version is out of date.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -63,7 +61,7 @@ const SPEC_APPROVED_AT_FIVE = documentOf('spec', [SPEC_FIVE], [approvalOf(SPEC_F
 const SPEC_APPROVED_AT_SIX  = documentOf('spec', [SPEC_FIVE, SPEC_SIX], [approvalOf(SPEC_FIVE), approvalOf(SPEC_SIX)]);
 const SPEC_AWAITING_SIX     = documentOf('spec', [SPEC_FIVE, SPEC_SIX], [approvalOf(SPEC_FIVE)]);
 
-/** A plan whose head version 2 the agent's proposal P1, written for spec `forSpecNumber`, made; its agent called it ready. */
+/** A plan whose head version 2 the agent's proposal `P1`, written for spec `forSpecNumber`, made; its agent called it ready. */
 function planWrittenFor(forSpecNumber: number): TicketDocument {
   return {
     ...documentOf('plan', [PLAN_TWO], [], 2),

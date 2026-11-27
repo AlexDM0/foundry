@@ -89,10 +89,9 @@ export class MergeQueueMarks {
   }
 
   /**
-   * The row's `greenTree` is `headTree` and its `pipelineHash` the stored pipeline's hash of `phase`: Hephaestus gated exactly this tree
-   * under the gates `phase` runs now, in whichever phase that run was. On a pipeline with entities, the row's `pipelineHashes` also holds
-   * each entity it names at that entity's hash of `phase` now, and names each of `entitiesItMustName`. A row without `greenPhase`, or a
-   * `null` phase, is never current.
+   * Whether Hephaestus gated exactly `headTree` under the gates `phase` runs now: `greenTree` and `pipelineHash` match, and on a pipeline
+   * with entities `pipelineHashes` holds each named entity's current hash and names each of `entitiesItMustName`. A row without
+   * `greenPhase`, or a `null` phase, is never current.
    */
   greenIsCurrent(ticketId: string, headTree: string | null, phase: GatePhase | null, entitiesItMustName: readonly EntityKey[] = []): boolean {
     const row          = this.rowOf(ticketId);

@@ -1,8 +1,6 @@
 /**
- * Replace a file in one step, so no reader ever sees a half-written one: the bytes go to a temporary
- * file beside the target — beside, because a rename across filesystems is a copy and a copy is not
- * atomic — are flushed with `fsync` before the rename, and are renamed over it. It depends on no
- * other lib package.
+ * Replace a file in one step, so no reader sees a half-written one: write a temporary file beside the target (a rename across filesystems
+ * is a copy, and a copy is not atomic), `fsync` it, then rename it over the target. It depends on no other lib package.
  */
 import { randomUUID } from 'node:crypto';
 import {

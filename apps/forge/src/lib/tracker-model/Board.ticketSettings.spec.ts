@@ -1,8 +1,7 @@
 /**
- * A link never leaves two tickets naming one row, an agent change is judged on the resolved pair, and a hold or unhold that would change
- * nothing is refused. An entity is set only to a key the pipeline names, only before an agent claims the ticket, and with a reason the log
- * keeps and the ticket does not. A ticket goes into a group only from no group, whatever its status but settled, and only under a name a
- * filing could give it (E26, owner answer A11). Refusals are asserted by reason code, before anything changed.
+ * A link never leaves two tickets naming one row, a hold or unhold that changes nothing is refused, and an entity is set only to a key the
+ * pipeline names, before an agent claims the ticket, with a reason the log keeps. A ticket joins a group only from none, unless settled, and
+ * only under a name a filing could give it; refusals are asserted by reason code, before anything changed.
  */
 import { describe, expect, test } from 'bun:test';
 

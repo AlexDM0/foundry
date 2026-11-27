@@ -1,8 +1,7 @@
 /**
- * The real answers of this platform's local endpoint, through the native adapter: a Unix socket on macOS and Linux, a named pipe on Windows.
- * Each case asks one call shape of `ENDPOINT_CALL_SHAPES` and records what the system answered, with its timing class, for the mock of
- * `src/testing/RecordedLocalEndpoint.ts`. What matters most is the end of a connection: it reaches a client only once that client reads, so
- * a mock that closed an unread client would hide a real stall.
+ * The real answers of this platform's local endpoint, recorded with their timing class for `src/testing/RecordedLocalEndpoint.ts`. What
+ * matters most is the end of a connection: it reaches a client only once that client reads, so a mock that closed an unread client would
+ * hide a real stall.
  */
 import type { Server, Socket }    from 'node:net';
 import { afterAll, expect, test } from 'bun:test';

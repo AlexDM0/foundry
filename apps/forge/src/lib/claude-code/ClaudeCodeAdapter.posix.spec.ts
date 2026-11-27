@@ -1,8 +1,7 @@
 /**
- * The macOS and Linux settings and agents files may change only by the PowerShell rules and tools and by the exec-form guard hook. This
- * renders a guarded and an unguarded builder on both, takes those two changes back out, and compares the text byte for byte with
- * `testing/fixtures/frozen-posix-settings.json`, taken with the code before the PowerShell rules existed. Retake it only from such code,
- * with these same requests, the guard then given as one `commandArgv` of the program path and its arguments.
+ * The macOS and Linux settings and agents files change only by the PowerShell rules and tools and the exec-form guard hook: with those taken
+ * out, the rendering equals `testing/fixtures/frozen-posix-settings.json` byte for byte. Retake it only from code before the PowerShell
+ * rules, with these same requests, the guard given as one `commandArgv` of the program path and its arguments.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';

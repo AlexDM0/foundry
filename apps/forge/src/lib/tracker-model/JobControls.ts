@@ -52,10 +52,9 @@ export class JobControls {
   ) {}
 
   /**
-   * `stop` and `wind-down` hold the job's ticket "stopped by User (J<n>)" or "wound down by User (J<n>)", which the policy never undoes;
-   * a stopped product owner is finished, its open questions withdrawn. A job with no session to stop ends here, a job whose launch stands
-   * refused among them in every mode, since no session will ever end it; a pipeline agent with none ends `closed`, so a later message opens it
-   * again.
+   * `stop` and `wind-down` hold the job's ticket "stopped by User (J<n>)" or "wound down by User (J<n>)", which the policy never undoes,
+   * and a stopped product owner's questions are withdrawn. A job with no session to stop ends here, a refused launch's included, since no
+   * session will ever end it; a pipeline agent with none ends `closed`, so a later message opens it again.
    */
   requestJobStop(jobId: string, mode: JobStopMode, at: string): JobChanged {
     const job = this.jobRules.requireJob(jobId);
@@ -108,10 +107,9 @@ export class JobControls {
   }
 
   /**
-   * A product owner or pipeline agent that closed, by its own `intake-close` or by `job stop`, is reopened: its session resumes with the
-   * text and pictures as its first line. A product owner keeps the title its intake was given, and the log records the tickets its intake
-   * filed before. Every other finished job is refused `job-finished`. Only a product owner takes pictures: any other job is refused
-   * `pictures-not-taken`. The message's sender is logged, so the transcript tells Hephaestus's setup wording from User's words.
+   * Reopens a product owner or pipeline agent that closed, resuming its session with the text and pictures as its first line, a product
+   * owner keeping its intake's title; any other finished job is refused `job-finished`, and pictures to any job but a product owner
+   * `pictures-not-taken`. The sender is logged, so the transcript tells Hephaestus's setup wording from User's words.
    */
   messageJob(jobId: string, message: JobMessage, at: string): JobChanged {
     const { text, pictures, sender } = message;

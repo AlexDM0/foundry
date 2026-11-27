@@ -1,8 +1,7 @@
 /**
- * A build job's need for another entity (`need declare`). What matters: only a live build job of an entity declares one, so a forge without
- * entities never writes `needs`; the need is complete, for an entity the pipeline names and never the job's own, each refusal changing
- * nothing; it is kept with the job's tickets and logs nothing; the same entity and title replaces the body, the same body being no change;
- * and a job keeps a bounded number, so a session cannot grow progress.json without end.
+ * A build job's need for another entity (`need declare`): only a live build job of an entity declares one, never for its own entity, each
+ * refusal changing nothing; it logs nothing; the same entity and title replaces the body; and a job keeps a bounded number, so a session
+ * cannot grow progress.json without end.
  */
 import { describe, expect, test } from 'bun:test';
 

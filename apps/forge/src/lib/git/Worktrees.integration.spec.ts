@@ -1,8 +1,6 @@
 /**
- * Preparing and repairing worktrees, against real git in scratch repositories. What matters is that a new worktree starts exactly at the
- * recorded commit, under the given folder, on its own new branch; that a vanished worktree's record is pruned; that a stale index.lock is
- * found where git keeps it for a linked worktree; and that the saved patch holds tracked edits and untracked files alike and re-applies,
- * while a save that cannot be written is refused.
+ * Preparing and repairing worktrees against real git: a new worktree starts exactly at the recorded commit on its own new branch, a vanished
+ * one's record is pruned, a stale index.lock is found where git keeps it, and the saved patch holds tracked and untracked edits and re-applies.
  */
 import {
   existsSync,

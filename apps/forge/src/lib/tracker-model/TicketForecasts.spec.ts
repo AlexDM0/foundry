@@ -1,11 +1,7 @@
 /**
- * The ticket forecast Hephaestus serves. What matters: only a committed, in-progress or in-review ticket has one, and none while no pipeline
- * is set, since nothing launches then; the steps start at the step under way, named by its live job and marked current, or at the next one
- * with nothing current; Customs and its gates name the build phase's gates; a review phase that is not set adds no review step, and merge
- * approval adds a step only until User accepted; a group's ticket integrates into its group's branch while its release ticket lands; the
- * attempt and round are the Playbook's own, so a builder a review sent back keeps its attempt; targets are `null` without a target rule; and
- * a dependent lists the other dependencies it still waits on, while an unready ticket is no dependent. On a pipeline with entities, Customs
- * names the build gates of the ticket's own entity, never the forge's empty top level.
+ * The ticket forecast Hephaestus serves: only a committed, in-progress or in-review ticket with a pipeline has one, starting at the step
+ * under way or the next; its steps follow the pipeline's gates, review, merge approval and group with the Playbook's own attempt and round,
+ * and on a pipeline with entities Customs names the ticket's own entity's gates.
  */
 import { describe, expect, test } from 'bun:test';
 

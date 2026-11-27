@@ -1,6 +1,6 @@
 /**
- * The options of the entity decisions whose answer Hephaestus acts on: `work-in-other-entity` (E15), `package-refused` (E22),
- * `whitelist-removed-mid-crossing` (E19) and `dependent-broken` (E26). An answer is stored as the label User chose, so Hephaestus reads
+ * The options of the entity decisions whose answer Hephaestus acts on: `work-in-other-entity`, `package-refused`,
+ * `whitelist-removed-mid-crossing` and `dependent-broken`. An answer is stored as the label User chose, so Hephaestus reads
  * it back by the label; an answer that names none of them acts on nothing.
  */
 export const ENTITY_DECISION_ANSWERS = {

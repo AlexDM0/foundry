@@ -1,10 +1,7 @@
 /**
- * The synchronous-calls thread as a real Bun worker. What matters: it reads this process's identity through the real process table; it
- * appends event-log entries that read back whole once the log is synced and closed; a call that throws answers `failed` and the thread
- * goes on; a queue of process-tree calls that outlasts a short main-thread timer runs off the main thread, so the timer fires in time,
- * before the last answer; a worker keeps the code it loaded at its start when its modules change on disk afterwards, which is why
- * Talos starts it once; the endpoint is prepared and released on the thread; and a terminated worker, one that throws uncaught and one
- * that exits each reject every pending call, so a Talos whose thread died ends instead of waiting for ever.
+ * The synchronous-calls thread as a real Bun worker: a call that throws answers `failed` and the thread goes on, process-tree calls run off
+ * the main thread so a short timer fires in time, a worker keeps the code it loaded at its start (why Talos starts it once), and a worker
+ * that dies rejects every pending call, so Talos ends instead of waiting for ever.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join }                        from 'node:path';

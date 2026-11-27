@@ -1,9 +1,6 @@
 /**
- * The stage moves of a crossing ticket (strategy 4.2 and 5.2 to 5.7). What matters: the first crossing runs build, package build, package
- * review, adapt and review in that order, and adapt may be skipped; every way back the strategy names is legal and nothing else is, so a
- * later unit cannot jump a package review or a seal, and a package change turned into a need goes back to build from any later stage (E19);
- * only a move from `adapt` or `review` into a package build counts as a package return, since the second one opens a decision; a stage's
- * number is the job's `stage`, and a job's entity and number give its stage back; and a stage name read from outside is a membership test.
+ * The stage moves of a crossing ticket: the first crossing runs build, package build, package review, optional adapt and review; only the
+ * strategy's ways back are legal; a move from `adapt` or `review` into a package build is a package return; and a stage maps to a job number.
  */
 import { describe, expect, test } from 'bun:test';
 

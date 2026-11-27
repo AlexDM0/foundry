@@ -1,9 +1,7 @@
 /**
- * The supervision lease end to end with the Talos binary, on short bounds from its start file. What matters: renewals keep agents running;
- * silence ends the agents `lease-ended` at their turn end and leaves a line running, the record's standing following; a renewal after that
- * holds the lease again; and a Talos suspended longer than the lease stops nothing once it continues and a renewal follows within the wake
- * rule's grace. No renewal is sent while it is suspended, so none queued in its socket can renew before the first tick after the continue:
- * the record must read `waiting-after-gap` before the renewal, which a broken wake rule never writes.
+ * The supervision lease end to end with the Talos binary: renewals keep agents running, silence ends them `lease-ended` at their turn end,
+ * and a Talos suspended longer than the lease stops nothing once it continues. No renewal is sent while it is suspended, so none can renew
+ * before the first tick after the continue: the record must read `waiting-after-gap` first, which a broken wake rule never writes.
  */
 import {
   afterEach,

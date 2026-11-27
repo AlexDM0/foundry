@@ -1,9 +1,7 @@
 /**
- * Process identity against real processes. What matters is that an identity read under one timezone equals one read under another (the
- * stamp is read in UTC whatever the caller's TZ), that equality catches a reused pid and a changed boot, that a gone process has no
- * identity, and that a process group is signalled only while its leader is still the recorded process or, once the leader is gone, while
- * it has members none of which predates the recorded leader: the group kill stops a child that a kill of the leader alone leaves running,
- * and an empty or recycled group is never signalled.
+ * Process identity against real processes: the stamp reads the same under any timezone, equality catches a reused pid and a changed boot, and
+ * a process group is signalled only while its leader is the recorded process or, once it is gone, while no member predates it. An empty or
+ * recycled group is never signalled.
  */
 import { describe, expect, test } from 'bun:test';
 

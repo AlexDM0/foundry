@@ -1,9 +1,7 @@
 /**
- * The real-child half of the `GateConfinement` contract: for each mapped rule a child runs under Seatbelt where `sandbox-exec` applies, and
- * the lines it prints show what it could reach. The bubblewrap half is the rendered-argv table in `GateConfinement.contract.spec.ts`, since
- * this machine has no bwrap. The network cases use a TEST-NET address, so only the Seatbelt refusal decides the result, and the loopback case
- * listeners on 127.0.0.1 and ::1 of this process, which accept a connection while the spec waits on the child. A session-shaped plan writes
- * its extra roots, and a child under it cannot apply a sandbox of its own with a deny rule: `sandbox-exec` exits 71.
+ * The real-child half of the `GateConfinement` contract: for each mapped rule a child runs under Seatbelt and prints what it could reach; the
+ * bubblewrap half is the rendered-argv table in `GateConfinement.contract.spec.ts`, since this machine has no bwrap. The network cases use a
+ * TEST-NET address, so only the Seatbelt refusal decides the result.
  */
 import { mkdirSync, realpathSync, writeFileSync } from 'node:fs';
 import { join }                                   from 'node:path';

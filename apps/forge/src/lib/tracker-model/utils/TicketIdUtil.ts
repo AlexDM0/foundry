@@ -7,7 +7,7 @@ import { FIRST_TICKET_NUMBER, TICKET_ID_DIGITS } from '../constants/TicketFields
 
 const TICKET_REFERENCE_PATTERN = /^#?(\d+)$/;
 
-/** Ids past the padding width grow a digit rather than truncating, which would file ticket 1003 over ticket 003. */
+/** Ids past the padding width grow a digit rather than truncating, which would file `1003` over `003`. */
 function padTicketId(ticketNumber: number): string {
   return String(ticketNumber).padStart(TICKET_ID_DIGITS, '0');
 }

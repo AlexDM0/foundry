@@ -1,8 +1,7 @@
 /**
- * Talos's endpoint over the recorded endpoint, so no socket is made. What matters: an unterminated first line past
- * `TALOS_CLIENT_LINE_LIMIT_CHARACTERS` is refused `malformed` before any secret is checked, since an unbounded buffer lets anyone who can open
- * the endpoint grow Talos's memory; each frozen answer to a first line, the secret checked before the version so nobody without it can make
- * Talos quit; one `done` per client frame; and a frame sent as the first line is no `hello`.
+ * Talos's endpoint over the recorded endpoint: an unterminated first line past `TALOS_CLIENT_LINE_LIMIT_CHARACTERS` is refused before any
+ * secret is checked, since an unbounded buffer lets anyone grow Talos's memory; the secret is checked before the version, so nobody without
+ * it can make Talos quit.
  */
 import { afterEach, beforeEach, expect } from 'bun:test';
 

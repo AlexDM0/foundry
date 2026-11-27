@@ -1,12 +1,6 @@
 /**
- * The change list between a base pipeline and a draft, and the field names Apply logs. What matters: each edit User or the pipeline
- * agent can make shows as exactly one row of the right kind on the field the edit addresses; a hand edit that only reorders keys, and a
- * default written out, is no change; a reorder of prepare steps is one order row, while an added or removed step is only its own row;
- * billing is never a row; the constitution is a row when its path or, as the caller says, its text changed; the ticket writing route
- * and the spec and plan approvals are rows like the other approvals, and the documents a role reads are part of its role's row. Over entities: an entity's
- * definition is its own row; a field inside an entity is a row scoped `entity:<key>/`, a forge-level role never among them; an entity
- * only one side holds lists each of its fields against an empty entity; an empty list equals an absent one; and a pipeline without
- * entities gets no entity row.
+ * The change list between a base pipeline and a draft: each edit is exactly one row on the field it addresses, reordered keys and
+ * written-out defaults are no change, billing is never a row, and over entities a field inside an entity is a row scoped `entity:<key>/`.
  */
 import { describe, expect, test } from 'bun:test';
 

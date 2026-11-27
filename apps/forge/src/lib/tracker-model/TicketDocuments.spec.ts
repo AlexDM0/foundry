@@ -1,14 +1,7 @@
 /**
- * A ticket's spec and plan moves. What matters: a ticket without a record has no document and no standing; the next message is the oldest
- * one still queued, and marking it sent records its delivery; a save makes a version unless its text equals the head, merges with an
- * agent's newer version (User's text winning where the two overlap, the agent's edit conflicted and told) and is refused where two of
- * User's saves overlap, judged on the lines each save changed; a proposal lands on User's newer text only where its lines still stand, the
- * first write applies at once, and Edit first applies User's lines; comments move with a replace hunk and are orphaned when their lines go;
- * only the head is approved, only by User with the review on, and a spec without numbered Acceptance never; the approval that leaves both
- * documents approved readies the draft in the same write, E85 read from the plan; with the review off the agent's proposals apply as they
- * come and its ready applies one left open, so nothing waits on a person who cannot act; a changed spec leaves the plan out of date, its
- * approval kept, and so does a newer approved spec for a plan the agent wrote for an older one, whose ready the pipeline approves on the
- * spec it was given; a comment names lines its version holds; and nothing is edited after pickup.
+ * A ticket's spec and plan moves: queued messages, saves that merge with the agent's newer version or refuse an overlap, proposals and
+ * comments that move with the lines, approval of the head only (by the pipeline when review is off), readiness once both are approved, a
+ * plan left out of date by a newer spec, and no edit after pickup.
  */
 import {
   describe,

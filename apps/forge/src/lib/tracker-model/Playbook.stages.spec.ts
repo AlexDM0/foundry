@@ -1,19 +1,7 @@
 /**
- * The Playbook's launches for a crossing ticket's stages (strategy 4.2 and 5.8) on the entity-forge fixture's entities, each rule claim
- * watched failing under the mutant of its line. What matters: a ticket whose row stores a stage launches that stage's job in the stage's
- * entity and number whatever its status, a reviewer only for an entity with a review phase; review rounds count within their stage and are
- * kept on a return to it, so the home review's round 1 is its first; a package review never counts against the home builder's resumes,
- * while it counts against the package builder's, so a package build and package review loop parks once they are spent (E34); a ticket that
- * crosses into no package launches as today, as stage 1 or stage 5 of its own entity, and still parks after today's failed passes when
- * review rounds come between its failed builds; a forge without entities launches exactly as today, a stored stage ignored. The scheduling
- * cases: a stage's job holds one slot and a ticket between stages none (E70); a ticket between stages goes before a ready ticket of its
- * priority (E71); a stage's job names its entity, which an entity's cap counts (E72); two tickets cross into one package at once (E73); a
- * restart mid-stage resumes the stage's job once User resumes it and launches no second one (E74); a hold between stages holds and the
- * successor of a stage job that was stopped or replaced by a fresh job stays in its stage (E75), as does that of a package build or adapt
- * that wound down (E17); a usage limit holds a ticket between stages (E76); and an open decision of the package stages (`package-refused`,
- * `second-return`, `dependent-broken`, `whitelist-removed-mid-crossing`) holds the ticket it names until User answers (E22, E45, E26, E19).
- * A committed ticket without an entity launches nothing on a pipeline with entities until it has one, since its build would read the
- * forge-level pipeline, while a forge without entities launches it as today (E94).
+ * The Playbook's launches for a crossing ticket's stages on the entity-forge fixture, each rule watched failing under its line's mutant:
+ * the stored stage picks the job and entity, review rounds and failed passes count per stage, scheduling holds slots, priority and caps,
+ * the package stages' decisions hold their ticket, and a ticket without an entity launches nothing on a pipeline with entities.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -69,12 +57,12 @@ const PACKAGE_BUILD  = stageOf('package-build', UI_KIT.key);
 const PACKAGE_REVIEW = stageOf('package-review', UI_KIT.key);
 const HOME_REVIEW    = stageOf('review', SHOP.key);
 
-/** Ticket 001 of the shop, which crosses into the package. */
+/** Ticket `001` of the shop, which crosses into the package. */
 function crossingTicket(stage: TicketStage, status: 'in-progress' | 'in-review' = 'in-progress', overrides: Parameters<typeof ticketOf>[2] = {}) {
   return ticketOf('001', status, { entity: SHOP.key, stage, ...overrides });
 }
 
-/** Stage 1 of ticket 001 built in the shop, which the crossing follows. */
+/** Stage 1 of ticket `001` built in the shop, which the crossing follows. */
 const HOME_BUILT: LogRecord[] = [stagedLaunchedRecord('J1', 'build', '001', SHOP.key, 1), endedRecord('J1', 'built')];
 
 const SHOP_TICKET = { entity: SHOP.key };
@@ -89,7 +77,7 @@ function launchesExactly(policy: typeof Playbook, facts: Parameters<typeof Playb
   return Bun.deepEquals(launchesOf(policy.nextStepsOf(facts, FIXTURE_LIMITS)), expected, true);
 }
 
-/** A forge with entities whose ticket 001 built its stage 1 in the shop, which has a review. */
+/** A forge with entities whose ticket `001` built its stage 1 in the shop, which has a review. */
 function entityFacts(overrides: Parameters<typeof factsWith>[0] = {}): ReturnType<typeof factsWith> {
   return factsWith({
     pipelineHasEntities: true, entitiesWithReview: [SHOP.key], logRecords: HOME_BUILT, ...overrides

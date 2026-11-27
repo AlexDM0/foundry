@@ -1,20 +1,7 @@
 /**
- * The setup record's moves on the Board. What matters: one record is open at a time and its id is never reused; a step reopened sends
- * every later done step to `needs-recheck`, never back to `not-started`, and only Continue clears a recheck; only User's edit of an
- * earlier step of a first setup reopens it; the constitution is kept byte for byte, a source must name a line the text holds, and an
- * edit re-anchors the sources so only the edited line loses its tag; Undo writes the base value back; an unreadable record refuses every
- * move but a start over, which removes it, and a pending Apply refuses every move; and each move refuses with its reason and logs ids and
- * values only. The `entities` step is walked only by a record whose step states hold it: a first setup and an update of a pipeline
- * without entities open with no such state and never reach it, while a record over entities walks it between research and the
- * constitution. The edits of a copy to another entity carry their
- * set's batch, the first of their edit ids, and still undo one by one or as one set at one revision, a copy to two entities one entity
- * at a time; no other edit carries a batch, so
- * its set is itself; and a field inside an entity is
- * refused as the same field at the top would be. A finding of one entity goes to that entity's part. A first setup starts to walk the
- * `entities` step at the forge's second layout finding while research is current, and nothing else starts it: one layout finding, an
- * update, an entity's finding or a record past research keep today's steps, unchanged and unlogged. The agent asks at the `entities` step,
- * and User's answer there from a later step reopens it. A draft whose entities the validator refuses is kept, and Continue of any step
- * and Apply are refused `entity-refusals-stand` until an edit clears every refusal.
+ * The setup record's moves on the Board: one open record at a time, a reopened step sending later done steps to `needs-recheck`, the
+ * constitution kept byte for byte with its sources re-anchored on edit, Undo, copy batches, the `entities` step's walk, and refusals that
+ * stand until an edit clears them.
  */
 import { describe, expect, test } from 'bun:test';
 

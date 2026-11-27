@@ -1,9 +1,7 @@
 /**
- * Claude Code's `PreToolUse` hook input read into the neutral call forge's guards judge, and the denial they print. What matters: `Bash`
- * and `PowerShell` are shell calls carrying `allowed_domains` as a list (absent or null names none, a text is split on commas and spaces,
- * any other shape is unreadable); `WebFetch` carries its url; `Edit` and `Write` carry `file_path` and the session's `cwd`; the known tools
- * that run no command reach nothing; any other named tool is unknown, never passed; and input that is no JSON object or names no tool
- * cannot be read. The denial is the `hookSpecificOutput` document that denies with the reason as given.
+ * Claude Code's `PreToolUse` hook input read into the neutral call forge's guards judge, and the denial they print: `Bash` and `PowerShell`
+ * are shell calls with `allowed_domains`, `WebFetch` carries its url, `Edit` and `Write` their `file_path` and `cwd`, any other named tool is
+ * unknown and never passed, and input that is no JSON object or names no tool cannot be read.
  */
 import { describe, expect, test } from 'bun:test';
 

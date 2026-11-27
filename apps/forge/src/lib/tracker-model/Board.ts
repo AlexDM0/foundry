@@ -426,10 +426,9 @@ export class Board {
   }
 
   /**
-   * The product owner's close submits every draft its intake chain filed: readied, or ready for review when ticket review is on. Work
-   * outside an entity (E85) is refused before the job moves, so a corrected retry can still close. In the spec-then-plan `route`,
-   * `readinessGapsOf` judges a draft's Report and Wanted: each complete draft stays a draft and opens its spec and plan, which ready it. In a
-   * forge with entities a complete draft without one is refused there too, before the job moves, since its documents could never ready it.
+   * The product owner's close submits every draft its intake chain filed. Work outside an entity, and with entities a complete draft without
+   * one (its documents could never ready it), is refused before the job moves, so a corrected retry can still close. In the spec-then-plan
+   * `route` a complete draft stays a draft and opens its spec and plan, which ready it.
    */
   closeIntake(
     jobId: string,
@@ -629,19 +628,19 @@ export class Board {
     return this.ticketStageRows.moveTicketStage(ticketId, stage, at);
   }
 
-  /** A crossing ticket's package change dropped or turned into a need: the package's seal is lifted, the ticket goes back to build (E19, E22). */
+  /** A crossing ticket's package change dropped or turned into a need: the package's seal is lifted, the ticket goes back to build. */
   moveTicketBackToBuild(ticketId: string, homeEntity: string, packageEntity: string, at: string): Logged {
     return this.ticketStageRows.moveTicketBackToBuild(ticketId, homeEntity, packageEntity, at);
   }
 
-  /** The ticket no longer crosses into a package: its row's stage and seals go (E15). */
+  /** The ticket no longer crosses into a package: its row's stage and seals go. */
   clearTicketStage(ticketId: string): void {
     this.ticketStageRows.clearTicketStage(ticketId);
   }
 
   /**
-   * A crossing ticket goes back into the package build of `packageEntity` (E41, E65) once. A second return opens `second-return` instead,
-   * which holds the ticket at its stage until User answers (E45); one already open is not opened again.
+   * A crossing ticket goes back into the package build of `packageEntity` once. A second return opens `second-return` instead, which holds
+   * the ticket at its stage until User answers; one already open is not opened again.
    */
   returnTicketToThePackage(ticketId: string, packageEntity: string, decisionWordingOf: (draft: DecisionDraft) => DecisionWording, at: string): Logged {
     const packageBuild: TicketStage = { name: 'package-build', entity: packageEntity };
@@ -657,7 +656,7 @@ export class Board {
     };
   }
 
-  /** Whether `returnTicketToThePackage` would open `second-return` rather than move the ticket into the package's build (E45). */
+  /** Whether `returnTicketToThePackage` would open `second-return` rather than move the ticket into the package's build. */
   returnToThePackageIsASecondReturn(ticketId: string, packageEntity: string): boolean {
     return this.ticketStageRows.stageMoveIsASecondPackageReturn(ticketId, { name: 'package-build', entity: packageEntity });
   }
@@ -1053,10 +1052,9 @@ export class Board {
   }
 
   /**
-   * The forge's agent: the stored pipeline's, and the open setup record's with it, so its pipeline agent runs on the same one. A billing
-   * sent with it is stored with it; with none, a stored billing the new vendor does not bill by is refused `billing-not-offered`, since
-   * the billing is User's choice. A first setup's record asks its billing again instead. With no stored pipeline an open record takes the
-   * agent alone; with neither it is refused `agent-without-pipeline`. Every launch it refused is tried again.
+   * The forge's agent, stored on the pipeline and the open setup record alike, so its pipeline agent runs on the same one. Unless a billing is
+   * sent along, a stored billing the new vendor does not bill by is refused `billing-not-offered`, since billing is User's choice (a first setup
+   * asks again); with no pipeline and no open record it is refused `agent-without-pipeline`. Every launch it refused is tried again.
    */
   setAgent(agent: PipelineAgent, billing: PipelineBilling | undefined, offeredBillingModesOf: OfferedBillingModesOf, at: string): Logged {
     const setup = this.pipelineSetup();
@@ -1159,7 +1157,7 @@ export class Board {
     return { logged: [this.records.logger.log({ kind: 'ticket-grouped', ticketId, fields: { group } }, at)], ticket };
   }
 
-  /** E26: a ticket of each dependent that the crossing ticket's package change breaks was filed in the crossing ticket's group. */
+  /** A ticket of each dependent that the crossing ticket's package change breaks was filed in the crossing ticket's group. */
   recordDependentFixFiled(ticketId: string, fix: LogRecordFieldsOf<'dependent-fix-filed'>, at: string): Logged {
     this.records.requireTicket(ticketId);
     return { logged: [this.records.logger.log({ kind: 'dependent-fix-filed', ticketId, fields: { entity: fix.entity, fixTicketIds: [...fix.fixTicketIds] } }, at)] };
@@ -1452,7 +1450,7 @@ export class Board {
     return this.pipelineSetups.storedPipelineMovedSince(setupId, reading);
   }
 
-  /** The E91 or E94 refusal stage 2 would give: a ticket started, or took an entity the draft removes, while the request waited. */
+  /** The refusal stage 2 would give again: a ticket started, or took an entity the draft removes, while the request waited. */
   entityChangeRefusalOf(setupId: string): EntityChangeRefusalReason | null {
     return this.pipelineSetups.entityChangeRefusalOf(setupId);
   }
@@ -1502,7 +1500,7 @@ export class Board {
     return this.ticketMoves.readyDraftTickets(ticketIds, readinessGapsOf, at, readiableStatuses, workFilesOf);
   }
 
-  /** The filer's close of its drafts, judged by the board's ticket review switch; `workFilesOf` refuses work outside an entity (E85). */
+  /** The filer's close of its drafts, judged by the board's ticket review switch; `workFilesOf` refuses work outside an entity. */
   submitDraftTickets(
     ticketIds: readonly string[],
     readinessGapsOf: (body: string) => readonly ReadinessGap[],
@@ -1512,7 +1510,7 @@ export class Board {
     return this.ticketMoves.submitDraftTickets(ticketIds, this.ticketReviewIsOn(), readinessGapsOf, at, workFilesOf);
   }
 
-  /** Refuses E85 for the complete tickets a submit would move, judged before anything moves; a ticket not yet filed may be judged. */
+  /** Refuses work outside an entity for the complete tickets a submit would move, before anything moves; a ticket not yet filed may be judged. */
   refuseWorkOutsideTheEntity(
     tickets: readonly Readonly<Ticket>[],
     readinessGapsOf: (body: string) => readonly ReadinessGap[],

@@ -1,8 +1,7 @@
 /**
- * The `gate` writes on a pipeline with entities. What matters: each write of the forge's own prepare steps, gates, phases or reach is
- * refused with the entity keys, before anything is changed or logged, since beside `entities` those stay empty and each entity's are set in
- * the pipeline builder; an approval and the Assistant's switch, which stay the forge's own, are still set; a pipeline without entities takes
- * every write as before; and a board with no pipeline refuses the Assistant's switch.
+ * The `gate` writes on a pipeline with entities: each write of the forge's own prepare steps, gates, phases or reach is refused with the
+ * entity keys before anything changes, since each entity's are set in the pipeline builder; an approval and the Assistant's switch stay the
+ * forge's own; a pipeline without entities takes every write as before.
  */
 import { describe, expect, test } from 'bun:test';
 

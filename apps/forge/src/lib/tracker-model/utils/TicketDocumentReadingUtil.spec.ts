@@ -1,8 +1,6 @@
 /**
- * Which version of each document a builder or a reviewer reads. What matters: `always` gives the approved head; `if-person-approved` gives
- * the newest version a person approved, nothing when only the pipeline approved, the older approved version when the plan changed since,
- * and nothing for a plan approved on an older spec than the one given; `never` gives nothing; the plan as the Brief puts every plan line
- * under one `## Brief`.
+ * Which version of each document a builder or reviewer reads: `always` the approved head, `if-person-approved` the newest a person approved
+ * (none for a plan approved on an older spec), `never` nothing; and the plan as the Brief puts every line under one `## Brief`.
  */
 import { describe, expect, test } from 'bun:test';
 

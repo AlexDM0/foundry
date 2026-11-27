@@ -235,11 +235,9 @@ export class TrackerChanges {
   }
 
   /**
-   * At a gate run's settlement: the ticket's row records the phase and phase hash the run read at its start, never the pipeline's now, so
-   * a pipeline edited mid-run leaves a green that is not current; a run of entities' gates records their phase hashes as `pipelineHashes`,
-   * and any other run removes them. With no pipeline stored, or none read by the run (`null`), the row loses all three. A green run records
-   * its tree as `greenTree` beside them, filing the ticket's row when it has none; any other run removes it, so the row never names a tree
-   * the recorded gates did not pass.
+   * At a gate run's settlement, the row records the phase and phase hashes the run read at its start, never the pipeline's now, so a
+   * mid-run edit leaves a green that is not current; with no pipeline read it loses them. Only a green run records `greenTree`, so the row
+   * never names a tree the recorded gates did not pass.
    */
   recordPipelineJudgedBy(ticketId: string, greenTree: string | null, stamp: GateRunStamp | null, at: string): void {
     const ticket       = this.records.requireTicket(ticketId);

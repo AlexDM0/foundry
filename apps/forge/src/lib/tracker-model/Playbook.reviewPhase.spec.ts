@@ -1,10 +1,7 @@
 /**
- * The review as an optional phase: without a pipeline `review` no reviewer is ever launched, and what waits in review unqueued is queued
- * to merge instead of waiting forever; and a review that
- * does not hold resumes the builder in the same attempt, counted against the red-handoff resumes of its cycle, so the review that goes
- * one past them parks the ticket instead. What matters is that no reviewer launches on a board that left review out, and that a review
- * resume and a red resume share the one bound. On a pipeline with entities a ticket's own entity says whether it is reviewed, whatever the
- * forge's own `review`, so an app with a review is reviewed on a forge that sets none at its top level, and an app without one is not.
+ * Review as an optional phase: without a pipeline `review` no reviewer launches and review work queues to merge; a review that does not
+ * hold resumes the builder within the red-handoff bound; and on a pipeline with entities the ticket's own entity decides whether it is
+ * reviewed.
  */
 import { describe, expect, test } from 'bun:test';
 

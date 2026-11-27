@@ -1,8 +1,7 @@
 /**
- * The Assistant's incidents on the Board. What matters: an incident starts undelivered and carries its facts and default
- * move; it closes exactly once, by a move (`incident-handled`), by its own default with the cause the warning state reads
- * (`incident-defaulted`), or by an escalation that puts the agent's questions to the user unchanged as an `agent-question` decision on the
- * same tickets, job and request; a closed one refuses every later close; and a replayed question request opens no second incident.
+ * The Assistant's incidents on the Board: an incident starts undelivered with its facts and default move, and closes exactly once, by a
+ * move, by its default or by escalating the agent's questions unchanged as an `agent-question` decision; a replayed question request opens
+ * no second incident.
  */
 import { describe, expect, test } from 'bun:test';
 

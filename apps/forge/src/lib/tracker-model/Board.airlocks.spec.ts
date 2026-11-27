@@ -1,11 +1,7 @@
 /**
- * The Airlock's claim on the board. What matters: the queue is re-derived inside the hold, so a strictly higher priority queued since
- * the prediction is never jumped, a held slot is never claimed twice, and a claim writes the slot on the merge job it launches. A green
- * is current only under the phase hash it was recorded with and with its phase stored: a row from before the phase existed fails closed.
- * On a forge with entities a green also holds each gated entity's phase hash, and a row naming none fails closed; without entities the row
- * never gets them.
- * With merge approval on, User's press order alone sets the train: a candidate's readiness is its newest accept, and no priority refuses
- * a claim, while the tickets still waiting keep the order they were queued in.
+ * The Airlock's claim on the board: the queue is re-derived inside the hold, so a higher priority is never jumped and a slot never claimed
+ * twice; a green is current only under its recorded phase hash, and with entities each gated entity's, else it fails closed. With merge
+ * approval on, User's press order alone sets the train, while the tickets still waiting keep their queued order.
  */
 import { describe, expect, test } from 'bun:test';
 

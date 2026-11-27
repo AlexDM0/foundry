@@ -1,16 +1,7 @@
 /**
- * Hephaestus's jobs on the Board. What matters: a job's ids are never reused or gap-filled, since a log line and a child folder name it for
- * good; the record holds what a restart needs and no process identity; every move goes through the one legality table, an illegal one
- * refused `job-move-illegal` from every state; a job is finished only by `job-ended`, after which every move is refused `job-finished`;
- * only the launch, an interruption, a resume and the end are logged; and the merge-queue mark lives on in-review rows only. A product owner's
- * launch logs User's request as `intakeText` and its title as `intake-titled`, so a closed session keeps both after its job leaves the board;
- * a title names only a product-owner intake, is never blank, and a later one replaces an earlier one, on the job and across a reopening.
- * A request's pictures are logged as `intakePictures` and kept on the job only when there are some; a blank request with none is refused
- * `intake-empty`; only a product owner takes pictures. A pipeline agent is a session too: a stop closes it, even before its session started,
- * and User's message opens it again with its conversation; one that ended otherwise is refused `job-finished`. User's resume is logged for
- * an interrupted job only, refused `job-not-interrupted` for any other, and gives the job its crash resumes back. In every state a job
- * offers exactly the stop modes, fresh agent and message its controls accept. A job whose launch stands refused ends on every stop mode, since
- * no session of it will ever end.
+ * Hephaestus's jobs on the Board: ids are never reused, since a log line and a child folder name them for good; every move goes through the one
+ * legality table, and only `job-ended` finishes a job, which a job whose launch stands refused does on every stop mode, since no session of it will
+ * ever end. The cases also cover the product owner's intake, the pipeline agent's session and User's resume.
  */
 import { describe, expect, test } from 'bun:test';
 

@@ -1,11 +1,7 @@
 /**
- * `sentLineOf` reads back the lines Talos writes to a Claude Code session, so a transcript shows what was said rather than the vendor's
- * JSON. What matters: it is the exact inverse of the three writers (a chat with or without pictures, an answer with its request and
- * answers, an interrupt), it reads the recorded stdin lines of a real session the same way, and any other line, a stdout line among them,
- * reads as `null` rather than a guess. An answer to a question with a recommended option is written with the session's own mark on that
- * option's label, in the echoed questions and in the answer, and reads back unmarked, as the stored decision holds the label. A chat
- * with pictures is written as probe P21 found Claude Code takes it: base64 image blocks before one text block
- * (`.platform-probes/claude-p21-stream-json-image-input.js`); without pictures the content stays the plain text.
+ * `sentLineOf` reads back the lines Talos writes to a session, so a transcript shows what was said: it inverts the three writers exactly, reads a
+ * recorded session's stdin alike, and any other line as `null`. A recommended option's mark reads back unmarked, as the stored decision holds the
+ * label; pictures go as base64 image blocks before one text block, as `.platform-probes/claude-p21-stream-json-image-input.js` found.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';

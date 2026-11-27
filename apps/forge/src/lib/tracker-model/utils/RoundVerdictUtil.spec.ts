@@ -1,9 +1,6 @@
 /**
- * Whether a reviewer's call for another round is granted. What the run relies on is the threshold's edge (exactly the protocol's count is
- * refused), that round 2 asks for nothing but the count, and that from round 3 each convergence rule refuses on its own, with the refusal
- * naming what it found: classes and files are judged against every earlier round, the halving against the previous round's first record, and a
- * missing previous round is refused rather than judged against nothing. The pipeline sets the threshold: a review with no re-review grants no
- * round at any rework, its re-review's `thresholdLines` is the threshold, and with no pipeline the fallback's threshold holds.
+ * Whether a reviewer's call for another round is granted: exactly the protocol's count is refused, round 2 asks only the count, from round
+ * 3 each convergence rule refuses on its own and names what it found; and the pipeline's re-review `thresholdLines` sets the threshold.
  */
 import { describe, expect, test } from 'bun:test';
 

@@ -1,8 +1,7 @@
 /**
- * A session's subagent transcripts tallied as the live facts tally the event log. What matters: a call repeated across a turn's lines
- * counts once and runs until its result, a half-written last line costs nothing, a subagent is keyed by its `.meta.json` parent call or
- * else its agent id and carries the description written there, and only this session's transcripts are read, a workflow run's among them,
- * under a scratch home.
+ * A session's subagent transcripts tallied as the live facts tally the event log: a call repeated across a turn's lines counts once, a
+ * half-written last line costs nothing, a subagent is keyed by its `.meta.json` parent call or else its agent id, and only this session's
+ * transcripts are read, a workflow run's among them.
  */
 import { chmodSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join }                                from 'node:path';

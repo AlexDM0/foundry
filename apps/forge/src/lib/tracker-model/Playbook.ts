@@ -135,7 +135,7 @@ const PRIORITY_RANK: Readonly<Record<TicketPriority, number>> = { high: 0, norma
 
 /**
  * Within a priority rank a review goes first (it holds finished work), then the next build stage of a ticket between stages, so started
- * work finishes first (E71), then a rebuild, then a ready build.
+ * work finishes first, then a rebuild, then a ready build.
  */
 const WORK_PHASE_RANK = {
   review: 0, stage: 1, rebuild: 2, build: 3
@@ -319,10 +319,9 @@ interface HandoffCycle {
 }
 
 /**
- * The resumes of a handoff cycle, every job of its kind, tickets, attempt, entity and stage, so a fresh session that took over a session the vendor
- * could not resume carries on the same count: its red-handoff resumes, and for a build cycle each review of its tickets that did not
- * hold after the cycle began, since the builder is resumed with that review's findings. A cycle of an entity never counts a review of
- * another entity: a package review sends back the package's builder, never the home builder.
+ * The resumes of a handoff cycle, across fresh sessions that took over one the vendor could not resume: its red-handoff resumes and, for
+ * a build cycle, each later review of its tickets that did not hold, since the builder is resumed with that review's findings. A package
+ * review counts only against the package's own builder.
  */
 function handoffCycleResumesOf(cycle: HandoffCycle, logRecords: readonly LogRecord[]): number {
   return handoffCycleResumesWith(cycle, logRecords, jobLaunchesByJobIdOf(logRecords));
@@ -733,7 +732,7 @@ function reviewIsSetFor(ticket: PlaybookTicket, facts: IndexedPlaybookFacts): bo
 
 function candidateOf(ticket: PlaybookTicket, facts: IndexedPlaybookFacts): Candidate | null {
   if (ticket.status !== 'in-review' && ticket.status !== 'in-progress' && ticket.status !== 'committed') return null;
-  // On a pipeline with entities a ticket builds only in its entity's pipeline (E94), and a started one also waits for its dependencies and needs.
+  // On a pipeline with entities a ticket builds only in its entity's pipeline, and a started one also waits for its dependencies and needs.
   if (facts.pipelineHasEntities && ticket.entity === undefined) return null;
   if (facts.pipelineHasEntities && waitsOnADependency(ticket, facts)) return null;
   if (facts.pipelineHasEntities && ticket.stage !== undefined && ticket.status !== 'committed') return stageCandidateOf(ticket, ticket.stage, facts);
@@ -793,7 +792,7 @@ function launchEntityOf(step: PlaybookStep): EntityKey | undefined {
 }
 
 /**
- * The candidates, in order, that their entity's cap leaves room for (E72): an entity's running jobs that hold a slot, whatever ticket they
+ * The candidates, in order, that their entity's cap leaves room for: an entity's running jobs that hold a slot, whatever ticket they
  * serve, and the candidates of it kept before, count against its cap. A candidate past its cap gives its place to the next one.
  */
 function candidatesWithinEntityCapsOf(candidates: readonly Candidate[], facts: PlaybookFacts): Candidate[] {

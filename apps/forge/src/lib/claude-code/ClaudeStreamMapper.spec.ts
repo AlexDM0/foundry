@@ -1,10 +1,7 @@
 /**
- * The mapper is Hephaestus's only reading of a Claude session, so each case replays a recorded 2.1.311 fixture
- * (`docs/development/hephaestus-claude-probe.md`) rather than a hand-written line: the start, a question Hephaestus must deliver, the denials it
- * counts, the structured report it verifies, and the two rate-limit shapes, each
- * window of which is one event, and of which only the top-level refusal of the named window may interrupt a job.
- * The API billing results (a refused key, a budget stop) have no recording yet: those cases plant their values over a recorded result line.
- * A subagent's spawning call has no recording either: its case writes the line, and holds that the call's description arrives whole.
+ * The mapper is Hephaestus's only reading of a Claude session, so each case replays a recorded 2.1.311 fixture rather than a hand-written
+ * line. The API billing results and a subagent's spawning call have no recording yet: those cases plant their values over a recorded line.
+ * Of the two rate-limit shapes, only the top-level refusal of the named window may interrupt a job.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';

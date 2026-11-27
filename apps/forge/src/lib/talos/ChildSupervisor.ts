@@ -1,9 +1,7 @@
 /**
- * The children of one Talos: each launched child runs under the port's spawn, its stdout lines go to its event log, its stderr to its log,
- * and its record follows it from `starting` to `ended`. An agent takes input, has its requests answered by its standing replies and its
- * named endings recognised; what Talos does to its input or process goes to its event log first. A stop lists the tree first and signals
- * it through the synchronous-calls thread; a line past its time bound is stopped, the gaps in Talos's ticks added to its allowance and left
- * out of its run time. The clean quit's parts work over every child at once.
+ * The children of one Talos: each runs under the port's spawn, stdout to its event log, stderr to its log, its record from `starting` to
+ * `ended`. What Talos does to a child's input or process goes to its event log first. A line past its time bound is stopped, the gaps in
+ * Talos's ticks added to its allowance and left out of its run time.
  */
 import type { ProcessIdentity }                     from '../process-identity/ProcessIdentity.ts';
 import type { ProcessStopStage, ProcessTreeMember } from '../process-identity/ProcessSupervision.ts';

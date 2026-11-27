@@ -12,10 +12,8 @@ export const TICKET_STAGE_NUMBERS: Readonly<Record<TicketStageName, number>> = {
 };
 
 /**
- * Read as "to reach the key, the ticket has to be in one of these stages", like the ticket's own legality table; no stage holds its own key.
- * From `package-review` the ticket goes to the next package's build, or back to the same package's build when the review does not hold. A
- * move from `adapt` or `review` into `package-build` is a package return. A refused package change goes back to `build` (E22), and so does
- * a ticket whose package left the whitelist mid-crossing once its change of the package becomes a need, from any later stage (E19).
+ * Read as "to reach the key, the ticket has to be in one of these stages"; no stage holds its own key. A move from `adapt` or `review`
+ * into `package-build` is a package return, and a refused package change or one turned into a need goes back to `build` from any later stage.
  */
 export const LEGAL_SOURCE_STAGES_FOR_TICKET_STAGE: Readonly<Record<TicketStageName, readonly TicketStageName[]>> = {
   'build':          ['package-build', 'package-review', 'adapt', 'review'],

@@ -1,11 +1,7 @@
 /**
- * The adapter is the whole of what a launched session may do, so these cases hold its rendering per role as a table: the command line
- * of design section 4.2, the settings that confine the session (sandbox sets as `//`-anchored paths, git denies, no attribution, no
- * memory, no instruction file above the repository, no local port), the subagents, the git configuration, the scrubbed environment, the
- * one standing reply, and the lines Talos sends, against the ones the probes recorded. The adapter names its own variables and credentials
- * and reads its config folder variable through the reader it is handed, words the repair of a refused program, and names its configuration
- * paths and its commit attribution. It answers what the core counts on: live answers, a resume found by its folder, and the line that runs
- * an instruction bundle.
+ * The adapter is the whole of what a launched session may do, so these cases hold its rendering per role as a table: the command line,
+ * the confining settings, the subagents, the git configuration, the scrubbed environment, the standing reply and the lines Talos sends,
+ * against what the probes recorded; and what the core counts on: live answers, a resume found by its folder, an instruction bundle's line.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';

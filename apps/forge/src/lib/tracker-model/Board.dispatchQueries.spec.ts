@@ -1,8 +1,7 @@
 /**
- * A review counts as in flight on any row storing `reviewOf`, as a claim counts it, and a ticket waits for review exactly while no
- * reviewer is at work; a ticket's linked row is the one its frontmatter `task` names. The free slots the concurrency figure shows are the
- * builds the Playbook launches on the same board, so the figure and the launch gate never disagree. A committed ticket's documents hold it
- * while they are not in order, and also while its documents record cannot be read, which is never judged by the body instead.
+ * A review is in flight on any row storing `reviewOf`, as a claim counts it, and a ticket's linked row is the one its `task` names. The free
+ * slots shown are the builds the Playbook launches, so the figure and the launch gate never disagree. A committed ticket's documents hold it
+ * while not in order or unreadable, never judged by the body instead.
  */
 import { describe, expect, test } from 'bun:test';
 

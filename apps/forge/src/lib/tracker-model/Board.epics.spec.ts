@@ -1,8 +1,7 @@
 /**
- * Epics on the Board. What matters: a refused change (a malformed or taken key, an unknown epic, removing one a ticket still names) changes
- * nothing; a new epic takes the colour slot the fewest epics use, lowest on a tie; a ticket's list keeps its order, since the first key is
- * its primary epic; and the roll-up counts a ticket in two epics in both, its tokens from its own row plus its review rows, its span from
- * the first start to the last end and open while a counted row runs.
+ * Epics on the Board: a refused change changes nothing; a new epic takes the least used colour slot, lowest on a tie; a ticket's first epic
+ * key is its primary; and the roll-up counts a ticket in two epics in both, its tokens from its own and its review rows, its span from first
+ * start to last end, open while a counted row runs.
  */
 import { describe, expect, test } from 'bun:test';
 

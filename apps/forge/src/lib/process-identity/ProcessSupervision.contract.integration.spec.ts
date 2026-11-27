@@ -38,7 +38,7 @@ interface SupervisionSubject {
   readonly startTree:         () => Promise<StartedTree>;
   /** A lone leader that takes no `ask`. */
   readonly startStopIgnorer:  () => Promise<StartedTree>;
-  /** A leader whose child leads a group of its own, the shape probe P7 measured. */
+  /** A leader whose child leads a group of its own, the shape the process-group probe measured. */
   readonly startBranchedTree: () => Promise<StartedTree>;
 }
 

@@ -1,10 +1,7 @@
 /**
- * The gate profile moves on a Board. What matters: a press queues one gate in one phase, and a second press while that gate and phase have
- * a run queued or running refuses `gate-profile-running`; a run keeps each prepare step's folder, so it prepares where the pipeline does;
- * only the newest run of a gate and phase is kept, of an entity's gate and phase on a forge over entities, and run ids are never reused; a
- * run ends with its duration and what its gate reported of its cache, except one User asked to stop, which ends `stopped` with neither; a
- * Stop ends a queued run at once and only marks a running one; a Hephaestus start stops a run left running and leaves a queued one queued;
- * and a malformed file refuses every move and is never written over.
+ * The gate profile moves on a Board: one queued or running run per gate and phase, only the newest run kept and no run id reused, a run
+ * ending with its duration and cache report unless stopped, Hephaestus's start stopping a run left running, and a malformed file refusing
+ * every move.
  */
 import { describe, expect, test } from 'bun:test';
 

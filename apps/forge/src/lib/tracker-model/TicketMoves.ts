@@ -125,11 +125,9 @@ export class TicketMoves {
   }
 
   /**
-   * Every named draft moves to `committed` with a row at any priority, or none does: a ticket not in `draft` is refused first, then, in a
-   * forge with entities, every ticket without one, then every ticket the reading finds gaps in, all named at once. Every way to `committed`
-   * passes here, so a ticket is never built without its entity. Only User's own `ticket ready` passes `ready-for-review` as readiable. A
-   * filer's move passes `workFilesOf`, so a ticket whose Brief names work outside its entity is refused (E85); a need's ticket, filed by
-   * Hephaestus for the entity the need names, passes none.
+   * Every named draft moves to `committed`, or none does; every way there passes here, so no ticket is built without its entity. Refused in
+   * this order, all named at once: not a draft, no entity, a filer's Brief naming work outside its entity (a need's ticket Hephaestus files
+   * passes no `workFilesOf`), then gaps. Only User's own `ticket ready` readies from `ready-for-review`.
    */
   readyDraftTickets(
     ticketIds: readonly string[],
@@ -195,8 +193,8 @@ export class TicketMoves {
   }
 
   /**
-   * The E85 judgement of a submit, run before anything it would undo moves: the complete tickets, which a submit moves, refused when a
-   * Brief names work outside its entity. A ticket not yet filed may be judged too.
+   * The judgement of a submit that no complete ticket's Brief names work outside its entity, run before anything it would undo moves; a
+   * ticket not yet filed may be judged too.
    */
   refuseWorkOutsideTheEntityOfCompleteTickets(
     tickets: readonly Readonly<Ticket>[],
@@ -237,7 +235,7 @@ export class TicketMoves {
     if (ticketIdsWithoutAnEntity.length > 0) throw new BoardRefusal({ reason: 'ticket-without-entity', ticketIds: ticketIdsWithoutAnEntity });
   }
 
-  /** On a forge with entities, every ticket with an entity whose Brief names work outside it, all named at once (E85). */
+  /** On a forge with entities, every ticket with an entity whose Brief names work outside it, all named at once. */
   private refuseWorkOutsideTheEntity(tickets: readonly Readonly<Ticket>[], workFilesOf: WorkFilesOf | undefined): void {
     const entities = this.records.pipeline?.entities;
     if (entities === undefined || workFilesOf === undefined) return;

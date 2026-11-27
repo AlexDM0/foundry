@@ -1,8 +1,7 @@
 /**
- * One contract for the `ProgramFolders` port: every folder is absolute under the adapter's own path module, the home folders sit under the
- * home given, and no folder is named twice. Then each OS's own folders in order, since a program is looked for first where it is listed
- * first; that Windows finds a program by its `PATHEXT` extensions, never bare; and that Windows names no folder under a root its machine does not
- * name drive-absolute.
+ * One contract for the `ProgramFolders` port: every folder absolute, the home folders under the home given, none named twice; then each OS's
+ * folders in lookup order. Windows finds a program by its `PATHEXT` extensions, never bare, and names no folder under a root its machine
+ * does not name drive-absolute.
  */
 import { mkdirSync } from 'node:fs';
 import { join }      from 'node:path';

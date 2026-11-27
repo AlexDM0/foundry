@@ -1,9 +1,7 @@
 /**
- * The option notes a job keeps for the question it asks next (`question options`). What matters: notes arrive as untrusted JSON, so a
- * malformed one is refused `question-options-malformed` naming its field and changes nothing; they are not logged, since they only wait for
- * the question; a later note for the same question text replaces the earlier one, and a job keeps the newest notes of a bounded number of
- * questions, so a session cannot grow progress.json without end; taking the notes of the questions asked removes them, and the key goes
- * with the last note, so a job with none stores none; and a finished job takes no notes.
+ * The option notes a job keeps for its next question (`question options`): untrusted JSON, so a malformed one is refused naming its field;
+ * not logged; a later note for the same question replaces the earlier, and a job keeps a bounded number, so a session cannot grow
+ * progress.json without end; taking the asked questions' notes removes them; a finished job takes none.
  */
 import { describe, expect, test } from 'bun:test';
 

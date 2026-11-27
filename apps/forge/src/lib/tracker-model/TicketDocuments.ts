@@ -396,10 +396,8 @@ export class TicketDocuments {
   }
 
   /**
-   * The agent calls its head ready. With the document's review on, User approves it next; with it off, the pipeline approves it here, and an
-   * approval that leaves both documents approved readies a draft ticket. A spec whose head holds no numbered Acceptance is refused. With
-   * review off, a proposal still open from before applies first, and one that conflicts leaves the head unapproved for the agent to answer.
-   * A plan agent's ready names `forSpecNumber`, the spec version it was given: the pipeline's approval is made on that one, so a ready
+   * The agent calls its head ready: with review on User approves it next, with it off the pipeline approves it here, a still open proposal
+   * applying first. A spec without numbered Acceptance is refused. A plan agent's `forSpecNumber` names the spec it was given, so a ready
    * from an agent that never saw the newer spec leaves the plan out of date.
    */
   markReady(

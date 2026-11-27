@@ -1,8 +1,6 @@
 /**
- * How a pipeline has its tickets written. What matters: an absent `ticketWriting` is today's one ticket, so no pipeline reads differently;
- * an absent spec or plan approval is on; the builder and the reviewer read their defaults unless their settings name a rule; the reviewer
- * always reads the spec, whatever is stored; the re-reviewers read the reviewer's rule; and on a forge with entities the rule is the
- * ticket's entity's.
+ * How a pipeline has its tickets written: an absent `ticketWriting` is today's one ticket and absent approvals are on, the builder and
+ * reviewer read their defaults unless set (the reviewer always the spec), and on a forge with entities the rule is the ticket's entity's.
  */
 import { describe, expect, test } from 'bun:test';
 

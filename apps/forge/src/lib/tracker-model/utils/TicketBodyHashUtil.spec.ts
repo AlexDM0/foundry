@@ -1,9 +1,6 @@
 /**
- * The hashes of the model and a ticket's content hash. What matters: the hash is 64-bit FNV-1a over UTF-8 bytes, so it matches the
- * published vectors and never hashes UTF-16 code units; it is always sixteen hex digits, leading zeros kept, so two stored hashes compare
- * as text; and a content hash covers the title and the body as one canonical record, so text moved between them changes it. The
- * vectors for `''`, `a` and `foobar` are the published FNV-1a 64 vectors; the others were taken from an independent FNV-1a 64 over the
- * UTF-8 bytes.
+ * The model's hashes and a ticket's content hash: 64-bit FNV-1a over UTF-8 bytes, sixteen hex digits with leading zeros, over the title and
+ * body as one record. The vectors for `''`, `a` and `foobar` are the published ones; the others came from an independent FNV-1a 64.
  */
 import { describe, expect, test } from 'bun:test';
 

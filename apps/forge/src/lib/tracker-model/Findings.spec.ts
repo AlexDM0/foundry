@@ -1,8 +1,7 @@
 /**
- * A worker's finding past its filing, on the Board. What matters: with ticket review off a complete finding is `committed` at once, yet the
- * Playbook launches no build for it until its finder is `reviewed`; with review on it waits in `ready-for-review`; an abandoned finder
- * leaves no finding waiting on it, each unstarted one moved to `ready-for-review` in the same hold, a started one keeping its status and
- * another job's ticket left alone; and only a board's first Hephaestus start puts the v16 low leftovers in `ready-for-review`, whatever the switch says.
+ * A worker's finding past its filing: with ticket review off it is `committed` at once but builds only once its finder is `reviewed`, with
+ * review on it waits in `ready-for-review`; an abandoned finder leaves no finding waiting on it; and only a board's first Hephaestus start
+ * puts the v16 low leftovers in `ready-for-review`.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -33,7 +32,7 @@ const wordingOf = (draft: DecisionDraft) => ({
   context: ''
 });
 
-/** A running Hephaestus's board with its Assistant up and gates set: ticket 001 in review by its builder J1, and the finding J1 filed. */
+/** A running Hephaestus's board with its Assistant up and gates set: ticket `001` in review by its builder `J1`, and the finding `J1` filed. */
 function boardWithFinding(ticketReviewIsOn: boolean, findingOverrides: Partial<TicketFrontmatter> = {}) {
   const board = new Board({
     progress: {

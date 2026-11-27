@@ -1,9 +1,7 @@
 /**
- * Confinement on Linux through bubblewrap, the Seatbelt rules mapped onto mounts: the whole tree read-only, the worktree, the plan's writable
- * roots, temp and its cache paths bound writable, then the denied roots and the `bin` beside a cache path's ancestors bound read-only over
- * them, the read denies covered, and the network unshared when off, which leaves the child its own loopback. A fresh `/proc` in its own pid
- * namespace keeps Hephaestus's `/proc/<pid>/environ` out of reach. A denied path absent at launch renders nothing, since a bind would
- * create its mount point; a caller makes a denied root inside a writable bind before the launch, so it exists and gets its mount.
+ * Confinement on Linux, the Seatbelt rules as bubblewrap mounts: a read-only tree, the writable roots over it, the denied roots and the `bin` beside
+ * a cache path's ancestors read-only over those, the network unshared when off (leaving the child its own loopback), a fresh `/proc` hiding
+ * Hephaestus's environ. A denied path absent at launch renders nothing, as a bind would create it; a caller creates one inside a writable bind first.
  */
 import { ancestorBinFoldersOf }                                           from './AncestorBinFolders.ts';
 import type { ConfinementAvailability, ConfinementPlan, GateConfinement } from './GateConfinement.ts';

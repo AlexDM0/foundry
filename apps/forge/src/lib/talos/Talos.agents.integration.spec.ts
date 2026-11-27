@@ -1,10 +1,7 @@
 /**
- * Agent children end to end with the Talos binary, launched as the fake agent's adapter plans them. What matters: a permission request is
- * answered by the plan's standing reply while a question waits; a `write-line` reaches the child and a `close` ends it, each in the event
- * log as a `client` entry before anything the child did after it; a quit at the turn end applies the launch's own act, logged as that act,
- * and an agent launched with none refuses it; a stop of an agent is logged as one too; input to a line, an ended agent
- * or an unknown child is refused; and an ending of the plan's patterns is recognised from the closing line's sequence and the counted
- * lines, the record holding it before the event log holds the line.
+ * Agent children end to end with the Talos binary: a permission request gets the plan's standing reply while a question waits, client input
+ * is logged before anything the child did after it, a quit at the turn end applies the launch's own act, input to a line or an ended or
+ * unknown child is refused, and the plan's endings are recognised, the record holding one before the event log holds its line.
  */
 import { join } from 'node:path';
 import {

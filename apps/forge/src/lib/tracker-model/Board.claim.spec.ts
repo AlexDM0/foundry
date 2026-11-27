@@ -185,8 +185,8 @@ describe('a claim that goes through', () => {
 });
 
 /**
- * Group `checkout`, release ticket 003: 001 in review under an in-progress review bar and a live review job, 002 waiting on it alone, 004
- * on it and on the committed 007, 006 on 005 of group `payments`, 008 on nothing, and 009 on 001 outside the bundle.
+ * Group `checkout`, whose release ticket is 003: 001 in review under an in-progress review bar and a live review job, 002 waiting on it alone,
+ * 004 on it and on the committed 007, 006 on 005 of group `payments`, 008 on nothing, and 009 on 001 outside the bundle.
  */
 function pipelinedGroupFixture(concurrencyLimit: number): BoardFixture {
   const fixture = boardFixture({

@@ -1,11 +1,7 @@
 /**
- * The draft edited one field at a time. What matters: each edit names the field the change list names; a removed gate leaves every
- * phase, so no phase names a gate that is gone; a `null` removes an optional key rather than storing a null; the edit never changes the
- * pipeline it was given; a stored field text reads back only when well formed; the ticket writing route is a forge-level field like the
- * merge train; and Undo writes the base value back, a restored gate in the place and phases the base gives it. Inside an entity the same
- * holds on the entity's own steps and settings, under a field scoped `entity:<key>/`, which never names a forge-level field; the entity's
- * definition adds, changes or removes it without touching its pipeline, and its Undo brings a removed entity back whole in its base
- * place; and an edit inside an entity the draft lacks changes nothing.
+ * The draft edited one field at a time: each edit names the change list's field, a removed gate leaves every phase, `null` removes an
+ * optional key, the given pipeline is never changed, and Undo writes the base value back; inside an entity the same holds under a field
+ * scoped `entity:<key>/`.
  */
 import { describe, expect, test } from 'bun:test';
 

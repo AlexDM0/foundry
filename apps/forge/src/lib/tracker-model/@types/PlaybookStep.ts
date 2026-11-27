@@ -11,15 +11,15 @@ export type ParkCause = 'failed-passes' | 'red-resumes-spent';
 /** A decision code opens from the facts; its questions are worded by the caller, never by the policy. */
 /** What a decision Hephaestus opens about entities is about, which its wording names and its options offer. */
 export interface DecisionDraftSubject {
-  /** The entities that own the paths a ticket's build changed outside its own entity: the answer may move the ticket to one (E15). */
+  /** The entities that own the paths a ticket's build changed outside its own entity: the answer may move the ticket to one. */
   owningEntities?:  readonly string[];
-  /** The paths a ticket's build changed outside its own entity (E15). */
+  /** The paths a ticket's build changed outside its own entity. */
   paths?:           readonly string[];
-  /** The package a crossing ticket's decision is about (E19, E22, E45). */
+  /** The package a crossing ticket's decision is about. */
   packageEntity?:   string;
-  /** The need a decision was opened for, as `<entity>: <title>` (E12, E13). */
+  /** The need a decision was opened for, as `<entity>: <title>`. */
   need?:            string;
-  /** The dependent entity whose gate a crossing ticket's package change breaks (E26). */
+  /** The dependent entity whose gate a crossing ticket's package change breaks. */
   dependentEntity?: string;
 }
 

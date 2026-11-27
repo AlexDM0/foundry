@@ -1,16 +1,7 @@
 /**
- * Apply's two stages on the Board. What matters: stage 1 refuses an open question, a step that needs a recheck, a touched snapshot, a
- * stale revision, a stored pipeline that moved since the record opened and a `CONSTITUTION.md` main changed since; when main lacks the
- * draft's text it stores only the request, after which every other setup move and every `gate` verb refuses; when main already holds the
- * text, stage 2 runs in the same hold and stores the whole pipeline on main's file, the sources keyed by the text's blob id, the
- * withdrawal of `checks-not-set` and the resume when asked, `pipeline-applied` with the field names, and last closes the record. Apply is
- * idempotent by setup and revision: a pipeline this draft stored is no move of anyone else's, so a retry or Hephaestus's start finishes
- * the rest, and an Apply of a revision already applied changes nothing. Cancel clears the request and leaves the record editable at
- * design, with Apply not reached. Once Apply lands, in whichever hold, every live pipeline agent of the record is stopped, each entity's
- * session beside the forge's, since a closed record leaves none of them a level to serve. A constitution commit
- * job takes a waiting or held request and leaves it waiting when it ends without a landing; a hold logs the blocking files and a refusal
- * git's text; User's resume lifts only a hold a start made `interrupted`. The Apply refusal a view shows is the refusal `requestApply` gives
- * the current revision against the same main reading, for each kind stage 1 refuses, and none where it proceeds or already waits.
+ * Apply's two stages on the Board: stage 1 refuses what is unsettled or moved since the record opened, and waits for the constitution
+ * commit while main lacks the draft's text; stage 2 stores the whole pipeline and closes the record, idempotent by setup and revision; and
+ * a view's Apply refusal is the one `requestApply` gives.
  */
 import { describe, expect, test } from 'bun:test';
 

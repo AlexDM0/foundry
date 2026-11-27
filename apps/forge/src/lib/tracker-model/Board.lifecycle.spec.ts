@@ -1,10 +1,7 @@
 /**
- * `Board.followPlaybook` over real board records. What matters: the steps the policy derives are applied in the same pass (jobs launched as
- * records, a park held and asked about, decisions and incidents opened, defaults taken), every record stamped with `limits.now`; a ready
- * ticket is any committed, unheld one, a low one and one with an open question alike; failed passes, crashes on one ticket and usage limits
- * are acted on with no incident, and a Hephaestus restart counts toward no outage; a review past its first round launches as a
- * `re-reviewer`; and a group builds in parallel, each ticket as soon as the
- * group tickets it names are integrated.
+ * `Board.followPlaybook` over real board records: the steps the policy derives are applied in the same pass, each record stamped with
+ * `limits.now`; a ready ticket is any committed, unheld one; failures, crashes and usage limits are acted on with no incident; a later review
+ * round launches a `re-reviewer`; and a group ticket builds as soon as the group tickets it names are integrated.
  */
 import { describe, expect, test } from 'bun:test';
 

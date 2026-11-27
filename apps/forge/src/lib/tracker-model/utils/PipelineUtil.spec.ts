@@ -1,16 +1,7 @@
 /**
- * The hashes of a pipeline, the gates of each phase and the instructions a role reads. What matters: a stored pipeline's hashes never
- * change, since a changed hash makes recorded greens stale; a phase hash moves only with the prepare steps and that phase's gates, so an
- * edit of agent settings, instructions, the constitution, re-review, approvals, the Assistant's switch, billing or reach never regates a
- * ticket; the content hash moves with every key but `billing`, the Assistant's switch, the ticket writing route, the spec and plan
- * approvals and the documents a role reads included, while a pipeline that sets none of these last keeps its frozen hash. The hashes
- * were taken from the implementation of the one format; retake them only in a change that means to invalidate every recorded row, by
- * printing each hash for each pipeline below.
- * An entity reads as an ordinary single pipeline: its own steps, gates and roles with the forge's merge train, approvals, billing and
- * forge-level roles, so its phase hashes are those of the same single pipeline; a key the pipeline has no entity for gives none. A gate
- * run of entities stamps the forge's own phase hash untouched and each gated entity's beside it. Whether a ticket's build goes on to a review
- * is its entity's review on a pipeline with entities, whatever the forge's own, and the pipeline's own review on any other. A ticket's own
- * gates, prepare steps and review are read from its entity's pipeline on a pipeline with entities, from the pipeline itself on any other.
+ * The hashes of a pipeline, the gates of each phase and the instructions a role reads: a phase hash moves only with the prepare steps and
+ * that phase's gates, and an entity reads as an ordinary single pipeline. The hashes below are frozen, since a changed hash stales recorded
+ * greens; retake them only in a change that means to invalidate every recorded row.
  */
 import { describe, expect, test } from 'bun:test';
 

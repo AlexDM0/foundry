@@ -1,10 +1,7 @@
 /**
- * A session of a stage of a job of an entity (E18). Auto mode lets Edit and Write reach any path no deny rule names, so what matters is
- * both sides: the allow rules name the stage's folders and files, each as itself and as a folder, never the whole worktree; and every
- * denied edit root is a deny rule for Edit and Write. The deny rules name only the paths at launch, so the stage edit guard runs before
- * every Edit and Write in exec form, beside the network guard when there is one; a guard that cannot start denies Edit and Write
- * outright. Bash is not stopped there: the sandbox's writes stay the profile's own. A profile without stage folders renders as it always
- * did, with no hook.
+ * A session of a stage of an entity's job. Auto mode lets Edit and Write reach any path no deny rule names, so the allow rules name only the
+ * stage's folders and files, every denied edit root is a deny rule, and the stage edit guard runs before every Edit and Write (a guard that
+ * cannot start denies them); Bash keeps the profile's own sandbox writes. A profile without stage folders renders as it always did.
  */
 import { join } from 'node:path';
 
