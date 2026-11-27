@@ -1312,7 +1312,7 @@ describe('the session, Talos, Hephaestus and reboot rows', () => {
     PlantedChild.plantChildRecord({ boardFolder: monitorFolder, childFolder: 'J99', instance: 1 }, { talos: reused, childProcess: reused, childProcessGroupId: process.pid });
     const jobFolder = join(monitorFolder, 'J99');
     expect(talosChildReadingsWith(ports, monitorFolder).livenessOf(jobFolder, 1).verdict).toBe('lost');
-    expect(Regrouping.settleLostChildIn(monitorFolder, ports, createUnreadableBoardFiles(() => undefined), jobFolder, 1)).toBe('agent-crashed');
+    expect(Regrouping.settleLostChildIn(monitorFolder, ports, createUnreadableBoardFiles(() => undefined), () => undefined, jobFolder, 1)).toBe('agent-crashed');
     expect(processIsAlive(self)).toBe(true);
   });
 

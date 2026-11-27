@@ -112,7 +112,13 @@ async function startDetached(commandArguments: ArgumentParser, invokingContext: 
   const { workspace, store } = boardStoreOf(context);
   const files = hephaestusFilesIn(workspace.trackerDirectory);
   const { trackerId } = store.reads.requireProgress();
-  const started = HephaestusLock.newestOf(context.platformPorts, files.hephaestusDirectory).verdict !== 'live';
+  const newest = HephaestusLock.newestOf(context.platformPorts, files.hephaestusDirectory);
+  // A live Hephaestus whose lock cannot be read is refused here, where a detached start would only fail against it.
+  if (newest.verdict === 'live-unreadable') {
+    const hephaestusLockFilePath = HephaestusLock.filePathFor(files.hephaestusDirectory, newest.generation);
+    throw new OperationRefusal('refused', { kind: 'hephaestus-already-running', url: newest.holder.url, hephaestusLockFilePath });
+  }
+  const started = newest.verdict !== 'live';
   if (started) {
     requireHephaestusCanStartIn(workspace.rootDirectory, context.platformPorts.gateConfinement);
     await startHephaestusDetached({

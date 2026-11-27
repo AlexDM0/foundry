@@ -22,15 +22,17 @@ const SLOT_FILE_PATTERN = /^slot-\d+$/;
 const RESERVATION_PREFIX = 'reserved-';
 
 export interface AgentSlotsOptions {
-  monitorFolder:    string;
-  limit:            number;
+  monitorFolder:              string;
+  limit:                      number;
   /** The Hephaestus that claims: written on every slot it takes. */
-  ownProcess:       ProcessIdentity | null;
+  ownProcess:                 ProcessIdentity | null;
   /** Whether a recorded Hephaestus still runs; `null`, an unreadable record, is never live. */
-  hephaestusIsLive: (hephaestus: ProcessIdentity | null) => boolean;
-  fileReplace?:     FileReplace;
-  /** Where a slot that could not be read and is taken over is logged. */
-  log:              (line: string) => void;
+  hephaestusIsLive:           (hephaestus: ProcessIdentity | null) => boolean;
+  fileReplace?:               FileReplace;
+  /** Where a slot that could not be read is logged: taken over, or left in place when its bytes cannot be read at all. */
+  log:                        (line: string) => void;
+  /** The slots already logged as left in place, kept across passes so each is logged once; none when not given. */
+  unreadableSlotPathsLogged?: Set<string>;
 }
 
 export interface AgentSlots {
@@ -65,6 +67,7 @@ function createAgentSlots(options: AgentSlotsOptions): AgentSlots {
   const folder = join(options.monitorFolder, AGENT_SLOTS_FOLDER);
   const fileReplace = options.fileReplace ?? fileReplaceOfThisProcess();
   const slotPathsUnderTheLimit = Array.from({ length: options.limit }, (_unused, index) => join(folder, `slot-${index + 1}`));
+  const unreadableSlotPathsLogged = options.unreadableSlotPathsLogged ?? new Set<string>();
 
   function existingSlotPaths(): string[] {
     try {
@@ -113,12 +116,15 @@ function createAgentSlots(options: AgentSlotsOptions): AgentSlots {
     if (judged.verdict === 'unreadable') options.log(`The agent slot ${slotPath} could not be read (${judged.reason}); it was taken over.`);
   }
 
-  /** A slot whose bytes could not be read at all is left for a later claim. */
+  /** A slot whose bytes could not be read at all is left for a later claim, and logged once. */
   function judgedSlotOf(slotPath: string): JudgedSlot | null {
     const reading = readingOf(slotPath);
     if (reading.verdict === 'absent') return null;
-    const { storedText } = reading;
-    return storedText === null ? null : { ...reading, storedText };
+    if (reading.verdict === 'readable') return reading;
+    if (reading.storedText !== null) return { ...reading, storedText: reading.storedText };
+    if (!unreadableSlotPathsLogged.has(slotPath)) options.log(`The agent slot ${slotPath} could not be read (${reading.reason}); it is left in place.`);
+    unreadableSlotPathsLogged.add(slotPath);
+    return null;
   }
 
   /**

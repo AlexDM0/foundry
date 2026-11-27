@@ -34,6 +34,7 @@ import { type TalosRecord, talosRecordOf }                             from '../
 import { type TalosStartFile, talosStartFileOf, talosStartFileTextOf } from '../../lib/talos/TalosStartFile.ts';
 import { TALOS_START_FILE_FORMAT_VERSION }                             from '../../lib/talos/constants/TalosProtocol.ts';
 import type { InterruptionCause }                                      from '../../lib/tracker-model/@types/Job.ts';
+import { INTERRUPTION_CAUSES }                                         from '../../lib/tracker-model/constants/JobStates.ts';
 import { outlivingProgramEnvironment }                                 from '../../shared/Environment.ts';
 import { ToolRuntimeUtil }                                             from '../../shared/ToolRuntimeUtil.ts';
 import {
@@ -245,18 +246,26 @@ export interface LostChildRequest {
   /** A refused forced stop is tried again only when this says so. */
   retryRefusedStop:     boolean;
   unreadableBoardFiles: UnreadableBoardFiles;
+  log:                  (line: string) => void;
+}
+
+function interruptionCauseOf(text: string): InterruptionCause | null {
+  return INTERRUPTION_CAUSES.find((cause) => cause === text) ?? null;
 }
 
 /**
  * A child of a lost Talos, settled once and its cause stored beside its record, so a Hephaestus dying after the stop reads the same cause
  * again. A foreign boot is a reboot; a recorded child tree still alive is stopped with the groups below it, and the cause is the lost
- * commander (still stored as `talos-lost`); otherwise the child ended with it. A refused forced stop stores no cause and answers `null`.
+ * commander (still stored as `talos-lost`); otherwise the child ended with it. A refused forced stop stores no cause and answers `null`. A
+ * stored text that names no interruption cause is logged and settled again, which writes over it.
  */
 export function settleLostChild({ processSupervision }: PlatformPorts, request: LostChildRequest): InterruptionCause | null {
   const childFolderPath = childFolderPathOf(request.boardFolder, request.childFolder, request.instance);
   const lostCausePath = join(childFolderPath, `child-${request.instance}.lost-cause`);
-  const storedCause = textOf(lostCausePath)?.trim();
-  if (storedCause !== undefined && storedCause !== '') return storedCause as InterruptionCause;
+  const storedText = textOf(lostCausePath)?.trim() ?? '';
+  const storedCause = interruptionCauseOf(storedText);
+  if (storedCause !== null) return storedCause;
+  if (storedText !== '') request.log(`The lost cause ${lostCausePath} names no interruption cause ("${storedText}"); it is settled again.`);
   const refusedStops = RefusedForcedStops.storedOf(request.boardFolder, childFolderPath, request.instance, request.unreadableBoardFiles);
   if (refusedStops.refusals > 0 && !request.retryRefusedStop) return null;
   const record = childRecordAt(request.boardFolder, request.childFolder, request.instance);
@@ -290,6 +299,7 @@ function sweepOrphansOf(context: TalosStartContext, startNumber: number, talos: 
       talosBootIdentity:    talos?.bootIdentity ?? null,
       retryRefusedStop:     true,
       unreadableBoardFiles: context.unreadableBoardFiles,
+      log:                  context.log,
     });
     if (cause === null) context.log(`The forced stop of ${childFolder}#${instance}, a child of the lost Talos ${startNumber}, was refused.`);
     else swept += 1;

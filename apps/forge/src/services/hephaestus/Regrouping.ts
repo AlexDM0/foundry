@@ -53,7 +53,13 @@ const CHILD_FOLDER_SEPARATOR = '/';
  * refused forced stop stores no cause and answers `null`, counted and tried again only when `retryRefusedStop` says so.
  */
 function settleLostChildIn(
-  boardFolder: string, ports: PlatformPorts, unreadableBoardFiles: UnreadableBoardFiles, childFolder: string, instance: number, retryRefusedStop = true
+  boardFolder: string,
+  ports: PlatformPorts,
+  unreadableBoardFiles: UnreadableBoardFiles,
+  log: (line: string) => void,
+  childFolder: string,
+  instance: number,
+  retryRefusedStop = true,
 ): InterruptionCause | null {
   return settleLostChild(ports, {
     boardFolder,
@@ -62,6 +68,7 @@ function settleLostChildIn(
     talosBootIdentity: null,
     retryRefusedStop,
     unreadableBoardFiles,
+    log,
   });
 }
 
@@ -116,7 +123,7 @@ function awaitsItsSpawn(job: Readonly<Job>): boolean {
 
 /** Reads and acts outside the lock; the first pass's one hold then applies everything it found. A live child is read by the passes alone. */
 function regroup(
-  children: BoardChildren, ports: PlatformPorts, workspace: Workspace, boardReads: StoreReadFace, unreadableBoardFiles: UnreadableBoardFiles
+  children: BoardChildren, ports: PlatformPorts, workspace: Workspace, boardReads: StoreReadFace, unreadableBoardFiles: UnreadableBoardFiles, log: (line: string) => void,
 ): RegroupingReport {
   const jobs   = boardReads.requireProgress().jobs ?? [];
   const report: RegroupingReport = { lost: [], respawnJobIds: [], leftoverWorktrees: leftoverWorktreesOf(workspace, jobs) };
@@ -125,7 +132,7 @@ function regroup(
     const jobFolder = children.jobFolderOf(job.id);
     const liveness  = children.livenessOf(jobFolder, job.childInstance);
     if (liveness.verdict === 'lost') {
-      const cause = settleLostChildIn(workspace.trackerDirectory, ports, unreadableBoardFiles, jobFolder, job.childInstance);
+      const cause = settleLostChildIn(workspace.trackerDirectory, ports, unreadableBoardFiles, log, jobFolder, job.childInstance);
       report.lost.push({ jobId: job.id, instance: job.childInstance, cause });
     } else if (liveness.verdict === 'unlaunched' && awaitsItsSpawn(job)) {
       report.respawnJobIds.push(job.id);

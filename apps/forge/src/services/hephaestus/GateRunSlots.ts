@@ -28,7 +28,7 @@ export interface GateRunSlotsOptions {
   fileReplace?:          FileReplace;
   /** Whether a held-file failure on a slot create means a taken slot rather than a fault; this process's platform decides when not given. */
   heldCreateMeansTaken?: boolean;
-  /** Where a slot that could not be read and is taken over is logged. */
+  /** Where a slot that could not be read is logged: taken over, or left in place, once, when its bytes cannot be read at all. */
   log:                   (line: string) => void;
 }
 
@@ -85,12 +85,14 @@ function readingOf(slotPath: string): GateRunSlotReading {
   return new GateRunSlotIngestion(slotPath).read();
 }
 
-/** A slot whose bytes could not be read at all is left for a later claim. */
-function judgedSlotOf(slotPath: string): JudgedSlot | null {
+/** A slot whose bytes could not be read at all is left for a later claim, and handed to `bytesUnreadable`. */
+function judgedSlotOf(slotPath: string, bytesUnreadable: (slotPath: string, reason: string) => void): JudgedSlot | null {
   const reading = readingOf(slotPath);
   if (reading.verdict === 'absent') return null;
-  const { storedText } = reading;
-  return storedText === null ? null : { ...reading, storedText };
+  if (reading.verdict === 'readable') return reading;
+  if (reading.storedText !== null) return { ...reading, storedText: reading.storedText };
+  bytesUnreadable(slotPath, reading.reason);
+  return null;
 }
 
 /** An unreadable slot names no holder. */
@@ -125,6 +127,12 @@ function createGateRunSlots(options: GateRunSlotsOptions): GateRunSlots {
   let acquirerIdentity: ProcessIdentity | null | undefined;
   const realGatesRefusedThisRound = new Set<string>();
   const realGatesWaitingInThisProcess = new Set<string>();
+  const unreadableSlotPathsLogged = new Set<string>();
+
+  function logUnreadableSlotOnce(slotPath: string, reason: string): void {
+    if (!unreadableSlotPathsLogged.has(slotPath)) options.log(`The gate run slot ${slotPath} could not be read (${reason}); it is left in place.`);
+    unreadableSlotPathsLogged.add(slotPath);
+  }
 
   function acquirer(): ProcessIdentity | null {
     acquirerIdentity ??= options.ports.processSupervision.identityOf(process.pid);
@@ -183,7 +191,7 @@ function createGateRunSlots(options: GateRunSlotsOptions): GateRunSlots {
     for (const slotPath of slotPaths) {
       const writer = createGateRunSlotWriter(slotPath, fileReplace);
       if (createdExclusively(() => writer.create(ownHolding))) return true;
-      const judged = judgedSlotOf(slotPath);
+      const judged = judgedSlotOf(slotPath, logUnreadableSlotOnce);
       if (judged === null) continue;
       freedIfStale(slotPath, judged);
       if (createdExclusively(() => writer.create(ownHolding))) return true;
