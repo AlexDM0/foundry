@@ -1,8 +1,7 @@
 /**
- * Holds `.platform-probes/` through the one way it is run: the whole folder under `process.execPath`, with a scratch stub as the Claude program,
- * so no real session starts, and one as the gpgconf program, so no probe reaches the host GnuPG. What matters: every script yields one line of
- * the agreed shape, an applicable line and an inapplicable line both; and a line records and never judges. `architecture/PlatformProbes.spec.ts` holds
- * what the folder holds as files.
+ * Holds `.platform-probes/` run the one way it is run, under `process.execPath` with scratch stubs as the Claude and gpgconf programs, so no
+ * session starts and no probe reaches the host GnuPG: every script yields one line of the agreed shape, and a line records but never judges.
+ * `architecture/PlatformProbes.spec.ts` holds what the folder holds as files.
  */
 import {
   chmodSync,

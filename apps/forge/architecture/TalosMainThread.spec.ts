@@ -1,10 +1,7 @@
 /**
- * Talos's main loop never blocks: no module that `talos.ts` loads at run time, outside what its synchronous-calls thread loads, calls a
- * synchronous primitive (an identifier ending in `Sync`, `spawnSync` and `Bun.sleepSync` among them, or `Atomics.wait`), since a blocked loop
- * delays every frame and reads as a gap to the lease. The one exception, the last log line of a Talos whose call failed, is an exact
- * allowlist entry naming its function, each call counted. A module both threads load is the thread's, so what the main thread takes from
- * one that reaches a synchronous primitive is an exact list too. The scan follows value imports only: the import graph records `import type`
- * as an edge too, and a type-only import loads nothing at run time. Each form is planted and watched failing.
+ * Talos's main loop never blocks, since a blocked loop delays every frame and reads as a gap to the lease: no module the main thread loads at
+ * run time calls a synchronous primitive (`...Sync`, `Atomics.wait`) but the exact allowlisted calls. Only value imports are followed, since
+ * a type-only import loads nothing at run time.
  */
 import { describe, expect, test } from 'bun:test';
 import ts                         from 'typescript';

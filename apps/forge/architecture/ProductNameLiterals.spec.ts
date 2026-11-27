@@ -1,10 +1,7 @@
 /**
- * Every command text the CLI prints (a refusal, a usage line, a suggested command, the help, a hook command) names the program through
- * `PRODUCT_NAMES.PROGRAM`, so a build named beside the released program never tells an agent to run the other one. The scan reads the
- * string and template literals of every non-spec source under `src/` and `cli/` from the
- * syntax tree, so a comment is never command text; a brief's `agent-progress row:`, `ticket:` or `review:` line is a marker the dispatcher
- * writes and the hook reads, not a command. What remains must be in the allowlist, exact both ways. The scan first proves it read the
- * sources, and each form is planted.
+ * Every command text the CLI prints names the program through `PRODUCT_NAMES.PROGRAM`, so a build named beside the released program never
+ * tells an agent to run the other one. String and template literals are read from the syntax tree; a brief's `agent-progress row:`,
+ * `ticket:` or `review:` line is a marker the dispatcher writes and the hook reads, not a command.
  */
 import { describe, expect, test } from 'bun:test';
 import ts                         from 'typescript';

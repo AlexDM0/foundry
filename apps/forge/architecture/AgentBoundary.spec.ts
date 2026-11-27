@@ -1,11 +1,7 @@
 /**
- * Every connection to the agent goes through the agent port (the owner's rule of 2026-11-18): no shipping line outside the port's
- * adapter, comments included, names the vendor's program, paths, variables, wire fields, hook protocol, flags, tool names or marks, and no
- * testing helper names the program but on its listed lines. The adapter is `src/lib/claude-code/` and the fake agent's files, an adapter of
- * the same port. The prompts and bundles the code hands to sessions are scanned as prose, the probe and graphics evidence by file. Specs and
- * `.dom.tsx` files plant and assert both sides of the boundary, so they are not scanned; neither are JSON fixtures and recordings (recorded
- * wire), `docs/`, nor file names: a bundle's `SKILL.md` with its YAML header is the bundle's own text. Each allowlist is exact both ways,
- * each entry naming the package that removes it, and each form is planted once.
+ * Every connection to the agent goes through the agent port: no shipping line outside the port's adapter (`src/lib/claude-code/` and the
+ * fake agent's files) names the vendor's program, paths, variables, wire fields, hook protocol, flags, tool names or marks, comments and
+ * session prompts included. Specs, `.dom.tsx` files, recordings and `docs/` are not scanned; each allowlist is exact both ways.
  */
 import { readFileSync }           from 'node:fs';
 import { describe, expect, test } from 'bun:test';
@@ -139,8 +135,8 @@ const ALLOWED_TESTING_LINES: Readonly<Record<string, string>> = {
   'cli/testing/RecordedGitStages.ts: vendor-name: const INSTALLED_SKILLS_FOLDER = \'.claude/skills\';':
     'Permanent: a fixture plants the vendor\'s files the fake agent\'s adapter and Customs read.',
   [
-  'src/testing/BoundaryRecordings.ts: vendor-name: * `sandbox`: the gate sandbox of the OS, stamped with the `bwrap` version on Linux and with the OS version elsewhere. '
-    + '`claude`: the Claude'
+  'src/testing/BoundaryRecordings.ts: vendor-name: * `sandbox`: the OS\'s gate sandbox, stamped with `bwrap`\'s version on Linux and the OS version elsewhere. '
+    + '`claude`: the program whose'
   ]:
     'Permanent: records, stamps or traps the real program.',
   [

@@ -1,9 +1,7 @@
 /**
- * The lifecycle components carry the names the owner decided (CLAUDE.md, Rules): no repository file but this one, the live board, the
- * design documents and the dated research names one by its retired name, in a path, an identifier or a wire literal; a package the
- * program declares counts as its own. The files come from a folder walk that runs no git;
- * `src/lib/git/TrackedFileWalk.integration.spec.ts` proves the walk reaches every file git tracks. What matters: the scan provably read the
- * tree, the allowlist is exact both ways, and the scan catches a planted name of each kind and passes once it is gone.
+ * The lifecycle components carry the names the owner decided (CLAUDE.md, Rules): no repository file but this one, the live board, the design
+ * documents and the dated research names one by its retired name, in a path, an identifier or a wire literal. The walk runs no git;
+ * `src/lib/git/TrackedFileWalk.integration.spec.ts` proves it reaches every file git tracks.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';

@@ -1,12 +1,7 @@
 /**
- * Git runs at a toplevel only: the repository root for the main checkout, a worktree's root for a job. A tracker's `rootDirectory` is its
- * project folder, below the repository root when the tracker is, and a git call there under a ceiling of its parent finds no repository,
- * while a cwd-relative form reaches only the folder's subtree. No source hands a tracker's folder to a git entry point or to `ceilingOf`,
- * but those listed with their reason, a list exact both ways. Each form is planted and watched failing. A session in a job's worktree
- * starts at its toplevel too, where Claude Code's sandbox lets it commit: only the listed sources name the project folder in a checkout, by
- * its name or joined from the project's prefix, and `SessionPlace.ts` only in its snapshot's session, so a job session started there is
- * named. `src/services/hephaestus/SessionPlace.spec.ts` holds each place and the resumed start, and
- * `src/services/lifecycle/GateRun.projectFolder.spec.ts` that a gate and a prepare step start in the project folder.
+ * Git runs at a toplevel only, the main checkout's root or a job worktree's: under a ceiling of its parent, a git call in a tracker's project
+ * folder below the root finds no repository. No source hands a tracker's folder to a git entry point or to `ceilingOf`, and only the listed
+ * sources name the project folder in a checkout, so a job session starts at its toplevel, where the agent's sandbox lets it commit.
  */
 import { join } from 'node:path';
 

@@ -1,9 +1,6 @@
 /**
- * Two Tests rules of the root `CLAUDE.md`: a suite is a `.spec.ts` file, never `.test.ts`, `.spec.tsx` or `.dom.tsx`, since forge has
- * no page and runs no DOM suite, and no spec or test helper creates the real
- * process context, whose working directory, clock and home are the live ones. The context is found by its factory's name as an identifier
- * in the syntax tree, so a sentence naming it is not a use. The scan first proves it saw the specs and the factory's real callers, and
- * each form is planted to prove the test names it.
+ * Two Tests rules of the root `CLAUDE.md`: a suite is a `.spec.ts` file, since forge has no page and runs no DOM suite, and no spec or test
+ * helper creates the real process context, whose working directory, clock and home are the live ones.
  */
 import { describe, expect, test } from 'bun:test';
 import ts                         from 'typescript';

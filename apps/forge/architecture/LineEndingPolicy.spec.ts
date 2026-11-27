@@ -1,8 +1,7 @@
 /**
- * The line-ending policy, the part that runs no git: the workspace root's `.gitattributes` holds every text file at LF on every checkout, since a carriage
- * return breaks `setup.sh`, the hooks, the prose wrap and the frozen tables, and no file of the program or of a package it declares holds one. A file is
- * text unless a NUL byte makes it truly binary. Each form is planted in memory to prove the scan names it and passes what it skips.
- * `src/lib/git/LineEndingPolicy.integration.spec.ts` holds what git itself answers: the attributes it applies and both sides of `git ls-files --eol`.
+ * The line-ending policy, the part that runs no git: `.gitattributes` holds every text file at LF, since a carriage return breaks `setup.sh`,
+ * the hooks, the prose wrap and the frozen tables, and no file of the program or its packages holds one; a NUL byte marks a file binary.
+ * `src/lib/git/LineEndingPolicy.integration.spec.ts` holds what git itself answers.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';

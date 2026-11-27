@@ -1,8 +1,7 @@
 /**
- * The forge reaches its stored board through the store port: no shipping line outside the store's adapter names where a record is kept. The
- * scan first proves it saw the tree and that the adapter really holds the forms, the allowlist is exact both ways and holds only the two
- * composition roots that pick the adapter, and each form is planted once. The adapter is an exact list of files and record format folders, never a folder
- * of `src/services/`. Comments, specs and testing folders are not scanned.
+ * The forge reaches its stored board through the store port: no shipping line outside the store's adapter, an exact list of files and record
+ * format folders, names where a record is kept, but the two composition roots that pick the adapter. Comments, specs and testing folders are
+ * not scanned.
  */
 import { describe, expect, test } from 'bun:test';
 

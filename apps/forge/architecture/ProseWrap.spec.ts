@@ -1,8 +1,6 @@
 /**
- * The prose wrap reviewers hold: a paragraph line of the repository's rules, root and path-scoped, skills, installed templates and CLI
- * reference is at most 120 columns; the path-scoped rules are the workspace root's. Table rows, fenced code, frontmatter and a line
- * holding one code span alone are left alone, since none can wrap. The scan
- * first proves it read paragraph lines of every file, and each form is planted to prove the test names it and passes what it skips.
+ * The prose wrap reviewers hold: a paragraph line of the repository's rules, skills, installed templates and CLI reference is at most 120
+ * columns. Table rows, fenced code, frontmatter and a line holding one code span alone are left alone, since none can wrap.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';

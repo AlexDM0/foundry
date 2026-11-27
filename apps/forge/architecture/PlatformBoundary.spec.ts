@@ -1,8 +1,7 @@
 /**
- * The core names a port, never a platform: no shipping line outside an adapter reads the platform or names a platform primitive. The scan
- * first proves it saw the tree and that adapters really hold the forms, the allowlist is exact both ways (an entry a later ticket removes
- * names that ticket's mechanism), and each form is planted once. Adapters are recognised by exact file-name shapes, never by folder, and
- * `EXACT_SITE_FORMS` take no adapter exemption at all. Comments, specs and testing folders are not scanned.
+ * The core names a port, never a platform: no shipping line outside an adapter reads the platform or names a platform primitive. Adapters are
+ * recognised by exact file-name shapes, never by folder, and `EXACT_SITE_FORMS` take no adapter exemption at all. Comments, specs and testing
+ * folders are not scanned.
  */
 import { describe, expect, test } from 'bun:test';
 

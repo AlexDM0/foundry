@@ -1,9 +1,7 @@
 /**
- * The rules of forge's `CLAUDE.md` that its `eslint.config.js` holds, each watched failing: every form a rule claims is planted at a path
- * it governs and must be reported by that rule, and each exact exception (the one module allowed a reach, a spec, a constants folder, an
- * arithmetic identity) is planted too and must pass. `bun run lint` is what proves the tree itself passes. The line ending under a win32
- * `process.platform` needs a child process, so `architecture/LintRules.integration.spec.ts` holds it and records the child's answer, which the
- * last case here reads. The workspace packages hold their own rules and planted cases in their own `LintRules.spec.ts`.
+ * The rules of forge's `CLAUDE.md` that `eslint.config.js` holds, each watched failing: every form a rule claims is planted where it governs
+ * and must be reported, and each exact exception is planted and must pass. The win32 line ending needs a child process, so
+ * `architecture/LintRules.integration.spec.ts` records its answer, which the last case here reads.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { join }                     from 'node:path';

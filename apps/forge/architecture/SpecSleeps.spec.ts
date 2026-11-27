@@ -1,8 +1,6 @@
 /**
- * No spec or test helper sleeps a fixed time or counts tries before an assertion: its verdict would hang on how fast the machine is. A wait
- * goes through `src/testing/WaitUntil.ts`, on the state itself. Each form is planted and watched failing; the allowlist, each entry with why it
- * stays, is exact both ways. Comments are not scanned, so a docblock may name a sleep;
- * `docs/development/architecture-tests-and-testing.md` holds the audit.
+ * No spec or test helper sleeps a fixed time or counts tries before an assertion, since its verdict would hang on the machine's speed: a wait
+ * goes through `src/testing/WaitUntil.ts`, on the state itself. Comments are not scanned, so a docblock may name a sleep.
  */
 import { expect, test } from 'bun:test';
 

@@ -1,9 +1,7 @@
 /**
- * The documentation cites specs as evidence, so a cited spec must be where the citation says. Every repository-rooted `.spec.ts` path
- * in `README.md`, the rule files under the workspace root's `.claude/rules/` and the files under `docs/` (but the untracked
- * `docs/design/`) exists, read from the program root, the workspace root or a declared package's folder (`forge-contracts/…`): a spec
- * rename or split corrects its citations in the same change. A bare file name, a glob and a relative link are no
- * citation. The scan first proves it read citations, and each form is planted to prove the test names it and passes what it skips.
+ * A spec the documentation cites as evidence must be where the citation says: every repository-rooted `.spec.ts` path in `README.md`, the
+ * workspace root's `.claude/rules/` and `docs/` (but the untracked `docs/design/`) exists, so a spec rename corrects its citations in the
+ * same change. A bare file name, a glob and a relative link are no citation.
  */
 import {
   existsSync,

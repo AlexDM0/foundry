@@ -1,14 +1,7 @@
 /**
- * The Imports rules of the root `CLAUDE.md`, held over every file the root program and each workspace package forge declares compile.
- * Every violation list is empty in a tree that obeys them, so the scan first proves it saw the tree (the program, every file placed in a
- * layer, every allowlist entry still used), and each kind of violation is planted once in memory to prove the test still names the edge.
- * No package imports anything of the forge. Every declared package sits in one workspace-package layer: forge reaches it by an exported
- * specifier from `src/shared/` up, never by a file path, and a package reaches another only by name, once its own `package.json` declares
- * it. No import leaves the program and the packages it declares by a path, into
- * another app or package of the workspace, and a workspace package is imported by name only once `package.json` declares it. Only the
- * agent port's seam and its adapters, the fake agent among them, import the vendor's adapter.
- * A command set is a folder directly under `cli/`, its subfolders included, but the folders every set shares. No set imports another, and
- * the `cli/` root (its top-level files and shared folders) imports a set only in the command table, which composes them, or in test code.
+ * The Imports rules of `.claude/rules/forge.md`, held over the root program and each workspace package forge declares: no package imports the
+ * forge, a package is reached by its declared name and never by a file path, only the agent port's seam and adapters import the vendor's
+ * adapter, and no `cli/` command set imports another, the command table composing them.
  */
 import { readFileSync } from 'node:fs';
 

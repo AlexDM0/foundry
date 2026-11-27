@@ -1,8 +1,7 @@
 /**
- * Forge never knows who calls it: no shipped source or doc of the program names a client, neither Gaia (by its name or its own word
- * `fleet`) nor agent-dashboard and its retired `?embedded=dashboard`, so a client is spoken of as a monitor or a host only. Specs and
- * testing folders may name a client to plant a case or to hold that a retired value is refused. The packages forge declares hold the
- * same through their own `architecture/PackageIsolation.spec.ts`. The scan first proves it read the program, and each form is planted.
+ * Forge never knows who calls it: no shipped source or doc names a client, neither Gaia (nor its word `fleet`) nor agent-dashboard and its
+ * retired `?embedded=dashboard`, so a client is a monitor or a host only. Specs and testing folders may name one to plant a case; the
+ * packages forge declares hold the same in their own `architecture/PackageIsolation.spec.ts`.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';
