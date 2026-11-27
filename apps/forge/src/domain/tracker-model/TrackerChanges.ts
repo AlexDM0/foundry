@@ -57,6 +57,12 @@ export class TrackerChanges {
     return { logged: [this.records.logger.log({ kind: 'hephaestus-set', fields: { state } }, at)], previousState };
   }
 
+  /** E26: a ticket of each dependent that the crossing ticket's package change breaks was filed in the crossing ticket's group. */
+  recordDependentFixFiled(ticketId: string, fix: LogRecordFieldsOf<'dependent-fix-filed'>, at: string): Logged {
+    this.records.requireTicket(ticketId);
+    return { logged: [this.records.logger.log({ kind: 'dependent-fix-filed', ticketId, fields: { entity: fix.entity, fixTicketIds: [...fix.fixTicketIds] } }, at)] };
+  }
+
   /**
    * While an Apply waits for its constitution commit, a `gate` verb would change the pipeline the request was checked against, so it
    * refuses, and the request's `pipeline-moved` check stays true until its stage 2.

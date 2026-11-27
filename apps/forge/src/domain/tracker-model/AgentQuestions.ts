@@ -2,6 +2,7 @@
  * An agent's question across its job, its decision or incident and its ticket (design section 8.2): an answer written as option letters,
  * the job's way back once answered, a question outliving its job held on its ticket, and an escalation carrying exactly the agent's words.
  */
+import type { DecisionAnswered } from './@types/BoardChanges.ts';
 import type {
   Decision,
   DecisionAnswer,
@@ -138,6 +139,14 @@ export class AgentQuestions {
       const unheld = ticket.frontmatter.hold === awaitingAnswerHoldOf(decision.id) ? this.ticketSettings.unholdTicket(ticketId, at).logged : [];
       return [...edited.logged, ...unheld];
     });
+  }
+
+  /** The first answer wins; the answered request joins its live job's `answeredRequestIds`, so a replay of it opens nothing. */
+  answerDecision(decisionId: string, answers: readonly string[], at: string): DecisionAnswered {
+    const answered                    = this.decisionRules.answerDecision(decisionId, answers, at);
+    const { jobId, requestId }        = answered.decision;
+    if (jobId !== null && requestId !== null && this.jobRules.jobById(jobId) !== undefined) this.jobRules.addAnsweredRequestId(jobId, requestId);
+    return { ...answered, logged: [...answered.logged, ...this.afterAnswer(answered.decision, answered.answer, at)] };
   }
 
   /**

@@ -115,4 +115,18 @@ export class PipelineSetupRecord {
     };
     return this.records.logger.log({ kind: 'pipeline-setup-step-moved', setupId: setup.setupId, fields }, at);
   }
+
+  /** The readable record when it is `setupId`'s, refused `no-setup-open` for another record or none. */
+  openSetupOf(setupId: string): Readonly<PipelineSetup> {
+    const setup = this.openSetupRecord();
+    if (setup?.setupId !== setupId) throw new BoardRefusal({ reason: 'no-setup-open', setupId });
+    return setup;
+  }
+
+  /** What the hold writes for the record: the record, `removed` after a start over, or `unchanged`. */
+  pipelineSetupWrite(): { write: 'record'; setup: PipelineSetup } | { write: 'removed' } | { write: 'unchanged' } {
+    if (!this.records.pipelineSetupChanged) return { write: 'unchanged' };
+    const reading = this.records.pipelineSetupReading;
+    return reading.verdict === 'readable' ? { write: 'record', setup: reading.setup } : { write: 'removed' };
+  }
 }

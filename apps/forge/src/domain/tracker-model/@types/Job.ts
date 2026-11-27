@@ -6,6 +6,7 @@
 import type { GatePhase }           from './GatePhase.ts';
 import type { QuestionOptionNotes } from './OptionConsequences.ts';
 import type { EntityKey }           from './Pipeline.ts';
+import type { TicketDocumentKind }  from './TicketDocument.ts';
 
 /**
  * `pipeline-agent` reads the repository and proposes its pipeline, or advises on the one it has; it never touches a ticket.
@@ -295,4 +296,11 @@ export interface PipelineStepRun {
 export interface GateRunStepRuns {
   phase: GatePhase;
   steps: readonly PipelineStepRun[];
+}
+
+/** The live agent job of a ticket document, and the document it writes. */
+export interface LiveDocumentAgent {
+  job:      Readonly<Job>;
+  ticketId: string;
+  document: TicketDocumentKind;
 }

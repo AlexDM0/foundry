@@ -2,22 +2,27 @@
  * The gate profile runs' moves: User's press queues one gate in one phase, Hephaestus marks it running and records how it ended, and
  * User's Stop ends a queued run at once or asks Hephaestus to end a running one. A second press while the gate and phase have a run
  * queued or running refuses. Only the newest run of a gate and phase is kept; on a forge over entities, of an entity's gate and phase.
+ * The gate a run profiles is read from the open setup's draft, or with no setup named from the stored pipeline.
  */
 import type { GateProfileChanged }     from './@types/BoardChanges.ts';
 import type {
+  GateToProfile,
   GateProfileRequest,
   GateProfileRun,
   GateProfileRunEnd,
   GateProfiles as StoredGateProfiles
 } from './@types/GateProfile.ts';
+import type { EntityKey }              from './@types/Pipeline.ts';
 import type { BoardRecords }           from './BoardRecords.ts';
 import { BoardRefusal }                from './BoardRefusal.ts';
+import type { PipelineSetupRecord }    from './PipelineSetupRecord.ts';
 import {
   FIRST_GATE_PROFILE_RUN_NUMBER,
   GATE_PROFILE_RUN_ID_PREFIX,
   GATE_PROFILES_FORMAT_VERSION,
   UNFINISHED_GATE_PROFILE_RUN_STATES
 } from './constants/GateProfileVocabulary.ts';
+import { PipelineUtil }       from './utils/PipelineUtil.ts';
 import { TicketBodyHashUtil } from './utils/TicketBodyHashUtil.ts';
 
 function runIsUnfinished(run: Readonly<GateProfileRun>): boolean {
@@ -30,7 +35,7 @@ function gateHashOf(gate: GateProfileRequest['gate']): string {
 }
 
 export class GateProfiles {
-  constructor(private readonly records: BoardRecords) {}
+  constructor(private readonly records: BoardRecords, private readonly setupRecord: PipelineSetupRecord) {}
 
   /**
    * Refuses `gate-profile-running` while the gate and phase, of the same entity, have a run queued or running; an ended run of them makes
@@ -109,6 +114,26 @@ export class GateProfiles {
   runs(): readonly Readonly<GateProfileRun>[] {
     const reading = this.records.gateProfilesReading;
     return reading.verdict === 'readable' ? reading.profiles.runs : [];
+  }
+
+  /**
+   * The gate a profile runs: from the open setup's draft, or with no setup named the stored pipeline; of the entity named, through that
+   * entity's single pipeline with its first home. Refused `no-setup-open` for another record and `unknown-gate` for a gate it lacks.
+   */
+  gateToProfileOf(setupId: string | null, entityKey: EntityKey | null, gateName: string): GateToProfile {
+    const source   = setupId === null ? this.records.pipeline : this.setupRecord.openSetupOf(setupId).draft;
+    const pipeline = source === null || entityKey === null ? source : PipelineUtil.pipelineOfEntity(source, entityKey);
+    const gate     = pipeline?.gates.find((candidate) => candidate.name === gateName);
+    if (source === null || pipeline === null || gate === undefined) {
+      throw new BoardRefusal({ reason: 'unknown-gate', gateName, gateNames: pipeline?.gates.map((candidate) => candidate.name) ?? [] });
+    }
+    return { pipeline, gate, firstHome: entityKey === null ? null : source.entities?.[entityKey]?.home[0] ?? '/' };
+  }
+
+  /** What the hold writes for the profile runs: the runs, or `unchanged`. */
+  gateProfilesWrite(): { write: 'profiles'; profiles: StoredGateProfiles } | { write: 'unchanged' } {
+    const reading = this.records.gateProfilesReading;
+    return this.records.gateProfilesChanged && reading.verdict === 'readable' ? { write: 'profiles', profiles: reading.profiles } : { write: 'unchanged' };
   }
 
   private stopped(run: GateProfileRun, at: string): GateProfileChanged {

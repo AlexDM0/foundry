@@ -71,8 +71,9 @@ import type {
   GateProfileRun,
   GateProfileRunEnd,
   GateProfilesReading,
-  GateProfiles as StoredGateProfiles
-}                                                           from './@types/GateProfile.ts';
+  GateProfiles as StoredGateProfiles,
+  GateToProfile
+} from './@types/GateProfile.ts';
 import type {
   Incident,
   IncidentDefaultCause,
@@ -93,8 +94,9 @@ import type {
   Airlock,
   HephaestusStopReason,
   PictureReference,
-  PipelineStepRun
-}                                              from './@types/Job.ts';
+  PipelineStepRun,
+  LiveDocumentAgent
+} from './@types/Job.ts';
 import type { LaunchSlots }                          from './@types/LaunchSlots.ts';
 import type { LifecycleLimits, LifecycleThresholds } from './@types/LifecycleLimits.ts';
 import type {
@@ -141,13 +143,7 @@ import type {
   SnapshotRefusal,
   StoredConstitutionSources
 } from './@types/PipelineSetup.ts';
-import type {
-  DecisionDraft,
-  DecisionWording,
-  PlaybookLaunchStage,
-  PlaybookObservations,
-  PlaybookStep
-}                                              from './@types/PlaybookStep.ts';
+import type { DecisionDraft, DecisionWording, PlaybookObservations } from './@types/PlaybookStep.ts';
 import type {
   DisplayState,
   Task,
@@ -162,10 +158,10 @@ import type {
   TicketSize,
   TicketStatus
 }                                                         from './@types/Ticket.ts';
-import type { LoadedTicketDocumentRecord, TicketDocumentKind } from './@types/TicketDocument.ts';
-import type { TicketForecast }                                 from './@types/TicketForecast.ts';
-import type { HephaestusState, TrackerProgress, ViewRange }    from './@types/TrackerProgress.ts';
-import { AgentQuestions }                                      from './AgentQuestions.ts';
+import type { LoadedTicketDocumentRecord }                  from './@types/TicketDocument.ts';
+import type { TicketForecast }                              from './@types/TicketForecast.ts';
+import type { HephaestusState, TrackerProgress, ViewRange } from './@types/TrackerProgress.ts';
+import { AgentQuestions }                                   from './AgentQuestions.ts';
 import {
   type MergeCandidate,
   type MergeLanding,
@@ -177,79 +173,55 @@ import {
   type RefreshSlotClaim,
   type TicketAwaitingGreen
 }                                              from './AirlockClaims.ts';
-import { BoardRecords }                                                         from './BoardRecords.ts';
-import { BoardRefusal, type BoardRefusalDetail }                                from './BoardRefusal.ts';
-import { Decisions }                                                            from './Decisions.ts';
-import { DispatchQueries, DOCUMENTS_HOLD_REASON }                               from './DispatchQueries.ts';
-import { DisplayQueries }                                                       from './DisplayQueries.ts';
-import { DraftContents }                                                        from './DraftContents.ts';
-import { Drafts }                                                               from './Drafts.ts';
-import { Epics }                                                                from './Epics.ts';
-import { Findings }                                                             from './Findings.ts';
-import { GateProfiles }                                                         from './GateProfiles.ts';
-import { GroupReleases }                                                        from './GroupReleases.ts';
-import { IncidentMoves }                                                        from './IncidentMoves.ts';
-import type { IncidentEscalation }                                              from './Incidents.ts';
-import { Incidents }                                                            from './Incidents.ts';
-import { JobControls }                                                          from './JobControls.ts';
-import type { JobMoveOptions, SteppedJobState }                                 from './Jobs.ts';
-import { Jobs }                                                                 from './Jobs.ts';
-import type { Logger }                                                          from './Logger.ts';
-import { MergeQueueMarks }                                                      from './MergeQueueMarks.ts';
-import { MoveOffers, type JobOffers, type TicketOffers }                        from './MoveOffers.ts';
-import { Needs }                                                                from './Needs.ts';
-import { PipelineSetupApplies }                                                 from './PipelineSetupApplies.ts';
-import { PipelineSetupChecks }                                                  from './PipelineSetupChecks.ts';
-import { PipelineSetupConstitutions }                                           from './PipelineSetupConstitutions.ts';
-import { PipelineSetupDraftEdits }                                              from './PipelineSetupDraftEdits.ts';
-import { PipelineSetupRecord }                                                  from './PipelineSetupRecord.ts';
-import { PipelineSetups }                                                       from './PipelineSetups.ts';
-import type { PlaybookFacts, PlaybookTicket }                                   from './Playbook.ts';
-import { Playbook }                                                             from './Playbook.ts';
-import { ReviewBars }                                                           from './ReviewBars.ts';
-import type { ReviewStatisticsReport }                                          from './ReviewStatistics.ts';
-import { ReviewStatistics }                                                     from './ReviewStatistics.ts';
-import { TaskRows }                                                             from './TaskRows.ts';
-import { TicketClaims }                                                         from './TicketClaims.ts';
-import { TicketDependencies }                                                   from './TicketDependencies.ts';
-import { TicketDocuments }                                                      from './TicketDocuments.ts';
-import type { TicketEdit, TicketEdited }                                        from './TicketEdits.ts';
-import { TicketEdits }                                                          from './TicketEdits.ts';
-import { TicketForecasts }                                                      from './TicketForecasts.ts';
-import { TicketLinks }                                                          from './TicketLinks.ts';
-import { TicketMoves, type WorkFilesOf }                                        from './TicketMoves.ts';
-import { TicketSettings }                                                       from './TicketSettings.ts';
-import { TicketStageRows }                                                      from './TicketStageRows.ts';
-import { TokenCredits }                                                         from './TokenCredits.ts';
-import { TrackerChanges }                                                       from './TrackerChanges.ts';
-import { INTERRUPTED_HOLD_PREFIX, PARKED_HOLD_PREFIX, RETIRED_DECISION_REASON } from './constants/DecisionAndIncidentVocabulary.ts';
-import { DEFAULT_TICKET_WRITING_ROUTE }                                         from './constants/PipelineDefaults.ts';
-import { PENDING_APPLY_REQUEST_STATES }                                         from './constants/PipelineSetupVocabulary.ts';
-import { SETTLED_TICKET_STATUSES }                                              from './constants/Statuses.ts';
-import { DocumentAgentJobUtil }                                                 from './utils/DocumentAgentJobUtil.ts';
-import { GroupNameUtil }                                                        from './utils/GroupNameUtil.ts';
-import type { MergeForecast }                                                   from './utils/MergeQueueUtil.ts';
-import { OptionConsequencesUtil }                                               from './utils/OptionConsequencesUtil.ts';
-import { PipelineUtil }                                                         from './utils/PipelineUtil.ts';
-
-/** The entity and stage a launch step names, which the job carries only when set. */
-function launchStageOf(step: PlaybookLaunchStage): PlaybookLaunchStage {
-  return { ...(step.entity === undefined ? {} : { entity: step.entity }), ...(step.stage === undefined ? {} : { stage: step.stage }) };
-}
-
-/** The live agent job of a ticket document, and the document it writes. */
-export interface LiveDocumentAgent {
-  job:      Readonly<Job>;
-  ticketId: string;
-  document: TicketDocumentKind;
-}
-
-/** The gate a profile runs, the pipeline it is read from, and its entity's first home; `null` for a pipeline without entities. */
-export interface GateToProfile {
-  pipeline:  Readonly<Pipeline>;
-  gate:      Readonly<PipelineGate>;
-  firstHome: string | null;
-}
+import { BoardRecords }                                  from './BoardRecords.ts';
+import { type BoardRefusalDetail }                       from './BoardRefusal.ts';
+import { Decisions }                                     from './Decisions.ts';
+import { DispatchQueries }                               from './DispatchQueries.ts';
+import { DisplayQueries }                                from './DisplayQueries.ts';
+import { DraftContents }                                 from './DraftContents.ts';
+import { Drafts }                                        from './Drafts.ts';
+import { Epics }                                         from './Epics.ts';
+import { Findings }                                      from './Findings.ts';
+import { GateProfiles }                                  from './GateProfiles.ts';
+import { GroupReleases }                                 from './GroupReleases.ts';
+import { IncidentMoves }                                 from './IncidentMoves.ts';
+import type { IncidentEscalation }                       from './Incidents.ts';
+import { Incidents }                                     from './Incidents.ts';
+import { IntakeCloses }                                  from './IntakeCloses.ts';
+import { JobControls }                                   from './JobControls.ts';
+import type { JobMoveOptions, SteppedJobState }          from './Jobs.ts';
+import { Jobs }                                          from './Jobs.ts';
+import type { Logger }                                   from './Logger.ts';
+import { MergeQueueMarks }                               from './MergeQueueMarks.ts';
+import { MoveOffers, type JobOffers, type TicketOffers } from './MoveOffers.ts';
+import { Needs }                                         from './Needs.ts';
+import { PipelineSetupApplies }                          from './PipelineSetupApplies.ts';
+import { PipelineSetupChecks }                           from './PipelineSetupChecks.ts';
+import { PipelineSetupConstitutions }                    from './PipelineSetupConstitutions.ts';
+import { PipelineSetupDraftEdits }                       from './PipelineSetupDraftEdits.ts';
+import { PipelineSetupRecord }                           from './PipelineSetupRecord.ts';
+import { PipelineSetups }                                from './PipelineSetups.ts';
+import { PlaybookMoves }                                 from './PlaybookMoves.ts';
+import { ReviewBars }                                    from './ReviewBars.ts';
+import type { ReviewStatisticsReport }                   from './ReviewStatistics.ts';
+import { ReviewStatistics }                              from './ReviewStatistics.ts';
+import { TaskRows }                                      from './TaskRows.ts';
+import { TicketClaims }                                  from './TicketClaims.ts';
+import { TicketDependencies }                            from './TicketDependencies.ts';
+import { TicketDocuments }                               from './TicketDocuments.ts';
+import type { TicketEdit, TicketEdited }                 from './TicketEdits.ts';
+import { TicketEdits }                                   from './TicketEdits.ts';
+import { TicketForecasts }                               from './TicketForecasts.ts';
+import { TicketLinks }                                   from './TicketLinks.ts';
+import { TicketMoves, type WorkFilesOf }                 from './TicketMoves.ts';
+import { TicketSettings }                                from './TicketSettings.ts';
+import { TicketStageRows }                               from './TicketStageRows.ts';
+import { TokenCredits }                                  from './TokenCredits.ts';
+import { TrackerChanges }                                from './TrackerChanges.ts';
+import { DEFAULT_TICKET_WRITING_ROUTE }                  from './constants/PipelineDefaults.ts';
+import type { MergeForecast }                            from './utils/MergeQueueUtil.ts';
+import { OptionConsequencesUtil }                        from './utils/OptionConsequencesUtil.ts';
+import { PipelineUtil }                                  from './utils/PipelineUtil.ts';
 
 export interface BoardInput {
   progress:                     TrackerProgress;
@@ -353,6 +325,10 @@ export class Board {
 
   private readonly moveOffers: MoveOffers;
 
+  private readonly intakeCloses: IntakeCloses;
+
+  private readonly playbookMoves: PlaybookMoves;
+
   constructor(input: BoardInput) {
     this.records            = new BoardRecords(input.progress, input.tickets, input.epics, input.drafts ?? [], input.logger, input.storedLogRecords ?? [], input.pipeline ?? null,
       input.pipelineSetup ?? { verdict: 'absent' }, input.gateProfiles ?? { verdict: 'absent' }, input.constitutionSources ?? { verdict: 'absent' },
@@ -377,14 +353,14 @@ export class Board {
     this.epicRules          = new Epics(this.records, this.displayQueries);
     this.draftRules         = new Drafts(this.records);
     this.draftContents      = new DraftContents(this.records, this.draftRules);
-    this.gateProfiles       = new GateProfiles(this.records);
-    this.jobRules           = new Jobs(this.records);
-    this.mergeQueueMarks    = new MergeQueueMarks(this.records);
-    this.ticketStageRows    = new TicketStageRows(this.records, this.reviewBars);
-    this.airlockClaims    = new AirlockClaims(this.records, this.jobRules, this.mergeQueueMarks);
-    this.decisionRules      = new Decisions(this.records);
     this.setupRecord        = new PipelineSetupRecord(this.records);
-    this.pipelineSetups     = new PipelineSetups(this.records, this.setupRecord);
+    this.gateProfiles       = new GateProfiles(this.records, this.setupRecord);
+    this.jobRules           = new Jobs(this.records, this.ticketDocumentRules);
+    this.mergeQueueMarks    = new MergeQueueMarks(this.records);
+    this.decisionRules      = new Decisions(this.records);
+    this.ticketStageRows    = new TicketStageRows(this.records, this.reviewBars, this.decisionRules);
+    this.airlockClaims    = new AirlockClaims(this.records, this.jobRules, this.mergeQueueMarks);
+    this.pipelineSetups     = new PipelineSetups(this.records, this.setupRecord, this.trackerChanges, this.jobRules);
     this.setupConstitutions = new PipelineSetupConstitutions(this.records, this.setupRecord);
     this.setupDraftEdits    = new PipelineSetupDraftEdits(this.records, this.setupRecord);
     this.setupChecks        = new PipelineSetupChecks(this.records, this.setupRecord);
@@ -406,6 +382,21 @@ export class Board {
       endJob:         (jobId, ending, at) => this.endJob(jobId, ending, at),
       requestFresh:   (jobId, at) => this.jobControls.requestJobStop(jobId, 'fresh', at),
       stopParkedJob:  (jobId, parkedEnding, at) => this.jobControls.stopParkedJob(jobId, parkedEnding, at),
+    });
+    this.intakeCloses       = new IntakeCloses(this.records, this.jobRules, this.jobControls, this.ticketMoves, this.ticketDocumentRules);
+    this.playbookMoves      = new PlaybookMoves({
+      records:            this.records,
+      jobRules:           this.jobRules,
+      jobControls:        this.jobControls,
+      decisionRules:      this.decisionRules,
+      incidentRules:      this.incidentRules,
+      incidentMoves:      this.incidentMoves,
+      dispatchQueries:    this.dispatchQueries,
+      mergeQueueMarks:    this.mergeQueueMarks,
+      ticketSettings:     this.ticketSettings,
+      ticketDependencies: this.ticketDependencies,
+      trackerChanges:     this.trackerChanges,
+      endJob:             (jobId, ending, at) => this.endJob(jobId, ending, at),
     });
   }
 
@@ -465,12 +456,6 @@ export class Board {
     return this.jobControls.startIntake(text, pictures, at);
   }
 
-  /**
-   * The product owner's close submits every draft its intake chain filed: readied, or ready for review when ticket review is on. Work
-   * outside an entity (E85) is refused before the job moves, so a corrected retry can still close. In the spec-then-plan `route`,
-   * `readinessGapsOf` judges a draft's Report and Wanted: each complete draft stays a draft and opens its spec and plan, which ready it. In a
-   * forge with entities a complete draft without one is refused there too, before the job moves, since its documents could never ready it.
-   */
   closeIntake(
     jobId: string,
     proposedDraftSets: readonly (readonly string[])[],
@@ -479,20 +464,7 @@ export class Board {
     workFilesOf?: WorkFilesOf,
     route: TicketWritingRoute = DEFAULT_TICKET_WRITING_ROUTE,
   ): JobChanged {
-    if (route === 'spec-then-plan') {
-      const completeDrafts = this.draftsFiledByIntakeOf(jobId)
-        .filter((ticket) => ticket.frontmatter.status === 'draft' && readinessGapsOf(ticket.body).length === 0);
-      this.ticketMoves.refuseASubmitWithoutAnEntity(completeDrafts, false, readinessGapsOf);
-      const closed = this.jobControls.closeIntake(jobId, proposedDraftSets, at);
-      const opened = completeDrafts.flatMap((ticket) => this.ticketDocumentRules.open(ticket.frontmatter.id, at).logged);
-      return { job: closed.job, logged: [...closed.logged, ...opened] };
-    }
-    const drafts = this.draftsFiledByIntakeOf(jobId);
-    if (workFilesOf !== undefined) this.refuseWorkOutsideTheEntity(drafts, readinessGapsOf, workFilesOf);
-    const closed    = this.jobControls.closeIntake(jobId, proposedDraftSets, at);
-    const draftIds  = this.draftsFiledByIntakeOf(jobId).map((ticket) => ticket.frontmatter.id);
-    const submitted = draftIds.length === 0 ? [] : this.submitDraftTickets(draftIds, readinessGapsOf, at, workFilesOf).logged;
-    return { job: closed.job, logged: [...closed.logged, ...submitted] };
+    return this.intakeCloses.closeIntake(jobId, proposedDraftSets, readinessGapsOf, at, workFilesOf, route);
   }
 
   /** The product owner's short title for its intake, kept on the job and logged `intake-titled`. */
@@ -528,13 +500,8 @@ export class Board {
     return this.jobRules.takeQuestionOptionNotes(jobId, (notes) => questionTexts.some((text) => OptionConsequencesUtil.notesAreForQuestion(notes, text)));
   }
 
-  /** The drafts a product owner and every session it took over from filed, still drafts. */
   draftsFiledByIntakeOf(jobId: string): readonly Readonly<Ticket>[] {
-    const job = this.jobRules.jobById(jobId);
-    if (job === undefined) return [];
-    const filingJobIds = this.jobControls.intakeChainOf(job);
-    return this.tickets().filter(({ frontmatter }) => frontmatter.status === 'draft' && frontmatter.filedByJob !== undefined
-      && filingJobIds.includes(frontmatter.filedByJob));
+    return this.intakeCloses.draftsFiledByIntakeOf(jobId);
   }
 
   /** Hephaestus's end of a closed intake: the job ends `closed`. */
@@ -596,15 +563,8 @@ export class Board {
     return this.jobRules.recordJobResumeInstructed(jobId, at);
   }
 
-  /**
-   * User's resume of every interrupted job whose policy waits for one, a crash past its bound included, and of every job whose lost line
-   * waits; none logged when none waits.
-   */
   instructResumeOfEveryWaitingJob(limits: LifecycleThresholds, at: string): Logged {
-    const waiting = this.jobs().filter((job) => (
-      job.state === 'interrupted' ? Playbook.resumePolicyOf(job, limits) === 'waits-for-instruction' : this.lostLineAwaitsResume(job)
-    ));
-    return this.instructResumeOfEach(waiting, at);
+    return this.jobControls.instructResumeOfEveryWaitingJob(limits, at);
   }
 
   /** A start found the job's install or gate line lost: the job keeps its state, and the line waits for User's resume. */
@@ -613,12 +573,11 @@ export class Board {
   }
 
   lostLineAwaitsResume(job: Readonly<Job>): boolean {
-    return Playbook.lostLineAwaitsResume(job, this.logRecordsSoFar());
+    return this.jobControls.lostLineAwaitsResume(job);
   }
 
-  /** User's resume of every job that ended on a network outage (decision 35); none logged when none did. */
   instructResumeOfEveryNetworkOutageJob(at: string): Logged {
-    return this.instructResumeOfEach(this.interruptedJobs().filter((job) => job.interruption === 'network-outage'), at);
+    return this.jobControls.instructResumeOfEveryNetworkOutageJob(at);
   }
 
   recordRestartFailed(failure: { successorCodeVersion: string; step: string; error: string }, at: string): Logged {
@@ -679,22 +638,8 @@ export class Board {
     this.ticketStageRows.clearTicketStage(ticketId);
   }
 
-  /**
-   * A crossing ticket goes back into the package build of `packageEntity` (E41, E65) once. A second return opens `second-return` instead,
-   * which holds the ticket at its stage until User answers (E45); one already open is not opened again.
-   */
   returnTicketToThePackage(ticketId: string, packageEntity: string, decisionWordingOf: (draft: DecisionDraft) => DecisionWording, at: string): Logged {
-    const packageBuild: TicketStage = { name: 'package-build', entity: packageEntity };
-    if (!this.ticketStageRows.stageMoveIsASecondPackageReturn(ticketId, packageBuild)) return this.moveTicketStage(ticketId, packageBuild, at);
-    const draft: DecisionDraft = {
-      kind: 'second-return', ticketIds: [ticketId], jobId: null, subject: { packageEntity }
-    };
-    if (this.decisions().some((decision) => decision.kind === draft.kind && decision.ticketIds.includes(ticketId))) return { logged: [] };
-    return {
-      logged: this.openDecision({
-        ...draft, askedBy: 'hephaestus', requestId: null, ...decisionWordingOf(draft), context: packageEntity
-      }, at).logged
-    };
+    return this.ticketStageRows.returnTicketToThePackage(ticketId, packageEntity, decisionWordingOf, at);
   }
 
   /** Whether `returnTicketToThePackage` would open `second-return` rather than move the ticket into the package's build (E45). */
@@ -758,21 +703,16 @@ export class Board {
     return this.moveOffers.mergeUpdateIsOpenTo(ticketId);
   }
 
-  /** `merge accept` and `merge update` are User's merge approval moves, refused while merge approval is off. */
   refuseAMergeMoveWithApprovalOff(ticketId: string): void {
-    if (!this.mergeApprovalIsOn()) throw new BoardRefusal({ reason: 'merge-approval-off', ticketId });
+    this.mergeQueueMarks.refuseAMergeMoveWithApprovalOff(ticketId);
   }
 
-  /** Only a ticket waiting for merge, its green current on its branch's tree, is accepted. */
   refuseAMergeAcceptOfATicketNotWaiting(ticketId: string, target: string, targetOf: MergeTargetOf, branchTreeOf: BranchTreeOf): void {
-    const waiting = this.ticketsWaitingForMergeOf(target, targetOf, branchTreeOf);
-    if (waiting.some((candidate) => candidate.ticketId === ticketId)) return;
-    throw new BoardRefusal({ reason: 'merge-accept-of-a-ticket-not-waiting', ticketId, status: this.records.requireTicket(ticketId).frontmatter.status });
+    this.airlockClaims.refuseAMergeAcceptOfATicketNotWaiting(ticketId, target, targetOf, branchTreeOf);
   }
 
   refuseAMergeUpdateOfATicketNotWaiting(ticketId: string): void {
-    if (this.mergeUpdateIsOpenTo(ticketId)) return;
-    throw new BoardRefusal({ reason: 'merge-update-of-a-ticket-not-waiting', ticketId, status: this.records.requireTicket(ticketId).frontmatter.status });
+    this.moveOffers.refuseAMergeUpdateOfATicketNotWaiting(ticketId);
   }
 
   /** User's moves the ticket accepts now; `mergeWait` is git's prediction while it waits for merge, as the merge queue read it. */
@@ -862,12 +802,8 @@ export class Board {
     return this.decisionRules.openDecision(opening, at);
   }
 
-  /** The first answer wins; the answered request joins its live job's `answeredRequestIds`, so a replay of it opens nothing. */
   answerDecision(decisionId: string, answers: readonly string[], at: string): DecisionAnswered {
-    const answered                    = this.decisionRules.answerDecision(decisionId, answers, at);
-    const { jobId, requestId }        = answered.decision;
-    if (jobId !== null && requestId !== null && this.jobRules.jobById(jobId) !== undefined) this.jobRules.addAnsweredRequestId(jobId, requestId);
-    return { ...answered, logged: [...answered.logged, ...this.agentQuestions.afterAnswer(answered.decision, answered.answer, at)] };
+    return this.agentQuestions.answerDecision(decisionId, answers, at);
   }
 
   /** `decide`'s forms: option letters per question, multi-select letters joined, or one free text for a one-question decision. */
@@ -875,13 +811,8 @@ export class Board {
     return this.answerDecision(decisionId, this.agentQuestions.answersOf(decisionId, form), at);
   }
 
-  /** Puts a question incident's own questions to User as an `agent-question`, with no word of the Assistant's. */
   escalateQuestionIncident(incidentId: string, at: string): IncidentEscalated {
-    const incident   = this.incidentRules.incidentById(incidentId);
-    const escalation = incident === undefined ? null : this.agentQuestions.escalationOf(incident);
-    if (incident === undefined) throw new BoardRefusal({ reason: 'unknown-incident', incidentId });
-    if (escalation === null) throw new BoardRefusal({ reason: 'decision-without-questions' });
-    return this.incidentRules.escalateIncident(incidentId, escalation, at);
+    return this.incidentMoves.escalateQuestionIncident(incidentId, at);
   }
 
   /** Hephaestus's first start puts the v16 low `committed` tickets in `ready-for-review`, whatever the ticket review switch says. */
@@ -931,125 +862,8 @@ export class Board {
     return this.incidentRules.incidents();
   }
 
-  /**
-   * Applies every step the Playbook derives from this board, in order, each record stamped `limits.now`. A decision the policy
-   * opens is worded by `decisionWordingOf`, since the policy holds no words.
-   */
   followPlaybook(limits: LifecycleLimits, observations: PlaybookObservations, decisionWordingOf: (draft: DecisionDraft) => DecisionWording): LifecycleAdvanced {
-    const steps = Playbook.nextStepsOf(this.playbookFactsOf(observations), limits);
-    const logged = steps.flatMap((step) => this.applyPlaybookStep(step, decisionWordingOf, limits.now));
-    return { steps, logged };
-  }
-
-  private refuseAnUnportableGroup(group: string | undefined): void {
-    if (group === undefined) return;
-    if (!GroupNameUtil.groupNameIsWellFormed(group)) throw new BoardRefusal({ reason: 'malformed-group-name', group });
-    const existingGroups = this.records.ticketRecords.flatMap(({ frontmatter }) => frontmatter.group ?? []);
-    const existingGroup  = GroupNameUtil.caseFoldedTwinOf(group, existingGroups);
-    if (existingGroup !== null) throw new BoardRefusal({ reason: 'group-name-case-twin', group, existingGroup });
-  }
-
-  private playbookFactsOf(observations: PlaybookObservations): PlaybookFacts {
-    return {
-      tickets:                     this.records.ticketRecords.map((ticket) => this.playbookTicketOf(ticket)),
-      jobs:                        this.jobs(),
-      decisions:                   this.decisions(),
-      incidents:                   this.incidents(),
-      logRecords:                  [...this.records.storedLogRecords, ...this.records.loggedRecords],
-      readinessPositionByTicketId: this.dispatchQueries.readinessPositionByTicketId(),
-      concurrencyLimit:            this.concurrency().limit,
-      hephaestusState:             this.hephaestusState(),
-      pipelineIsSet:               this.records.pipeline !== null,
-      assistantIsOn:               this.assistantIsOn(),
-      reviewIsSet:                 this.records.pipeline?.review !== undefined,
-      pipelineHasEntities:         this.records.pipeline?.entities !== undefined,
-      entitiesWithReview:          Object.entries(this.records.pipeline?.entities ?? {})
-        .filter(([, entity]) => entity.review !== undefined)
-        .map(([entityKey]) => entityKey),
-      concurrencyByEntity: Object.fromEntries(Object.entries(this.records.pipeline?.entities ?? {})
-        .flatMap(([entityKey, entity]): [string, number][] => (entity.concurrency === undefined ? [] : [[entityKey, entity.concurrency]]))),
-      ticketDocuments: Playbook.ticketDocumentFactsOf(this.records.ticketDocumentRecords),
-      observations,
-    };
-  }
-
-  /** The ticket as the Playbook reads it: its frontmatter, whether it is queued to land, and the stage its row stores once it crosses. */
-  private playbookTicketOf(ticket: Readonly<Ticket>): PlaybookTicket {
-    const stage = this.records.linkedTaskRecordOf(ticket)?.stage;
-    const documentsHold = ticket.frontmatter.hold === undefined && this.dispatchQueries.ticketIsHeldByItsDocuments(ticket) ? { hold: DOCUMENTS_HOLD_REASON } : {};
-    return {
-      ...ticket.frontmatter, ...documentsHold, mergeQueued: this.ticketIsMergeQueued(ticket.frontmatter.id), ...(stage === undefined ? {} : { stage: { ...stage } })
-    };
-  }
-
-  private interruptedJobs(): readonly Readonly<Job>[] {
-    return this.jobs().filter((job) => job.state === 'interrupted');
-  }
-
-  private instructResumeOfEach(jobs: readonly Readonly<Job>[], at: string): Logged {
-    return { logged: jobs.flatMap((job) => this.instructResume(job.id, at).logged) };
-  }
-
-  private applyPlaybookStep(step: PlaybookStep, decisionWordingOf: (draft: DecisionDraft) => DecisionWording, at: string): readonly LogRecord[] {
-    const openDecision = (draft: DecisionDraft): readonly LogRecord[] => this.openDecision({
-      ...draft, askedBy: 'hephaestus', requestId: null, ...decisionWordingOf(draft)
-    }, at).logged;
-    switch (step.kind) {
-      case 'launch-build':
-        return this.launchJob({
-          kind: 'build', role: 'builder', ticketIds: [step.ticketId], parentJobId: null, attempt: step.attempt, target: step.base, ...launchStageOf(step)
-        }, at).logged;
-      case 'launch-review':
-        return this.launchJob({
-          kind:        'review',
-          role:        step.round > 1 ? 're-reviewer' : 'reviewer',
-          ticketIds:   [step.ticketId],
-          parentJobId: null,
-          attempt:     step.round,
-          target:      step.target,
-          ...launchStageOf(step),
-        }, at).logged;
-      case 'boot-assistant':
-        return this.launchJob({
-          kind: 'assistant', role: 'assistant', ticketIds: [], parentJobId: null, attempt: 1, target: null
-        }, at).logged;
-      case 'withdraw-retired-decision':
-        return this.withdrawDecision(step.decisionId, RETIRED_DECISION_REASON, at).logged;
-      case 'resume-job':
-        return this.moveJob(step.jobId, 'running', at, { instructed: step.instructed }).logged;
-      case 'replace-job':
-        return this.endJob(step.jobId, { outcome: 'replaced' }, at).logged;
-      case 'await-answer':
-        return this.moveJob(step.jobId, 'awaiting-answer', at).logged;
-      case 'refresh-intake':
-        return this.jobControls.refreshIntake(step.jobId, at).logged;
-      case 'park':
-        return [
-          ...step.jobId === undefined ? [] : this.endJob(step.jobId, { outcome: 'failed', cause: step.cause }, at).logged,
-          ...this.holdTicket(step.ticketId, `${PARKED_HOLD_PREFIX}${step.cause}`, at).logged,
-          ...openDecision({ kind: 'parked', ticketIds: [step.ticketId], jobId: null }),
-        ];
-      case 'release-abandoned-need':
-        return [
-          ...this.ticketDependencies.removeTicketDependencies(step.ticketId, [step.needTicketId], at).logged,
-          ...openDecision({ kind: 'need-abandoned', ticketIds: [step.ticketId], jobId: null }),
-        ];
-      case 'open-decision':
-        return openDecision(step.decision);
-      case 'open-incident':
-        return this.openIncident(step.incident, at).logged;
-      case 'default-incident':
-        return this.incidentMoves.defaultIncident(step.incidentId, step.cause, decisionWordingOf, at);
-      case 'pause-hephaestus':
-        return this.setHephaestusState('paused', at).logged;
-      case 'await-machine-slot':
-        return [];
-      case 'launch-document-agent':
-        return this.jobRules.launchOrResumeDocumentAgent(step.ticketId, step.document, at).logged;
-      // Hephaestus acts on it in the same hold: the stored proposals and the worktree's tree are outside the board.
-      case 'act-on-waiver-answer':
-        return [];
-    }
+    return this.playbookMoves.followPlaybook(limits, observations, decisionWordingOf);
   }
 
   incidentById(incidentId: string): Readonly<Incident> | undefined {
@@ -1106,27 +920,11 @@ export class Board {
   }
 
   assistantIsOn(): boolean {
-    return this.records.pipeline?.assistant === true;
+    return this.records.assistantIsOn();
   }
 
-  /**
-   * The forge's agent: the stored pipeline's, and the open setup record's with it, so its pipeline agent runs on the same one. A billing
-   * sent with it is stored with it; with none, a stored billing the new vendor does not bill by is refused `billing-not-offered`, since
-   * the billing is User's choice. A first setup's record asks its billing again instead. With no stored pipeline an open record takes the
-   * agent alone; with neither it is refused `agent-without-pipeline`. Every launch it refused is tried again.
-   */
   setAgent(agent: PipelineAgent, billing: PipelineBilling | undefined, offeredBillingModesOf: OfferedBillingModesOf, at: string): Logged {
-    const setup = this.pipelineSetup();
-    if (this.records.pipeline === null && setup !== null) {
-      if (billing !== undefined) this.pipelineSetups.requireSetupBillingOffered(setup.setupId, agent, billing, offeredBillingModesOf);
-      const changed = this.pipelineSetups.setSetupAgent(setup.setupId, agent, offeredBillingModesOf, at);
-      const billed = billing === undefined ? [] : this.pipelineSetups.setSetupBilling(setup.setupId, billing, offeredBillingModesOf, at).logged;
-      return { logged: [...changed.logged, ...billed, ...this.jobRules.retryNotLaunched(at).logged] };
-    }
-    const keptBilling = this.records.pipeline === null ? undefined : this.pipelineSetups.agentChangeBillingOf(agent, billing, offeredBillingModesOf);
-    const changed = this.trackerChanges.setAgent(agent, keptBilling, at);
-    const followed = this.pipelineSetups.followAgentChange(agent, keptBilling, offeredBillingModesOf, at);
-    return { logged: [...changed.logged, ...followed, ...this.jobRules.retryNotLaunched(at).logged] };
+    return this.pipelineSetups.setAgent(agent, billing, offeredBillingModesOf, at);
   }
 
   /** The tools whose folders an agent's search path holds, in an open update's draft too; `null` follows the pipeline's programs again. */
@@ -1158,10 +956,8 @@ export class Board {
     return this.trackerChanges.recordWorktreeRepaired(ticketId, fields, at);
   }
 
-  /** Any job still on the board for the ticket may hold its agent group or a line child in the worktree. */
   refuseARepairOfAWorktreeInUse(ticketId: string): void {
-    const jobIds = this.jobs().filter((job) => job.ticketIds.includes(ticketId)).map((job) => job.id);
-    if (jobIds.length > 0) throw new BoardRefusal({ reason: 'worktree-in-use', ticketId, jobIds });
+    this.jobRules.refuseARepairOfAWorktreeInUse(ticketId);
   }
 
   recordGateRan(fields: LogRecordFieldsOf<'gate-ran'>, at: string): Logged {
@@ -1201,31 +997,18 @@ export class Board {
   }
 
   fileTicket(ticket: Ticket, at: string): TicketChanged {
-    this.refuseAnUnportableGroup(ticket.frontmatter.group);
+    this.ticketSettings.refuseAnUnportableGroup(ticket.frontmatter.group);
     this.epicRules.refuseUnknownEpicKeys(ticket.frontmatter.epics ?? []);
     this.ticketLinks.refuseUnworkableLinksOfAFiledTicket(ticket.frontmatter);
     return this.ticketMoves.fileTicket(ticket, at);
   }
 
-  /**
-   * Puts a ticket that has no group into one, a started ticket too: refused as a filing's group is, and for a delivered or abandoned ticket.
-   * Its next landing goes to the group's branch.
-   */
   setTicketGroup(ticketId: string, group: string, at: string): TicketChanged {
-    const ticket = this.records.requireTicket(ticketId);
-    const { status, group: currentGroup } = ticket.frontmatter;
-    if (SETTLED_TICKET_STATUSES.includes(status)) throw new BoardRefusal({ reason: 'group-of-a-settled-ticket', ticketId, status });
-    if (currentGroup !== undefined) throw new BoardRefusal({ reason: 'ticket-already-in-a-group', ticketId, group: currentGroup });
-    this.refuseAnUnportableGroup(group);
-    ticket.frontmatter.group = group;
-    this.records.markChanged(ticket);
-    return { logged: [this.records.logger.log({ kind: 'ticket-grouped', ticketId, fields: { group } }, at)], ticket };
+    return this.ticketSettings.setTicketGroup(ticketId, group, at);
   }
 
-  /** E26: a ticket of each dependent that the crossing ticket's package change breaks was filed in the crossing ticket's group. */
   recordDependentFixFiled(ticketId: string, fix: LogRecordFieldsOf<'dependent-fix-filed'>, at: string): Logged {
-    this.records.requireTicket(ticketId);
-    return { logged: [this.records.logger.log({ kind: 'dependent-fix-filed', ticketId, fields: { entity: fix.entity, fixTicketIds: [...fix.fixTicketIds] } }, at)] };
+    return this.trackerChanges.recordDependentFixFiled(ticketId, fix, at);
   }
 
   /** A `null` cause clears the link. */
@@ -1452,10 +1235,8 @@ export class Board {
     return this.gateProfiles.runs();
   }
 
-  /** What the hold writes for the profile runs: the runs, or `unchanged`. */
   gateProfilesWrite(): { write: 'profiles'; profiles: StoredGateProfiles } | { write: 'unchanged' } {
-    const reading = this.records.gateProfilesReading;
-    return this.records.gateProfilesChanged && reading.verdict === 'readable' ? { write: 'profiles', profiles: reading.profiles } : { write: 'unchanged' };
+    return this.gateProfiles.gateProfilesWrite();
   }
 
   /** The refusal `requestApply` would give the open record's current draft now against main's texts as read; `null` when it would proceed. */
@@ -1465,7 +1246,7 @@ export class Board {
 
   /** Stage 1 of an Apply: it refuses, waits for the constitution commit, or runs stage 2 at once when main already holds the text. */
   requestApply(setupId: string, requesting: ApplyRequesting, at: string): PipelineApplyChanged {
-    return this.withTheAppliedSetupAgentStopped(this.setupApplies.requestApply(setupId, requesting, at), requesting, at);
+    return this.jobControls.withTheAppliedSetupAgentStopped(this.setupApplies.requestApply(setupId, requesting, at), requesting, at);
   }
 
   /**
@@ -1473,33 +1254,13 @@ export class Board {
    * record's pipeline agent is stopped in the same hold.
    */
   finishApply(setupId: string, finishing: ApplyFinishing, at: string): PipelineApplyChanged {
-    return this.withTheAppliedSetupAgentStopped(this.setupApplies.finishApply(setupId, finishing, at), finishing, at);
+    return this.jobControls.withTheAppliedSetupAgentStopped(this.setupApplies.finishApply(setupId, finishing, at), finishing, at);
   }
 
   /** At Hephaestus's start: an open record whose draft is already the stored pipeline finishes its Apply; `null` when there is none. */
   finishHalfAppliedSetup(reading: ApplyMainReading, at: string): PipelineApplyChanged | null {
     const finished = this.setupApplies.finishHalfAppliedSetup(reading, at);
-    return finished === null ? null : this.withTheAppliedSetupAgentStopped(finished, reading, at);
-  }
-
-  /**
-   * An applied record leaves its pipeline agents nothing to serve: each live one, the forge's and every entity's, is stopped, as a start
-   * over stops them, and Hephaestus removes the snapshot once no pipeline agent is left. Stage 1 that only waits for the commit stops
-   * nothing. The first Apply over entities starts the product owner that gives the committed tickets without an entity one, in the same hold.
-   */
-  private withTheAppliedSetupAgentStopped(changed: PipelineApplyChanged, reading: ApplyMainReading, at: string): PipelineApplyChanged {
-    const setup = changed.outcome === 'applied' ? changed.setup : null;
-    if (setup === null) return changed;
-    const agentJobIds = [setup.agentJobId, ...Object.values(setup.entities ?? {}).map((entityPart) => entityPart.agentJobId)];
-    const stopped = agentJobIds.flatMap((agentJobId) => {
-      const agent = agentJobId === null ? undefined : this.jobById(agentJobId);
-      return agent === undefined || agent.state === 'stopping' ? [] : this.requestJobStop(agent.id, 'stop', at).logged;
-    });
-    const ticketIds = changed.ticketsAwaitingEntity ?? [];
-    const requestOf = reading.entityAssignmentRequestOf;
-    const assignment = ticketIds.length === 0 || requestOf === undefined ? [] : this.jobControls.startEntityAssignment(requestOf(ticketIds), ticketIds, at).logged;
-    const added = [...stopped, ...assignment];
-    return added.length === 0 ? changed : { ...changed, logged: [...changed.logged, ...added] };
+    return finished === null ? null : this.jobControls.withTheAppliedSetupAgentStopped(finished, reading, at);
   }
 
   holdApply(setupId: string, holding: ApplyHolding, at: string): PipelineSetupChanged {
@@ -1525,17 +1286,12 @@ export class Board {
     return this.setupApplies.cancelApply(setupId, at);
   }
 
-  /** The stored sources of the constitution main holds; `null` when none are stored or the file could not be read. */
   storedConstitutionSources(): Readonly<StoredConstitutionSources> | null {
-    const reading = this.records.constitutionSourcesReading;
-    return reading.verdict === 'readable' ? reading.sources : null;
+    return this.setupApplies.storedConstitutionSources();
   }
 
-  /** What the hold writes to `constitution-sources.json`: the sources an Apply stored, or nothing. */
   constitutionSourcesWrite(): { write: 'sources'; sources: StoredConstitutionSources } | { write: 'unchanged' } {
-    const reading = this.records.constitutionSourcesReading;
-    if (!this.records.constitutionSourcesChanged || reading.verdict !== 'readable') return { write: 'unchanged' };
-    return { write: 'sources', sources: reading.sources };
+    return this.setupApplies.constitutionSourcesWrite();
   }
 
   /** Abandoning a ticket hands its unstarted findings to User's review in the same hold. */
@@ -1589,9 +1345,8 @@ export class Board {
     this.ticketMoves.refuseASubmitWithoutAnEntity(tickets, this.ticketReviewIsOn(), readinessGapsOf);
   }
 
-  /** Without an `approvals.tickets` key, ticket review is on. */
   ticketReviewIsOn(): boolean {
-    return this.records.pipeline?.approvals?.tickets !== false;
+    return this.records.ticketReviewIsOn();
   }
 
   startReviewBar(ticketId: string, request: ReviewBarRequest, at: string): ReviewBarStarted {
@@ -1667,18 +1422,8 @@ export class Board {
     return this.ticketSettings.liftInterruptedHold(ticketId, at);
   }
 
-  /**
-   * User's resume of one ticket: each of its jobs that waits for a resume is instructed, and an `interrupted:` hold is lifted. Refused
-   * `ticket-not-interrupted` when it has neither.
-   */
   resumeInterruptedTicket(ticketId: string, at: string): Logged {
-    const waits     = (job: Readonly<Job>): boolean => job.state === 'interrupted' || this.lostLineAwaitsResume(job);
-    const jobIds    = this.jobs().filter((job) => waits(job) && job.ticketIds.includes(ticketId)).map((job) => job.id);
-    const holdLifts = this.ticketByReference(ticketId)?.frontmatter.hold?.startsWith(INTERRUPTED_HOLD_PREFIX) === true;
-    if (jobIds.length === 0 && !holdLifts) throw new BoardRefusal({ reason: 'ticket-not-interrupted', ticketId });
-    const instructed = jobIds.flatMap((jobId) => this.instructResume(jobId, at).logged);
-    const lifted     = holdLifts ? this.liftInterruptedHold(ticketId, at).logged : [];
-    return { logged: [...instructed, ...lifted] };
+    return this.jobControls.resumeInterruptedTicket(ticketId, at);
   }
 
   liftInterruptedApply(at: string): Logged {
@@ -1783,48 +1528,24 @@ export class Board {
     return this.setupRecord.openSetupRecord();
   }
 
-  /** The readable record when it is `setupId`'s, refused `no-setup-open` for another record or none. */
   openSetupOf(setupId: string): Readonly<PipelineSetup> {
-    const setup = this.pipelineSetup();
-    if (setup?.setupId !== setupId) throw new BoardRefusal({ reason: 'no-setup-open', setupId });
-    return setup;
+    return this.setupRecord.openSetupOf(setupId);
   }
 
-  /** A pipeline-agent level named by an entity must be one `pipeline`, the stored one or the open draft, holds; the forge always is. */
   refuseASetupLevelThePipelineLacks(pipeline: Readonly<Pipeline> | null, entityKey: EntityKey | undefined): void {
-    if (entityKey === undefined) return;
-    const entities = pipeline?.entities ?? {};
-    if (!Object.hasOwn(entities, entityKey)) throw new BoardRefusal({ reason: 'setup-entity-unknown', entity: entityKey, entityKeys: Object.keys(entities) });
+    this.pipelineSetups.refuseASetupLevelThePipelineLacks(pipeline, entityKey);
   }
 
-  /** A first setup resumes only once billing is chosen, and no record resumes while its Apply waits to commit. */
   requireResumableSetup(setupId: string): Readonly<PipelineSetup> {
-    const setup = this.openSetupOf(setupId);
-    if (setup.mode === 'setup' && setup.billing === null) throw new BoardRefusal({ reason: 'setup-resume-before-billing', setupId });
-    const pendingStates: readonly string[] = PENDING_APPLY_REQUEST_STATES;
-    if (setup.applyRequest !== null && pendingStates.includes(setup.applyRequest.state)) throw new BoardRefusal({ reason: 'pipeline-apply-pending', setupId });
-    return setup;
+    return this.pipelineSetups.requireResumableSetup(setupId);
   }
 
-  /**
-   * The gate a profile runs: from the open setup's draft, or with no setup named the stored pipeline; of the entity named, through that
-   * entity's single pipeline with its first home. Refused `no-setup-open` for another record and `unknown-gate` for a gate it lacks.
-   */
   gateToProfileOf(setupId: string | null, entityKey: EntityKey | null, gateName: string): GateToProfile {
-    const source   = setupId === null ? this.pipeline() : this.openSetupOf(setupId).draft;
-    const pipeline = source === null || entityKey === null ? source : PipelineUtil.pipelineOfEntity(source, entityKey);
-    const gate     = pipeline?.gates.find((candidate) => candidate.name === gateName);
-    if (source === null || pipeline === null || gate === undefined) {
-      throw new BoardRefusal({ reason: 'unknown-gate', gateName, gateNames: pipeline?.gates.map((candidate) => candidate.name) ?? [] });
-    }
-    return { pipeline, gate, firstHome: entityKey === null ? null : source.entities?.[entityKey]?.home[0] ?? '/' };
+    return this.gateProfiles.gateToProfileOf(setupId, entityKey, gateName);
   }
 
-  /** What the hold writes for the record: the record, `removed` after a start over, or `unchanged`. */
   pipelineSetupWrite(): { write: 'record'; setup: PipelineSetup } | { write: 'removed' } | { write: 'unchanged' } {
-    if (!this.records.pipelineSetupChanged) return { write: 'unchanged' };
-    const reading = this.records.pipelineSetupReading;
-    return reading.verdict === 'readable' ? { write: 'record', setup: reading.setup } : { write: 'removed' };
+    return this.setupRecord.pipelineSetupWrite();
   }
 
   /** What a gate run of `phase` that starts now records on a row: the stored pipeline's hash of that phase; `null` with none stored. */
@@ -1969,22 +1690,8 @@ export class Board {
     return this.ticketDocumentRules;
   }
 
-  /** The job the Bouncer stamped, while it is the one document agent on the board for its ticket's document; else `document-agent-not-live`. */
   liveDocumentAgentOf(jobId: string | undefined): LiveDocumentAgent {
-    const job      = jobId === undefined ? undefined : this.jobById(jobId);
-    const document = job === undefined ? null : DocumentAgentJobUtil.documentOf(job);
-    const ticketId = job?.ticketIds[0];
-    if (job === undefined || document === null || ticketId === undefined) {
-      throw new BoardRefusal({
-        reason: 'document-agent-not-live', ticketId: ticketId ?? '', document: document ?? 'spec', jobId: jobId ?? ''
-      });
-    }
-    if (DocumentAgentJobUtil.liveAgentOf(this.jobs(), ticketId, document)?.id !== job.id || this.ticketDocumentRules.documentOf(ticketId, document) === null) {
-      throw new BoardRefusal({
-        reason: 'document-agent-not-live', ticketId, document, jobId: job.id
-      });
-    }
-    return { job, ticketId, document };
+    return this.jobRules.liveDocumentAgentOf(jobId);
   }
 
   /** The ticket's documents record with its version texts; `null` for a ticket outside the spec-then-plan route. */

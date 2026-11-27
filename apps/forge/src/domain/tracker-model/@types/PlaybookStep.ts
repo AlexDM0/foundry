@@ -1,5 +1,5 @@
 /**
- * What the Playbook derives from the board and Hephaestus's observations: each step a change `Board.followPlaybook` applies in
+ * What the Playbook derives from the board and Hephaestus's observations: each step a change `PlaybookMoves.followPlaybook` applies in
  * the hold, so a step lost to a crash is derived again on the next pass.
  */
 import type { DecisionKind, DecisionQuestion }                              from './Decision.ts';

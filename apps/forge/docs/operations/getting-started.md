@@ -385,5 +385,5 @@ Anything else is in the [Runbook](runbook.md), which also has
 | The gate verbs | `cli/gates/GatePipelineVerbs.ts` | `addGate`, `setNoGates` | `cli/gates/GatePipelineVerbs.spec.ts` |
 | Readiness | `src/domain/tracker-model/@types/Ticket.ts` | `ReadinessGap` | `src/domain/tracker-model/Board.ready.spec.ts` |
 | Intake | `cli/intake/IntakeCommand.ts` | `intakeCommand` | `cli/hephaestus/HephaestusWording.intake.spec.ts` |
-| What `intake close` submits | `src/domain/tracker-model/Board.ts`, `src/domain/tracker-model/TicketMoves.ts` | `closeIntake`, `submitDraftTickets` | `src/services/control/JobControls.spec.ts` |
+| What `intake close` submits | `src/domain/tracker-model/IntakeCloses.ts`, `src/domain/tracker-model/TicketMoves.ts` | `closeIntake`, `submitDraftTickets` | `src/services/control/JobControls.spec.ts` |
 | How a decision answer acts | `src/services/control/DecisionControls.ts` | `answerDecision` | `cli/decisions/DecisionCommands.spec.ts` |

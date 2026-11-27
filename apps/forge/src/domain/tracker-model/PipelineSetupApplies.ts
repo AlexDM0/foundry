@@ -8,6 +8,7 @@
 import type { Logged, PipelineApplyChanged, PipelineSetupChanged } from './@types/BoardChanges.ts';
 import type { EntityKey, Pipeline }                                from './@types/Pipeline.ts';
 import type {
+  StoredConstitutionSources,
   ApplyFinishing,
   ApplyHolding,
   ApplyMainReading,
@@ -305,6 +306,19 @@ export class PipelineSetupApplies {
     this.setupRecord.store(setup);
     const fields = { revision: request.draftRevision, state: request.state };
     return { logged: [this.records.logger.log({ kind: 'pipeline-apply-cancelled', setupId, fields }, at)], setup };
+  }
+
+  /** The stored sources of the constitution main holds; `null` when none are stored or the file could not be read. */
+  storedConstitutionSources(): Readonly<StoredConstitutionSources> | null {
+    const reading = this.records.constitutionSourcesReading;
+    return reading.verdict === 'readable' ? reading.sources : null;
+  }
+
+  /** What the hold writes to `constitution-sources.json`: the sources an Apply stored, or nothing. */
+  constitutionSourcesWrite(): { write: 'sources'; sources: StoredConstitutionSources } | { write: 'unchanged' } {
+    const reading = this.records.constitutionSourcesReading;
+    if (!this.records.constitutionSourcesChanged || reading.verdict !== 'readable') return { write: 'unchanged' };
+    return { write: 'sources', sources: reading.sources };
   }
 
   /**

@@ -3,8 +3,8 @@
  * User's answers, and the start over. A User edit of an earlier step reopens it, and a step reopened sends every later done step to
  * `needs-recheck`, whose only exit is Continue.
  */
-import type { PipelineSetupChanged, PipelineSetupStartedOver } from './@types/BoardChanges.ts';
-import type { LogRecord }                                      from './@types/LogRecord.ts';
+import type { Logged, PipelineSetupChanged, PipelineSetupStartedOver } from './@types/BoardChanges.ts';
+import type { LogRecord }                                              from './@types/LogRecord.ts';
 import type {
   EntityKey,
   Pipeline,
@@ -29,6 +29,7 @@ import {
 } from './@types/PipelineSetup.ts';
 import type { BoardRecords }       from './BoardRecords.ts';
 import { BoardRefusal }            from './BoardRefusal.ts';
+import type { Jobs }               from './Jobs.ts';
 import { reanchoredAnnotationsOf } from './PipelineSetupConstitutions.ts';
 import {
   type PipelineSetupRecord,
@@ -37,7 +38,9 @@ import {
   stepIndexOf,
   stepStateOf
 } from './PipelineSetupRecord.ts';
+import type { TrackerChanges }    from './TrackerChanges.ts';
 import {
+  PENDING_APPLY_REQUEST_STATES,
   DEFAULT_CONSTITUTION_SOURCES,
   FINDING_ID_PREFIX,
   FIRST_SETUP_ITEM_NUMBER,
@@ -126,6 +129,8 @@ export class PipelineSetups {
   constructor(
     private readonly records: BoardRecords,
     private readonly setupRecord: PipelineSetupRecord,
+    private readonly trackerChanges: TrackerChanges,
+    private readonly jobRules: Jobs,
   ) {}
 
   /**
@@ -442,6 +447,42 @@ export class PipelineSetups {
     this.records.pipelineSetupReading = { verdict: 'absent' };
     this.records.pipelineSetupChanged = true;
     return { logged: [this.records.logger.log({ kind: 'pipeline-setup-discarded', setupId, fields: {} }, at)], setup: discarded };
+  }
+
+  /**
+   * The forge's agent: the stored pipeline's, and the open setup record's with it, so its pipeline agent runs on the same one. A billing
+   * sent with it is stored with it; with none, a stored billing the new vendor does not bill by is refused `billing-not-offered`, since
+   * the billing is User's choice. A first setup's record asks its billing again instead. With no stored pipeline an open record takes the
+   * agent alone; with neither it is refused `agent-without-pipeline`. Every launch it refused is tried again.
+   */
+  setAgent(agent: PipelineAgent, billing: PipelineBilling | undefined, offeredBillingModesOf: OfferedBillingModesOf, at: string): Logged {
+    const setup = this.setupRecord.openSetupRecord();
+    if (this.records.pipeline === null && setup !== null) {
+      if (billing !== undefined) this.requireSetupBillingOffered(setup.setupId, agent, billing, offeredBillingModesOf);
+      const changed = this.setSetupAgent(setup.setupId, agent, offeredBillingModesOf, at);
+      const billed = billing === undefined ? [] : this.setSetupBilling(setup.setupId, billing, offeredBillingModesOf, at).logged;
+      return { logged: [...changed.logged, ...billed, ...this.jobRules.retryNotLaunched(at).logged] };
+    }
+    const keptBilling = this.records.pipeline === null ? undefined : this.agentChangeBillingOf(agent, billing, offeredBillingModesOf);
+    const changed = this.trackerChanges.setAgent(agent, keptBilling, at);
+    const followed = this.followAgentChange(agent, keptBilling, offeredBillingModesOf, at);
+    return { logged: [...changed.logged, ...followed, ...this.jobRules.retryNotLaunched(at).logged] };
+  }
+
+  /** A first setup resumes only once billing is chosen, and no record resumes while its Apply waits to commit. */
+  requireResumableSetup(setupId: string): Readonly<PipelineSetup> {
+    const setup = this.setupRecord.openSetupOf(setupId);
+    if (setup.mode === 'setup' && setup.billing === null) throw new BoardRefusal({ reason: 'setup-resume-before-billing', setupId });
+    const pendingStates: readonly string[] = PENDING_APPLY_REQUEST_STATES;
+    if (setup.applyRequest !== null && pendingStates.includes(setup.applyRequest.state)) throw new BoardRefusal({ reason: 'pipeline-apply-pending', setupId });
+    return setup;
+  }
+
+  /** A pipeline-agent level named by an entity must be one `pipeline`, the stored one or the open draft, holds; the forge always is. */
+  refuseASetupLevelThePipelineLacks(pipeline: Readonly<Pipeline> | null, entityKey: EntityKey | undefined): void {
+    if (entityKey === undefined) return;
+    const entities = pipeline?.entities ?? {};
+    if (!Object.hasOwn(entities, entityKey)) throw new BoardRefusal({ reason: 'setup-entity-unknown', entity: entityKey, entityKeys: Object.keys(entities) });
   }
 
   private openingConstitutionOf(opening: PipelineSetupOpening): ConstitutionDraft | null {
