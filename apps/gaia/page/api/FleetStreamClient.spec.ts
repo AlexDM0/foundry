@@ -1,16 +1,6 @@
 /**
- * The fleet stream client. What matters (W4.3; `docs/design/screens.md`, the shell, the connection banner): each `fleet` event's document is published;
- * a stream that errs reads `lost` at once, is closed, and is opened again only when its reopen is due, read `lost` until it opens; a
- * stopped client leaves no stream and no reopen; data that is no fleet document is dropped; a document of another `fleetVersion`, newer or
- * older, reloads the page once, and never twice for the same version, so a page that stays out of date says so rather than reload without
- * end; a session check that nothing answers reads `server-ended`, since the session lived in the gone server's memory, and only an answer
- * moves it on (#75). The stream opens on a handshake naming the server's system version: one of this page's system major is passed over, one
- * of another major reloads the page once as another `fleetVersion` does, and one that cannot be read is passed over; the system version
- * each `fleet` event carries is the stream's, so the document published leaves it out.
- *
- * The browser's `EventSource` is stood in for by a source the spec opens, errs and feeds the events Gaia's server sends
- * (`docs/architecture.md`, "A reading, from forge to screen": `fleet` events and a heartbeat); the reopen is a schedule the spec runs, so
- * no spec waits the interval.
+ * The fleet stream client: it publishes each `fleet` document, reopens an erred stream on a schedule the spec runs, reloads once on another
+ * `fleetVersion` or system major, and reads `server-ended` while no session check is answered. The browser's `EventSource` is stood in for.
  */
 import { describe, expect, test } from 'bun:test';
 

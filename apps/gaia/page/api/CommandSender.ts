@@ -1,8 +1,7 @@
 /**
- * Sends one command to `POST /api/commands` and gives the view Gaia's answer, the forge's refusal code and sentence as Gaia answered them.
- * Per forge, and per command that names no forge, it keeps the kind on its way and the last send that did not succeed, until dismissed or
- * until the next success, and an update that left a restart pending, until dismissed or until a command that ends the running Hephaestus
- * succeeds. It sends nothing while the controls may not act, and nothing for a subject that already has a command on its way.
+ * Sends one command to `POST /api/commands` and gives the view Gaia's answer. Per forge it keeps the command on its way, the last failed
+ * send until dismissed or the next success, and a pending restart until dismissed or a command that ends the running Hephaestus succeeds.
+ * It sends nothing while the controls may not act, and nothing for a forge that already has a command on its way.
  */
 import { createContext, useContext, useSyncExternalStore } from 'react';
 

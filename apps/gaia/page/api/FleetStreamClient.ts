@@ -1,13 +1,7 @@
 /**
- * Follows `GET /api/v12/events` and publishes the document of each `fleet` event. A stream that errs is closed and opened again after
- * `FLEET_STREAM_REOPEN_INTERVAL_MILLISECONDS` by this client, not by the browser, so every wait is a schedule a spec controls; the stream
- * reads `lost` from the error until the next open. Gaia's server sends its current document first on every open, so a reopened stream
- * needs no separate read of `/api/fleet`. The stream opens on a handshake naming the server's system version, and every `fleet` event
- * carries it too: a handshake of another system major, or a document of another `fleetVersion`, means a stale page: it reloads once, and a
- * mark in the session's storage keeps a second mismatch from reloading again. Page sessions live in the server's memory, so a stream that errs asks
- * whether the window still holds one; once it does not, as after the server restarted, no reopen could succeed and the client stops. When
- * nothing answers that check, the server and the session it held are gone: the client reads `server-ended` and keeps reopening, so a server
- * that answers again moves it on.
+ * Follows `GET /api/v12/events` and publishes each `fleet` document; the server sends its current one first on every open, so a reopen
+ * needs no read of `/api/fleet`. This client, not the browser, reopens an erred stream, so a spec controls every wait. Sessions live in the
+ * server's memory: a lost session stops the client, while an unanswered session check reads `server-ended` and keeps reopening.
  */
 import { ApiPathUtil }                                 from '../../src/lib/api-paths/ApiPathUtil.ts';
 import { GAIA_ENDPOINT_VERSIONS, GAIA_SYSTEM_VERSION } from '../../src/shared/constants/GaiaSystemVersions.ts';
