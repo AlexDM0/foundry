@@ -6,7 +6,7 @@
 import type { Logged }                                       from './@types/BoardChanges.ts';
 import type { DecisionQuestion }                             from './@types/Decision.ts';
 import type { Incident, IncidentDefaultCause, IncidentKind } from './@types/Incident.ts';
-import type { JobEnding }                                    from './@types/Job.ts';
+import type { JobEnding, JobKind }                           from './@types/Job.ts';
 import type { LogRecord }                                    from './@types/LogRecord.ts';
 import type { DecisionDraft, DecisionWording }               from './@types/PlaybookStep.ts';
 import type { AgentQuestions }                               from './AgentQuestions.ts';
@@ -25,6 +25,11 @@ const USER_PARK_CAUSE = 'user';
 
 const PARKED_JOB_CAUSE = 'parked';
 
+const UNREADABLE_FILE_INCIDENT_KIND: IncidentKind = 'system-file-unreadable';
+
+/** The jobs a park on an unreadable file of theirs stops, so none opens the incident again; an Airlock's jobs are Hephaestus's to abort. */
+const JOB_KINDS_A_PARK_ON_AN_UNREADABLE_FILE_STOPS: readonly JobKind[] = ['build', 'review'];
+
 /** Defaults taken once per ticket before the next one of that kind parks instead. */
 const DEFAULTS_TAKEN_ONCE: readonly IncidentKind[] = ['setup-failed', 'out-of-calls', 'gate-cannot-run', 'sandbox-unavailable'];
 
@@ -38,6 +43,8 @@ export interface IncidentMovesInput {
   /** The Board's end of a job, which also rebinds the job's open questions to its ticket. */
   endJob:         (jobId: string, ending: JobEnding, at: string) => Logged;
   requestFresh:   (jobId: string, at: string) => Logged;
+  /** Ends a job with no session to stop with `parkedEnding`, and asks one with a session to stop. */
+  stopParkedJob:  (jobId: string, parkedEnding: JobEnding, at: string) => Logged;
 }
 
 export class IncidentMoves {
@@ -54,8 +61,9 @@ export class IncidentMoves {
   }
 
   /**
-   * Holds the ticket `parked:<kind>` (`parked:user` with no incident), ends the incident's waiting job `stopped` and opens a `parked`
-   * decision to User carrying the agent's questions, or the reason when there are none; all in the caller's hold.
+   * Holds the ticket `parked:<kind>` (`parked:user` with no incident), ends the incident's waiting job `stopped`, stops the build or review
+   * job of an unreadable file, and opens a `parked` decision to User carrying the agent's questions, or the reason when there are none; all
+   * in the caller's hold.
    */
   parkTicket(ticketId: string, reason: string, incidentId: string | null, at: string): Logged {
     const incident = incidentId === null ? null : this.input.incidentRules.requireOpenIncident(incidentId);
@@ -121,8 +129,12 @@ export class IncidentMoves {
     if (ticket.frontmatter.hold !== undefined) logged.push(...ticketSettings.unholdTicket(ticketId, at).logged);
     logged.push(...ticketSettings.holdTicket(ticketId, `${PARKED_HOLD_PREFIX}${incident?.kind ?? USER_PARK_CAUSE}`, at).logged);
     const waitingJob = incident?.jobId === null || incident === null ? undefined : jobRules.jobById(incident.jobId);
+    const parkedEnding: JobEnding = { outcome: 'stopped', cause: PARKED_JOB_CAUSE };
     // A merge job is Hephaestus's to abort, restoring its Airlock worktree; only a session waiting on its question ends here.
-    if (waitingJob?.state === 'waiting-for-answer') logged.push(...this.input.endJob(waitingJob.id, { outcome: 'stopped', cause: PARKED_JOB_CAUSE }, at).logged);
+    if (waitingJob?.state === 'waiting-for-answer') logged.push(...this.input.endJob(waitingJob.id, parkedEnding, at).logged);
+    else if (waitingJob !== undefined && incident?.kind === UNREADABLE_FILE_INCIDENT_KIND && JOB_KINDS_A_PARK_ON_AN_UNREADABLE_FILE_STOPS.includes(waitingJob.kind)) {
+      logged.push(...this.input.stopParkedJob(waitingJob.id, parkedEnding, at).logged);
+    }
     const agentQuestionsOfIncident: DecisionQuestion[] | null = incident === null ? null : agentQuestions.questionsOf(incident);
     const wording = agentQuestionsOfIncident === null ? fallback : { questions: agentQuestionsOfIncident, context: fallback.questions[0]?.question ?? '' };
     logged.push(...decisionRules.openDecision({

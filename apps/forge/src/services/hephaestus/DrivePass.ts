@@ -785,18 +785,23 @@ function withdrawApiKeyDecisions(board: Board, at: string): void {
 
 /**
  * Acts on each answered waiver the Playbook named, with the tree read outside the lock. An answer that came after the observation has no
- * tree yet, so it waits for the next pass. Answers whether another pass is due: the one that launches what the answer freed, or acts on it.
+ * tree yet, so it waits for the next pass. Proposals that cannot be read open their incident on the review job, which takes no step while
+ * it stands. Answers whether another pass is due: the one that launches what the answer freed, or acts on it.
  */
-function actOnWaiverAnswers(
+export function actOnWaiverAnswers(
   change: BoardTransaction, steps: readonly PlaybookStep[], answeredWaiverTrees: ReadonlyMap<string, string | null>, trackerDirectory: string
 ): boolean {
-  const waiverAnswerSteps = steps.flatMap((step) => (step.kind === 'act-on-waiver-answer' ? [step] : []));
+  const { board, at } = change;
+  const waiverAnswerSteps = steps.flatMap((step) => (step.kind === 'act-on-waiver-answer' && !UnreadableJobFileIncident.standsOpenFor(board, step.jobId) ? [step] : []));
   for (const step of waiverAnswerSteps) {
     if (!answeredWaiverTrees.has(step.jobId)) continue;
     const headTree = answeredWaiverTrees.get(step.jobId) ?? null;
-    ReviewOutcome.actOnWaiverAnswer(change.board, step.jobId, step.answers, jobFolderIn(trackerDirectory, step.jobId), headTree, change.at);
+    const outcome = ReviewOutcome.actOnWaiverAnswer(board, step.jobId, step.answers, jobFolderIn(trackerDirectory, step.jobId), headTree, at);
+    if (outcome.verdict === 'proposals-unreadable') {
+      StoredFileUnreadable.openIncidentOn(board, step.jobId, StoredFileUnreadable.unreadableFileOf(trackerDirectory, outcome.proposalsPath, outcome.reason), at);
+    }
   }
-  return waiverAnswerSteps.length > 0;
+  return waiverAnswerSteps.some((step) => !UnreadableJobFileIncident.standsOpenFor(board, step.jobId));
 }
 
 function profileOf(context: JobLaunchContext, job: Readonly<Job>, place: SessionPlace, hatchDirectory: string): WorkerProfile {
@@ -876,9 +881,9 @@ function launchProfileOf(jobLaunchContext: JobLaunchContext, board: Board, job: 
 /**
 /**
  * `null` for a job that is no Airlock agent; `conflicts-unknown` when neither the kept facts nor git tell which files conflict; a file of
- * the merge job the agent is told of that cannot be read stops the launch.
+ * the merge job the agent is told of that cannot be read stops the launch, and its incident opens on the merge job that owns it.
  */
-function airlockFactsOf(
+export function airlockFactsOf(
   board: Board, trackerDirectory: string, job: Readonly<Job>, checkout: string
 ): AirlockFacts | null | 'conflicts-unknown' | UnreadableJobFileRefusal {
   if (job.kind !== 'merge-agent' || job.parentJobId === null) return null;
@@ -886,7 +891,7 @@ function airlockFactsOf(
   const resumesSession = JobResumption.sessionOwnerJobIdOf(board.logRecordsSoFar(), job) !== job.id;
   if (mergeJob?.state === 'merging-main') {
     const conflict = JobLaunch.mainMergeConflictOf(trackerDirectory, mergeJob);
-    if (StoredFileUnreadable.isUnreadableFile(conflict)) return { unreadableJobFile: StoredFileUnreadable.unreadableJobFileOn(job.id, conflict) };
+    if (StoredFileUnreadable.isUnreadableFile(conflict)) return { unreadableJobFile: StoredFileUnreadable.unreadableJobFileOn(mergeJob.id, conflict) };
     return {
       mergePlacement:  'before-human-code-review',
       worktree:        checkout,
@@ -907,7 +912,7 @@ function airlockFactsOf(
   if (conflicts.verdict === 'unknown') return 'conflicts-unknown';
   const leavesTheMergeOpen = phase === 'resolving' && keptFacts?.leavesTheMergeOpen === true;
   const redHandoff = RedHandoff.redHandoffFactsOf(trackerDirectory, mergeJobFolder);
-  if (StoredFileUnreadable.isUnreadableFile(redHandoff)) return { unreadableJobFile: StoredFileUnreadable.unreadableJobFileOn(job.id, redHandoff) };
+  if (StoredFileUnreadable.isUnreadableFile(redHandoff)) return { unreadableJobFile: StoredFileUnreadable.unreadableJobFileOn(job.parentJobId, redHandoff) };
   return {
     mergePlacement:  'airlock',
     worktree:        checkout,
@@ -1259,8 +1264,18 @@ function agentProgramNoticesOf(request: DrivePassRequest, board: Board, refusedT
 }
 
 /**
+ * The job's own unreadable file, or one of the merge job an Airlock agent works for, stands as an incident. Never the Assistant's: it is
+ * the session that takes the move on an incident.
+ */
+function waitsOnAnUnreadableFileIncident(board: Board, job: Readonly<Job>): boolean {
+  if (job.kind === 'assistant') return false;
+  return [job.id, job.parentJobId].some((jobId) => jobId !== null && UnreadableJobFileIncident.standsOpenFor(board, jobId));
+}
+
+/**
  * A job launching, or resumed into `running`, whose current instance nobody claimed yet; spawning twice is harmless, since the claim is
- * exclusive. A build job launches its session only once its worktree is prepared, as it moves into `running`.
+ * exclusive. A build job launches its session only once its worktree is prepared, as it moves into `running`. A job that waits on an
+ * unreadable file's incident is not tried again until a move on it.
  */
 function jobsNeedingAChild(
   children: BoardChildren,
@@ -1272,6 +1287,7 @@ function jobsNeedingAChild(
     && job.role !== null
     && job.notLaunched === undefined
     && !job.ticketIds.some((ticketId) => heldTicketIds.includes(ticketId))
+    && !waitsOnAnUnreadableFileIncident(board, job)
     && !spawnedInstances.has(`${job.id}:${job.childInstance}`)
     && children.livenessOf(children.jobFolderOf(job.id), job.childInstance).verdict === 'unlaunched');
 }

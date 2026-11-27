@@ -82,6 +82,17 @@ export class JobControls {
   }
 
   /**
+   * A job whose ticket was parked on an unreadable file of its own takes no further step: with no session to stop, or a launch that stands
+   * refused, it ends with `parkedEnding`; with one it is stopped as User's stop stops it; one already stopping is left to end.
+   */
+  stopParkedJob(jobId: string, parkedEnding: JobEnding, at: string): Logged {
+    const job = this.jobRules.requireJob(jobId);
+    if (job.state === 'stopping') return { logged: [] };
+    if (job.notLaunched !== undefined || SESSIONLESS_STATES.includes(job.state)) return this.endJob(jobId, parkedEnding, [], at);
+    return this.requestJobStop(jobId, 'stop', at);
+  }
+
+  /**
    * Every Assistant on the board not yet asked to stop is asked to wind down: it finishes its turn and ends, whether the switch went off
    * by its command or the `assistant` key left the pipeline another way. One already asked, or stopping, is left as it is.
    */

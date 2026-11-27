@@ -1,11 +1,12 @@
 /**
  * A file Hephaestus stored for one job that its ingestion finds unreadable is a bug, so the job does not go on as if the file said nothing.
  * The `system-file-unreadable` incident goes to the Assistant, whose moves are a fresh agent or a park; its default parks the ticket, which
- * puts the decision in front of User. A job holds one such incident per file while it stands open.
+ * puts the decision in front of User. A job holds one such incident per file while it stands open, and none while its ticket stays parked on one.
  */
-import type { Incident }  from '../../lib/tracker-model/@types/Incident.ts';
-import type { LogRecord } from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Board }     from '../../lib/tracker-model/Board.ts';
+import type { Incident }      from '../../lib/tracker-model/@types/Incident.ts';
+import type { LogRecord }     from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { Board }         from '../../lib/tracker-model/Board.ts';
+import { PARKED_HOLD_PREFIX } from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
 
 const UNREADABLE_FILE_INCIDENT_KIND = 'system-file-unreadable';
 
@@ -20,10 +21,15 @@ function openIncidentsOf(board: Board, jobId: string): readonly Readonly<Inciden
   return board.incidents().filter((incident) => incident.kind === UNREADABLE_FILE_INCIDENT_KIND && incident.jobId === jobId);
 }
 
-/** Opens the incident unless one stands open for the job and the file, or the job has left the board; answers what it logged. */
+/**
+ * Opens the incident unless one stands open for the job and the file, the job has left the board, or a ticket of the job stays parked on such
+ * an incident, so a job a park left behind does not open it again; answers what it logged.
+ */
 function openOnce(board: Board, unreadable: UnreadableJobFile, at: string): readonly LogRecord[] {
   const job = board.jobById(unreadable.jobId);
   if (job === undefined) return [];
+  const parkedHold = `${PARKED_HOLD_PREFIX}${UNREADABLE_FILE_INCIDENT_KIND}`;
+  if (job.ticketIds.some((ticketId) => board.ticketByReference(ticketId)?.frontmatter.hold === parkedHold)) return [];
   if (openIncidentsOf(board, job.id).some((incident) => incident.facts['file'] === unreadable.file)) return [];
   return board.openIncident({
     kind:        UNREADABLE_FILE_INCIDENT_KIND,

@@ -548,6 +548,26 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a build job end to end', () =
     expect(hephaestusLog.join('\n')).toContain(`Job ${jobId} did not launch: its launch reads jobs/${jobId}/launch-settings.json, which cannot be read`);
   });
 
+  test('a launch refused on an unreadable file is not tried again while its incident stands, and a fresh agent ends the job replaced', async () => {
+    await run(['gate', 'add', 'tests', '--', RED_TESTS_LINE]);
+    afterEachLaunchPlan = (request) => {
+      if (request.environment[JOB_ID_VARIABLE] === firstBuildJobId()) writeFileSync(join(jobFolderOf(firstBuildJobId()), 'launch-settings.json'), '{"model": ');
+    };
+    const drivePass = await drivePassPlaying(buildingSession());
+    await passUntil(drivePass, () => openIncidentKinds().includes('system-file-unreadable'), 'the unreadable pair\'s incident');
+    for (let i = 0; i < 2; i += 1) {
+      drivePass.wake(true);
+      await drivePass.idle();
+    }
+
+    const jobId = firstBuildJobId();
+    expect(hephaestusLog.filter((line) => line.startsWith(`Job ${jobId} did not launch`))).toHaveLength(1);
+    const incident = (storedProgressOf(repositoryDirectory).incidents ?? []).find((opened) => opened.kind === 'system-file-unreadable');
+    await run(['job', 'fresh', jobId, '--incident', incident?.id ?? '']);
+    await passUntil(drivePass, () => buildJobEnding() !== undefined, 'the build job ending');
+    expect(buildJobEnding()).toMatchObject({ outcome: 'replaced' });
+  });
+
   test('a changed pipeline is gated without a restart, and the row records the build phase and the hash of its gates', async () => {
     await run(['gate', 'add', 'checks', '--', 'true']);
     await run(['gate', 'add', 'types', '--', 'true']);

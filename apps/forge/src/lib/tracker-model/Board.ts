@@ -369,6 +369,7 @@ export class Board {
       jobRules:       this.jobRules,
       endJob:         (jobId, ending, at) => this.endJob(jobId, ending, at),
       requestFresh:   (jobId, at) => this.jobControls.requestJobStop(jobId, 'fresh', at),
+      stopParkedJob:  (jobId, parkedEnding, at) => this.jobControls.stopParkedJob(jobId, parkedEnding, at),
     });
   }
 
@@ -387,7 +388,10 @@ export class Board {
     return this.incidentMoves.answerIncident(incidentId, text, at);
   }
 
-  /** Holds `parked:<kind>`, stops the incident's waiting job and opens a `parked` decision to User, carrying the agent's questions. */
+  /**
+   * Holds `parked:<kind>`, stops the incident's waiting job, or the build or review job of an unreadable file, and opens a `parked` decision
+   * to User, carrying the agent's questions.
+   */
   parkTicket(ticketId: string, reason: string, incidentId: string | null, at: string): Logged {
     return this.incidentMoves.parkTicket(ticketId, reason, incidentId, at);
   }

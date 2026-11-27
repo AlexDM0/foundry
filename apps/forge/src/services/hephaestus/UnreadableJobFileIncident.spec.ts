@@ -1,7 +1,7 @@
 /**
  * The incident a job's unreadable stored file opens. What matters: one `system-file-unreadable` incident per job and file while it stands,
- * a second file of the same job opens its own, a job that left the board opens nothing, the default parks the ticket so the decision reaches
- * User, and the job counts as waiting only while its incident stands.
+ * a second file of the same job opens its own, a job that left the board or whose ticket stays parked on one opens nothing, the default
+ * parks the ticket so the decision reaches User, and the job counts as waiting only while its incident stands.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -37,6 +37,19 @@ describe('the unreadable job file incident', () => {
     UnreadableJobFileIncident.openOnce(board, { jobId: buildJob.id, file: `jobs/${buildJob.id}/start.json`, reason: 'example reason' }, AT);
     UnreadableJobFileIncident.openOnce(board, { jobId: buildJob.id, file: `jobs/${buildJob.id}/launch-settings.json`, reason: 'example reason' }, AT);
     expect(board.incidents().map((incident) => incident.facts['file'])).toEqual([`jobs/${buildJob.id}/start.json`, `jobs/${buildJob.id}/launch-settings.json`]);
+  });
+
+  test('a job whose ticket stays parked on the incident opens no new one, and one unparked opens it again', () => {
+    const { board, buildJob } = buildJobScene();
+    const unreadable = { jobId: buildJob.id, file: `jobs/${buildJob.id}/start.json`, reason: 'example reason' };
+    UnreadableJobFileIncident.openOnce(board, unreadable, AT);
+    board.holdTicket('001', 'parked:system-file-unreadable', AT);
+    const [incident] = board.incidents();
+    board.handleIncident(incident?.id ?? '', 'ticket-park', AT);
+
+    expect(UnreadableJobFileIncident.openOnce(board, unreadable, NEXT_PASS_AT)).toEqual([]);
+    board.unholdTicket('001', NEXT_PASS_AT);
+    expect(UnreadableJobFileIncident.openOnce(board, unreadable, NEXT_PASS_AT)).not.toEqual([]);
   });
 
   test('a job that has left the board opens nothing', () => {

@@ -303,31 +303,40 @@ function bodyWithWaivedItems(body: string, proposals: readonly WaiverProposal[])
   return kept.join(lineEnding);
 }
 
+/** What acting on a waiver answer did: its records, or the stored proposals a grant needed that could not be read, on which it did nothing. */
+export type WaiverAnswerOutcome =
+  | { verdict: 'acted'; logged: LogRecord[] }
+  | { verdict: 'proposals-unreadable'; proposalsPath: string; reason: string };
+
 /**
  * Acts on User's recorded answer to the review job's `waiver` decision, in Hephaestus's hold after the answer: granted, each proposed
  * item is written waived and the ticket queued to merge while its green is current on `headTree`, its worktree HEAD's tree (else it waits
  * unqueued for a fresh review, which gates it); refused, the review ends as a failed pass and the ticket goes back to a fixer. A grant
- * whose stored proposals are missing or cannot be read waives nothing it cannot name, so it fails closed as that same failed pass, its cause
- * recorded: User's answer is already taken, and a job left waiting on it would act on the same answer again at every pass.
+ * whose stored proposals are missing waives nothing it cannot name, so it fails closed as that same failed pass, its cause recorded; one
+ * whose proposals cannot be read leaves the job waiting, for its caller to open the unreadable file's incident.
  */
-function actOnWaiverAnswer(board: Board, jobId: string, answers: readonly string[], jobFolder: string, headTree: string | null, at: string): LogRecord[] {
+function actOnWaiverAnswer(
+  board: Board, jobId: string, answers: readonly string[], jobFolder: string, headTree: string | null, at: string
+): WaiverAnswerOutcome {
   const job = board.jobById(jobId);
-  if (job === undefined) return [];
+  if (job === undefined) return { verdict: 'acted', logged: [] };
   const ticketId = ticketIdOf(job);
   const logged: LogRecord[] = [];
-  const endAsFailedPass = (cause: string): LogRecord[] => {
+  const endAsFailedPass = (cause: string): WaiverAnswerOutcome => {
     logged.push(...board.endJob(job.id, { outcome: 'does-not-hold', cause }, at).logged);
     logged.push(...board.moveTicket(ticketId, 'in-progress', { checksLegality: true }, at).logged);
-    return logged;
+    return { verdict: 'acted', logged };
   };
   if (answers.some((answer) => answer.trim().toLowerCase().startsWith(WAIVER_REFUSAL_ANSWER))) return endAsFailedPass('waiver-refused');
-  const reading = new WaiverProposalsIngestion(waiverProposalsPathOf(jobFolder)).read();
-  if (reading.verdict !== 'readable') return endAsFailedPass('waiver-proposals-unreadable');
+  const proposalsPath = waiverProposalsPathOf(jobFolder);
+  const reading = new WaiverProposalsIngestion(proposalsPath).read();
+  if (reading.verdict === 'unreadable') return { verdict: 'proposals-unreadable', proposalsPath, reason: reading.reason };
+  if (reading.verdict === 'absent') return endAsFailedPass('waiver-proposals-unreadable');
   const body = board.tickets().find((candidate) => candidate.frontmatter.id === ticketId)?.body ?? '';
   logged.push(...board.editTicket(ticketId, { body: { text: bodyWithWaivedItems(body, reading.proposals), appends: false }, writtenBy: 'board' }, at).logged);
   logged.push(...board.endJob(job.id, { outcome: 'reviewed' }, at).logged);
   if (board.greenIsCurrent(ticketId, headTree, board.greenPhaseOf(ticketId))) logged.push(...board.queueTicketForMerge(ticketId, job.target ?? '', headTree, at).logged);
-  return logged;
+  return { verdict: 'acted', logged };
 }
 
 /** A failed pass takes no round verdict, and a granted one is converging: neither was refused another round. */

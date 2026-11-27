@@ -1,7 +1,8 @@
 /**
  * The moves under an incident and each kind's default, on the Board (design sections 5.4 and 8.3). What matters: an answer reaches the
  * waiting job and, for a malformed ticket, the ticket's `## Questions`; a note never closes; a park stops the waiting job and keeps the
- * agent's questions in front of User; and every kind's default is planted, a merge gate's parking and a big resolution's review included.
+ * agent's questions in front of User, and stops a build job holding an unreadable file, so it cannot open the incident again; and every
+ * kind's default is planted, a merge gate's parking and a big resolution's review included.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -10,6 +11,7 @@ import type { DecisionQuestion }                        from './@types/Decision.
 import type { IncidentKind, IncidentMove }              from './@types/Incident.ts';
 import type { DecisionDraft }                           from './@types/PlaybookStep.ts';
 import type { Board }                                   from './Board.ts';
+import type { SteppedJobState }                         from './Jobs.ts';
 
 const AT = '2026-10-28T10:00:00+01:00';
 
@@ -90,6 +92,42 @@ describe('ticket park', () => {
     expect(records.find((record) => record.kind === 'job-ended')).toMatchObject({ jobId: 'J1', fields: { outcome: 'stopped', cause: 'parked' } });
     expect(progress.decisions?.[0]).toMatchObject({
       kind: 'parked', ticketIds: ['001'], questions: [AGENT_WORDS], context: 'The Hephaestus image lacks the tool'
+    });
+  });
+
+  describe('under an unreadable file of the job', () => {
+    /** Ticket 001's job of `kind`, moved through `states`, holding a system-file-unreadable incident. */
+    function boardWithUnreadableFileOf(kind: 'build' | 'merge', states: readonly SteppedJobState[]) {
+      const fixture = boardFixture({ tickets: [ticketFixture({ id: '001', status: 'in-progress', task: 1 })] });
+      fixture.board.launchJob({
+        kind, role: kind === 'build' ? 'builder' : null, ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main'
+      }, AT);
+      for (const state of states) fixture.board.moveJob('J1', state, AT);
+      fixture.board.openIncident({
+        kind: 'system-file-unreadable', ticketIds: ['001'], jobId: 'J1', facts: { file: 'jobs/J1/start.json', reason: 'example reason' }, defaultMove: 'ticket-park'
+      }, AT);
+      fixture.records.length = 0;
+      return fixture;
+    }
+
+    test('a job with no session to stop ends stopped as parked', () => {
+      const { board, records } = boardWithUnreadableFileOf('build', ['preparing']);
+      board.parkTicket('001', 'Example reason', 'I1', AT);
+      expect(board.jobById('J1')).toBeUndefined();
+      expect(records.find((record) => record.kind === 'job-ended')).toMatchObject({ jobId: 'J1', fields: { outcome: 'stopped', cause: 'parked' } });
+    });
+
+    test('a job past its session is asked to stop, as User\'s stop asks, and its ticket keeps the parked hold', () => {
+      const { board } = boardWithUnreadableFileOf('build', ['preparing', 'running', 'in-customs']);
+      board.parkTicket('001', 'Example reason', 'I1', AT);
+      expect(board.jobById('J1')).toMatchObject({ state: 'stopping', stopRequest: 'stop' });
+      expect(board.ticketByReference('001')?.frontmatter.hold).toBe('parked:system-file-unreadable');
+    });
+
+    test('an Airlock merge job is left for Hephaestus to abort', () => {
+      const { board } = boardWithUnreadableFileOf('merge', []);
+      board.parkTicket('001', 'Example reason', 'I1', AT);
+      expect(board.jobById('J1')?.state).toBe('launching');
     });
   });
 

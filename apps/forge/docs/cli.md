@@ -558,7 +558,7 @@ model and effort are stored and shown, and no launch reads them.
 | `ticket ready <id> [<id>...] [--at <when>] [--json]` | Ready draft tickets, or tickets in `ready-for-review`, to build, all or nothing in one lock hold: each becomes `committed` with a `committed` row at any priority, and one `ticket-committed` line is logged per ticket. [Its refusals](#ticket-ready) are below. |
 | `ticket unready <id> [--at <when>] [--json]` | Put a committed ticket no job has taken back into `draft` in one lock hold, to edit it there: its row and its kept content go, everything else stays, and one `ticket-unreadied` line is logged. [Its refusals](#ticket-unready) are below. |
 | `ticket submit <id> [<id>...] [--at <when>] [--json]` | The filer's close of its draft tickets, in one lock hold. With ticket review off (`gate approval tickets off`) each complete draft becomes `committed` with its row (`ticket-committed`); with it on, the default, each becomes `ready-for-review` with no row (`ticket-submitted-for-review`) and waits for User's `ticket ready`. An incomplete draft stays a draft, named with its gaps; `--json` prints `{ tickets, incompleteTickets }`. A ticket that is not a draft is refused at exit 1 with nothing written (`ready-of-a-ticket-not-in-draft`), and so, with ticket review off in a forge with entities, is a complete draft with no `entity` (`ticket-without-entity`). No role an agent runs under may relay it; a product owner under Hephaestus closes with `intake close`. |
-| `ticket park <id> [--incident <I>] -- <reason> [--at <when>] [--json]` | Hold the ticket `parked:<incident kind>` (`parked:user` with no incident, replacing any hold) and open a `parked` decision to User, the reason its question. Under an incident whose job waits on a question, the job ends `stopped` (cause `parked`) in the same hold and the decision carries the agent's questions, the reason as its context. |
+| `ticket park <id> [--incident <I>] -- <reason> [--at <when>] [--json]` | Hold the ticket `parked:<incident kind>` (`parked:user` with no incident, replacing any hold) and open a `parked` decision to User, the reason its question. Under an incident whose job waits on a question, the job ends `stopped` (cause `parked`) in the same hold and the decision carries the agent's questions, the reason as its context. Under `system-file-unreadable`, a build or review job with no session ends the same way, and one with a session is stopped as `job stop` stops it. |
 | `ticket agent <id> [--model <m>] [--effort <e>] [--at <when>]` | Change the model or effort stored on a ticket, or both, with one log line such as `Ticket #003 agents opus/medium → sonnet/medium`. No launch reads them (see above). Refused at exit 1, writing nothing, on a delivered or abandoned ticket, with neither option, with a value outside the lists, and when the resolved pair would not change. |
 | `ticket priority <id> low\|normal\|high [--at <when>]` | Change a ticket's priority, with one log line. Lowering to low is refused unless the ticket is a draft ticket or committed, and keeps its row: priority only orders the ready tickets. A draft ticket has none at any priority; raising a low ticket that has no row gives it one at once. A low ticket with no row gets its row when it starts, and keeps it; abandoning a low ticket that has none creates none. |
 | `ticket size <id> XS\|S\|M\|L\|XL\|XXL [--at <when>]` | Change a ticket's size, in any status, with one `ticket-size-changed` log line. A size outside the list, in capitals only, and an unchanged size are refused at exit 1 with nothing written. |
@@ -1763,7 +1763,9 @@ change of the forge's agent or of the machine's config does this), or until User
 sweep runs a pass that reads the program again, so a program installed, or a machine program set by another forge or by
 `machine agent`, is seen without a change on the board. A refusal whose program resolved before the pass could record it
 is not recorded. Each retry is logged `job-launch-retried`. A job that stands not launched has no session, so a `job
-stop`, `job wind-down` or `job fresh` ends it at once, freeing its slot, and no sweep counts it quiet.
+stop`, `job wind-down` or `job fresh` ends it at once, freeing its slot, and no sweep counts it quiet. A build or review
+job stopping whose session was never launched, as a launch refused on an unreadable file leaves it, ends at the next
+pass.
 
 #### `job message`
 
@@ -2107,7 +2109,7 @@ line.
 | `pipeline.json` is older, written by an earlier release with no `version` or one below 2 | the `checks-not-set` decision; nothing launches | set the pipeline up again: every `gate` write refuses it (`older-pipeline`) until it is deleted |
 | a running build or review's event log stands still for `QUIET_JOB_SWEEPS` (6) sweeps | incident `quiet-job` | `job message`, `job fresh` |
 | a pipeline agent's turn end finds its snapshot changed (Customs V16, V4, V5, V13 or V14) | `pipeline-snapshot-touched` and incident `setup-snapshot-touched`, facts `setupId`, `check`, `reason`, `paths`; Apply refuses `setup-snapshot-touched` | `job message`, `incident note`; `pipeline resume` once main moved, or `pipeline start-over` |
-| a file Hephaestus stored for the job cannot be read, or holds no current `version` | incident `system-file-unreadable`, facts `file` and `reason`; the job takes no step that needs the file; its default parks the ticket | `job fresh`, `ticket park` |
+| a file Hephaestus stored for the job cannot be read, or holds no current `version` | incident `system-file-unreadable`, facts `file` and `reason`; the job takes no step that needs the file and is not launched again while the incident stands (an Airlock agent while its merge job's stands); its default parks the ticket. A park ends a build or review job `stopped` (cause `parked`), or stops one with a session as `job stop` does, and no job of a ticket held `parked:system-file-unreadable` opens it again; an Airlock's merge job is aborted as any parked merge | `job fresh`, `ticket park` |
 
 A ticket an open incident names launches no new job until the incident is settled.
 
@@ -2290,7 +2292,7 @@ threshold; from round 3 on, the findings must also converge.
 | claims an item `does-not-hold` | the job ends `does-not-hold` and the ticket goes `in-progress`: a resume of the builder when its build was `built`, counted with its red handoffs, otherwise a failed pass |
 | reworked over the threshold and the round verdict grants another round | the job ends `round-granted`, and a fresh reviewer runs one round on as a `re-reviewer` |
 | reworked over the threshold and was refused another round | it passes on; the ticket shows the `rounds-not-converging` notice |
-| claims an item `waiver-proposed` | the `waiver` decision opens, the job waits `awaiting-answer`, and the ticket leaves the merge queue, held. The answer is only recorded, so it is taken with Hephaestus down too; Hephaestus's next pass acts on it. An answer that starts with `refuse` ends the job `does-not-hold` (cause `waiver-refused`) and the ticket goes `in-progress`, as for a claim that does not hold. Any other answer writes each proposed item `A<n>. Waived: <reason>` in the ticket's Acceptance, ends the job `reviewed` and marks the ticket `mergeQueued` while its green is current on the worktree's HEAD tree, else it waits unqueued for a fresh review. Proposals stored in `<data>/jobs/<J>/waiver-proposals.json` (`{ "version": 1, "proposals": [{ "item", "reason" }] }`) that are missing or cannot be read waive nothing: the job ends `does-not-hold` (cause `waiver-proposals-unreadable`) |
+| claims an item `waiver-proposed` | the `waiver` decision opens, the job waits `awaiting-answer`, and the ticket leaves the merge queue, held. The answer is only recorded, so it is taken with Hephaestus down too; Hephaestus's next pass acts on it. An answer that starts with `refuse` ends the job `does-not-hold` (cause `waiver-refused`) and the ticket goes `in-progress`, as for a claim that does not hold. Any other answer writes each proposed item `A<n>. Waived: <reason>` in the ticket's Acceptance, ends the job `reviewed` and marks the ticket `mergeQueued` while its green is current on the worktree's HEAD tree, else it waits unqueued for a fresh review. Proposals stored in `<data>/jobs/<J>/waiver-proposals.json` (`{ "version": 1, "proposals": [{ "item", "reason" }] }`) that are missing waive nothing: the job ends `does-not-hold` (cause `waiver-proposals-unreadable`). Proposals that cannot be read waive nothing either: `system-file-unreadable` opens on the review job, which keeps waiting and is not acted on while the incident stands |
 | otherwise | the job ends `reviewed`, the ticket is marked `mergeQueued` and `merge-queued` is logged with its target; with merge approval on, the job first moves to `merging-main` and ends there ([Merge approval](#merge-approval)) |
 
 Review done is `mergeQueued`. Hephaestus sets it only when the last job's report cleared Customs and the row's
@@ -2305,9 +2307,10 @@ Hephaestus's pass, as the merged tree's does; a stale green is no candidate, so 
 later sweep reads the outcome, and then loses it: green records the tree and queues the ticket again; red leaves it
 unqueued with no `greenTree`, writes the red handoff in the `stale-green` folder of the job folder of the last session
 that passed (its reviewer, or with no review phase its builder, whose ticket goes `in-progress`), and the next session
-of that kind takes it over; a gate that cannot run opens its incident on the ticket. A worktree that cannot be gated
-clears `mergeQueued` at once. With no review phase, a ticket in review that is not queued is queued there once its green
-is current.
+of that kind takes it over; past that session's resumes, or when its `red-handoff.json` cannot be read, the ticket parks
+`parked:red-resumes-spent` instead; a gate that cannot run opens its incident on the ticket. A worktree that cannot be
+gated clears `mergeQueued` at once. With no review phase, a ticket in review that is not queued is queued there once its
+green is current.
 
 ### The Assistant
 

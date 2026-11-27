@@ -229,6 +229,8 @@ export interface BuildJobObservation {
   lostLine?:             LostLineKind;
   /** The job's own red handoff facts, which its hold's steps read, when they cannot be read; absent otherwise. */
   unreadableRedHandoff?: StoredFileUnreadable;
+  /** Set while the job's current child instance was never launched, as a launch refused for a file it reads leaves it. */
+  childIsUnlaunched?:    true;
 }
 
 /**
@@ -986,6 +988,7 @@ function observeBuildJobs(context: JobLaunchContext, jobs: readonly Readonly<Job
       conflictReReview: conflictReReviewReadingOf(context, jobs, job, pipeline),
       ...(lostLine === null ? {} : { lostLine }),
       ...(StoredFileUnreadable.isUnreadableFile(redHandoff) ? { unreadableRedHandoff: redHandoff } : {}),
+      ...(liveness.verdict === 'unlaunched' ? { childIsUnlaunched: true } as const : {}),
     };
   });
 }
@@ -2296,11 +2299,14 @@ function recordLostLineOnce(hold: HoldContext, job: Readonly<Job>, lostLine: Los
 
 /**
  * The first job file the observation could not read where the job's state acts on it; the hold then takes none of the job's steps this
- * pass. A conflict re-reviewer is judged only in `merging-main`, so a stop never waits on its resolution.
+ * pass. A conflict re-reviewer is judged only in `merging-main`, and the red handoff only while a session runs or a stop no one asked for
+ * settles it, so a stop never waits on either.
  */
-function unreadableFileOfObservation(observation: BuildJobObservation, state: JobState | undefined): StoredFileUnreadable | null {
+function unreadableFileOfObservation(observation: BuildJobObservation, job: Readonly<Job> | undefined): StoredFileUnreadable | null {
+  const state = job?.state;
+  const readsTheRedHandoff = state === 'running' || (state === 'stopping' && job?.stopRequest === undefined);
   const readings: readonly unknown[] = [
-    observation.unreadableRedHandoff,
+    readsTheRedHandoff ? observation.unreadableRedHandoff : null,
     observation.gate,
     observation.targetCatchUp,
     observation.mainMerge?.step,
@@ -2315,7 +2321,7 @@ function applyObservation(hold: HoldContext, observation: BuildJobObservation): 
   const job = board.jobById(observation.jobId);
   if (job === undefined) return;
   recordLostLineOnce(hold, job, observation.lostLine);
-  const unreadable = unreadableFileOfObservation(observation, job.state);
+  const unreadable = unreadableFileOfObservation(observation, job);
   if (unreadable !== null) {
     openUnreadableFileIncident(hold, job, unreadable);
     return;
@@ -2355,7 +2361,8 @@ function applyObservation(hold: HoldContext, observation: BuildJobObservation): 
         stopTheConflictReReviewer(hold, reReviewer, observation.conflictReReview);
         return;
       }
-      if (observation.agentEnd === null) return;
+      // A stopping job never spawns, so a child never launched never ends: the job ends here.
+      if (observation.agentEnd === null && observation.childIsUnlaunched !== true) return;
       if (job.stopRequest === undefined && workingOffARedHandoff(hold.context, job)) {
         const output = `The resumed session passed its ${RED_HANDOFF_RESUME_CALL_BUDGET} calls and the ${WIND_DOWN_GRACE_CALLS}-call grace without a report.`;
         interruptOnRedHandoff(hold, job, { ...redHandoffCauseOf(hold.context, job), output });
@@ -2394,7 +2401,7 @@ function someBuildJobAwaitsAPass(board: Board, observations: readonly BuildJobOb
   return observations.some((observation) => {
     const state = board.jobById(observation.jobId)?.state;
     // An unreadable file holds the job until a move on its incident, which brings its own pass.
-    if (unreadableFileOfObservation(observation, state) !== null) return false;
+    if (unreadableFileOfObservation(observation, board.jobById(observation.jobId)) !== null) return false;
     if (state === 'launching') return true;
     if (state !== undefined && STATES_A_SANDBOX_REFUSAL_ENDS.has(state) && observation.sandboxRefusal !== null) return true;
     if (state === 'preparing') {

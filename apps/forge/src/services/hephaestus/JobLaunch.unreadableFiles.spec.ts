@@ -2,7 +2,8 @@
  * A job file Hephaestus kept that its ingestion cannot read stops the step that needs it. What matters: the hold opens one
  * `system-file-unreadable` incident on the job whose step read the file, naming the file inside the board's data folder, also when the file
  * is another job's; the job keeps its state and takes no step on the file, nothing is recorded as if the file said something, and the next
- * pass opens no second incident. A file that is absent keeps the meaning absence always had.
+ * pass opens no second incident. A park stops the job, so no pass after it opens the incident again; a fresh agent ends a job whose child
+ * was never launched, and a stop is never held up by an unreadable red handoff. A file that is absent keeps the meaning absence always had.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -16,10 +17,14 @@ import { createScratchDirectory, removeScratchDirectory }             from '../.
 import type { BoardTransaction }                                      from '../tracker/BoardTransaction.ts';
 import { jobFolderIn }                                                from './HephaestusFiles.ts';
 import { type BuildJobObservation, JobLaunch, type JobLaunchContext } from './JobLaunch.ts';
+import { UnreadableJobFileIncident }                                  from './UnreadableJobFileIncident.ts';
 
 const AT = '2026-11-26T10:00:00+01:00';
 const NEXT_PASS_AT = '2026-11-26T10:00:30+01:00';
 const EXAMPLE_TREE = '4b825dc642cb6eb9a060e54bf8d69288fbee4904';
+const EXITED_CHILD: BuildJobObservation['agentEnd'] = {
+  reason: 'exited', exitCode: 0, signal: null, detail: null, runMilliseconds: 0
+};
 const PIPELINE: Pipeline = {
   version: 5,
   prepare: [],
@@ -177,4 +182,44 @@ test('a sandbox refusal kept that cannot be read is still a refused line: the in
   expect(unreadableFileIncidentsOf(scene.board)).toEqual([[scene.job.id, { file: sandboxRefusal.file, reason: sandboxRefusal.reason }]]);
   expect(scene.board.incidents().map((incident) => incident.kind)).not.toContain('sandbox-unavailable');
   expect(scene.board.jobById(scene.job.id)?.state).toBe('gating');
+});
+
+test('a park on the incident stops the job, and the passes after it open no second incident and end the job', () => {
+  const scene = sceneIn('in-customs');
+  plantJobFile(scene, scene.job.id, 'start.json', '{"startCommit": ');
+  applyPass(scene, observationOf(scene));
+  const [incident] = scene.board.incidents();
+
+  scene.board.parkTicket('001', 'Example reason', incident?.id ?? '', NEXT_PASS_AT);
+  applyPass(scene, observationOf(scene), NEXT_PASS_AT);
+  expect(scene.board.incidents()).toEqual([]);
+  applyPass(scene, observationOf(scene, { agentEnd: EXITED_CHILD }), NEXT_PASS_AT);
+
+  expect(scene.board.incidents()).toEqual([]);
+  expect(scene.board.decisions().map((decision) => decision.kind)).toEqual(['parked']);
+  expect(scene.board.jobById(scene.job.id)).toBeUndefined();
+  expect(scene.board.ticketByReference('001')?.frontmatter.hold).toBe('parked:system-file-unreadable');
+});
+
+test('a fresh agent asked for a job whose child was never launched ends the job replaced, though no child ever ends', () => {
+  const scene = sceneIn('running');
+  UnreadableJobFileIncident.openOnce(scene.board, { jobId: scene.job.id, file: `jobs/${scene.job.id}/launch-settings.json`, reason: 'example reason' }, AT);
+  scene.board.requestJobStop(scene.job.id, 'fresh', AT);
+  expect(scene.board.jobById(scene.job.id)?.state).toBe('stopping');
+
+  applyPass(scene, observationOf(scene, { childIsUnlaunched: true }), NEXT_PASS_AT);
+
+  expect(scene.board.jobById(scene.job.id)).toBeUndefined();
+  expect(scene.board.logRecordsSoFar().find((record) => record.kind === 'job-ended')).toMatchObject({ jobId: scene.job.id, fields: { outcome: 'replaced' } });
+});
+
+test('a job asked for a fresh agent ends once its session does, though its red handoff facts cannot be read', () => {
+  const scene = sceneIn('running');
+  const unreadableRedHandoff = { verdict: 'unreadable-file', file: `jobs/${scene.job.id}/red-handoff.json`, reason: 'its "resume" is not a count' } as const;
+  scene.board.requestJobStop(scene.job.id, 'fresh', AT);
+
+  applyPass(scene, observationOf(scene, { unreadableRedHandoff, agentEnd: EXITED_CHILD }), NEXT_PASS_AT);
+
+  expect(unreadableFileIncidentsOf(scene.board)).toEqual([]);
+  expect(scene.board.logRecordsSoFar().find((record) => record.kind === 'job-ended')).toMatchObject({ jobId: scene.job.id, fields: { outcome: 'replaced' } });
 });

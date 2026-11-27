@@ -4,7 +4,8 @@
  * and each outcome makes its one move: a failed claim back to a fixer, a granted round to a fresh reviewer the policy launches, a refused
  * round to the merge queue with its notice, and a waiver proposal to User. User's answer is only recorded, as it is with Hephaestus down;
  * Hephaestus's next pass acts on it: a grant writes the waived item and a refusal is a failed pass. A grant whose
- * stored proposals are gone, cut short or of another shape waives nothing and fails closed as a failed pass. The board's
+ * stored proposals are gone waives nothing and fails closed as a failed pass; one whose proposals are cut short or of another shape
+ * waives nothing either and leaves the job waiting, for Hephaestus to open the unreadable file's incident. The board's
  * pipeline sets the rework threshold: a review with no re-review grants no round at any rework, and its `thresholdLines` is honoured.
  * Each branch state is a scenario `src/lib/git/RecordedGitScenarios.integration.spec.ts` records with real git; a call
  * it did not record fails the case, so the commit a pass makes is answered only with the message the recording holds.
@@ -187,12 +188,12 @@ function followThePlaybook(): ReturnType<Board['followPlaybook']> {
 }
 
 /** User's answer is recorded as `decide` records it; Hephaestus's next pass acts on each answer its Playbook names, on `headTree`. */
-function answerTheWaiver(answer: string, headTree: string): void {
+function answerTheWaiver(answer: string, headTree: string): ReturnType<typeof ReviewOutcome.actOnWaiverAnswer>[] {
   const [decision] = board.decisions();
   board.answerDecision(decision?.id ?? '', [answer], AT);
-  for (const step of followThePlaybook().steps) {
-    if (step.kind === 'act-on-waiver-answer') ReviewOutcome.actOnWaiverAnswer(board, step.jobId, step.answers, jobFolder, headTree, AT);
-  }
+  return followThePlaybook().steps.flatMap((step) => (step.kind === 'act-on-waiver-answer'
+    ? [ReviewOutcome.actOnWaiverAnswer(board, step.jobId, step.answers, jobFolder, headTree, AT)]
+    : []));
 }
 
 beforeEach(() => {
@@ -398,16 +399,16 @@ describeWhenGitIsRecorded('a review pass settled by code', () => {
     ['an empty list', '{"version": 1, "proposals": []}'],
     ['a bare list with no version', '[{"item": "A2", "reason": "The export was retired"}]'],
   ] as const) {
-    test(`granting the waiver when its stored proposals are ${form} waives nothing and fails closed back to a fixer`, () => {
+    test(`granting the waiver when its stored proposals are ${form} waives nothing and leaves the job waiting on the unreadable file`, () => {
       const jobId = reviewJobAtRound(1);
       settle(jobId, report([claim('A1', 'holds'), claim('A2', 'waiver-proposed', 'The export was retired')]));
       writeFileSync(join(jobFolder, 'waiver-proposals.json'), storedProposals);
-      answerTheWaiver('Grant', GATED_TREE);
 
+      const unreadable = { verdict: 'proposals-unreadable' as const, proposalsPath: join(jobFolder, 'waiver-proposals.json'), reason: expect.any(String) };
+      expect(answerTheWaiver('Grant', GATED_TREE)).toEqual([unreadable]);
       expect(ticketBody()).not.toContain('Waived:');
-      expect(recordsOfKind('job-ended').map((record) => [record.fields.outcome, record.fields.cause]))
-        .toEqual([['does-not-hold', 'waiver-proposals-unreadable']]);
-      expect(board.tickets()[0]?.frontmatter.status).toBe('in-progress');
+      expect(recordsOfKind('job-ended')).toEqual([]);
+      expect(board.jobById(jobId)?.state).toBe('awaiting-answer');
       expect(board.ticketIsMergeQueued('001')).toBe(false);
     });
   }
