@@ -16,6 +16,7 @@ import type {
 } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import { BOARD_ENTITY_AGENT_ROLES, BOARD_GATE_PHASES, type BoardEntityKind } from '../../../../@types/board/BoardVocabulary.ts';
 import type { BoardEntityRefusalReason }                                     from '../../../../@types/board/BoardVocabulary.ts';
+import { CountTextUtil }                                                     from '../../../../shared/utils/CountTextUtil.ts';
 import type { PanelStatus }                                                  from '../PipelinePanel.tsx';
 import { NOT_LAUNCHED_PANEL_STATUS, type AgentSessionState }                 from '../agent-panel/AgentSessionModel.ts';
 import type { DraftEditTarget }                                              from '../flow/PipelineFlowModel.ts';
@@ -83,10 +84,6 @@ const ROOT_HOME = '/';
 
 /** The key the forge gives the root entity while the draft only implies it, and the key a gated root is added under. */
 const IMPLIED_ROOT_ENTITY_KEY = 'root';
-
-function countText(count: number, singular: string, plural: string): string {
-  return `${count} ${count === 1 ? singular : plural}`;
-}
 
 /** The entities of the draft the forge stores, refused or not: the step holds no edit of its own. */
 function draftEntitiesOf(record: Pick<BoardSetupRecordDocument, 'draft'>): DraftEntities {
@@ -201,14 +198,14 @@ function entityCountOf(entities: DraftEntities): number {
 
 function entityCountTextOf(entities: DraftEntities): string {
   const rowCount = rowsOf(entities).length;
-  return `${countText(rowCount + 1, 'entity', 'entities')} · ${countText(rowCount, 'proposed entity', 'proposed entities')}, and the root`;
+  return `${CountTextUtil.countedPhrase(rowCount + 1, 'entity', 'entities')} · ${CountTextUtil.countedPhrase(rowCount, 'proposed entity', 'proposed entities')}, and the root`;
 }
 
 function footerSummaryOf(entities: DraftEntities, refusalCount: number, openQuestionCount: number): string {
   return [
-    countText(entityCountOf(entities), 'entity', 'entities'),
-    refusalCount === 0 ? 'no refusal' : countText(refusalCount, 'refusal', 'refusals'),
-    openQuestionCount === 0 ? 'no open question' : `${countText(openQuestionCount, 'question', 'questions')} open`,
+    CountTextUtil.countedPhrase(entityCountOf(entities), 'entity', 'entities'),
+    refusalCount === 0 ? 'no refusal' : CountTextUtil.countedPhrase(refusalCount, 'refusal', 'refusals'),
+    openQuestionCount === 0 ? 'no open question' : `${CountTextUtil.countedPhrase(openQuestionCount, 'question', 'questions')} open`,
   ].join(' · ');
 }
 

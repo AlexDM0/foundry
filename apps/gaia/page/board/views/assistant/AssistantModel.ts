@@ -12,6 +12,7 @@ import type { BoardDocument }                                  from '../../../@t
 import type { BoardJobDocument }                               from '../../../@types/board/BoardJobDocuments.ts';
 import type { BoardDisplayState, BoardJobState, BoardJobTurn } from '../../../@types/board/BoardVocabulary.ts';
 import type { StampProps, TagProps }                           from '../../../lib/design-system/DesignSystemInterface.ts';
+import { CountTextUtil }                                       from '../../../shared/utils/CountTextUtil.ts';
 import type { ChatTurn }                                       from '../../conversation/ChatThread.tsx';
 import type { ChatThreadItem, QueuedMessage }                  from '../../conversation/ChatThreadModel.ts';
 import { ChatTurnWordingUtil }                                 from '../../conversation/ChatTurnWordingUtil.ts';
@@ -120,7 +121,7 @@ function flintCueOf(model: Pick<AssistantModel, 'askingDecisionCount'>): FlintSl
 /** "1 decision waits on User", "2 decisions wait on User"; nothing while none waits. */
 function askingDecisionsTextOf(count: number): string | null {
   if (count === 0) return null;
-  return count === 1 ? '1 decision waits on User' : `${count} decisions wait on User`;
+  return CountTextUtil.countedPhrase(count, 'decision waits on User', 'decisions wait on User');
 }
 
 /** An incident step's stamp: the clock time on the viewer's day, the date before it on another, the full stamp on hover. */
@@ -153,8 +154,7 @@ function composerTagOf(job: AssistantJob | null, assistantIsOn: boolean): TagPro
 
 /** "running · 3 turns · 13 calls": the Assistant has no call budget, so none is shown. */
 function headMetaOf(job: AssistantJob, turnCount: number): string {
-  const { countTextOf } = ChatTurnWordingUtil;
-  return [job.state, countTextOf(turnCount, 'turn', 'turns'), countTextOf(job.calls, 'call', 'calls')].join(' · ');
+  return [job.state, CountTextUtil.countedPhrase(turnCount, 'turn', 'turns'), CountTextUtil.countedPhrase(job.calls, 'call', 'calls')].join(' · ');
 }
 
 /** The thread's items as the chat parts show them. */

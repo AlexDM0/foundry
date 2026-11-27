@@ -36,6 +36,8 @@ label.design-system-choice { cursor: pointer; }
   color: var(--ink); font: 400 var(--fs-small) var(--font-ui);
   background: var(--decision-input-fill); border: 1px solid var(--line-strong); border-radius: var(--r-2);
 }
+/* The Other option's text column spans the option, so its field does in every variant. */
+.design-system-choice-text:has(> .design-system-choice-free-text) { flex: 1 1 auto; }
 .design-system-choice-free-text::placeholder { color: var(--ink-4); }
 .design-system-choice-free-text:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
 

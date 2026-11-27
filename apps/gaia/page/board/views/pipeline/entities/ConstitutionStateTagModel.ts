@@ -6,6 +6,7 @@
  */
 import type { BoardPipelineEntityDocument, BoardSetupRecordDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import type { BoardSetupStepState }                                   from '../../../../@types/board/BoardVocabulary.ts';
+import { CountTextUtil }                                              from '../../../../shared/utils/CountTextUtil.ts';
 import type { PipelineLevelRailMarkTexts }                            from './PipelineLevelRailModel.ts';
 
 export type ConstitutionState = 'adopted' | 'drafted' | 'default' | 'not-started' | 'kept-for-a-person';
@@ -79,7 +80,7 @@ function titleOf(state: ConstitutionState): string {
 function attentionTextOf(states: readonly ConstitutionState[]): string | null {
   const defaultCount = states.filter((state) => state === 'default').length;
   if (defaultCount === 0) return null;
-  return `${defaultCount} ${defaultCount === 1 ? 'entity has' : 'entities have'} the default constitution`;
+  return `${CountTextUtil.countedPhrase(defaultCount, 'entity has', 'entities have')} the default constitution`;
 }
 
 /** Each entity's state, in the order of the entities given. */

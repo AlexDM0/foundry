@@ -10,6 +10,7 @@ import type { BoardBillingDocument, BoardPipelineDefinitionDocument, BoardPipeli
 import type { BoardJobState, BoardSetupStep }                                                     from '../../../../@types/board/BoardVocabulary.ts';
 import type { StepperStatus }                                                                     from '../../../../lib/design-system/DesignSystemInterface.ts';
 import type { BoardRoute }                                                                        from '../../../../shared/BoardRouter.ts';
+import { CountTextUtil }                                                                          from '../../../../shared/utils/CountTextUtil.ts';
 import { PipelineViewModel, SETUP_STEP_LABELS }                                                   from '../PipelineViewModel.ts';
 import type { AgentSessionState }                                                                 from '../agent-panel/AgentSessionModel.ts';
 import { ApplyPendingStateModel }                                                                 from '../apply/ApplyPendingStateModel.ts';
@@ -49,10 +50,6 @@ const JOB_STATE_WORDS: Readonly<Record<BoardJobState, string>> = {
   'stopping':           'stopping',
 };
 
-function countText(count: number, singular: string, plural: string): string {
-  return `${count} ${count === 1 ? singular : plural}`;
-}
-
 function billingTextOf(billing: BoardBillingDocument): string {
   if (billing.mode === 'subscription') return 'Subscription';
   return billing.maximumBudgetDollars === null ? 'API key' : `API key · cap $${billing.maximumBudgetDollars} per launch`;
@@ -64,8 +61,8 @@ function entitiesSummaryOf(draft: Pick<BoardPipelineDefinitionDocument, 'entitie
   if (entities.length === 0) return 'No entity proposed yet';
   const appCount = entities.filter((entity) => entity.kind === 'app').length;
   const packageCount = entities.filter((entity) => entity.kind === 'package').length;
-  return `${countText(appCount + packageCount + 1, 'entity', 'entities')}: ${countText(appCount, 'app', 'apps')}, `
-    + `${countText(packageCount, 'package', 'packages')} and the root`;
+  return `${CountTextUtil.countedPhrase(appCount + packageCount + 1, 'entity', 'entities')}: ${CountTextUtil.countedPhrase(appCount, 'app', 'apps')}, `
+    + `${CountTextUtil.countedPhrase(packageCount, 'package', 'packages')} and the root`;
 }
 
 /** The step's summary once it was reached; a step not started has none, except Apply's "not yet". */
@@ -81,8 +78,8 @@ function summaryOf(facts: BoardPipelineSetupDocument, step: BoardSetupStep): str
       return billingTextOf(record.billing);
     case 'research':
       return reached
-        ? `${countText(summary.stackItemCount, 'stack item', 'stack items')}, ${countText(summary.scriptCount, 'script', 'scripts')}, `
-          + `${countText(summary.answeredResearchQuestionCount, 'question', 'questions')} answered`
+        ? `${CountTextUtil.countedPhrase(summary.stackItemCount, 'stack item', 'stack items')}, ${CountTextUtil.countedPhrase(summary.scriptCount, 'script', 'scripts')}, `
+          + `${CountTextUtil.countedPhrase(summary.answeredResearchQuestionCount, 'question', 'questions')} answered`
         : null;
     case 'entities':
       return reached ? entitiesSummaryOf(record.draft) : null;
@@ -90,16 +87,18 @@ function summaryOf(facts: BoardPipelineSetupDocument, step: BoardSetupStep): str
       if (!reached) return null;
       return facts.constitutionOutline === null
         ? 'Not drafted yet'
-        : `Drafted · ${countText(facts.constitutionOutline.sectionCount, 'section', 'sections')}, ${countText(facts.constitutionOutline.ruleCount, 'rule', 'rules')}`;
+        : `Drafted · ${CountTextUtil.countedPhrase(facts.constitutionOutline.sectionCount, 'section', 'sections')}, `
+          + CountTextUtil.countedPhrase(facts.constitutionOutline.ruleCount, 'rule', 'rules');
     case 'design': {
       if (!reached) return null;
       if (record.draft === null) return 'No proposal yet';
       const { build, review, merge } = summary.gateCountByPhase;
-      const proposal = `Proposal saved: ${countText(summary.prepareStepCount, 'prepare step', 'prepare steps')}, `
-        + `${countText(build, 'build gate', 'build gates')}, ${countText(review, 'review gate', 'review gates')}, ${countText(merge, 'merge gate', 'merge gates')}.`;
+      const proposal = `Proposal saved: ${CountTextUtil.countedPhrase(summary.prepareStepCount, 'prepare step', 'prepare steps')}, `
+        + `${CountTextUtil.countedPhrase(build, 'build gate', 'build gates')}, ${CountTextUtil.countedPhrase(review, 'review gate', 'review gates')}, `
+        + `${CountTextUtil.countedPhrase(merge, 'merge gate', 'merge gates')}.`;
       return summary.userEditsKeptCount === 0
         ? proposal
-        : `${proposal} ${countText(summary.userEditsKeptCount, 'change', 'changes')} by User kept.`;
+        : `${proposal} ${CountTextUtil.countedPhrase(summary.userEditsKeptCount, 'change', 'changes')} by User kept.`;
     }
     case 'apply':
       return facts.applyState === null ? 'not yet' : ApplyPendingStateModel.summaryTextOf(facts.applyState);
@@ -122,7 +121,7 @@ function agentChipTextOf(facts: BoardPipelineSetupDocument, sessionState: AgentS
 function currentChipsOf(facts: BoardPipelineSetupDocument, sessionState: AgentSessionState): ResumeChip[] {
   const questionChips: ResumeChip[] = facts.openQuestionCount === 0
     ? []
-    : [{ text: `${countText(facts.openQuestionCount, 'question', 'questions')} open`, tone: 'question' }];
+    : [{ text: `${CountTextUtil.countedPhrase(facts.openQuestionCount, 'question', 'questions')} open`, tone: 'question' }];
   return [...questionChips, { text: agentChipTextOf(facts, sessionState), tone: 'neutral' }];
 }
 
@@ -185,7 +184,7 @@ function doneStepsTextOf(facts: BoardPipelineSetupDocument): string {
 /** Shown only while main moved since the snapshot, which the facts count before Resume moves it. */
 function mainMovedTextOf(facts: BoardPipelineSetupDocument): string | null {
   if (facts.mainMovedByCommits <= 0) return null;
-  return `Main moved ${countText(facts.mainMovedByCommits, 'commit', 'commits')} since the research. The pipeline agent rechecks the scripts when it resumes.`;
+  return `Main moved ${CountTextUtil.countedPhrase(facts.mainMovedByCommits, 'commit', 'commits')} since the research. The pipeline agent rechecks the scripts when it resumes.`;
 }
 
 export const ResumeSummaryModel = Object.freeze({

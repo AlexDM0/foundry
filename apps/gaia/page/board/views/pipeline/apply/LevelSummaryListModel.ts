@@ -4,6 +4,7 @@
  * so no line names it.
  */
 import type { BoardPipelineDefinitionDocument, BoardPipelineEntityDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
+import { CountTextUtil }                                                     from '../../../../shared/utils/CountTextUtil.ts';
 import { ForgeLevelPageModel, type ApprovalDefaults }                        from '../entities/ForgeLevelPageModel.ts';
 
 export interface LevelSummaryView {
@@ -16,10 +17,6 @@ export interface LevelSummaryView {
 }
 
 const PHASE_ORDER = ['build', 'review', 'merge'] as const;
-
-function countText(count: number, singular: string, plural: string): string {
-  return `${count} ${count === 1 ? singular : plural}`;
-}
 
 function listedText(items: readonly string[]): string {
   if (items.length <= 2) return items.join(' and ');
@@ -48,9 +45,9 @@ function gatesTextOf(entity: BoardPipelineEntityDocument): string {
 function entityTextOf(entity: BoardPipelineEntityDocument): string {
   if (entity.kind === 'root' && entity.gates.length === 0) return 'root · Kept for a person: no gates, no constitution';
   const parts: string[] = [entity.kind];
-  if (entity.prepare.length > 0) parts.push(countText(entity.prepare.length, 'prepare step', 'prepare steps'));
+  if (entity.prepare.length > 0) parts.push(CountTextUtil.countedPhrase(entity.prepare.length, 'prepare step', 'prepare steps'));
   parts.push(gatesTextOf(entity), entity.review === null ? 'review off' : 'review on');
-  if (entity.concurrency !== null) parts.push(`a cap of ${countText(entity.concurrency, 'job', 'jobs')}`);
+  if (entity.concurrency !== null) parts.push(`a cap of ${CountTextUtil.countedPhrase(entity.concurrency, 'job', 'jobs')}`);
   return parts.join(' · ');
 }
 

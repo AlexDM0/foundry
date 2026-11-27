@@ -4,6 +4,7 @@
  * a stated clock exception that decides only what the board shows.
  */
 import type { BoardEpicDocument, BoardTicketDocument } from '../../@types/board/BoardTicketDocuments.ts';
+import { CountTextUtil }                               from '../../shared/utils/CountTextUtil.ts';
 import { TimeUtil, type DurationUnits }                from './TimeUtil.ts';
 
 export type FinishedWorkSpan = '1h' | '1d' | '6h' | '12h' | '3d' | 'all';
@@ -185,15 +186,11 @@ function filterLineTextOf(choice: FinishedWorkChoice, hiddenItemCount: number): 
   return span === null || span === 'all' ? { lead: 'Showing all closed', window: '' } : { lead: 'Hiding closed > ', window: HIDING_WINDOW_TEXT[span] };
 }
 
-function countedNounOf(count: number, noun: string): string {
-  return `${count} ${noun}${count === 1 ? '' : 's'}`;
-}
-
 /** "67 tickets · 1 epic hidden", or empty when nothing is hidden; it names tickets and epics, never rows. */
 function hiddenWorkNoteTextOf(hiddenTicketCount: number, hiddenEpicCount: number): string {
   const parts = [
-    ...(hiddenTicketCount > 0 ? [countedNounOf(hiddenTicketCount, 'ticket')] : []),
-    ...(hiddenEpicCount > 0 ? [countedNounOf(hiddenEpicCount, 'epic')] : []),
+    ...(hiddenTicketCount > 0 ? [CountTextUtil.countedPhrase(hiddenTicketCount, 'ticket', 'tickets')] : []),
+    ...(hiddenEpicCount > 0 ? [CountTextUtil.countedPhrase(hiddenEpicCount, 'epic', 'epics')] : []),
   ];
   return parts.length === 0 ? '' : `${parts.join(' · ')} hidden`;
 }
@@ -246,7 +243,7 @@ function choiceAnnouncementOf(choice: FinishedWorkChoice, hiddenNote: string): s
 
 /** A span button's accessible name: "last day: 3 finished tickets shown". */
 function spanButtonLabelOf(span: FinishedWorkSpan, shownCount: number, noun: string): string {
-  return `${labelOf(span)}: ${countedNounOf(shownCount, `finished ${noun}`)} shown`;
+  return `${labelOf(span)}: ${CountTextUtil.countedPhrase(shownCount, `finished ${noun}`, `finished ${noun}s`)} shown`;
 }
 
 export const FinishedWorkUtil = Object.freeze({

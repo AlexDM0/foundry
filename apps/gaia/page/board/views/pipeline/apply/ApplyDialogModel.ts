@@ -10,6 +10,7 @@ import type { BoardCommandDocument }                                            
 import type { BoardAppliedPipelineDocument, BoardPipelineDefinitionDocument, BoardSetupRecordDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import type { BoardForgeRefusalDocument }                                                               from '../../../../@types/board/BoardRelayDocuments.ts';
 import type { BoardRoute }                                                                              from '../../../../shared/BoardRouter.ts';
+import { CountTextUtil }                                                                                from '../../../../shared/utils/CountTextUtil.ts';
 import { DetailRoute }                                                                                  from '../../../shared/routing/DetailRoute.ts';
 import { ForgeLevelPageModel }                                                                          from '../entities/ForgeLevelPageModel.ts';
 import { ConstitutionCommitListModel }                                                                  from './ConstitutionCommitListModel.ts';
@@ -50,10 +51,6 @@ const TICKETS_TAB = 'tickets' as const;
 
 const APPLY_REFUSED_TITLE = 'Apply is refused';
 
-function countText(count: number, singular: string, plural: string): string {
-  return `${count} ${count === 1 ? singular : plural}`;
-}
-
 function paceTextOf(concurrencyLimit: number | null, pace: ResumePace): string {
   if (concurrencyLimit === null) return '';
   return pace === 'at-a-time' ? `, ${concurrencyLimit} at a time` : `, ${ForgeLevelPageModel.jobsAtOnceTextOf(concurrencyLimit)}`;
@@ -88,7 +85,7 @@ function descriptionOf(record: BoardSetupRecordDocument, storedPipeline: BoardAp
   if (!draftHasEntities(record)) return SINGLE_DESCRIPTION;
   const appliedRevision = storedPipeline?.readingVerdict === 'readable' ? storedPipeline.application?.appliedRevision ?? null : null;
   const version = appliedRevision === null ? 1 : appliedRevision + 1;
-  const stores = `Apply stores the Forge level and ${countText(entityCount, 'entity', 'entities')} as one pipeline, version ${version}.`;
+  const stores = `Apply stores the Forge level and ${CountTextUtil.countedPhrase(entityCount, 'entity', 'entities')} as one pipeline, version ${version}.`;
   return storedPipelineOf(storedPipeline) === null ? `Nothing is stored yet. ${stores}` : stores;
 }
 

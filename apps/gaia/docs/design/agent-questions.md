@@ -50,15 +50,17 @@ The card stands last in the chat, as it waits: 10px radius, 1px orange edge, 12 
    from the head read "· gone from the head" and press nothing.
 2. The question, 14px, weight 600.
 3. Its context, 12px muted: what the agent found that makes it ask. Absent when the agent gave none.
-4. Two to four lettered options (A, B, C, D as shown; `a` to `d` as forge takes them), each a card: its letter, its label, then under it
-   "Recommended" (one option at most), "Touches" and the paths in mono, and the effect on the Acceptance, one 12px muted line each. The
-   chosen one has the orange tint and edge. The recommended option is chosen as the card opens.
-5. "Or answer in your own words" (micro capitals) over a two-line field, placeholder "Optional note for the spec agent".
+4. Two to four lettered options (A, B, C, D as shown; `a` to `d` as forge takes them), each a card drawn as every decision card draws its
+   options (`DecisionOptionList`): its letter, its label, "Recommended" beside it (one option at most), and under it what it touches,
+   trades off and does to the Acceptance as a fact table. The chosen one has the orange tint and edge. Nothing is chosen as the card opens,
+   the recommended option included.
+5. "Or answer in your own words", an option of its own after the lettered ones, with a field under its label, placeholder "Your answer".
+   Clicking or typing into the field chooses it; choosing a lettered option afterwards chooses that one and keeps the words for a return.
 6. "The answer goes on the ticket and to the agent." (12px muted) and the primary small button "Answer A", named for the chosen option,
    "Answer" with none.
 
-Answer sends `decision-answer` with the chosen letter and, when typed, the note; with no option chosen, the note alone as free text.
-Answer is disabled with neither.
+Answer sends `decision-answer` with the chosen letter, or, with User's own words chosen, those words alone as free text. Answer is disabled
+with nothing chosen, or with the own words chosen and empty.
 
 One open card is unfolded at a time: the one at the line a route named, else the one User unfolded, else the first asked. Each other folds
 to one line on the strong line: its anchor line, its question, and its options as "A · label · B · label"; a press unfolds it. The chat

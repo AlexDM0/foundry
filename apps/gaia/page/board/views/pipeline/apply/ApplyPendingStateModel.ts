@@ -9,6 +9,7 @@ import { PAGE_CONTRACT_VERSIONS }       from '../../../../../src/shared/constant
 import type { BoardCommandDocument }    from '../../../../@types/board/BoardCommandDocument.ts';
 import type { BoardApplyStateDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import type { BoardApplyRequestReason } from '../../../../@types/board/BoardVocabulary.ts';
+import { CountTextUtil }                from '../../../../shared/utils/CountTextUtil.ts';
 
 export interface ApplyPendingView {
   readonly state:                  BoardApplyStateDocument['state'];
@@ -98,7 +99,7 @@ function committingTextOf(applyState: BoardApplyStateDocument, entityConstitutio
   if (applyState.ticketIdHoldingMain !== null) return `Waiting for the merge train: ${applyState.ticketIdHoldingMain} is landing`;
   if (entityConstitutionCount === null) return COMMITTING_TEXT;
   if (entityConstitutionCount === 0) return 'Committing the constitutions to main';
-  return `Committing ${entityConstitutionCount === 1 ? '1 constitution' : `${entityConstitutionCount} constitutions`} to main in one commit`;
+  return `Committing ${CountTextUtil.countedPhrase(entityConstitutionCount, 'constitution', 'constitutions')} to main in one commit`;
 }
 
 function pendingViewOf(applyState: BoardApplyStateDocument, entityConstitutionCount: EntityConstitutionCount = null): ApplyPendingView {

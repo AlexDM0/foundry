@@ -34,12 +34,11 @@ describe('an open question', () => {
   test('is a decision the agent asked on this ticket\'s shown document, with its options lettered and its section read from the head', () => {
     const [open] = questionsOf().open;
     expect(open).toMatchObject({
-      decisionId:        'E7',
-      question:          'Does this ticket add the saved theme choice?',
-      context:           'The repo stores no theme choice today. The old site\'s dark mode lived in a cookie that the new storefront never reads.',
-      anchorParts:       { questionName: 'E7', section: '§ 3 Behaviour', linesText: `line ${FALLBACK_LINE}` },
-      placement:         { from: FALLBACK_LINE, to: FALLBACK_LINE },
-      recommendedLetter: 'a',
+      decisionId:  'E7',
+      question:    'Does this ticket add the saved theme choice?',
+      context:     'The repo stores no theme choice today. The old site\'s dark mode lived in a cookie that the new storefront never reads.',
+      anchorParts: { questionName: 'E7', section: '§ 3 Behaviour', linesText: `line ${FALLBACK_LINE}` },
+      placement:   { from: FALLBACK_LINE, to: FALLBACK_LINE },
     });
     expect(open?.options.map((option) => [option.letter, option.letterText, option.recommended])).toEqual([['a', 'A', true], ['b', 'B', false], ['c', 'C', false]]);
   });

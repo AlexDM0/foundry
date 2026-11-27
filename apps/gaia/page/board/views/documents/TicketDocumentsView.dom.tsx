@@ -380,21 +380,26 @@ describe('the spec agent asks User on the spec (artboard 11)', () => {
     expect(openQuestions.textContent).toBe('E7 Does this ticket add the saved theme choice? waiting on you');
   });
 
-  test('Answer sends the chosen option\'s letter with User\'s note, the recommended option chosen as the card opens', async () => {
+  test('Answer sends the option chosen after User\'s own words by its letter alone, and nothing is chosen as the card opens, the recommended option included', async () => {
     const { controls } = renderDocuments(SPEC_ASKS_DOCUMENTS, { board: asksBoardOf(false) });
     await settled();
     const card = screen.getByRole('region', { name: 'Question E7' });
     expect(within(card).getByRole('button', { name: 'Show line of E7' }).textContent).toBe(`E7 · § 3 Behaviour · line ${FALLBACK_LINE}`);
     expect(within(card).getByText('The answer goes on the ticket and to the agent.')).toBeTruthy();
-    fireEvent.click(within(card).getByRole('radio', { name: 'B. No, follow the system only' }));
-    fireEvent.change(within(card).getByLabelText('Or answer in your own words'), { target: { value: ' The cookie can go. ' } });
+    expect(within(card).getAllByRole<HTMLInputElement>('radio').map((radio) => radio.checked)).toEqual([false, false, false, false]);
+    expect((within(card).getByRole<HTMLButtonElement>('button', { name: 'Answer' })).disabled).toBe(true);
+    const ownWords = within(card).getByRole('textbox', { name: 'Your answer in your own words' });
+    act(() => ownWords.focus());
+    fireEvent.change(ownWords, { target: { value: 'The cookie can go.' } });
+    fireEvent.click(within(card).getByRole('radio', { name: 'b. No, follow the system only' }));
+    expect(within(card).getByRole<HTMLInputElement>('radio', { name: 'Or answer in your own words' }).checked).toBe(false);
     await clickSettled(within(card).getByRole('button', { name: 'Answer B' }));
     expect<unknown[]>(controls.sent).toEqual([{
-      ...SENT_COMMAND_VERSION, kind: 'decision-answer', decisionId: 'E7', answer: { form: 'letters', choices: ['b'], note: 'The cookie can go.' }
+      ...SENT_COMMAND_VERSION, kind: 'decision-answer', decisionId: 'E7', answer: { form: 'letters', choices: ['b'] }
     }]);
   });
 
-  test('a question with no option chosen answers with User\'s words alone', async () => {
+  test('the words of User\'s own are an option of their own, chosen by clicking into them, and answer alone', async () => {
     const [asked] = SAVED_CHOICE_QUESTION.questions;
     if (asked === undefined) throw new Error('no question');
     const unrecommended = { ...SAVED_CHOICE_QUESTION, questions: [{ ...asked, options: asked.options.map((option) => ({ ...option, recommended: false })) }] };
@@ -403,7 +408,10 @@ describe('the spec agent asks User on the spec (artboard 11)', () => {
     await settled();
     const card = screen.getByRole('region', { name: 'Question E7' });
     expect((within(card).getByRole<HTMLButtonElement>('button', { name: 'Answer' })).disabled).toBe(true);
-    fireEvent.change(within(card).getByLabelText('Or answer in your own words'), { target: { value: 'Ask me again after #011.' } });
+    const ownWords = within(card).getByRole('textbox', { name: 'Your answer in your own words' });
+    act(() => ownWords.focus());
+    expect(within(card).getByRole<HTMLInputElement>('radio', { name: 'Or answer in your own words' }).checked).toBe(true);
+    fireEvent.change(ownWords, { target: { value: 'Ask me again after #011.' } });
     await clickSettled(within(card).getByRole('button', { name: 'Answer' }));
     expect<unknown[]>(controls.sent).toEqual([{
       ...SENT_COMMAND_VERSION, kind: 'decision-answer', decisionId: 'E7', answer: { form: 'text', text: 'Ask me again after #011.' }

@@ -19,6 +19,7 @@ import type { BoardDisplayState, BoardJobState, BoardSetupQuestionStep } from '.
 import type { BoardTranscriptEntryDocument }                             from '../../../../@types/board/ConversationDocument.ts';
 import type { TagProps }                                                 from '../../../../lib/design-system/DesignSystemInterface.ts';
 import type { SpriteHabitat }                                            from '../../../../lib/flint/FlintInterface.ts';
+import { CountTextUtil }                                                 from '../../../../shared/utils/CountTextUtil.ts';
 import type { ChatTurn }                                                 from '../../../conversation/ChatThread.tsx';
 import { ChatThreadModelUtil }                                           from '../../../conversation/ChatThreadModel.ts';
 import { ChatTurnWordingUtil }                                           from '../../../conversation/ChatTurnWordingUtil.ts';
@@ -348,7 +349,7 @@ function openCountOf(questions: readonly BoardSetupQuestionDocument[]): number {
 }
 
 function questionCountTextOf(count: number): string {
-  return `${count} ${count === 1 ? 'question' : 'questions'}`;
+  return CountTextUtil.countedPhrase(count, 'question', 'questions');
 }
 
 /** Where the other levels' questions are: "in another entity", "in other entities", "in an entity", "at the Forge level", "at other levels". */

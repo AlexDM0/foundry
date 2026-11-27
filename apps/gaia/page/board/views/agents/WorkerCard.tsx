@@ -9,6 +9,7 @@ import { Fragment, type ReactNode } from 'react';
 import type { BoardConcurrencyDocument, BoardLaunchSlotsDocument } from '../../../@types/board/BoardDocument.ts';
 import type { BoardConcurrencyBoundsDocument }                     from '../../../@types/board/BoardFactDocuments.ts';
 import { Button, Pane, SlotMeter }                                 from '../../../lib/design-system/DesignSystemInterface.ts';
+import { CountTextUtil }                                           from '../../../shared/utils/CountTextUtil.ts';
 import { JobLink, TicketLinks }                                    from '../../conversation/ConversationParts.tsx';
 import { StateToneUtil }                                           from '../../utils/StateToneUtil.ts';
 import type { TimestampSlices }                                    from '../../utils/TimeUtil.ts';
@@ -70,7 +71,7 @@ function Reconciliation({ slotMeter, joblessTicketIds }: { readonly slotMeter: S
     sentences.push(
       <span key="jobless">
         <strong className="agents-figure">{joblessTicketIds.length}</strong>
-        {joblessTicketIds.length === 1 ? ' ticket in progress has no Hephaestus job: ' : ' tickets in progress have no Hephaestus job: '}
+        {CountTextUtil.agreeingPhrase(joblessTicketIds.length, ' ticket in progress has no Hephaestus job: ', ' tickets in progress have no Hephaestus job: ')}
         <TicketLinks ticketIds={joblessTicketIds} />
       </span>
     );

@@ -11,6 +11,7 @@ import type { BoardAgentBillingOptionDocument, BoardAgentDocument } from '../../
 import type { BoardCommandDocument }                                from '../../../../@types/board/BoardCommandDocument.ts';
 import type { BoardDocument }                                       from '../../../../@types/board/BoardDocument.ts';
 import type { BoardBillingDocument, BoardSetupRecordDocument }      from '../../../../@types/board/BoardPipelineDocuments.ts';
+import { CountTextUtil }                                            from '../../../../shared/utils/CountTextUtil.ts';
 import type { PanelStatus }                                         from '../PipelinePanel.tsx';
 import { AgentChoiceModel }                                         from '../agent/AgentChoiceModel.ts';
 import { NOT_LAUNCHED_PANEL_STATUS, type AgentSessionState }        from '../agent-panel/AgentSessionModel.ts';
@@ -145,7 +146,7 @@ function pendingTicketCountOf(tickets: readonly { readonly status: string }[]): 
 
 function waitingTicketsTextOf(pendingTicketCount: number): string {
   if (pendingTicketCount === 0) return 'No ticket waits for a pipeline';
-  return pendingTicketCount === 1 ? '1 ticket waits for a pipeline' : `${pendingTicketCount} tickets wait for a pipeline`;
+  return CountTextUtil.countedPhrase(pendingTicketCount, 'ticket waits for a pipeline', 'tickets wait for a pipeline');
 }
 
 /** What the meter reads: every effort in order, and the pipeline agent's default pair, both served by Hephaestus. */

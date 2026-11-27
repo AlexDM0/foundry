@@ -1,4 +1,5 @@
 /** `↦ N` wherever a ticket shows: how many open tickets wait on it, directly or further down the chain, and the title that says so. */
+import { CountTextUtil }        from '../../shared/utils/CountTextUtil.ts';
 import type { DependencyGraph } from '../@types/DependencyGraph.ts';
 
 type HeldGraph = Pick<DependencyGraph, 'heldOfNode'>;
@@ -9,7 +10,7 @@ function heldCountOf(ticketId: string, graph: HeldGraph): number {
 }
 
 function heldTitleOf(heldCount: number): string {
-  return `${heldCount} ${heldCount === 1 ? 'ticket waits' : 'tickets wait'} on this one, directly or further down the chain`;
+  return `${CountTextUtil.countedPhrase(heldCount, 'ticket waits', 'tickets wait')} on this one, directly or further down the chain`;
 }
 
 export const HeldCountUtil = Object.freeze({ heldCountOf, heldTitleOf });

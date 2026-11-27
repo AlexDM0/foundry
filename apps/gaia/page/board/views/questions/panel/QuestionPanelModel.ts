@@ -4,22 +4,21 @@
  * queue after it, and its background: why it was asked, its first ticket with the Wanted and Brief excerpts and the Acceptance items as
  * text, the asking job's last tool calls and the earlier answers on that ticket. Stamps are sliced, never parsed; nothing reads the clock.
  */
-import type { BoardQuestionHistoryEntryDocument }          from '../../../../@types/board/BoardDecisionDocuments.ts';
-import type { BoardDocument }                              from '../../../../@types/board/BoardDocument.ts';
-import type { BoardAcceptanceItemDocument }                from '../../../../@types/board/BoardTicketDocuments.ts';
-import type { BoardDisplayState }                          from '../../../../@types/board/BoardVocabulary.ts';
-import type { BoardTranscriptEntryDocument }               from '../../../../@types/board/ConversationDocument.ts';
-import type { EpicMark }                                   from '../../../chips/EpicChipUtil.ts';
-import type { ChatTurn }                                   from '../../../conversation/ChatThread.tsx';
-import type { ChatThreadItem }                             from '../../../conversation/ChatThreadModel.ts';
-import { ChatTurnWordingUtil }                             from '../../../conversation/ChatTurnWordingUtil.ts';
-import { DecisionAnswerUtil }                              from '../../../conversation/DecisionAnswerUtil.ts';
-import { OptionConsequencesUtil, type OptionConsequences } from '../../../conversation/OptionConsequencesUtil.ts';
-import { DependencyGraphUtil }                             from '../../../utils/DependencyGraphUtil.ts';
-import { HeldCountUtil }                                   from '../../../utils/HeldCountUtil.ts';
-import { JobLiveFactsUtil }                                from '../../../utils/JobLiveFactsUtil.ts';
-import { TimeUtil, type TimestampSlices }                  from '../../../utils/TimeUtil.ts';
-import type { OpenDecision }                               from '../QuestionsModel.ts';
+import type { BoardQuestionHistoryEntryDocument }        from '../../../../@types/board/BoardDecisionDocuments.ts';
+import type { BoardDocument }                            from '../../../../@types/board/BoardDocument.ts';
+import type { BoardAcceptanceItemDocument }              from '../../../../@types/board/BoardTicketDocuments.ts';
+import type { BoardDisplayState }                        from '../../../../@types/board/BoardVocabulary.ts';
+import type { BoardTranscriptEntryDocument }             from '../../../../@types/board/ConversationDocument.ts';
+import type { EpicMark }                                 from '../../../chips/EpicChipUtil.ts';
+import type { ChatTurn }                                 from '../../../conversation/ChatThread.tsx';
+import type { ChatThreadItem }                           from '../../../conversation/ChatThreadModel.ts';
+import { ChatTurnWordingUtil }                           from '../../../conversation/ChatTurnWordingUtil.ts';
+import { DecisionAnswerUtil, type DecisionQuestionView } from '../../../conversation/DecisionAnswerUtil.ts';
+import { DependencyGraphUtil }                           from '../../../utils/DependencyGraphUtil.ts';
+import { HeldCountUtil }                                 from '../../../utils/HeldCountUtil.ts';
+import { JobLiveFactsUtil }                              from '../../../utils/JobLiveFactsUtil.ts';
+import { TimeUtil, type TimestampSlices }                from '../../../utils/TimeUtil.ts';
+import type { OpenDecision }                             from '../QuestionsModel.ts';
 
 /** An open decision of the question queue, in the answering order the forge serves, escalated where it says. */
 export type QueuedDecision = OpenDecision;
@@ -74,22 +73,9 @@ export interface QuestionPanelHead {
   readonly escalated:     boolean;
 }
 
-export interface QuestionOptionModel {
-  readonly letter:        string;
-  /** The label as asked; `isRecommended` carries the agent's recommendation as a mark beside it. */
-  readonly label:         string;
-  readonly isRecommended: boolean;
-  /** `null` for an option asked with an empty description. */
-  readonly description:   string | null;
-  /** `null` when the agent noted no consequence for the option. */
-  readonly consequences:  OptionConsequences | null;
-}
-
-export interface QuestionModel {
-  readonly text:        string;
-  readonly header:      string;
-  readonly multiSelect: boolean;
-  readonly options:     readonly QuestionOptionModel[];
+export interface QuestionModel extends DecisionQuestionView {
+  readonly text:   string;
+  readonly header: string;
 }
 
 
@@ -197,13 +183,7 @@ function questionModelOf(question: DecisionDocument['questions'][number]): Quest
     text:        question.question,
     header:      question.header,
     multiSelect: question.multiSelect,
-    options:     question.options.map((option, optionIndex) => ({
-      letter:        DecisionAnswerUtil.optionLetterOf(optionIndex),
-      label:         option.label,
-      isRecommended: option.recommended,
-      description:   option.description === '' ? null : option.description,
-      consequences:  OptionConsequencesUtil.consequencesOf(option),
-    })),
+    options:     DecisionAnswerUtil.optionViewsOf(question),
   };
 }
 

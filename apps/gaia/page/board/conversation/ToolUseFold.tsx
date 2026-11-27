@@ -3,12 +3,12 @@
  * its result. A running call ticks its elapsed time on the board clock. User's open or close outlasts every later entry of the turn and
  * its end; until User chooses, the fold follows the caller.
  */
-import { useEffect, useState } from 'react';
-import { StateDot }            from '../../lib/design-system/DesignSystemInterface.ts';
+import { useState } from 'react';
+import { StateDot } from '../../lib/design-system/DesignSystemInterface.ts';
 
-import { useBoardClock }   from '../shared/BoardClock.ts';
-import { ElapsedTimeUtil } from '../utils/ElapsedTimeUtil.ts';
-import { StateToneUtil }   from '../utils/StateToneUtil.ts';
+import { useBoardClock, useTickingNow } from '../shared/BoardClock.ts';
+import { ElapsedTimeUtil }              from '../utils/ElapsedTimeUtil.ts';
+import { StateToneUtil }                from '../utils/StateToneUtil.ts';
 
 export type ToolCallOutcome = 'ok' | 'error' | 'running';
 
@@ -39,8 +39,7 @@ const RUNNING_CALL_STATE = 'in-progress';
 
 function RunningCallResult({ startedAt }: { readonly startedAt: string | null }) {
   const clock = useBoardClock();
-  const [now, setNow] = useState(() => clock.now());
-  useEffect(() => clock.everySecond(() => setNow(clock.now())), [clock]);
+  const now = useTickingNow(clock, true);
   const elapsedText = ElapsedTimeUtil.elapsedSinceText(startedAt, now);
   return (
     <span className="board-tool-call-result" data-state={RUNNING_CALL_STATE} data-state-tone={StateToneUtil.toneOf(RUNNING_CALL_STATE)}>

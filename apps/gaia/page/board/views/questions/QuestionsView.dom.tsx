@@ -139,7 +139,7 @@ describe('the Questions inbox', () => {
     expect(within(openQuestions).getAllByRole('listitem').map((item) => item.getAttribute('aria-label'))).toEqual(['Question E3', 'Question E2']);
   });
 
-  test('answers with decision-answer: an option letter, or free text', async () => {
+  test('answers with decision-answer: an option letter, or free text, which typing alone chooses', async () => {
     const controls = fakeControls();
     controls.render(inBoard(<QuestionsView board={BOARD} notifier={notifierSpy()} />));
     const card = screen.getByRole('listitem', { name: 'Question E2' });
@@ -147,7 +147,10 @@ describe('the Questions inbox', () => {
     expect(answer.disabled).toBe(true);
     fireEvent.click(within(card).getByLabelText('b. Memory'));
     await clickSettled(answer);
-    fireEvent.change(within(card).getByLabelText('Free-text answer to E2'), { target: { value: 'Disk, but bounded' } });
+    const ownWords = within(card).getByRole('textbox', { name: 'Your answer in your own words' });
+    fireEvent.change(ownWords, { target: { value: 'Disk, but bounded' } });
+    expect(within(card).getByRole<HTMLInputElement>('radio', { name: 'Or answer in your own words' }).checked).toBe(true);
+    expect(within(card).getByRole<HTMLInputElement>('radio', { name: 'b. Memory' }).checked).toBe(false);
     await clickSettled(answer);
     expect(controls.sent).toEqual([
       {

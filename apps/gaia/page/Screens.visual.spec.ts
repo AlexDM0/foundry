@@ -574,7 +574,7 @@ const TICKET_DOCUMENT_SCREEN_STATES: Readonly<Record<number, readonly string[]>>
     'E7 · § 3 Behaviour · line 16',
     'Does this ticket add the saved theme choice?',
     'The answer goes on the ticket and to the agent.',
-    'Answer A',
+    'Or answer in your own words',
     'You answered Keep their colours, as A4 says',
     '✓ E8',
     'Waiting on your 1 answer · reads v4',

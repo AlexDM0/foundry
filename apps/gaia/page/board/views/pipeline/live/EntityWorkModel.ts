@@ -11,6 +11,7 @@ import type { BoardAppliedPipelineDocument, BoardPipelineEntityDocument } from '
 import type { BoardTicketStageFactsDocument }                             from '../../../../@types/board/BoardTicketDocuments.ts';
 import type { BoardDisplayState }                                         from '../../../../@types/board/BoardVocabulary.ts';
 import type { BoardRoute }                                                from '../../../../shared/BoardRouter.ts';
+import { CountTextUtil }                                                  from '../../../../shared/utils/CountTextUtil.ts';
 import { PipelinePhaseModel }                                             from '../flow/PipelinePhaseModel.ts';
 import { FlowActivityPanelModel, type OccupantChipView }                  from './FlowActivityPanelModel.ts';
 
@@ -70,10 +71,6 @@ const NO_ENTITY_GROUP_KEY = 'no-entity';
 /** Where a chip with no detail of its own would lead: the board's first tab, as no detail opens. */
 const DETAIL_FALLBACK_ROUTE: BoardRoute = Object.freeze({ tab: 'kanban', item: null });
 
-function countText(count: number, singular: string, plural: string): string {
-  return `${count} ${count === 1 ? singular : plural}`;
-}
-
 /** Every ticket the page facts name; one the board serves no ticket for counts as closed, as nothing more can be told of it. */
 function ticketsOf(facts: Pick<EntityWorkFacts, 'page'>): readonly EntityWorkTicket[] {
   const ticketById = new Map(facts.page.tickets.map((ticket) => [ticket.id, ticket]));
@@ -129,8 +126,8 @@ function railActivityTextOf(entityKey: string, facts: Pick<EntityWorkFacts, 'pag
   const ownCount = openTickets.filter((ticket) => ticket.entity === entityKey && ticketIsOnAPhase(ticket) && packageStageOf(ticket) === null).length;
   const crossingCount = openTickets.filter((ticket) => packageStageOf(ticket)?.packageEntity === entityKey).length;
   const parts = [
-    ...(ownCount === 0 ? [] : [countText(ownCount, 'ticket', 'tickets')]),
-    ...(crossingCount === 0 ? [] : [countText(crossingCount, 'crossing', 'crossings')]),
+    ...(ownCount === 0 ? [] : [CountTextUtil.countedPhrase(ownCount, 'ticket', 'tickets')]),
+    ...(crossingCount === 0 ? [] : [CountTextUtil.countedPhrase(crossingCount, 'crossing', 'crossings')]),
   ];
   return parts.length === 0 ? 'No tickets' : parts.join(' · ');
 }
@@ -138,7 +135,7 @@ function railActivityTextOf(entityKey: string, facts: Pick<EntityWorkFacts, 'pag
 /** "2 of 6 jobs · 1 merging, 2 waiting": the board's jobs in flight against its limit, then the merge train; null without a limit. */
 function forgeRailActivityTextOf(facts: Pick<EntityWorkFacts, 'concurrency' | 'pipeline'>): string {
   const { concurrency } = facts;
-  const jobsText = `${String(concurrency.agentsInFlight)} of ${countText(concurrency.limit, 'job', 'jobs')}`;
+  const jobsText = `${String(concurrency.agentsInFlight)} of ${CountTextUtil.countedPhrase(concurrency.limit, 'job', 'jobs')}`;
   const { flow } = facts.pipeline;
   if (flow === null) return jobsText;
   const trainNodeIds = new Set(PipelinePhaseModel.trainNodeIdsOf(flow));
@@ -233,7 +230,7 @@ function concurrencyRowsOf(facts: EntityWorkFacts): EntityConcurrencyRowView[] {
     return {
       key:            entityKey,
       entityKey,
-      capText:        entity.concurrency === null ? 'Board limit' : countText(entity.concurrency, 'job', 'jobs'),
+      capText:        entity.concurrency === null ? 'Board limit' : CountTextUtil.countedPhrase(entity.concurrency, 'job', 'jobs'),
       runningText:    crossingHomes.length === 0 ? String(runningJobs.length) : `${String(runningJobs.length)} · crossing from ${crossingHomes.join(', ')}`,
       atCap:          entity.concurrency !== null && runningJobs.length >= entity.concurrency,
       waitingTickets: FlowActivityPanelModel.inFlightChipsOf(waitingTicketIds),

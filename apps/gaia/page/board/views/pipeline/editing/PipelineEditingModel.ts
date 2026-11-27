@@ -7,7 +7,7 @@
 import { PAGE_CONTRACT_VERSIONS }                            from '../../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardCommandDocument }                         from '../../../../@types/board/BoardCommandDocument.ts';
 import type { BoardPipelineDefinitionDocument }              from '../../../../@types/board/BoardPipelineDocuments.ts';
-import { ChatTurnWordingUtil }                               from '../../../conversation/ChatTurnWordingUtil.ts';
+import { CountTextUtil }                                     from '../../../../shared/utils/CountTextUtil.ts';
 import type { PanelStatus }                                  from '../PipelinePanel.tsx';
 import type { FlowPageWords, PipelineViewFacts }             from '../PipelineViewModel.ts';
 import { NOT_LAUNCHED_PANEL_STATUS, type AgentSessionState } from '../agent-panel/AgentSessionModel.ts';
@@ -17,13 +17,13 @@ import { PipelineLevelModel, type PipelineLevel }            from '../entities/P
 
 /** "4 changes · version 2 → 3"; only the count for a pipeline that no Apply numbered. */
 function footerSummaryOf(changeCount: number, appliedRevision: number | null): string {
-  const countText = ChatTurnWordingUtil.countTextOf(changeCount, 'change', 'changes');
+  const countText = CountTextUtil.countedPhrase(changeCount, 'change', 'changes');
   return appliedRevision === null ? countText : `${countText} · version ${appliedRevision} → ${appliedRevision + 1}`;
 }
 
 /** "4 changes in 3 levels · version 2 → 3": the footer of a draft over entities. */
 function levelsFooterSummaryOf(changeCount: number, levelCount: number, appliedRevision: number | null): string {
-  const levelsText = `${ChatTurnWordingUtil.countTextOf(changeCount, 'change', 'changes')} in ${ChatTurnWordingUtil.countTextOf(levelCount, 'level', 'levels')}`;
+  const levelsText = `${CountTextUtil.countedPhrase(changeCount, 'change', 'changes')} in ${CountTextUtil.countedPhrase(levelCount, 'level', 'levels')}`;
   return appliedRevision === null ? levelsText : `${levelsText} · version ${appliedRevision} → ${appliedRevision + 1}`;
 }
 
@@ -39,7 +39,7 @@ function checkCoverageTextOf(groups: readonly ChangeGroupView[]): string | null 
   const names = groups.filter((group) => group.level.kind === 'entity').map((group) => group.name);
   if (names.length === 0) return null;
   const listed = names.length === 1 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names.at(-1) ?? ''}`;
-  return `The check covers ${listed}: the ${names.length === 1 ? 'entity' : 'entities'} this draft touches.`;
+  return `The check covers ${listed}: the ${CountTextUtil.agreeingPhrase(names.length, 'entity', 'entities')} this draft touches.`;
 }
 
 /**

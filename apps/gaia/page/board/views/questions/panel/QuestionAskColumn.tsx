@@ -1,30 +1,22 @@
 /**
  * The panel's left column: the orange decision card, where Flint waits beside "Your decision" and the question (or the count of questions
  * on a decision of several), its slot left out while the panel hides behind the detail panel, which holds the page's one slot; then each
- * question's options as cards, the agent's recommendation a pill beside its option, with what each touches, trades off and does to the
- * Acceptance when the agent noted it; User's own words on a decision of one question; and the answer row naming the command it posts. The
- * choices start empty for every decision, since the column is keyed by it.
+ * question's options as cards (`DecisionOptionList`), User's own words an option of their own on a decision of one question; and the
+ * answer row naming the command it posts. The choices start empty for every decision, since the column is keyed by it.
  */
 
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
-import { PAGE_CONTRACT_VERSIONS }     from '../../../../../src/shared/constants/PageContractVersions.ts';
-import type { BoardDecisionDocument } from '../../../../@types/board/BoardDecisionDocuments.ts';
-import {
-  Card,
-  ChoiceInput,
-  ChoiceMark,
-  ChoiceOption,
-  Text,
-  View
-} from '../../../../lib/design-system/DesignSystemInterface.ts';
-import { DecisionAnswerUtil, type QuestionSelections } from '../../../conversation/DecisionAnswerUtil.ts';
-import { OptionConsequenceFacts }                      from '../../../conversation/OptionConsequenceFacts.tsx';
-import { FLINT_SLOT_CUES }                             from '../../../flint/FlintSlotCues.ts';
-import { FlintSlotHabitat }                            from '../../../flint/FlintSlotHabitat.tsx';
-import { FLINT_SLOT_HABITATS }                         from '../../../flint/FlintSlotHabitats.ts';
-import { CommandButton }                               from '../../../shared/commands/CommandButton.tsx';
-import type { QuestionModel, QuestionPanelViewModel }  from './QuestionPanelModel.ts';
+import type { BoardDecisionDocument }                                               from '../../../../@types/board/BoardDecisionDocuments.ts';
+import { Card, Text, View }                                                         from '../../../../lib/design-system/DesignSystemInterface.ts';
+import { DecisionAnswerUtil }                                                       from '../../../conversation/DecisionAnswerUtil.ts';
+import { DecisionOptionList, type DecisionFreeTextChoice, type DecisionOptionLook } from '../../../conversation/DecisionOptionList.tsx';
+import { useDecisionAnswer }                                                        from '../../../conversation/UseDecisionAnswer.ts';
+import { FLINT_SLOT_CUES }                                                          from '../../../flint/FlintSlotCues.ts';
+import { FlintSlotHabitat }                                                         from '../../../flint/FlintSlotHabitat.tsx';
+import { FLINT_SLOT_HABITATS }                                                      from '../../../flint/FlintSlotHabitats.ts';
+import { CommandButton }                                                            from '../../../shared/commands/CommandButton.tsx';
+import type { QuestionModel, QuestionPanelViewModel }                               from './QuestionPanelModel.ts';
 
 export interface QuestionAskColumnProps {
   readonly decision:          BoardDecisionDocument;
@@ -34,6 +26,8 @@ export interface QuestionAskColumnProps {
 }
 
 const YOUR_DECISION = 'Your decision';
+
+const PANEL_LOOK: DecisionOptionLook = { variant: 'card', tone: 'question', size: 'large' };
 
 function questionTextIdOf(decisionId: string, questionIndex: number): string {
   return `${decisionId}-question-${questionIndex}`;
@@ -79,10 +73,11 @@ interface QuestionFieldProps {
   readonly showsQuestion: boolean;
   readonly chosen:        readonly number[];
   readonly onChoose:      (optionIndex: number) => void;
+  readonly freeText:      DecisionFreeTextChoice | null;
 }
 
 function QuestionField({
-  decisionId, question, questionIndex, showsQuestion, chosen, onChoose
+  decisionId, question, questionIndex, showsQuestion, chosen, onChoose, freeText
 }: QuestionFieldProps) {
   const textId = questionTextIdOf(decisionId, questionIndex);
   const heading: ReactNode = showsQuestion
@@ -97,42 +92,27 @@ function QuestionField({
     <div className="board-question-panel-question">
       {heading}
       <fieldset className="board-question-panel-options" aria-labelledby={textId}>
-        {question.options.map((option, optionIndex) => {
-          const isChosen = chosen.includes(optionIndex);
-          return (
-            <ChoiceOption
-              key={option.label}
-              letter={`${option.letter}.`}
-              label={option.label}
-              {...(option.description === null ? {} : { description: option.description })}
-              chosen={isChosen}
-              {...(option.isRecommended ? { marks: <ChoiceMark mark="recommended" text="Recommended" /> } : {})}
-              {...(option.consequences === null ? {} : { facts: <OptionConsequenceFacts consequences={option.consequences} /> })}
-              variant="card"
-              tone="question"
-              size="large"
-              input={(
-                <ChoiceInput
-                  type={question.multiSelect ? 'checkbox' : 'radio'}
-                  name={`${decisionId}-panel-${questionIndex}`}
-                  checked={isChosen}
-                  accessibleName={`${option.letter}. ${option.label}`}
-                  onChange={() => onChoose(optionIndex)}
-                />
-              )}
-            />
-          );
-        })}
+        <DecisionOptionList
+          groupName={`${decisionId}-panel-${questionIndex}`}
+          question={question}
+          chosen={chosen}
+          onChoose={onChoose}
+          freeText={freeText}
+          look={PANEL_LOOK}
+          shownLetterOf={(letter) => `${letter}.`}
+        />
       </fieldset>
     </div>
   );
 }
 
 export function QuestionAskColumn({ decision, model, holdsTheFlintSlot }: QuestionAskColumnProps) {
-  const [selections, setSelections] = useState<QuestionSelections>([]);
-  const [ownWords, setOwnWords] = useState('');
-  const answer = DecisionAnswerUtil.answerOf(decision, selections, model.ownWordsAllowed ? ownWords : '');
-  const ownWordsId = `${decision.id}-own-words`;
+  const decisionAnswer = useDecisionAnswer(model.questions);
+  const freeText: DecisionFreeTextChoice | null = model.ownWordsAllowed
+    ? {
+      text: decisionAnswer.freeText, isChosen: decisionAnswer.freeTextIsChosen, onToggle: decisionAnswer.toggleFreeText, onChange: decisionAnswer.changeFreeText
+    }
+    : null;
   return (
     <section className="board-question-panel-ask" aria-label="The question">
       <DecisionHead model={model} holdsTheFlintSlot={holdsTheFlintSlot} />
@@ -143,18 +123,11 @@ export function QuestionAskColumn({ decision, model, holdsTheFlintSlot }: Questi
           question={question}
           questionIndex={questionIndex}
           showsQuestion={model.questions.length > 1}
-          chosen={selections[questionIndex] ?? []}
-          onChoose={(optionIndex) => setSelections(DecisionAnswerUtil.selectionsAfter(selections, questionIndex, optionIndex, question.multiSelect))}
+          chosen={decisionAnswer.selections[questionIndex] ?? []}
+          onChoose={(optionIndex) => decisionAnswer.chooseOption(questionIndex, optionIndex)}
+          freeText={freeText}
         />
       ))}
-      {model.ownWordsAllowed
-        ? (
-          <div className="board-question-panel-own-words">
-            <label htmlFor={ownWordsId}>Or answer in User&apos;s own words</label>
-            <textarea id={ownWordsId} className="board-textarea" value={ownWords} onChange={(event) => setOwnWords(event.target.value)} />
-          </div>
-        )
-        : null}
       <div className="board-question-panel-answer-row">
         <span>
           {'Posts '}
@@ -164,9 +137,7 @@ export function QuestionAskColumn({ decision, model, holdsTheFlintSlot }: Questi
         <CommandButton
           label={`Answer ${decision.id}`}
           primary
-          command={answer === null ? null : {
-            boardCommandVersion: PAGE_CONTRACT_VERSIONS.gaiaBoardCommand, kind: 'decision-answer', decisionId: decision.id, answer
-          }}
+          command={DecisionAnswerUtil.commandOf(decision.id, decisionAnswer.answer)}
         />
       </div>
     </section>

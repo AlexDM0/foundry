@@ -12,6 +12,7 @@ import type {
   BoardPipelineNodeKind,
   BoardTicketWritingRoute
 } from '../../../../@types/board/BoardVocabulary.ts';
+import { CountTextUtil }                                        from '../../../../shared/utils/CountTextUtil.ts';
 import { PipelineFlowModel, type FlowSlotPlace, type StepKind } from './PipelineFlowModel.ts';
 
 export type PipelinePhase = 'ticket' | 'build' | 'review' | 'merge';
@@ -135,10 +136,6 @@ function ticketPurposeOf(flow: Pick<BoardPipelineFlowDocument, 'nodes'>): string
   return route === 'spec-then-plan' && !reviewed ? UNREVIEWED_SPEC_THEN_PLAN_PURPOSE : TICKET_PURPOSES[route];
 }
 
-function countText(count: number, singular: string): string {
-  return `${count} ${singular}${count === 1 ? '' : 's'}`;
-}
-
 /** The phase a node opens, walking the facts' order; null for a node that stays in the phase before it, as a ticket's writing steps do. */
 function phaseOpenedBy(node: BoardFlowNodeDocument, current: PipelinePhase): PipelinePhase | null {
   if (node.nodeKind === 'builder' && current === 'ticket') return 'build';
@@ -223,9 +220,10 @@ function subTextOf(flow: BoardPipelineFlowDocument, phase: PipelinePhase, stage:
   const stepCount = runningStepCountOf(flow, phase);
   if (stepCount === 0) return phase === 'review' ? 'No review' : 'No step';
   const draftCount = occupantsOfPhase(flow, phase).filter((occupant) => occupant.occupantKind === 'draft').length;
-  if (stage === 'live' && phase === 'ticket' && draftCount > 0) return `${countText(stepCount, 'step')} · ${countText(draftCount, 'draft')} in work`;
+  const { countedPhrase } = CountTextUtil;
+  if (stage === 'live' && phase === 'ticket' && draftCount > 0) return `${countedPhrase(stepCount, 'step', 'steps')} · ${countedPhrase(draftCount, 'draft', 'drafts')} in work`;
   const gateCount = gateCountOf(flow, phase);
-  return `${countText(stepCount, 'step')} · ${gateCount === 0 ? 'no gates' : countText(gateCount, 'gate')}`;
+  return `${countedPhrase(stepCount, 'step', 'steps')} · ${gateCount === 0 ? 'no gates' : countedPhrase(gateCount, 'gate', 'gates')}`;
 }
 
 /** The phase's steps and gate rows that differ from the applied pipeline; a gates step counts by its rows. */
@@ -249,11 +247,11 @@ function pillOf(flow: BoardPipelineFlowDocument, phase: PipelinePhase, context: 
   if (questionCount > 0) return { text: PipelineFlowModel.questionCountTextOf(questionCount), tone: 'warn' };
   if (context.stage === 'live') {
     const ticketCount = occupantsOfPhase(flow, phase).length;
-    return ticketCount === 0 ? null : { text: countText(ticketCount, 'ticket'), tone: 'neutral' };
+    return ticketCount === 0 ? null : { text: CountTextUtil.countedPhrase(ticketCount, 'ticket', 'tickets'), tone: 'neutral' };
   }
   if (context.stage === 'proposal' || context.minimal) return changeWordPillOf(flow, phase);
   const changeCount = changeCountOf(flow, phase);
-  return changeCount === 0 ? null : { text: countText(changeCount, 'change'), tone: 'warn' };
+  return changeCount === 0 ? null : { text: CountTextUtil.countedPhrase(changeCount, 'change', 'changes'), tone: 'warn' };
 }
 
 function tabViewsOf(flow: BoardPipelineFlowDocument, context: PhaseTabContext): PhaseTabView[] {

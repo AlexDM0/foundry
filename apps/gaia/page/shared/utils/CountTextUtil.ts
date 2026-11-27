@@ -6,9 +6,14 @@ const ONE_THOUSAND = 1_000;
 const ONE_MILLION = 1_000_000;
 const SIGNIFICANT_DIGITS_OF_A_SHORT_COUNT = 3;
 
+/** `waits`, `wait`: the phrase alone that agrees with the count, for wording that does not print the count right before it. */
+function agreeingPhrase(count: number, singularPhrase: string, pluralPhrase: string): string {
+  return count === 1 ? singularPhrase : pluralPhrase;
+}
+
 /** `1 agent runs`, `3 agents run`: the count, then the phrase that agrees with it. */
 function countedPhrase(count: number, singularPhrase: string, pluralPhrase: string): string {
-  return `${count} ${count === 1 ? singularPhrase : pluralPhrase}`;
+  return `${count} ${agreeingPhrase(count, singularPhrase, pluralPhrase)}`;
 }
 
 function roundedToShortCountDigitsOf(value: number): number {
@@ -24,6 +29,7 @@ function shortCountTextOf(count: number): string {
 }
 
 export const CountTextUtil = {
+  agreeingPhrase,
   countedPhrase,
   shortCountTextOf,
 } as const;

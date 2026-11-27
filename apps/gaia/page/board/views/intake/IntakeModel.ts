@@ -10,6 +10,7 @@ import type { BoardTicketDocument }                                          fro
 import type { BoardDisplayState, BoardJobTurn }                              from '../../../@types/board/BoardVocabulary.ts';
 import type { BoardTranscriptEntryDocument, BoardTranscriptPictureDocument } from '../../../@types/board/ConversationDocument.ts';
 import type { TagProps }                                                     from '../../../lib/design-system/DesignSystemInterface.ts';
+import { CountTextUtil }                                                     from '../../../shared/utils/CountTextUtil.ts';
 import type { ChatTurn, UserChatTurn }                                       from '../../conversation/ChatThread.tsx';
 import { ChatThreadModelUtil, type ChatThreadItem }                          from '../../conversation/ChatThreadModel.ts';
 import { ChatTurnWordingUtil }                                               from '../../conversation/ChatTurnWordingUtil.ts';
@@ -116,13 +117,12 @@ function draftsOf(tickets: readonly BoardTicketDocument[]): BoardTicketDocument[
 }
 
 function sessionFactsOf(session: IntakeSession): IntakeSessionFacts {
-  const { countTextOf } = ChatTurnWordingUtil;
   const draftCount = draftsOf(session.drafts).length;
-  const filedText = session.drafts.length === 0 ? null : countTextOf(session.drafts.length, 'ticket filed', 'tickets filed');
+  const filedText = session.drafts.length === 0 ? null : CountTextUtil.countedPhrase(session.drafts.length, 'ticket filed', 'tickets filed');
   return {
     pill:        sessionPillOf(session),
     askTexts:    session.questions.map((decision) => `${decision.id} waits on User`),
-    ticketsText: session.ended ? filedText : (draftCount === 0 ? null : countTextOf(draftCount, 'draft', 'drafts')),
+    ticketsText: session.ended ? filedText : (draftCount === 0 ? null : CountTextUtil.countedPhrase(draftCount, 'draft', 'drafts')),
     resumeText:  session.closed ? 'a message resumes it' : null,
   };
 }
@@ -158,8 +158,7 @@ function closeIntakeCaptionOf(tickets: readonly BoardTicketDocument[]): string |
 
 /** "2 turns · 7 calls" after the job's link; an ended session has no calls to show. */
 function paneMetaOf(turnCount: number, calls: number | null): string {
-  const { countTextOf } = ChatTurnWordingUtil;
-  return [countTextOf(turnCount, 'turn', 'turns'), ...calls === null ? [] : [countTextOf(calls, 'call', 'calls')]].join(' · ');
+  return [CountTextUtil.countedPhrase(turnCount, 'turn', 'turns'), ...calls === null ? [] : [CountTextUtil.countedPhrase(calls, 'call', 'calls')]].join(' · ');
 }
 
 /** The product owner at work while the session is open; an ended session has no live turn. */
@@ -167,7 +166,7 @@ function productOwnerAtWorkOf(session: Pick<IntakeSession, 'state' | 'jobState' 
   if (session.jobState === null || session.calls === null) return null;
   return {
     pill:      sessionPillOf(session),
-    callsText: `${ChatTurnWordingUtil.countTextOf(session.calls, 'call', 'calls')} so far`,
+    callsText: `${CountTextUtil.countedPhrase(session.calls, 'call', 'calls')} so far`,
   };
 }
 
@@ -188,7 +187,7 @@ function decisionPositionOf(items: readonly ChatThreadItem[], openedAt: string):
 }
 
 function picturesSuffixOf(pictures: readonly BoardTranscriptPictureDocument[]): string | null {
-  return pictures.length === 0 ? null : ChatTurnWordingUtil.countTextOf(pictures.length, 'picture', 'pictures');
+  return pictures.length === 0 ? null : CountTextUtil.countedPhrase(pictures.length, 'picture', 'pictures');
 }
 
 function userTurnOf(key: string, at: string | null, text: string, pictures: readonly BoardTranscriptPictureDocument[], todayCalendarDate: string): IntakeUserTurn {

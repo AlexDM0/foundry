@@ -27,6 +27,7 @@ import type {
   BoardTicketWritingRoute
 } from '../../../../@types/board/BoardVocabulary.ts';
 import { BOARD_TICKET_WRITING_ROUTES } from '../../../../@types/board/BoardVocabulary.ts';
+import { CountTextUtil }               from '../../../../shared/utils/CountTextUtil.ts';
 import { GateCacheMarkModel }          from '../gates/GateCacheMarkModel.ts';
 
 /** What a step card names itself as: an agent's step, User's step, a phase's gates or a step that runs by itself. */
@@ -213,10 +214,6 @@ const SLOT_HEADINGS: Readonly<Record<FlowSlotPlace, string>> = Object.freeze({
 /** The review an add card adds: named as the default review step, with no re-review until one is added. */
 const DEFAULT_REVIEW_NAME = 'review';
 
-function countText(count: number, singular: string): string {
-  return `${count} ${singular}${count === 1 ? '' : 's'}`;
-}
-
 function kindOf(node: BoardFlowNodeDocument): StepKind {
   if (node.nodeKind === 'gates') return 'gates';
   if (HUMAN_STEP_KINDS.includes(node.nodeKind)) return 'you';
@@ -340,7 +337,7 @@ function questionOpenLabelOf(title: string): string {
 
 /** "1 question", "2 questions". */
 function questionCountTextOf(count: number): string {
-  return countText(count, 'question');
+  return CountTextUtil.countedPhrase(count, 'question', 'questions');
 }
 
 function changeOfMark(mark: BoardPipelineNodeMark): FlowChange | null {
@@ -356,7 +353,7 @@ function changeTextOf(node: BoardFlowNodeDocument, change: FlowChange | null): s
   if (change === 'new' && switchApprovalOf(node) !== null) return null;
   if (change === 'changed' && switchApprovalOf(node) !== null) return node.switchState === 'on' ? 'Off → on' : 'On → off';
   const changedGateCount = node.gateChips.filter((chip) => changeOfMark(chip.mark) !== null).length;
-  if (change === 'changed' && node.nodeKind === 'gates' && changedGateCount > 0) return countText(changedGateCount, 'change');
+  if (change === 'changed' && node.nodeKind === 'gates' && changedGateCount > 0) return CountTextUtil.countedPhrase(changedGateCount, 'change', 'changes');
   return CHANGE_WORDS[change];
 }
 

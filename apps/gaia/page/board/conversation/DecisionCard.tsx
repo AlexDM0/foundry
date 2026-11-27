@@ -1,21 +1,14 @@
 /**
  * One open decision with its questions and options exactly as asked, answered with `decision-answer`: one choice per question, several
- * when it is multi-select, or free text on a decision of one question. Shown as a card in the Questions inbox and docked in an Intake chat,
- * where the questions may stand side by side; the first answer wins, and a later one shows the forge's refusal beside the control. An
- * option shows what it touches, trades off and does to the Acceptance once the asking agent noted it.
+ * when it is multi-select, or User's own words, an option of their own, on a decision of one question (`DecisionOptionList`). Shown as a
+ * card in the Questions inbox and docked in an Intake chat, where the questions may stand side by side; the first answer wins, and a later
+ * one shows the forge's refusal beside the control.
  */
-import { useState, type ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 
-import { PAGE_CONTRACT_VERSIONS }     from '../../../src/shared/constants/PageContractVersions.ts';
-import type { BoardDecisionDocument } from '../../@types/board/BoardDecisionDocuments.ts';
-import {
-  ChoiceInput,
-  ChoiceMark,
-  ChoiceOption,
-  type ListItemPresence,
-  presenceAttributeOf
-} from '../../lib/design-system/DesignSystemInterface.ts';
-import { CommandButton } from '../shared/commands/CommandButton.tsx';
+import type { BoardDecisionDocument }                 from '../../@types/board/BoardDecisionDocuments.ts';
+import { presenceAttributeOf, type ListItemPresence } from '../../lib/design-system/DesignSystemInterface.ts';
+import { CommandButton }                              from '../shared/commands/CommandButton.tsx';
 import {
   CardHead,
   JobLink,
@@ -23,9 +16,9 @@ import {
   TicketLinks,
   type CardPill
 } from './ConversationParts.tsx';
-import { DecisionAnswerUtil, type QuestionSelections } from './DecisionAnswerUtil.ts';
-import { OptionConsequenceFacts }                      from './OptionConsequenceFacts.tsx';
-import { OptionConsequencesUtil }                      from './OptionConsequencesUtil.ts';
+import { DecisionAnswerUtil }                                                       from './DecisionAnswerUtil.ts';
+import { DecisionOptionList, type DecisionFreeTextChoice, type DecisionOptionLook } from './DecisionOptionList.tsx';
+import { useDecisionAnswer }                                                        from './UseDecisionAnswer.ts';
 
 export interface DecisionCardProps {
   readonly decision:        BoardDecisionDocument;
@@ -46,6 +39,8 @@ export interface DecisionCardProps {
 const OPEN_PILL: CardPill = { state: 'in-progress', label: 'open' };
 
 const OPEN_BESIDE_PILL: CardPill = { state: 'in-progress', label: 'open beside the board' };
+
+const ROW_LOOK: DecisionOptionLook = { variant: 'row' };
 
 interface DecisionFrameProps {
   readonly decision:     BoardDecisionDocument;
@@ -78,9 +73,13 @@ function DecisionFrame({
 export function DecisionCard({
   decision, escalated, placement = 'card', questionLayout = 'stack', besideAnswer = null, presence = 'settled', isOpenBeside = false
 }: DecisionCardProps) {
-  const [selections, setSelections] = useState<QuestionSelections>([]);
-  const [freeText, setFreeText] = useState('');
-  const answer = DecisionAnswerUtil.answerOf(decision, selections, freeText);
+  const questions = useMemo(() => DecisionAnswerUtil.questionViewsOf(decision), [decision]);
+  const decisionAnswer = useDecisionAnswer(questions);
+  const freeText: DecisionFreeTextChoice | null = questions.length === 1
+    ? {
+      text: decisionAnswer.freeText, isChosen: decisionAnswer.freeTextIsChosen, onToggle: decisionAnswer.toggleFreeText, onChange: decisionAnswer.changeFreeText
+    }
+    : null;
   const questionFields = decision.questions.map((question, questionIndex) => (
     <fieldset key={question.question} className="board-question">
       <legend className="board-draft-question-head">
@@ -89,32 +88,14 @@ export function DecisionCard({
         {question.multiSelect ? <span className="board-draft-mark" data-mark="multiple">multi-select</span> : null}
       </legend>
       <div className="board-draft-options">
-        {question.options.map((option, optionIndex) => {
-          const letter = DecisionAnswerUtil.optionLetterOf(optionIndex);
-          const chosen = (selections[questionIndex] ?? []).includes(optionIndex);
-          const consequences = OptionConsequencesUtil.consequencesOf(option);
-          return (
-            <ChoiceOption
-              key={option.label}
-              letter={letter}
-              label={option.label}
-              {...(option.description === '' ? {} : { description: option.description })}
-              chosen={chosen}
-              {...(option.recommended ? { marks: <ChoiceMark mark="recommended" text="Recommended" /> } : {})}
-              {...(consequences === null ? {} : { facts: <OptionConsequenceFacts consequences={consequences} /> })}
-              variant="row"
-              input={(
-                <ChoiceInput
-                  type={question.multiSelect ? 'checkbox' : 'radio'}
-                  name={`${decision.id}-${questionIndex}`}
-                  checked={chosen}
-                  accessibleName={`${letter}. ${option.label}`}
-                  onChange={() => setSelections(DecisionAnswerUtil.selectionsAfter(selections, questionIndex, optionIndex, question.multiSelect))}
-                />
-              )}
-            />
-          );
-        })}
+        <DecisionOptionList
+          groupName={`${decision.id}-${questionIndex}`}
+          question={questions[questionIndex] ?? { multiSelect: question.multiSelect, options: [] }}
+          chosen={decisionAnswer.selections[questionIndex] ?? []}
+          onChoose={(optionIndex) => decisionAnswer.chooseOption(questionIndex, optionIndex)}
+          freeText={freeText}
+          look={ROW_LOOK}
+        />
       </div>
     </fieldset>
   ));
@@ -130,21 +111,8 @@ export function DecisionCard({
       ]} />
       {decision.context === '' ? null : <p className="board-note">{decision.context}</p>}
       {questionLayout === 'columns' ? <div className="board-question-grid">{questionFields}</div> : questionFields}
-      {decision.questions.length === 1
-        ? (
-          <textarea
-            className="board-textarea"
-            aria-label={`Free-text answer to ${decision.id}`}
-            placeholder="Free-text answer"
-            value={freeText}
-            onChange={(event) => setFreeText(event.target.value)}
-          />
-        )
-        : null}
       <div className="board-card-actions">
-        <CommandButton label="Answer" command={answer === null ? null : {
-          boardCommandVersion: PAGE_CONTRACT_VERSIONS.gaiaBoardCommand, kind: 'decision-answer', decisionId: decision.id, answer
-        }} />
+        <CommandButton label="Answer" command={DecisionAnswerUtil.commandOf(decision.id, decisionAnswer.answer)} />
         {besideAnswer}
       </div>
     </DecisionFrame>

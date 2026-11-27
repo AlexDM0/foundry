@@ -5,6 +5,7 @@
  */
 import type { BoardEntityAssignmentDocument, BoardEntityAssignmentTicketDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import type { BoardRoute }                                                         from '../../../../shared/BoardRouter.ts';
+import { CountTextUtil }                                                           from '../../../../shared/utils/CountTextUtil.ts';
 import { DetailRoute }                                                             from '../../../shared/routing/DetailRoute.ts';
 
 /** Assigned; waiting while the product owner still runs; not assigned once it ended without one. */
@@ -78,7 +79,7 @@ function assignedCountOf(assignment: BoardEntityAssignmentDocument): number {
 
 /** "The product owner gives 6 tickets an entity". */
 function titleOf(ticketCount: number): string {
-  return `The product owner gives ${ticketCount === 1 ? '1 ticket' : `${ticketCount} tickets`} an entity`;
+  return `The product owner gives ${CountTextUtil.countedPhrase(ticketCount, 'ticket', 'tickets')} an entity`;
 }
 
 /** "4 of 6 assigned." */

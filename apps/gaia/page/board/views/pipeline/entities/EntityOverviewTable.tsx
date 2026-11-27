@@ -9,6 +9,7 @@ import {
   Tag,
   Text
 } from '../../../../lib/design-system/DesignSystemInterface.ts';
+import { CountTextUtil }                                      from '../../../../shared/utils/CountTextUtil.ts';
 import { EntityOverviewTableModel, type EntityOverviewFacts } from './EntityOverviewTableModel.ts';
 
 type EntityOverviewColumn = 'entity' | 'home' | 'gates' | 'constitution';
@@ -41,7 +42,7 @@ export function EntityOverviewTable({ facts, hrefOf }: EntityOverviewTableProps)
           <Text typeRole="small" subtle>{row.kindText}</Text>
           {row.openQuestionCount === 0
             ? null
-            : <Tag text={`${row.openQuestionCount} ${row.openQuestionCount === 1 ? 'question' : 'questions'}`} tone="warn" />}
+            : <Tag text={CountTextUtil.countedPhrase(row.openQuestionCount, 'question', 'questions')} tone="warn" />}
         </span>
       ),
       home:         <Text typeRole="small" mono muted>{row.homeText}</Text>,

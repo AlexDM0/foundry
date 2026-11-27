@@ -2,16 +2,10 @@
  * The endpoints of Gaia's relay of a forge's board, below `/api/` and its version: each names the forge by its tracker id, percent-decoded
  * once, and some an item of it, a job, a profile run, a picture, a crash log or a ticket, whose id must be one the forge's path template takes.
  */
-export type BoardRelayEndpointName =
-  | 'board'
-  | 'boardEvents'
-  | 'jobStream'
-  | 'profileStream'
-  | 'pictures'
-  | 'picture'
-  | 'commands'
-  | 'crashLog'
-  | 'ticketDocuments';
+import { GAIA_ENDPOINTS } from '../../../shared/constants/GaiaCompatibilityRegistry.ts';
+
+/** The relay's endpoints are the registry's endpoints of one forge, `forgeBoard` to `forgeTicketDocuments`. */
+export type BoardRelayEndpointName = Extract<keyof typeof GAIA_ENDPOINTS, `forge${string}`>;
 
 export interface BoardRelayEndpointValues {
   readonly trackerId: string;
@@ -19,17 +13,16 @@ export interface BoardRelayEndpointValues {
   readonly itemId:    string | null;
 }
 
-const BOARD_RELAY_ENDPOINT_PATTERNS: Readonly<Record<BoardRelayEndpointName, RegExp>> = {
-  board:           /^forges\/([^/]+)\/board$/,
-  boardEvents:     /^forges\/([^/]+)\/board\/events$/,
-  jobStream:       /^forges\/([^/]+)\/jobs\/([^/]+)\/stream$/,
-  profileStream:   /^forges\/([^/]+)\/profiles\/([^/]+)\/stream$/,
-  pictures:        /^forges\/([^/]+)\/pictures$/,
-  picture:         /^forges\/([^/]+)\/pictures\/([^/]+)$/,
-  commands:        /^forges\/([^/]+)\/commands$/,
-  crashLog:        /^forges\/([^/]+)\/crash-logs\/([^/]+)$/,
-  ticketDocuments: /^forges\/([^/]+)\/tickets\/([^/]+)\/documents$/,
-};
+const PLACEHOLDER = /<[^>]+>/g;
+const REGULAR_EXPRESSION_SPECIAL_CHARACTER = /[.*+?^${}()|[\]\\]/g;
+
+/** The registry's path, such as `forges/<trackerId>/jobs/<jobId>/stream`, with each placeholder taking one segment. */
+function endpointPatternOf(endpointPath: string): RegExp {
+  const literalParts = endpointPath.split(PLACEHOLDER).map((part) => part.replace(REGULAR_EXPRESSION_SPECIAL_CHARACTER, '\\$&'));
+  return new RegExp(`^${literalParts.join('([^/]+)')}$`);
+}
+
+const RELAY_ENDPOINT_PATTERNS = new Map(Object.entries(GAIA_ENDPOINTS).map(([endpointName, endpointPath]) => [endpointName, endpointPatternOf(endpointPath)]));
 
 /** A segment a forge's path template takes, and never `.` or `..`, which would move the forge's path up a folder. */
 const ITEM_ID = /^[A-Za-z0-9_-][A-Za-z0-9_.-]*$/;
@@ -45,7 +38,7 @@ function decodedOf(encoded: string): string | null {
 
 /** The tracker id and item an endpoint names, or `null` for an endpoint that is not this one or names no forge or item Gaia may ask for. */
 function valuesOf(endpointName: BoardRelayEndpointName, endpoint: string): BoardRelayEndpointValues | null {
-  const match = BOARD_RELAY_ENDPOINT_PATTERNS[endpointName].exec(endpoint);
+  const match = RELAY_ENDPOINT_PATTERNS.get(endpointName)?.exec(endpoint) ?? null;
   const encodedTrackerId = match?.[1];
   if (match === null || encodedTrackerId === undefined) return null;
   const trackerId = decodedOf(encodedTrackerId);

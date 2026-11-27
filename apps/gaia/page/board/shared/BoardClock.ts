@@ -38,9 +38,17 @@ export function useBoardClock(): BoardClock {
   return useContext(BoardClockContext);
 }
 
-/** The clock's moment, moved on each second only while `ticks` holds, such as while the stream is live and something shows a time. */
-export function useTickingNow(clock: BoardClock, ticks: boolean): Date {
+/**
+ * The clock's moment, moved on each second only while `ticks` holds, such as while the stream is live and something shows a time, and read
+ * again whenever `rereadsOnChangeOf` changes, such as on each new board.
+ */
+export function useTickingNow(clock: BoardClock, ticks: boolean, rereadsOnChangeOf?: unknown): Date {
   const [now, setNow] = useState(() => clock.now());
+  const [readFor, setReadFor] = useState(rereadsOnChangeOf);
+  if (rereadsOnChangeOf !== readFor) {
+    setReadFor(rereadsOnChangeOf);
+    setNow(clock.now());
+  }
   useEffect(() => (ticks ? clock.everySecond(() => setNow(clock.now())) : undefined), [clock, ticks]);
   return now;
 }

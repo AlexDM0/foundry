@@ -216,7 +216,7 @@ describe('the options and the answer', () => {
     renderPanel();
     expect(within(panel()).getByRole('region', { name: 'Background' }).textContent).toContain(`Why J4 stopped${DARK_MODE_QUESTION.context}`);
     const options = within(panel()).getAllByRole('radio').map((radio) => radio.closest('label') as HTMLElement);
-    expect(options.map((option) => option.querySelector('.design-system-choice-mark[data-mark="recommended"]') !== null)).toEqual([true, false, false]);
+    expect(options.map((option) => option.querySelector('.design-system-choice-mark[data-mark="recommended"]') !== null)).toEqual([true, false, false, false]);
   });
 
   test('a label ending in "(Recommended)" without the served field shows as asked and is not marked', () => {
@@ -246,15 +246,17 @@ describe('the options and the answer', () => {
     expect(panel().querySelector('.board-question-panel-answer-row')?.textContent).toContain('Posts decision-answer E7 for J4');
   });
 
-  test('User\'s own words post as text on a decision of one question, and no box shows on one of two', async () => {
+  test('User\'s own words, an option of their own, post as text on a decision of one question, and show on no decision of two', async () => {
     const rendered = renderPanel({ board: exampleQuestionPanelBoard({ decisions: [DARK_MODE_QUESTION, TWO_QUESTION_DECISION] }) });
-    fireEvent.change(within(panel()).getByLabelText('Or answer in User\'s own words'), { target: { value: 'Tokens, but keep the storefront values' } });
+    const ownWords = within(panel()).getByRole('textbox', { name: 'Your answer in your own words' });
+    act(() => ownWords.focus());
+    fireEvent.change(ownWords, { target: { value: 'Tokens, but keep the storefront values' } });
     await clickSettled(within(panel()).getByRole('button', { name: 'Answer E7' }));
     expect(rendered.sent).toEqual([{
       boardCommandVersion: 3, kind: 'decision-answer', decisionId: 'E7', answer: { form: 'text', text: 'Tokens, but keep the storefront values' }
     }]);
     act(() => within(panel()).getByRole('button', { name: 'Next question' }).click());
-    expect(within(panel()).queryByLabelText('Or answer in User\'s own words')).toBeNull();
+    expect(within(panel()).queryByRole('textbox', { name: 'Your answer in your own words' })).toBeNull();
   });
 
   test('a refusal shows verbatim beside Answer', async () => {

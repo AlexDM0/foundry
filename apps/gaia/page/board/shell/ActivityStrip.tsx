@@ -15,6 +15,7 @@ import {
   useListPresence
 } from '../../lib/design-system/DesignSystemInterface.ts';
 
+import { CountTextUtil }                  from '../../shared/utils/CountTextUtil.ts';
 import { FlintSlotHabitat }               from '../flint/FlintSlotHabitat.tsx';
 import { FLINT_SLOT_HABITATS }            from '../flint/FlintSlotHabitats.ts';
 import { useTickingNow, type BoardClock } from '../shared/BoardClock.ts';
@@ -40,9 +41,11 @@ export interface ActivityStripProps {
 const STRIP_LABEL = 'Agents at work';
 
 function withoutJobFlagTitleOf(count: number): string {
-  return count === 1
-    ? '1 ticket is in progress on the board with no Hephaestus job behind it'
-    : `${count} tickets are in progress on the board with no Hephaestus job behind them`;
+  return CountTextUtil.countedPhrase(
+    count,
+    'ticket is in progress on the board with no Hephaestus job behind it',
+    'tickets are in progress on the board with no Hephaestus job behind them'
+  );
 }
 
 function slotsInUseTextOf(facts: ActivityStripFacts): string | null {

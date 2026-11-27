@@ -5,6 +5,7 @@
  */
 import type { BoardPipelineEntityDocument, BoardSetupEntityDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import type { BoardEntityKind }                                       from '../../../../@types/board/BoardVocabulary.ts';
+import { CountTextUtil }                                              from '../../../../shared/utils/CountTextUtil.ts';
 
 /** Drafted in this setup, named in the entity's own folder, the installed default, or none for a root kept for a person. */
 export type EntityConstitutionState = 'drafted' | 'in-its-folder' | 'default' | 'kept-for-a-person';
@@ -53,7 +54,7 @@ function homeTextOf(entity: BoardPipelineEntityDocument): string {
 
 function gatesTextOf(entity: BoardPipelineEntityDocument): string {
   if (entity.gates.length === 0) return entity.kind === 'root' ? 'None' : 'No gates';
-  return `${entity.gates.length} ${entity.gates.length === 1 ? 'gate' : 'gates'}`;
+  return CountTextUtil.countedPhrase(entity.gates.length, 'gate', 'gates');
 }
 
 function rowsOf(facts: EntityOverviewFacts): EntityOverviewRowView[] {

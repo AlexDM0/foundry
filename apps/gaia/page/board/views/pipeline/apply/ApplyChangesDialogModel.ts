@@ -13,7 +13,7 @@ import type {
   BoardSetupRecordDocument
 } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import type { BoardChangeKind }                   from '../../../../@types/board/BoardVocabulary.ts';
-import { ChatTurnWordingUtil }                    from '../../../conversation/ChatTurnWordingUtil.ts';
+import { CountTextUtil }                          from '../../../../shared/utils/CountTextUtil.ts';
 import { ChangeGroupModel, type ChangeGroupView } from '../entities/ChangeGroupModel.ts';
 import { ChangeListModel }                        from './ChangeListModel.ts';
 
@@ -31,7 +31,7 @@ const CONSTITUTION_LOCATION = 'CONSTITUTION.md · committed to main on Apply';
 
 /** "Apply 4 changes", the button's label. */
 function applyLabelOf(changeCount: number): string {
-  return `Apply ${ChatTurnWordingUtil.countTextOf(changeCount, 'change', 'changes')}`;
+  return `Apply ${CountTextUtil.countedPhrase(changeCount, 'change', 'changes')}`;
 }
 
 /** "Apply 4 changes?" */
@@ -92,7 +92,7 @@ function levelGroupsOf(changeList: readonly BoardPipelineChangeDocument[], { rec
 
 /** "2 tickets are in flight." */
 function inFlightLeadOf(ticketCount: number): string {
-  return ticketCount === 1 ? '1 ticket is in flight.' : `${ticketCount} tickets are in flight.`;
+  return CountTextUtil.countedPhrase(ticketCount, 'ticket is in flight.', 'tickets are in flight.');
 }
 
 /** "Each takes version 2 at its next gate run; a run already started finishes on version 1." */
