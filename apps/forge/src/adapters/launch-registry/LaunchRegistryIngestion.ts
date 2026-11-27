@@ -24,11 +24,15 @@ export type LaunchRegistryReading =
 
 const LINE_SEPARATOR = '\n';
 
-type LineReading = { verdict: 'readable'; entry: LaunchRegistryEntry } | { verdict: 'unreadable'; reason: string };
+/** `unparseable` apart from `unreadable`: only a line that does not parse can have been cut short. */
+type LineReading =
+  | { verdict: 'readable'; entry: LaunchRegistryEntry }
+  | { verdict: 'unparseable'; reason: string }
+  | { verdict: 'unreadable'; reason: string };
 
 function lineReadingOf(line: string): LineReading {
   const parsedJson = StoredValueUtil.parsedJsonOf(line);
-  if (parsedJson.verdict === 'unparseable') return { verdict: 'unreadable', reason: parsedJson.problem };
+  if (parsedJson.verdict === 'unparseable') return { verdict: 'unparseable', reason: parsedJson.problem };
   const entry = parsedJson.value;
   if (!JsonRecordUtil.valueIsAPlainObject(entry)) return { verdict: 'unreadable', reason: 'it is not a JSON object' };
   const field = (key: keyof LaunchRegistryEntry): unknown => (Object.hasOwn(entry, key) ? entry[key] : undefined);
@@ -66,6 +70,7 @@ export class LaunchRegistryIngestion {
     });
     const lastReading = unterminatedLine === '' ? null : lineReadingOf(unterminatedLine);
     if (lastReading?.verdict === 'readable') entries.push(lastReading.entry);
+    if (lastReading?.verdict === 'unreadable') unreadableLines.push({ lineNumber: lines.length + 1, reason: lastReading.reason });
     return { verdict: 'readable', entries, unreadableLines };
   }
 }

@@ -1,7 +1,8 @@
 /**
  * Talos's launch registry read line by line. What matters: every line Talos's own writer appends reads back as its launch; a Talos that
  * accepted no launch has no registry, which is absent; a line that does not fit is named with its number while the other lines still count;
- * an unterminated last line that does not parse was cut short by a Talos that died appending it and is passed over unnamed; nothing throws.
+ * an unterminated last line that does not parse was cut short by a Talos that died appending it and is passed over unnamed, while one that
+ * parses is whole and named when it does not fit; nothing throws.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -60,6 +61,11 @@ test('an unterminated last line that does not parse is passed over unnamed, and 
 
   writeFileSync(registryPath(), `${launchRegistryEntryLineOf(AGENT)}${JSON.stringify(LINE)}`);
   expect(reading()).toEqual({ verdict: 'readable', entries: [AGENT, LINE], unreadableLines: [] });
+});
+
+test('an unterminated last line that parses but does not fit is whole, not cut short, so it is named', () => {
+  writeFileSync(registryPath(), `${launchRegistryEntryLineOf(AGENT)}${JSON.stringify({ ...LINE, kind: 'example-kind' })}`);
+  expect(reading()).toEqual({ verdict: 'readable', entries: [AGENT], unreadableLines: [{ lineNumber: 2, reason: 'kind is neither agent nor line' }] });
 });
 
 test.each([
