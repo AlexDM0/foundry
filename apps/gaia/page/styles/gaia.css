@@ -464,7 +464,9 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
   transition: var(--feedback-transition);
 }
 .gaia-agents-job:hover { color: var(--link); }
-.gaia-agents-job-line { display: flex; align-items: baseline; gap: var(--space-6); white-space: nowrap; }
+.gaia-agents-job-line { display: flex; align-items: baseline; gap: var(--space-6); min-width: 0; white-space: nowrap; }
+.gaia-agents-job-line .gaia-agents-role { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.gaia-agents-job-line .gaia-agents-running { flex: none; }
 .gaia-agents-role {
   font-family: var(--font-mono);
   font-size: var(--fs-agents-role);

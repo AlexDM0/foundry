@@ -1,6 +1,6 @@
 import type { DrawnExtent } from '../../../SpriteGeometry.ts';
 
-/** Wave: one pentagon rocks with `rock = sin(t / ROCK_DIVISOR_MILLISECONDS)` while the "Hi!" mark shows. */
+/** Wave: one pentagon rocks with `rock = sin(t / ROCK_DIVISOR_MILLISECONDS)`; a greet shows the "Hi!" mark as well. */
 export const WAVE_GESTURE_VALUES = {
   DURATION_MILLISECONDS:     2200,
   HAND_RADIUS_UNITS:         6.5,
@@ -14,10 +14,18 @@ export const WAVE_GESTURE_VALUES = {
   PEEK_HAND_DISTANCE_UNITS:  21,
 } as const;
 
-/** All that the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
-export const WAVE_EXTENT: DrawnExtent = {
-  backUnits:       20,
-  frontUnits:      52,
-  aboveFloorUnits: 64.5,
-  belowFloorUnits: -3,
+/** All that each form draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const WAVE_EXTENTS: Readonly<Record<'WAVE' | 'GREET', DrawnExtent>> = {
+  WAVE: {
+    backUnits:       20,
+    frontUnits:      36.5,
+    aboveFloorUnits: 59,
+    belowFloorUnits: -3,
+  },
+  GREET: {
+    backUnits:       20,
+    frontUnits:      52,
+    aboveFloorUnits: 64.5,
+    belowFloorUnits: -3,
+  },
 };

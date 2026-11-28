@@ -3341,8 +3341,10 @@ lock that cannot be read in place, as its process may still run: the next start 
 which that process's fence sees.
 
 Every one of these records is created exclusively and whole, so a taker never reads a half-written record as stale.
-Where the filesystem has no hard links, as on exFAT or some network shares, the create fails rather than leave a
-partial record.
+Where the filesystem has no hard links, as on exFAT or some network shares, a lock generation and a slot are created
+by an exclusive open instead, so a release still lands and a claim still holds there; a taker that reads such a record
+in the instant before its text is written takes it as one that cannot be read. The Hephaestus lock and a crash log are
+always created whole: where links fail, `start` is refused.
 
 Before 1.0 an older stored format is refused, not migrated. This is no migration: nothing of an older record is
 converted or kept, the record ends with the process that holds it, and the next holder writes the current version.

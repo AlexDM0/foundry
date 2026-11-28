@@ -162,13 +162,13 @@ describe('a slot file that the platform refuses to create or move', () => {
   }
 
   test.each(['EPERM', 'EACCES', 'EBUSY'])('on win32, a create failing %s reads as a taken slot and throws nothing', (code) => {
-    const refusingCreate: FileReplace = { ...POSIX_MOVES, createWholeExclusively: () => { throw failureWithCode(code); } };
+    const refusingCreate: FileReplace = { ...POSIX_MOVES, createExclusively: () => { throw failureWithCode(code); } };
     const { slots } = slotsWithMoves(refusingCreate, 'win32');
     expect(slots.tryAcquire('example-holder')).toBe(false);
   });
 
   test('on POSIX, a create failing EACCES is a permission fault and still throws', () => {
-    const refusingCreate: FileReplace = { ...POSIX_MOVES, createWholeExclusively: () => { throw failureWithCode('EACCES'); } };
+    const refusingCreate: FileReplace = { ...POSIX_MOVES, createExclusively: () => { throw failureWithCode('EACCES'); } };
     const { slots } = slotsWithMoves(refusingCreate, 'linux');
     expect(() => slots.tryAcquire('example-holder')).toThrow('example EACCES failure');
   });

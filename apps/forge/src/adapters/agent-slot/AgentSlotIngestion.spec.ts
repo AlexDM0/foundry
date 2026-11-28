@@ -12,7 +12,7 @@ import {
   test
 } from 'bun:test';
 
-import { EXAMPLE_LINK_REFUSAL_MESSAGE, fileReplaceWithoutLinks }                from '../../testing/FileReplaceWithoutLinks.ts';
+import { fileReplaceWithoutLinks }                                              from '../../testing/FileReplaceWithoutLinks.ts';
 import { createScratchDirectory, removeScratchDirectory }                       from '../../testing/ScratchWorkspace.ts';
 import { AGENT_SLOT_FORMAT_VERSION, AgentSlotIngestion, type AgentSlotHolding } from './AgentSlotIngestion.ts';
 import { createAgentSlotWriter }                                                from './AgentSlotWriter.ts';
@@ -66,7 +66,8 @@ test.each([
   expect(reading()).toMatchObject({ verdict: 'unreadable', storedText: text });
 });
 
-test('where hard links fail the writer throws the link failure and leaves no partial file, since a taker reads a partial one as stale', () => {
-  expect(() => createAgentSlotWriter(slotFilePath(), fileReplaceWithoutLinks()).create(HOLDING)).toThrow(EXAMPLE_LINK_REFUSAL_MESSAGE);
-  expect(existsSync(slotFilePath())).toBe(false);
+test('where hard links fail the writer still creates the slot exclusively, so a release lands and a claim holds there', () => {
+  expect(createAgentSlotWriter(slotFilePath(), fileReplaceWithoutLinks()).create(HOLDING)).toBe('created');
+  expect(existsSync(slotFilePath())).toBe(true);
+  expect(createAgentSlotWriter(slotFilePath(), fileReplaceWithoutLinks()).create(HOLDING)).toBe('already-exists');
 });

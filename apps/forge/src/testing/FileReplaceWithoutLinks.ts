@@ -1,14 +1,15 @@
-/** A filesystem where hard links fail, as exFAT or an SMB share: the exclusive open that could leave a partial file still works. */
-import type { FileReplace }         from '../lib/atomic-file/FileReplace.ts';
-import { fileReplaceOfThisProcess } from '../lib/atomic-file/FileReplaceFor.ts';
+/** A filesystem where hard links fail, as exFAT or an SMB share: a whole create is refused, an exclusive open still works. */
+import type { FileReplace }             from '../lib/atomic-file/FileReplace.ts';
+import { REAL_FILE_REPLACE_PRIMITIVES } from '../lib/atomic-file/FileReplaceFor.ts';
+import { createPosixFileReplace }       from '../lib/atomic-file/PosixFileReplace.ts';
 
 export const EXAMPLE_LINK_REFUSAL_MESSAGE = 'EPERM: example link refusal';
 
 export function fileReplaceWithoutLinks(): FileReplace {
-  return {
-    ...fileReplaceOfThisProcess(),
-    createWholeExclusively: () => {
+  return createPosixFileReplace({
+    ...REAL_FILE_REPLACE_PRIMITIVES,
+    link: () => {
       throw Object.assign(new Error(EXAMPLE_LINK_REFUSAL_MESSAGE), { code: 'EPERM' });
     },
-  };
+  });
 }

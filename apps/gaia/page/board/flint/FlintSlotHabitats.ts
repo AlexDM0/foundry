@@ -63,6 +63,7 @@ export const FLINT_SLOT_HABITATS = Object.freeze({
     kind:        'setup-slot',
     description: 'The pipeline agent on the Setup step, before it starts: Flint meets User.',
     cues:        [],
+    onArrival:   'greet',
   }),
   research: slotHabitatOf({
     kind:        'research-slot',
