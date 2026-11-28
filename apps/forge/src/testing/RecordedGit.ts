@@ -42,7 +42,8 @@ import {
   withScenarioPlaceholders,
   withScenarioValues
 } from './RecordedGitScenarios.ts';
-import { removeScratchDirectory } from './ScratchWorkspace.ts';
+import { removeScratchDirectory }         from './ScratchWorkspace.ts';
+import { noteUnansweredRecordedGitCalls } from './UnansweredRecordedGitCalls.ts';
 
 const GIT_BOUNDARY = 'src/lib/git/GitProcess.ts';
 const REPOSITORY_ROOT = join(import.meta.dir, '..', '..');
@@ -495,9 +496,8 @@ export function useRecordedGit(): RecordedGit {
   });
   afterEach(() => {
     player.endFlow();
-    // Production code may catch the throw of an unanswered call, so the case fails here too.
-    const unanswered = unansweredCalls.splice(0);
-    if (unanswered.length > 0) throw new Error(unanswered.join('\n'));
+    // Production code may catch the throw of an unanswered call, so the case fails on it too, in the guard's hook.
+    noteUnansweredRecordedGitCalls(unansweredCalls.splice(0));
   });
   afterAll(() => {
     spyOn(GitProcess, 'run').mockRestore();

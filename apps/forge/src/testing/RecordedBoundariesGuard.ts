@@ -1,12 +1,13 @@
 /**
  * Preloaded by `bunfig.toml`: starts each case with only the spec's own process in the table of `src/testing/DefaultSpecPlatformPorts.ts`,
- * and fails the case on a call its recordings do not answer, or on a default spec starting a program of
+ * and fails the case on a call its recordings or the recorded git do not answer, or on a default spec starting a program of
  * `src/testing/RecordedBoundaryPrograms.ts`. Its statements are its own registration, the reason it may do work at load.
  */
 import { afterAll, afterEach, beforeEach } from 'bun:test';
 
 import { startCaseWithOnlyTheSpecsOwnProcess, takeUnansweredDefaultPortCalls } from './DefaultSpecPlatformPorts.ts';
 import { recordedBoundaryProgramOf, specIsJudgedForRecordedBoundaryPrograms }  from './RecordedBoundaryPrograms.ts';
+import { takeUnansweredRecordedGitCalls }                                      from './UnansweredRecordedGitCalls.ts';
 
 /** The run's own leak check reads the repository's git state before the first spec and after the last; that git is the run's, not a spec's. */
 const LEAK_CHECK_MODULE = '/src/testing/TestRunLeakCheck.ts';
@@ -36,7 +37,7 @@ Bun.spawnSync = ((...spawnArguments: unknown[]) => {
 }) as typeof Bun.spawnSync;
 
 function failOnAReachOutsideTheRecordings(): void {
-  const reaches = [...takeUnansweredDefaultPortCalls(), ...recordedBoundaryProgramStarts.splice(0)];
+  const reaches = [...takeUnansweredDefaultPortCalls(), ...takeUnansweredRecordedGitCalls(), ...recordedBoundaryProgramStarts.splice(0)];
   if (reaches.length > 0) throw new Error(reaches.join('\n'));
 }
 
