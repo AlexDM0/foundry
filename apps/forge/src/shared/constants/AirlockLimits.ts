@@ -1,5 +1,5 @@
 /**
- * The counts an Airlock decides by (design section 6): when a moving target parks, when a group refreshes, how much of a failed gate is
+ * The counts an Airlock decides by: when a moving target parks, when a group refreshes, how much of a failed gate is
  * kept, and the budget of a fresh agent that replaces a ticket agent whose session could not be resumed.
  */
 import { DISPATCH_PROTOCOL } from './DispatchProtocol.ts';
