@@ -1,8 +1,7 @@
 /**
- * `pipeline.json` beside the progress file: the board's pipeline, read, validated and mapped here, and written through the hold, in its
- * one format. A file that cannot be read whole is `malformed` with the problem, and one of an earlier version is `older`, never a throw.
- * Entities are mapped and validated in full, a whitelist that names a package included; a setup record's draft is read the same way but
- * for the entities' set check, so it may hold the refusals User has not resolved yet.
+ * `pipeline.json` beside the progress file, in its one format: a file that cannot be mapped whole is `malformed` and one of an earlier
+ * version `older`, never a throw. A setup record's draft is read the same way but for the entities' set check, so it may hold refusals User
+ * has not resolved yet.
  */
 import { posix, win32 } from 'node:path';
 

@@ -1,8 +1,6 @@
 /**
- * A ticket's documents record read and written back. What matters: a record with every optional key read and written back is the same bytes,
- * and one without them stays without them, so a read never adds a key; a file that is no JSON, of another version, or that breaks its
- * shape is a `malformed` verdict naming the problem, never a throw; and a version's text is the version only while it hashes to its name,
- * read byte for byte, a leading byte order mark kept.
+ * A ticket's documents record read and written back: the bytes stay the same and no key is added, a broken file is a `malformed` verdict,
+ * never a throw, and a version's text counts only while it hashes to its name, byte for byte.
  */
 import { writeFileSync }          from 'node:fs';
 import { join }                   from 'node:path';

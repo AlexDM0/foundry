@@ -1,5 +1,5 @@
 /**
- * A crossing ticket's `## Handoff` in parts (strategy 4.2): one part per stage that built, each under its own `###` heading, and the
+ * A crossing ticket's `## Handoff` in parts: one part per stage that built, each under its own `###` heading, and the
  * Acceptance evidence under its own, owned by the last home build stage. A stage replaces only its own part; any other text the section held,
  * such as the filing template's guidance or a handoff written before the ticket crossed, is code's to replace.
  */

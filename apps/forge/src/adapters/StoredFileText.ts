@@ -11,10 +11,9 @@ export type StoredFileText =
 const BYTE_ORDER_MARK = '\uFEFF';
 
 /**
- * Never throws. A file that exists but cannot be read is `unreadable`, never `absent`, because `absent` invites the caller to treat a good
- * file as missing, and so is one that is not UTF-8, which never heals, unlike a file that cannot be read now. A leading byte order mark,
- * which Windows editors write, is not part of the text, unless `keepsByteOrderMark` says the file holds a text byte for byte, as a file
- * named by the hash of its text does.
+ * Never throws. A file that exists but cannot be read, or is not UTF-8, is `unreadable`, never `absent`, which would invite treating a good
+ * file as missing. A leading byte order mark, which Windows editors write, is not part of the text, unless `keepsByteOrderMark` says the file
+ * holds its text byte for byte, as a file named by the hash of its text does.
  */
 export function storedFileTextOf(filePath: string, keepsByteOrderMark = false): StoredFileText {
   let bytes: Uint8Array;

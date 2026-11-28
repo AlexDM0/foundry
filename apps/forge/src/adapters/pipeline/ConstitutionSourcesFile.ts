@@ -1,8 +1,7 @@
 /**
- * `constitution-sources.json` beside `pipeline.json`: the pipeline agent's sources of the constitution main holds, keyed by that text's
- * blob id, so a record takes them only for that very text. Read, validated and mapped here, and written through the hold. A file the read cannot
- * map whole is `malformed` with the problem, never a throw. Keys this build does not know are kept at the top level, after its own, in
- * their stored order, so a read and a write leave the file byte-identical.
+ * `constitution-sources.json` beside `pipeline.json`: the pipeline agent's sources of main's constitution, keyed by that text's blob id so a
+ * record takes them only for that very text. A file the read cannot map whole is `malformed`, never a throw; keys this build does not know
+ * are kept after its own in their stored order, so a read and a write leave the file byte-identical.
  */
 import type { ConstitutionSourcesReading, SourceAnnotation, StoredConstitutionSources } from '../../domain/tracker-model/@types/PipelineSetup.ts';
 import type { ConstitutionSourcesProblem }                                              from '../../domain/tracker-model/@types/PipelineSetupProblem.ts';
