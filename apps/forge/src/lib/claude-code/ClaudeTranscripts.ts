@@ -1,9 +1,6 @@
 /**
- * Where Claude Code keeps one repository's transcripts, and which of them belong to subagents. As the claude-code building block's
- * main module it also stands for its siblings, which merge and remove command hooks in a settings file, write and remove a marker-delimited
- * block in a `CLAUDE.md`, adapt Claude Code to the launcher port, tally its transcripts into the port's subagent facts and usages, and map
- * its stream-json lines to the port's events. The package depends on `src/lib/agent-launch`, `src/lib/atomic-file`, `src/lib/git`,
- * `src/lib/json-record` and `src/lib/line-patterns`, whose ending recognition its fixture specs hold the plan's endings against.
+ * Where Claude Code keeps one repository's transcripts, and which of them belong to subagents. As the claude-code building block's main
+ * module it stands for its siblings: settings hooks, the `CLAUDE.md` block, the launcher adapter, transcript tallies and stream-json events.
  */
 import type { Dirent }               from 'node:fs';
 import { readdirSync, readFileSync } from 'node:fs';
@@ -40,9 +37,8 @@ export interface SubagentTranscript {
 
 /**
  * `<config>/projects/` plus the absolute path of the folder sessions start in, every character outside `[a-zA-Z0-9]` replaced by `-`. Claude
- * Code keeps one such folder per start folder, so each worktree has its own; a session found by its id is searched across all of them
- * (`findSessionSubagentTranscripts`). The caller supplies the config folder (`claudeConfigFolderOf`), since the package reads nothing from
- * the process.
+ * Code keeps one such folder per start folder, so each worktree has its own. The caller supplies the config folder (`claudeConfigFolderOf`),
+ * since the package reads nothing from the process.
  */
 export function transcriptFolderFor(sessionStartDirectory: string, configFolder: string): string {
   const slug = resolve(sessionStartDirectory).replace(CHARACTER_THE_SLUG_REPLACES, '-');
