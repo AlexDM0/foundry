@@ -82,11 +82,11 @@ test('a lasting cue offers Flint its answer to keep up in the slot, and a moment
   expect(idle.map((digest) => digest.copyIsOffered)).not.toContain(true);
 });
 
-test('the open screen\'s slot is the visit target, a press in another habitat sends Flint there, and the next screen\'s slot takes it back', () => {
+test('the open screen\'s slot is the visit target, a press in another habitat leaves Flint in it, and the next screen\'s slot takes over', () => {
   const scene = sceneOfScreen(null, BUILDING);
   expect(scene.perceived(() => undefined).map((digest) => digest.visitTargetKind)).toContain('agent-job-slot');
   const afterPress = scene.perceived(() => fireEvent.pointerDown(elementOf('.example-list')));
-  expect(afterPress.at(-1)?.visitTargetKind).toBe('example-list');
+  expect(afterPress.at(-1)?.visitTargetKind).toBe('agent-job-slot');
   const nextScreen = scene.perceived(() => {
     scene.show({ habitat: FLINT_SLOT_HABITATS.questions, cue: FLINT_SLOT_CUES.AGENT_WAITS_ON_USER });
     placeSlot();

@@ -1,6 +1,6 @@
 /**
- * The board's visit target in a happy-dom document: the open screen's slot by default, the habitat User last pressed or focused in after it,
- * the innermost one winning, and a newly shown slot taking it back and sending Flint there at once.
+ * The board's visit target in a happy-dom document: the open screen's slot whatever User does, and with no slot the habitat User last pressed
+ * or focused in, the innermost one winning; a newly shown slot sends Flint there at once.
  */
 import { afterEach, expect, test } from 'bun:test';
 
@@ -66,7 +66,7 @@ test('with no slot shown, nothing is the target before User works, then the habi
   stop();
 });
 
-test('the open screen\'s slot is the target, until User presses in another habitat; a press on the slot takes it back', () => {
+test('the open screen\'s slot is the target whatever User presses or focuses, the chat card around it and other habitats alike', () => {
   const {
     thread, agents, slot, composer
   } = page();
@@ -76,18 +76,15 @@ test('the open screen\'s slot is the target, until User presses in another habit
   tracker.slotShown(slot.element);
   expect(tracker.visitTarget(habitats)).toBe(slot);
   press(composer);
-  expect(tracker.visitTarget(habitats)).toBe(thread);
-  press(slot.element);
   expect(tracker.visitTarget(habitats)).toBe(slot);
-  press(agents.element);
-  expect(tracker.visitTarget(habitats)).toBe(agents);
+  press(thread.element);
+  focus(agents.element);
+  expect(tracker.visitTarget(habitats)).toBe(slot);
   stop();
 });
 
 test('a press outside every habitat, or on Flint\'s overlay, keeps the target', () => {
-  const {
-    thread, slot, composer, elsewhere
-  } = page();
+  const { thread, composer, elsewhere } = page();
   const overlay = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   overlay.setAttribute(FLINT_OVERLAY_ATTRIBUTE, '');
   const body = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -95,33 +92,31 @@ test('a press outside every habitat, or on Flint\'s overlay, keeps the target', 
   document.body.append(overlay);
   const tracker = createVisitTargetTracker();
   const stop = tracker.follow(document);
-  tracker.slotShown(slot.element);
   press(composer);
-  expect(tracker.visitTarget([thread, slot])).toBe(thread);
+  expect(tracker.visitTarget([thread])).toBe(thread);
   press(elsewhere);
-  expect(tracker.visitTarget([thread, slot])).toBe(thread);
+  expect(tracker.visitTarget([thread])).toBe(thread);
   press(body);
-  expect(tracker.visitTarget([thread, slot])).toBe(thread);
+  expect(tracker.visitTarget([thread])).toBe(thread);
   stop();
 });
 
-test('a slot that shows is the target again, also when its screen moves the focus as it opens; the slot that goes leaves the one before', async () => {
+test('the newest slot that shows is the target, the slot that goes leaves the one before, and with none left the habitat worked in since', () => {
   const {
     thread, agents, slot, otherSlot, composer
   } = page();
   const habitats = [thread, agents, slot, otherSlot];
   const tracker = createVisitTargetTracker();
   const stop = tracker.follow(document);
-  tracker.slotShown(slot.element);
+  const gone = tracker.slotShown(slot.element);
   press(composer);
   const goneAgain = tracker.slotShown(otherSlot.element);
   focus(agents.element);
   expect(tracker.visitTarget(habitats)).toBe(otherSlot);
-  await Promise.resolve();
-  focus(agents.element);
-  expect(tracker.visitTarget(habitats)).toBe(agents);
   goneAgain();
-  expect(tracker.visitTarget([thread, slot])).toBe(slot);
+  expect(tracker.visitTarget(habitats)).toBe(slot);
+  gone();
+  expect(tracker.visitTarget(habitats)).toBe(agents);
   stop();
 });
 
