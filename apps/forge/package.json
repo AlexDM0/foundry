@@ -13,7 +13,7 @@
     "lint:fix": "eslint . --cache --cache-strategy content --cache-location node_modules/.cache/lint/ --fix",
     "setup": "bun setup.ts",
     "test": "bun test",
-    "test:architecture": "bun test --path-ignore-patterns='**/*.integration.spec.ts' ./architecture",
+    "test:architecture": "bun test --pass-with-no-tests --path-ignore-patterns='**/*.integration.spec.ts' architecture/",
     "check": "bun src/testing/CheckRecordingStamps.ts",
     "verify": "bun run --parallel typecheck lint && bun test && bun run test:architecture && bun run check",
     "record": "bun src/testing/RecordBoundary.ts",

@@ -63,7 +63,7 @@ const REPOSITORY_ROOT = repositoryRootOfThisCheckout();
 describeWhenGitIsPresent('the line endings of this repository', () => {
   testWhenGitIsPresent('git applies the LF policy to every tracked file', () => {
     const trackedFiles = trackedFilesIn(REPOSITORY_ROOT);
-    expect(trackedFiles.map(({ path }) => path)).toContain('CLAUDE.md');
+    expect(trackedFiles.map(({ path }) => path)).toContain('package.json');
     expect(trackedFiles.filter(({ attributes }) => attributes !== POLICY_ATTRIBUTES).map(({ path }) => path)).toEqual([]);
   });
 

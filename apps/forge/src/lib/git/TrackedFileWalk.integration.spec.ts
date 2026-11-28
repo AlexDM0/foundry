@@ -20,6 +20,6 @@ function trackedFilePaths(): string[] {
 testWhenGitIsPresent('the folder walk reaches every file git tracks', () => {
   const trackedPaths = trackedFilePaths();
   const walkedPaths = new Set(repositoryFilePaths(REPOSITORY_ROOT));
-  expect(trackedPaths).toContain('CLAUDE.md');
+  expect(trackedPaths).toContain('package.json');
   expect(trackedPaths.filter((filePath) => !walkedPaths.has(filePath))).toEqual([]);
 });

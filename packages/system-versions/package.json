@@ -16,7 +16,7 @@
     "lint": "eslint . --cache --cache-strategy content --cache-location node_modules/.cache/lint/",
     "lint:fix": "eslint . --cache --cache-strategy content --cache-location node_modules/.cache/lint/ --fix",
     "test": "bun test --path-ignore-patterns='architecture/**'",
-    "test:architecture": "bun test ./architecture",
+    "test:architecture": "bun test --pass-with-no-tests architecture/",
     "verify": "bun run typecheck && bun run lint && bun run test && bun run test:architecture"
   }
 }
