@@ -154,7 +154,7 @@ describe('the route and the theme', () => {
     const inPlace = renderToStaticMarkup(appAt(source, `#forge/${TRACKER_IDS.invoiceService}/questions/E4`));
     expect(pageTitleAreaIn(inPlace)).toBeUndefined();
     expect(inPlace).toContain('<h1 class="gaia-forge-frame-bar-name">Invoice Service</h1>');
-    expect(inPlace).toMatch(new RegExp(`href="#forge/${TRACKER_IDS.invoiceService}" aria-current="page"`));
+    expect(inPlace).toMatch(new RegExp(`href="#forge/${TRACKER_IDS.invoiceService}/questions/E4" aria-current="page"`));
   });
 
   test('the theme button shows on every view, named after the next choice, but a forge in place (B1), whose route has none', () => {
