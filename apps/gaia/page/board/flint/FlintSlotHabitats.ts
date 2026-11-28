@@ -67,13 +67,13 @@ export const FLINT_SLOT_HABITATS = Object.freeze({
   }),
   research: slotHabitatOf({
     kind:        'research-slot',
-    description: 'The pipeline agent on the Research step: it reads the repository, waits on User\'s answer, or is stopped.',
-    cues:        [FLINT_SLOT_CUES.AGENT_READS, ...SETUP_STEP_PAUSE_CUES],
+    description: 'The pipeline agent on the Research step: it reads the repository, waits on User\'s answer, is done, or is stopped.',
+    cues:        [FLINT_SLOT_CUES.AGENT_READS, FLINT_SLOT_CUES.AGENT_IS_DONE, ...SETUP_STEP_PAUSE_CUES],
   }),
   constitution: slotHabitatOf({
     kind:        'constitution-slot',
-    description: 'The pipeline agent on the Constitution step: it drafts the constitution, waits on User\'s answer, or is stopped.',
-    cues:        SETUP_STEP_PAUSE_CUES,
+    description: 'The pipeline agent on the Constitution step: it drafts the constitution, waits on User\'s answer, has its draft ready, or is stopped.',
+    cues:        [FLINT_SLOT_CUES.AGENT_IS_DONE, ...SETUP_STEP_PAUSE_CUES],
     onArrival:   'thinking',
   }),
   pipelineDesign: slotHabitatOf({

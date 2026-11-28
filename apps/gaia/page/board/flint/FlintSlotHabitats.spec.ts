@@ -39,8 +39,8 @@ describe('the habitats of the Flint slots', () => {
       screen, habitat.suggestions.map((suggestion) => suggestion.when).filter((cue) => cue !== ARRIVED_CUE),
     ])).toEqual([
       ['setup', []],
-      ['research', ['agent-reads', 'agent-waits-on-user', 'agent-is-idle']],
-      ['constitution', ['agent-waits-on-user', 'agent-is-idle']],
+      ['research', ['agent-reads', 'agent-is-done', 'agent-waits-on-user', 'agent-is-idle']],
+      ['constitution', ['agent-is-done', 'agent-waits-on-user', 'agent-is-idle']],
       ['pipelineDesign', ['agent-thinks', 'agent-waits-on-user', 'agent-is-done', 'agent-is-idle']],
       ['kanban', ['agent-writes', 'agent-reviews', 'agent-is-idle']],
       ['ticketDetail', ['agent-writes', 'agent-reviews', 'agent-is-idle']],

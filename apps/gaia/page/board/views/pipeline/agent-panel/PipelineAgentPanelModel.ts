@@ -83,7 +83,6 @@ const CONSTITUTION_STRIP: AgentStripView = { text: 'Drafting the constitution', 
 
 const DESIGNING_STRIP: AgentStripView = { text: 'Designing the pipeline', flintHabitat: FLINT_SLOT_HABITATS.pipelineDesign, flintCue: FLINT_SLOT_CUES.AGENT_THINKS, };
 
-const PROPOSAL_READY_STRIP: AgentStripView = { text: 'Proposal ready', flintHabitat: FLINT_SLOT_HABITATS.pipelineDesign, flintCue: FLINT_SLOT_CUES.AGENT_IS_DONE, };
 
 const QUESTION_OPEN_TEXT = 'Waiting for your answer';
 
@@ -100,6 +99,14 @@ const WORKING_STRIPS: Readonly<Record<BoardSetupQuestionStep, AgentStripView>> =
   entities:     ENTITIES_STRIP,
   constitution: CONSTITUTION_STRIP,
   design:       DESIGNING_STRIP,
+});
+
+/** Once the agent marks its step ready to continue, the strip says so in the panel head's words. */
+const READY_STRIPS: Readonly<Record<BoardSetupQuestionStep, AgentStripView>> = Object.freeze({
+  research:     { text: 'Research done', flintHabitat: FLINT_SLOT_HABITATS.research, flintCue: FLINT_SLOT_CUES.AGENT_IS_DONE },
+  entities:     { text: 'Done with the layout', flintHabitat: FLINT_SLOT_HABITATS.research, flintCue: FLINT_SLOT_CUES.AGENT_IS_DONE },
+  constitution: { text: 'Draft ready', flintHabitat: FLINT_SLOT_HABITATS.constitution, flintCue: FLINT_SLOT_CUES.AGENT_IS_DONE },
+  design:       { text: 'Proposal ready', flintHabitat: FLINT_SLOT_HABITATS.pipelineDesign, flintCue: FLINT_SLOT_CUES.AGENT_IS_DONE },
 });
 
 /** The chat of the agent's session: Hephaestus's lines as system lines, User's messages as bubbles, the agent's turns with their tools. */
@@ -256,8 +263,8 @@ function messageCommandOf(agentJobId: string | null, text: string): BoardCommand
 }
 
 /**
- * A question of the step that waits on User comes first, on every step; the design then says its proposal is ready once the agent suggests
- * to continue past the design, as the panel head does; an agent whose launch forge refused, or a stopped one, shows no work; else research reads, the
+ * A question of the step that waits on User comes first, on every step; then a step the agent marked ready to continue says it is done, as
+ * the panel head does; an agent whose launch forge refused, or a stopped one, shows no work; else research reads, the
  * constitution drafts and the design designs. An entity's research session reads that entity, which the strip names.
  */
 function agentStripOf(
@@ -269,7 +276,7 @@ function agentStripOf(
   const { flintHabitat } = WORKING_STRIPS[step];
   const questionIsOpen = record.questions.some((question) => question.step === step && question.answer === null);
   if (questionIsOpen) return { text: QUESTION_OPEN_TEXT, flintHabitat, flintCue: FLINT_SLOT_CUES.AGENT_WAITS_ON_USER };
-  if (step === 'design' && record.readyToContinue.includes('design')) return PROPOSAL_READY_STRIP;
+  if (record.readyToContinue.includes(step)) return READY_STRIPS[step];
   if (sessionState === 'not-launched') return { text: NOT_LAUNCHED_TEXT, flintHabitat, flintCue: FLINT_SLOT_CUES.AGENT_IS_IDLE };
   if (sessionState === 'stopped') return { text: STOPPED_TEXT, flintHabitat, flintCue: FLINT_SLOT_CUES.AGENT_IS_IDLE };
   if (step === 'research' && entityKey !== null) return { ...RESEARCH_STRIP, text: ENTITY_RESEARCH_TEXT, entityKey };

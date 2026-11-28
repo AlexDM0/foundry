@@ -183,22 +183,28 @@ describe('the agent strip', () => {
     return { ...openQuestion, step };
   }
 
-  test('reads on research, drafts on the constitution, designs, and is ready once the agent proposed, while the job runs', () => {
+  test('reads on research, proposes the entities, drafts on the constitution and designs, while the job runs and no step is ready', () => {
     const answeredQuestions = designQuestions().filter((question) => question.answer !== null);
-    const working = { questions: answeredQuestions, readyToContinue: ['research' as const] };
-    expect([
-      PipelineAgentPanelModel.agentStripOf('research', working, 'running'),
-      PipelineAgentPanelModel.agentStripOf('entities', working, 'running'),
-      PipelineAgentPanelModel.agentStripOf('constitution', working, 'running'),
-      PipelineAgentPanelModel.agentStripOf('design', working, 'running'),
-      PipelineAgentPanelModel.agentStripOf('design', { ...working, readyToContinue: ['design'] }, 'running'),
-    ].map(partsOf)).toEqual([
-      ['Reading the repository', 'research-slot', 'agent-reads'],
-      ['Proposing the entities', 'research-slot', 'agent-reads'],
-      ['Drafting the constitution', 'constitution-slot', null],
-      ['Designing the pipeline', 'pipeline-design-slot', 'agent-thinks'],
-      ['Proposal ready', 'pipeline-design-slot', 'agent-is-done'],
-    ]);
+    const working = { questions: answeredQuestions, readyToContinue: [] };
+    expect((['research', 'entities', 'constitution', 'design'] as const).map((step) => partsOf(PipelineAgentPanelModel.agentStripOf(step, working, 'running'))))
+      .toEqual([
+        ['Reading the repository', 'research-slot', 'agent-reads'],
+        ['Proposing the entities', 'research-slot', 'agent-reads'],
+        ['Drafting the constitution', 'constitution-slot', null],
+        ['Designing the pipeline', 'pipeline-design-slot', 'agent-thinks'],
+      ]);
+  });
+
+  test('a step the agent marked ready says it is done in the panel head\'s words, with the done cue, though the job still runs', () => {
+    const answeredQuestions = designQuestions().filter((question) => question.answer !== null);
+    const allReady = { questions: answeredQuestions, readyToContinue: ['research', 'entities', 'constitution', 'design'] as const };
+    expect((['research', 'entities', 'constitution', 'design'] as const).map((step) => partsOf(PipelineAgentPanelModel.agentStripOf(step, allReady, 'running'))))
+      .toEqual([
+        ['Research done', 'research-slot', 'agent-is-done'],
+        ['Done with the layout', 'research-slot', 'agent-is-done'],
+        ['Draft ready', 'constitution-slot', 'agent-is-done'],
+        ['Proposal ready', 'pipeline-design-slot', 'agent-is-done'],
+      ]);
   });
 
   test('waits on User with the ask cue on each step whose own question is open, before the proposal and while the job runs', () => {
