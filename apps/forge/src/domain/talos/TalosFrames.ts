@@ -1,7 +1,7 @@
 /**
  * Talos's lines: a connection's first line read as `hello`, later client lines as frames, a Talos frame written as a line, and the event
- * log's `client` entries; a line that is no frame reads as `null`. As the main module of the contract Talos keeps with Hephaestus, it depends
- * on `src/lib/atomic-file`, `src/lib/json-record`, `src/lib/line-patterns` and `src/lib/process-identity`.
+ * log's `client` entries; a line that is no frame reads as `null`. As the main module of the contract Talos keeps with Hephaestus,
+ * it depends on `src/lib/atomic-file`, `src/lib/json-record`, `src/lib/line-patterns` and `src/lib/process-identity`.
  */
 import { JsonRecordUtil } from '../../lib/json-record/JsonRecordUtil.ts';
 import type {

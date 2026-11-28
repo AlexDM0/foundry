@@ -1,6 +1,7 @@
 /**
  * Where Claude Code keeps one repository's transcripts, and which of them belong to subagents. As the claude-code building block's main
  * module it stands for its siblings: settings hooks, the `CLAUDE.md` block, the launcher adapter, transcript tallies and stream-json events.
+ * The package depends on `src/lib/agent-launch`, `src/lib/atomic-file`, `src/lib/git`, `src/lib/json-record` and `src/lib/line-patterns`.
  */
 import type { Dirent }               from 'node:fs';
 import { readdirSync, readFileSync } from 'node:fs';

@@ -1,7 +1,7 @@
 /**
  * Talos, the one commander of a board's children: started as `<board folder> <start number>`, it claims its record, serves its endpoint
- * and runs every child Hephaestus launches, keeping its main loop free by sending every synchronous call to its thread. A failed call
- * ends it with its records left as they are, so Hephaestus reads it as lost.
+ * and runs every child Hephaestus launches, sending every synchronous call to its thread; a failed call leaves its records, read as lost.
+ * It depends on `src/domain/talos`, `src/lib/atomic-file`, `src/lib/line-patterns`, `src/lib/local-endpoint` and `src/lib/process-identity`.
  */
 import { appendFileSync } from 'node:fs';
 
