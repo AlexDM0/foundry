@@ -6,36 +6,32 @@
 import { mkdirSync } from 'node:fs';
 import { join }      from 'node:path';
 
-import { ConstitutionCommitProblemWording }               from '../../../adapters/ConstitutionCommitProblemWording.ts';
-import { MergeDecisionWording }                           from '../../../adapters/MergeDecisionWording.ts';
-import type { KeptAirlockFacts }                          from '../../../adapters/airlock-facts/AirlockFactsIngestion.ts';
-import type { MergedTreeGate }                            from '../../../adapters/gate-outcome/@types/MergedTreeGate.ts';
-import { RepositoryLandings }                             from '../../../adapters/repository-landings/RepositoryLandings.ts';
-import type { GatePhase }                                 from '../../../domain/tracker-model/@types/GatePhase.ts';
-import type { GateRunCacheReports, GateRunStepRuns, Job } from '../../../domain/tracker-model/@types/Job.ts';
-import type { EntityKey, Pipeline, PipelineAirlock }      from '../../../domain/tracker-model/@types/Pipeline.ts';
-import type { MainConstitutionReading }                   from '../../../domain/tracker-model/@types/PipelineSetup.ts';
-import type { TicketPriority }                            from '../../../domain/tracker-model/@types/Ticket.ts';
-import type { Board }                                     from '../../../domain/tracker-model/Board.ts';
-import { PipelineUtil }                                   from '../../../domain/tracker-model/utils/PipelineUtil.ts';
-import { branchNamesOf }                                  from '../../../shared/BranchNames.ts';
-import { AIRLOCK_LIMITS, type AirlockLimits }             from '../../../shared/constants/AirlockLimits.ts';
-import { PRODUCT_NAMES }                                  from '../../../shared/constants/ProductNames.ts';
-import { boardFixture, ticketFixture }                    from '../../../testing/BoardFixtures.ts';
-import { fakeAgentAdapter }                               from '../../../testing/FakeAgentAdapter.ts';
-import { queueOnCurrentGreen }                            from '../../../testing/GreenQueue.ts';
-import { LIVE_HOLDERS_LOCK_TAKER }                        from '../../../testing/LockTakers.ts';
-import { createPlantedRepository }                        from '../../../testing/RecordedAirlockGit.ts';
-import { removeScratchDirectory }                         from '../../../testing/ScratchWorkspace.ts';
-import type { ProjectScope }                              from '../../lifecycle/Customs.ts';
-import type { SharedRepositoryLanding }                   from '../../lifecycle/Landing.ts';
-import {
-  createAirlocks,
-  type DeclinedCleanup,
-  type MergeAgentReading,
-  type Airlocks
-} from '../Airlocks.ts';
-import { GroupWorktrees } from '../GroupWorktrees.ts';
+import { ConstitutionCommitProblemWording }                  from '../../../adapters/ConstitutionCommitProblemWording.ts';
+import { MergeDecisionWording }                              from '../../../adapters/MergeDecisionWording.ts';
+import type { KeptAirlockFacts }                             from '../../../adapters/airlock-facts/AirlockFactsIngestion.ts';
+import type { MergedTreeGate }                               from '../../../adapters/gate-outcome/@types/MergedTreeGate.ts';
+import { RepositoryLandings }                                from '../../../adapters/repository-landings/RepositoryLandings.ts';
+import type { GatePhase }                                    from '../../../domain/tracker-model/@types/GatePhase.ts';
+import type { GateRunCacheReports, GateRunStepRuns, Job }    from '../../../domain/tracker-model/@types/Job.ts';
+import type { EntityKey, Pipeline, PipelineAirlock }         from '../../../domain/tracker-model/@types/Pipeline.ts';
+import type { MainConstitutionReading }                      from '../../../domain/tracker-model/@types/PipelineSetup.ts';
+import type { TicketPriority }                               from '../../../domain/tracker-model/@types/Ticket.ts';
+import type { Board }                                        from '../../../domain/tracker-model/Board.ts';
+import { PipelineUtil }                                      from '../../../domain/tracker-model/utils/PipelineUtil.ts';
+import { branchNamesOf }                                     from '../../../shared/BranchNames.ts';
+import { AIRLOCK_LIMITS, type AirlockLimits }                from '../../../shared/constants/AirlockLimits.ts';
+import { PRODUCT_NAMES }                                     from '../../../shared/constants/ProductNames.ts';
+import { boardFixture, ticketFixture }                       from '../../../testing/BoardFixtures.ts';
+import { fakeAgentAdapter }                                  from '../../../testing/FakeAgentAdapter.ts';
+import { queueOnCurrentGreen }                               from '../../../testing/GreenQueue.ts';
+import { LIVE_HOLDERS_LOCK_TAKER }                           from '../../../testing/LockTakers.ts';
+import { createPlantedRepository }                           from '../../../testing/RecordedAirlockGit.ts';
+import { removeScratchDirectory }                            from '../../../testing/ScratchWorkspace.ts';
+import type { ProjectScope }                                 from '../../lifecycle/@types/CustomsSubject.ts';
+import type { SharedRepositoryLanding }                      from '../../lifecycle/Landing.ts';
+import type { Airlocks, DeclinedCleanup, MergeAgentReading } from '../@types/Airlocks.ts';
+import { createAirlocks }                                    from '../Airlocks.ts';
+import { GroupWorktrees }                                    from '../GroupWorktrees.ts';
 
 export const HARNESS_AT = '2026-10-28T10:00:00+01:00';
 

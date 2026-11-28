@@ -1,6 +1,7 @@
 /**
- * User's controls over a live job and the product owner's intake (design sections 7.4, 8.1 and 8.4): each records in the hold and
- * Hephaestus carries it out, so every one works with Hephaestus down. A stop or wind-down holds the job's ticket in the same hold.
+ * User's controls over a live job, User's resumes and the product owner's intake (design sections 7.4, 8.1 and 8.4): each records in the
+ * hold and Hephaestus carries it out, so every one works with Hephaestus down.
+ * A stop or wind-down holds the job's ticket in the same hold.
  */
 import type { JobChanged, Logged } from './@types/BoardChanges.ts';
 import type {
@@ -9,18 +10,21 @@ import type {
   JobStopMode,
   PictureReference
 }                                           from './@types/Job.ts';
-import type { LogRecord }         from './@types/LogRecord.ts';
-import type { EntityKey }         from './@types/Pipeline.ts';
-import type { AgentQuestions }    from './AgentQuestions.ts';
-import type { BoardRecords }      from './BoardRecords.ts';
-import { BoardRefusal }           from './BoardRefusal.ts';
-import type { Decisions }         from './Decisions.ts';
-import type { JobMessage, Jobs }  from './Jobs.ts';
-import type { TicketSettings }    from './TicketSettings.ts';
-import { jobStopHoldOf }          from './constants/JobStopHolds.ts';
-import { DocumentAgentJobUtil }   from './utils/DocumentAgentJobUtil.ts';
-import { JobControlRuleUtil }     from './utils/JobControlRuleUtil.ts';
-import { OptionConsequencesUtil } from './utils/OptionConsequencesUtil.ts';
+import type { LifecycleThresholds } from './@types/LifecycleLimits.ts';
+import type { LogRecord }           from './@types/LogRecord.ts';
+import type { EntityKey }           from './@types/Pipeline.ts';
+import type { AgentQuestions }      from './AgentQuestions.ts';
+import type { BoardRecords }        from './BoardRecords.ts';
+import { BoardRefusal }             from './BoardRefusal.ts';
+import type { Decisions }           from './Decisions.ts';
+import type { JobMessage, Jobs }    from './Jobs.ts';
+import { Playbook }                 from './Playbook.ts';
+import type { TicketSettings }      from './TicketSettings.ts';
+import { INTERRUPTED_HOLD_PREFIX }  from './constants/DecisionAndIncidentVocabulary.ts';
+import { jobStopHoldOf }            from './constants/JobStopHolds.ts';
+import { DocumentAgentJobUtil }     from './utils/DocumentAgentJobUtil.ts';
+import { JobControlRuleUtil }       from './utils/JobControlRuleUtil.ts';
+import { OptionConsequencesUtil }   from './utils/OptionConsequencesUtil.ts';
 
 /** The states with no agent session to stop: a stop there ends the job in the same hold. */
 const SESSIONLESS_STATES: readonly Job['state'][] = ['launching', 'preparing', 'interrupted', 'awaiting-answer'];
@@ -246,6 +250,40 @@ export class JobControls {
     return this.intakeChainOfJobId(job.id, job.parentJobId);
   }
 
+  /**
+   * User's resume of every interrupted job whose policy waits for one, a crash past its bound included, and of every job whose lost line
+   * waits; none logged when none waits.
+   */
+  instructResumeOfEveryWaitingJob(limits: LifecycleThresholds, at: string): Logged {
+    const waiting = this.jobRules.jobs().filter((job) => (
+      job.state === 'interrupted' ? Playbook.resumePolicyOf(job, limits) === 'waits-for-instruction' : this.lostLineAwaitsResume(job)
+    ));
+    return this.instructResumeOfEach(waiting, at);
+  }
+
+  lostLineAwaitsResume(job: Readonly<Job>): boolean {
+    return Playbook.lostLineAwaitsResume(job, this.logRecordsSoFar());
+  }
+
+  /** User's resume of every job that ended on a network outage (decision 35); none logged when none did. */
+  instructResumeOfEveryNetworkOutageJob(at: string): Logged {
+    return this.instructResumeOfEach(this.interruptedJobs().filter((job) => job.interruption === 'network-outage'), at);
+  }
+
+  /**
+   * User's resume of one ticket: each of its jobs that waits for a resume is instructed, and an `interrupted:` hold is lifted. Refused
+   * `ticket-not-interrupted` when it has neither.
+   */
+  resumeInterruptedTicket(ticketId: string, at: string): Logged {
+    const waits     = (job: Readonly<Job>): boolean => job.state === 'interrupted' || this.lostLineAwaitsResume(job);
+    const jobIds    = this.jobRules.jobs().filter((job) => waits(job) && job.ticketIds.includes(ticketId)).map((job) => job.id);
+    const holdLifts = this.records.ticketRecordByReference(ticketId)?.frontmatter.hold?.startsWith(INTERRUPTED_HOLD_PREFIX) === true;
+    if (jobIds.length === 0 && !holdLifts) throw new BoardRefusal({ reason: 'ticket-not-interrupted', ticketId });
+    const instructed = jobIds.flatMap((jobId) => this.jobRules.recordJobResumeInstructed(jobId, at).logged);
+    const lifted     = holdLifts ? this.ticketSettings.liftInterruptedHold(ticketId, at).logged : [];
+    return { logged: [...instructed, ...lifted] };
+  }
+
   /** An ended job's parent is read from its launch record. */
   private intakeChainOfJobId(jobId: string, knownParentJobId?: string | null): string[] {
     const parentOf = new Map<string, string | null>();
@@ -292,5 +330,13 @@ export class JobControls {
     throw new BoardRefusal({
       reason: 'job-is-document-agent', jobId: job.id, ticketId: job.ticketIds[0] ?? '', document
     });
+  }
+
+  private interruptedJobs(): readonly Readonly<Job>[] {
+    return this.jobRules.jobs().filter((job) => job.state === 'interrupted');
+  }
+
+  private instructResumeOfEach(jobs: readonly Readonly<Job>[], at: string): Logged {
+    return { logged: jobs.flatMap((job) => this.jobRules.recordJobResumeInstructed(job.id, at).logged) };
   }
 }

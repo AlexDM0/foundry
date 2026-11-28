@@ -98,11 +98,12 @@ import { writeTracker }                                             from '../tra
 import { requireProgressFile }                                      from '../tracker/TrackerReader.ts';
 import { workspacePathsFor, type Workspace }                        from '../tracker/Workspace.ts';
 import { MONITOR_REGISTRY_FILES }                                   from '../tracker/constants/MonitorRegistryFiles.ts';
+import type { JobLaunchFacts }                                      from './@types/JobLaunchFacts.ts';
 import type { StartGateVerdict }                                    from './@types/StartClassification.ts';
 import type { BoardChildren }                                       from './BoardChildren.ts';
 import { CrashLog }                                                 from './CrashLog.ts';
 import { CrashPath, type CrashPathContext }                         from './CrashPath.ts';
-import { type DrivePass, type JobLaunchFacts }                      from './DrivePass.ts';
+import type { DrivePass }                                           from './DrivePass.ts';
 import { HatchInbox }                                               from './HatchInbox.ts';
 import { hephaestusFilesIn, type HephaestusFiles }                  from './HephaestusFiles.ts';
 import { jobFolderIn }                                              from './HephaestusFiles.ts';

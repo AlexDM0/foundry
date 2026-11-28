@@ -23,7 +23,7 @@ import { GitProcess }                                    from '../../lib/git/Git
 import { GitWorktrees }                                  from '../../lib/git/GitWorktrees.ts';
 import { TICKET_SECTION_PATTERNS }                       from '../../shared/constants/TicketSectionPatterns.ts';
 import { ReworkCountUtil }                               from '../../shared/rework/utils/ReworkCountUtil.ts';
-import { ticketIdFiledByRequest }                        from './Customs.ts';
+import { CustomsReportChecks }                           from './CustomsReportChecks.ts';
 
 export interface ReviewPassRequest {
   board:             Board;
@@ -130,7 +130,7 @@ function findingsOf(report: unknown, filedTicketIdOfRequest: (requestId: string)
 }
 
 function filedTicketIdResolver(records: readonly LogRecord[], jobId: string): (requestId: string) => string {
-  return (requestId) => ticketIdFiledByRequest(records, jobId, requestId) ?? requestId;
+  return (requestId) => CustomsReportChecks.ticketIdFiledByRequest(records, jobId, requestId) ?? requestId;
 }
 
 function reviewSectionOf(round: number, report: unknown, claims: readonly ReviewClaim[], findings: readonly ReviewFinding[]): string {

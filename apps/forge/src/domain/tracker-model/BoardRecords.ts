@@ -175,6 +175,15 @@ export class BoardRecords {
     return this.pipeline?.approvals?.merge === true;
   }
 
+  /** Without an `approvals.tickets` key, ticket review is on. */
+  ticketReviewIsOn(): boolean {
+    return this.pipeline?.approvals?.tickets !== false;
+  }
+
+  assistantIsOn(): boolean {
+    return this.pipeline?.assistant === true;
+  }
+
   /** A caller hands in an id it resolved itself, so a miss here is a programming error rather than a refusal to word. */
   requireTicket(ticketId: string): Ticket {
     const ticket = this.ticketRecordById(ticketId);

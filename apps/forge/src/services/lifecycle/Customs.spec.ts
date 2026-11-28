@@ -10,21 +10,17 @@ import { posix, win32 } from 'node:path';
 
 import { expect, test } from 'bun:test';
 
-import type { LogRecord }              from '../../domain/tracker-model/@types/LogRecord.ts';
-import { type GitPathStyle, GitPaths } from '../../lib/git/GitPaths.ts';
-import { fakeAgentAdapter }            from '../../testing/FakeAgentAdapter.ts';
-import {
-  agentConfigPathsAmong,
-  CHECKS_OF_ROLE,
-  commitMessageIsAttributed,
-  CUSTOMS_CHECKS,
-  type CustomsSubject,
-  definitionFilePatternExpressionOf,
-  foreignRefsMovedOf,
-  type RefMovesAllowed,
-  retriedFailedBuildJobIdOf,
-  type VerificationCheck
-} from './Customs.ts';
+import type { LogRecord }                 from '../../domain/tracker-model/@types/LogRecord.ts';
+import { type GitPathStyle, GitPaths }    from '../../lib/git/GitPaths.ts';
+import { fakeAgentAdapter }               from '../../testing/FakeAgentAdapter.ts';
+import type { CustomsSubject }            from './@types/CustomsSubject.ts';
+import type { VerificationCheck }         from './@types/CustomsVerdict.ts';
+import type { RefMovesAllowed }           from './@types/RefMoves.ts';
+import { CHECKS_OF_ROLE, CUSTOMS_CHECKS } from './Customs.ts';
+import { CustomsAgentConfigCheck }        from './CustomsAgentConfigCheck.ts';
+import { CustomsDefinitionFilesCheck }    from './CustomsDefinitionFilesCheck.ts';
+import { CustomsHistoryChecks }           from './CustomsHistoryChecks.ts';
+import { CustomsRefMovesCheck }           from './CustomsRefMovesCheck.ts';
 
 const AT = '2026-10-28T10:00:00+01:00';
 const TICKET_BODY = '## Report\nExample report.\n\n## Acceptance\nA1. The example page loads.\n';
@@ -93,10 +89,10 @@ test('a build retries the unbroken run of failed build attempts right before it 
     ended('J4', 'failed'),
     launched('J5', '002'),
   ];
-  expect(retriedFailedBuildJobIdOf(records, 'J5')).toBe('J2');
-  expect(retriedFailedBuildJobIdOf(records, 'J2')).toBeNull();
-  expect(retriedFailedBuildJobIdOf(records, 'J3')).toBeNull();
-  expect(retriedFailedBuildJobIdOf(records, 'J9')).toBeNull();
+  expect(CustomsHistoryChecks.retriedFailedBuildJobIdOf(records, 'J5')).toBe('J2');
+  expect(CustomsHistoryChecks.retriedFailedBuildJobIdOf(records, 'J2')).toBeNull();
+  expect(CustomsHistoryChecks.retriedFailedBuildJobIdOf(records, 'J3')).toBeNull();
+  expect(CustomsHistoryChecks.retriedFailedBuildJobIdOf(records, 'J9')).toBeNull();
 });
 
 test('V6 passes while the ticket holds the content hash its launch recorded, and refuses once it holds another', () => {
@@ -138,7 +134,7 @@ test('V18 runs in the builder, reviewer and Airlock agent columns, and a documen
 });
 
 test('a definition-file pattern reads as a git pathspec glob: a bare name at any depth, an inner / anchored, a trailing / a folder', () => {
-  const matches = (pattern: string, path: string): boolean => definitionFilePatternExpressionOf(pattern).test(path);
+  const matches = (pattern: string, path: string): boolean => CustomsDefinitionFilesCheck.definitionFilePatternExpressionOf(pattern).test(path);
 
   expect(matches('package.json', 'packages/example/package.json')).toBe(true);
   expect(matches('package.json', 'package.json.bak')).toBe(false);
@@ -166,15 +162,15 @@ test('on Windows a detached refresh worktree\'s own HEAD, listed by git as C:/ a
   const refreshHead = 'HEAD:C:/Example/Repository/.claude/worktrees/refresh-group-example';
   const allowed = { ...NO_REF_MOVES, airlockWorktreeHeads: ['HEAD:C:\\Example\\Repository\\.claude\\worktrees\\refresh-group-example'] };
   const snapshots = { launchRefs: { [refreshHead]: 'commit-before' }, nowRefs: { [refreshHead]: 'commit-after' } };
-  expect(foreignRefsMovedOf(WINDOWS_STYLE, snapshots, allowed, 'C:\\Example\\Repository\\.claude\\worktrees\\ticket-020')).toEqual([]);
-  expect(foreignRefsMovedOf(WINDOWS_STYLE, snapshots, NO_REF_MOVES, 'C:\\Example\\Repository\\.claude\\worktrees\\ticket-020')).toEqual([refreshHead]);
+  expect(CustomsRefMovesCheck.foreignRefsMovedOf(WINDOWS_STYLE, snapshots, allowed, 'C:\\Example\\Repository\\.claude\\worktrees\\ticket-020')).toEqual([]);
+  expect(CustomsRefMovesCheck.foreignRefsMovedOf(WINDOWS_STYLE, snapshots, NO_REF_MOVES, 'C:\\Example\\Repository\\.claude\\worktrees\\ticket-020')).toEqual([refreshHead]);
 });
 
 test('on Windows the job\'s own detached HEAD, listed as C:/ and named by a joined path, does not read as moved; another worktree\'s does', () => {
   const ownHead = 'HEAD:C:/Example/Repository/.claude/worktrees/ticket-020';
   const otherHead = 'HEAD:C:/Example/Repository/.claude/worktrees/ticket-021';
   const snapshots = { launchRefs: { [ownHead]: 'commit-before', [otherHead]: 'commit-before' }, nowRefs: { [ownHead]: 'commit-after', [otherHead]: 'commit-after' } };
-  expect(foreignRefsMovedOf(WINDOWS_STYLE, snapshots, NO_REF_MOVES, 'C:\\Example\\Repository\\.claude\\worktrees\\ticket-020')).toEqual([otherHead]);
+  expect(CustomsRefMovesCheck.foreignRefsMovedOf(WINDOWS_STYLE, snapshots, NO_REF_MOVES, 'C:\\Example\\Repository\\.claude\\worktrees\\ticket-020')).toEqual([otherHead]);
 });
 
 test('a reader\'s snapshot that appears, moves or goes while a build runs does not read as moved; a worktree outside the folders does', () => {
@@ -188,13 +184,15 @@ test('a reader\'s snapshot that appears, moves or goes while a build runs does n
     nowRefs:    { [added]: 'commit-after', [moved]: 'commit-after', [other]: 'commit-after' },
   };
   const allowed = { ...NO_REF_MOVES, snapshotFolders: [snapshotsFolder, '/example/repository/.claude/worktrees/pipeline-agent'] };
-  expect(foreignRefsMovedOf(LINUX_STYLE, snapshots, allowed, '/example/repository/.claude/worktrees/ticket-020')).toEqual([other]);
-  expect(foreignRefsMovedOf(LINUX_STYLE, snapshots, NO_REF_MOVES, '/example/repository/.claude/worktrees/ticket-020')).toEqual([added, moved, removed, other].sort());
+  expect(CustomsRefMovesCheck.foreignRefsMovedOf(LINUX_STYLE, snapshots, allowed, '/example/repository/.claude/worktrees/ticket-020')).toEqual([other]);
+  expect(CustomsRefMovesCheck.foreignRefsMovedOf(LINUX_STYLE, snapshots, NO_REF_MOVES, '/example/repository/.claude/worktrees/ticket-020'))
+    .toEqual([added, moved, removed, other].sort());
 });
 
 test('a snapshot stored in git\'s spelling compares equal to a fresh one, so no ref reads as moved across the change', () => {
   const refs = { 'refs/heads/main': 'commit-before', 'HEAD:/example/repository/.claude/worktrees/refresh-group-example': 'commit-before' };
-  expect(foreignRefsMovedOf(LINUX_STYLE, { launchRefs: refs, nowRefs: { ...refs } }, NO_REF_MOVES, '/example/repository/.claude/worktrees/ticket-020')).toEqual([]);
+  expect(CustomsRefMovesCheck.foreignRefsMovedOf(LINUX_STYLE, { launchRefs: refs, nowRefs: { ...refs } }, NO_REF_MOVES, '/example/repository/.claude/worktrees/ticket-020'))
+    .toEqual([]);
 });
 
 test.each([
@@ -219,23 +217,23 @@ test.each([
   ],
   ['an honest different case outside protected names', ['Src/Example.ts', 'Docs/Claude.md', 'example.mcp.json'], null, []],
 ] as const)('agent configuration among git paths: %s', (_case, gitPaths, hooksFolderGitPath, expected) => {
-  expect(agentConfigPathsAmong(gitPaths, AGENT_NAMING.configurationNames, hooksFolderGitPath)).toEqual([...expected]);
+  expect(CustomsAgentConfigCheck.agentConfigPathsAmong(gitPaths, AGENT_NAMING.configurationNames, hooksFolderGitPath)).toEqual([...expected]);
 });
 
 test('the agent configuration is the names the adapter hands: a planted folder and file, at the root, and at any depth for a project tracker', () => {
   const changed = ['.planted-agent/settings.toml', 'Planted-Agent.TOML', 'apps/example/.planted-agent/rules.md', 'apps/example/planted-agent.toml'];
   const lookAlikes = ['xplanted-agent/settings.toml', 'planted-agent.toml.bak', 'planted-agentxtoml', '.planted-agent', '.claude/settings.json', '.mcp.json'];
 
-  expect(agentConfigPathsAmong([...changed, ...lookAlikes], PLANTED_CONFIGURATION_NAMES, null)).toEqual(changed.slice(0, 2));
-  expect(agentConfigPathsAmong([...changed, ...lookAlikes], PLANTED_CONFIGURATION_NAMES, null, 'apps/example')).toEqual(changed);
+  expect(CustomsAgentConfigCheck.agentConfigPathsAmong([...changed, ...lookAlikes], PLANTED_CONFIGURATION_NAMES, null)).toEqual(changed.slice(0, 2));
+  expect(CustomsAgentConfigCheck.agentConfigPathsAmong([...changed, ...lookAlikes], PLANTED_CONFIGURATION_NAMES, null, 'apps/example')).toEqual(changed);
 });
 
 test('V7 refuses the attribution the adapter hands and forge\'s own "Generated with", and nothing the adapter does not name', () => {
   const plantedNaming = { attributionPatterns: PLANTED_ATTRIBUTION_PATTERNS };
 
-  expect(commitMessageIsAttributed('Build the example\n\nPlanted-Agent-Commit: yes', plantedNaming)).toBe(true);
-  expect(commitMessageIsAttributed('Build the example\n\nGenerated with an example tool', plantedNaming)).toBe(true);
-  expect(commitMessageIsAttributed('Build the example\n\nCo-Authored-By: Claude <noreply@example.com>', plantedNaming)).toBe(false);
-  expect(commitMessageIsAttributed('Build the example\n\nCo-Authored-By: Claude <noreply@example.com>', AGENT_NAMING)).toBe(true);
-  expect(commitMessageIsAttributed('Build the example', AGENT_NAMING)).toBe(false);
+  expect(CustomsHistoryChecks.commitMessageIsAttributed('Build the example\n\nPlanted-Agent-Commit: yes', plantedNaming)).toBe(true);
+  expect(CustomsHistoryChecks.commitMessageIsAttributed('Build the example\n\nGenerated with an example tool', plantedNaming)).toBe(true);
+  expect(CustomsHistoryChecks.commitMessageIsAttributed('Build the example\n\nCo-Authored-By: Claude <noreply@example.com>', plantedNaming)).toBe(false);
+  expect(CustomsHistoryChecks.commitMessageIsAttributed('Build the example\n\nCo-Authored-By: Claude <noreply@example.com>', AGENT_NAMING)).toBe(true);
+  expect(CustomsHistoryChecks.commitMessageIsAttributed('Build the example', AGENT_NAMING)).toBe(false);
 });

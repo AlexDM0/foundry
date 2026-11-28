@@ -4,7 +4,7 @@
  */
 import { GitProblemWording }           from '../src/adapters/GitProblemWording.ts';
 import { OperationRefusalWordingUtil } from '../src/adapters/utils/OperationRefusalWordingUtil.ts';
-import type { HephaestusNotice }       from '../src/services/hephaestus/DrivePass.ts';
+import type { HephaestusNotice }       from '../src/services/hephaestus/@types/HephaestusStateDocument.ts';
 import type { RestartFailure }         from '../src/services/hephaestus/Restart.ts';
 import { PRODUCT_NAMES }               from '../src/shared/constants/ProductNames.ts';
 import { AgentProgramWordingUtil }     from '../src/shared/utils/AgentProgramWordingUtil.ts';

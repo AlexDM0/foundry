@@ -524,7 +524,7 @@ adapter's `sessionSubagentsOf`. A malformed log adds nothing and does not fail t
 | --- | --- | --- |
 | `jobId` | The job | The job |
 | `calls` | Distinct `messageId`s of the job's own assistant turns, across every [child instance](../glossary.md#child-instance). Cumulative, and shown only. | Event logs |
-| `callBudget` | The [role](../glossary.md#role)'s [call budget](../glossary.md#call-budget) from `JobLaunch.callBudgetOf`; `null` unless the job kind is `build` or `review` | The job |
+| `callBudget` | The [role](../glossary.md#role)'s [call budget](../glossary.md#call-budget) from `BuildJobSessions.callBudgetOf`; `null` unless the job kind is `build` or `review` | The job |
 | `tokens` | Input, output and both cache figures, counted once per `messageId`, the job's own and its subagents' | Event logs, transcripts |
 | `toolCalls` | The job's own `tool-call` events | Event logs |
 | `lastToolCall` | `{toolName, startedAt, running}` of the job's newest call; `running` holds until a result names its id | Event logs |
@@ -540,7 +540,7 @@ adapter's `sessionSubagentsOf`. A malformed log adds nothing and does not fail t
 
 *Notice that a rebuilt subagent reaches the totals and never `calls`.*
 
-The count Hephaestus compares with a budget is not `live.calls`. It comes from `JobLaunch.sessionReadingOf` and
+The count Hephaestus compares with a budget is not `live.calls`. It comes from `BuildJobSessions.sessionReadingOf` and
 restarts after a [red handoff](../glossary.md#red-handoff), when the session has `RED_HANDOFF_RESUME_CALL_BUDGET`. So
 during a red-handoff resume neither `live.calls` nor `live.callBudget` is the pair compared.
 
@@ -1011,7 +1011,7 @@ the shape. A monitor's server calls it, since a page of another origin gets 403 
 | Reading the board | `cli/hephaestus/routes/BoardStateReader.ts` | `readBoardState`, `createMergeForecastCache` | `cli/hephaestus/routes/BoardStateReader.mergeForecasts.spec.ts` |
 | Publishing | `cli/hephaestus/HephaestusForeground.ts` | `publishState` inside `startServing` | `cli/hephaestus/HephaestusApi.integration.spec.ts` |
 | Live facts | `src/services/hephaestus/JobLiveFactsReader.ts` | `JobLiveFactsReader` | `src/services/hephaestus/JobLiveFactsReader.spec.ts` |
-| The count against a budget | `src/services/hephaestus/JobLaunch.ts` | `sessionReadingOf` | |
+| The count against a budget | `src/services/hephaestus/BuildJobSessions.ts` | `sessionReadingOf` | |
 | Lost subagents | `src/lib/claude-code/ClaudeSessionSubagents.ts` | `ClaudeSessionSubagents.subagentFactsOf` | `src/lib/claude-code/ClaudeSessionSubagents.spec.ts` |
 | Transcript | `src/services/hephaestus/JobTranscript.ts` | `JobTranscript` | `src/services/hephaestus/HephaestusServer.integration.spec.ts` |
 | Gate profile stream | `src/services/hephaestus/HephaestusServer.ts`, `src/services/hephaestus/GateProfiling.ts` | `profileOutputResponse`, `GateProfiling.outputFollowerOf` | `src/services/hephaestus/HephaestusServer.spec.ts`, `src/services/hephaestus/GateProfiling.outputFollower.spec.ts` |

@@ -18,17 +18,12 @@ import {
   type MergeOutcome,
   type TipRestoreOutcome
 } from '../../lib/git/BranchMerge.ts';
-import { GitProcess }                from '../../lib/git/GitProcess.ts';
-import { GitWorktrees }              from '../../lib/git/GitWorktrees.ts';
-import { NOT_AN_ANCESTOR_EXIT_CODE } from '../../lib/git/constants/GitConventions.ts';
-import type {
-  AgentNaming,
-  CustomsSubject,
-  ProjectScope,
-  VerificationCheck,
-  VerificationRefusalReason
-} from './Customs.ts';
-import { CHECKS_OF_ROLE, CUSTOMS_CHECKS } from './Customs.ts';
+import { GitProcess }                                        from '../../lib/git/GitProcess.ts';
+import { GitWorktrees }                                      from '../../lib/git/GitWorktrees.ts';
+import { NOT_AN_ANCESTOR_EXIT_CODE }                         from '../../lib/git/constants/GitConventions.ts';
+import type { AgentNaming, CustomsSubject, ProjectScope }    from './@types/CustomsSubject.ts';
+import type { VerificationCheck, VerificationRefusalReason } from './@types/CustomsVerdict.ts';
+import { CHECKS_OF_ROLE, CUSTOMS_CHECKS }                    from './Customs.ts';
 
 const DIFF_FILE_HEADER = /^(?:\+\+\+|---) /;
 const CHANGED_LINE     = /^[+-]/;

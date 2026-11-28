@@ -22,11 +22,11 @@ import type { BoardChildren }                                             from '
 import { CONSTITUTION_COMMITS_FOLDER, ConstitutionCommits }               from './ConstitutionCommits.ts';
 import { GATE_PROFILE_WORKTREES_FOLDER }                                  from './GateProfiling.ts';
 import { GroupWorktrees }                                                 from './GroupWorktrees.ts';
-import { JobLaunch }                                                      from './JobLaunch.ts';
 import { DOCUMENT_AGENT_SNAPSHOT_FOLDER, PIPELINE_AGENT_SNAPSHOT_FOLDER } from './PipelineAgentSessions.ts';
 import { PIPELINE_CHECK_WORKTREES_FOLDER }                                from './PipelineChecking.ts';
 import { settleLostChild }                                                from './TalosStart.ts';
 import type { UnreadableBoardFiles }                                      from './UnreadableBoardFiles.ts';
+import { WorktreeJobs }                                                   from './WorktreeJobs.ts';
 
 export interface RegroupingReport {
   /** `cause` is `null` while the forced stop of the child's tree is refused. */
@@ -109,7 +109,9 @@ function leftoverWorktreesOf(workspace: Workspace, jobs: readonly Readonly<Job>[
   if (!existsSync(worktreesRoot)) return [];
   const refreshOwned = jobs.filter((job) => job.kind === 'refresh' && job.target !== null).map((job) => GroupWorktrees.refreshWorktreeOf(worktreesRoot, job.target ?? ''));
   const commitOwned  = jobs.filter((job) => job.kind === 'constitution-commit').map((job) => ConstitutionCommits.commitWorktreeOf(worktreesRoot, job.id));
-  const jobOwned     = new Set([...jobs.filter(JobLaunch.isWorktreeJob).map((job) => JobLaunch.worktreeOf(workspace, job)), ...refreshOwned, ...commitOwned].map(canonicalPathOf));
+  const jobOwned     = new Set([
+    ...jobs.filter(WorktreeJobs.isWorktreeJob).map((job) => WorktreeJobs.worktreeOf(workspace, job)), ...refreshOwned, ...commitOwned
+  ].map(canonicalPathOf));
   const branchOwned = branchOwnedWorktreesOf(workspace.rootDirectory);
   const commitFolder = join(worktreesRoot, CONSTITUTION_COMMITS_FOLDER);
   return [...foldersIn(worktreesRoot).filter((folder) => !HEPHAESTUS_OWNED_FOLDERS.has(basename(folder)) && folder !== commitFolder), ...foldersIn(commitFolder)]
@@ -119,7 +121,7 @@ function leftoverWorktreesOf(workspace: Workspace, jobs: readonly Readonly<Job>[
 }
 
 function awaitsItsSpawn(job: Readonly<Job>): boolean {
-  return (job.state === 'launching' && !JobLaunch.isWorktreeJob(job)) || job.state === 'running';
+  return (job.state === 'launching' && !WorktreeJobs.isWorktreeJob(job)) || job.state === 'running';
 }
 
 /** Reads and acts outside the lock; the first pass's one hold then applies everything it found. A live child is read by the passes alone. */

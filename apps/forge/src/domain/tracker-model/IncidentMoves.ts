@@ -3,7 +3,7 @@
  * job, a park that stops it and keeps the agent's questions in front of User, and each kind's fail-safe default. Which move an incident's
  * kind allows is the caller's table; this applies a move already allowed.
  */
-import type { Logged }                                       from './@types/BoardChanges.ts';
+import type { IncidentEscalated, Logged }                    from './@types/BoardChanges.ts';
 import type { DecisionQuestion }                             from './@types/Decision.ts';
 import type { Incident, IncidentDefaultCause, IncidentKind } from './@types/Incident.ts';
 import type { JobEnding, JobKind }                           from './@types/Job.ts';
@@ -106,6 +106,15 @@ export class IncidentMoves {
       default:
         return defaulted;
     }
+  }
+
+  /** Puts a question incident's own questions to User as an `agent-question`, with no word of the Assistant's. */
+  escalateQuestionIncident(incidentId: string, at: string): IncidentEscalated {
+    const incident   = this.input.incidentRules.incidentById(incidentId);
+    const escalation = incident === undefined ? null : this.input.agentQuestions.escalationOf(incident);
+    if (incident === undefined) throw new BoardRefusal({ reason: 'unknown-incident', incidentId });
+    if (escalation === null) throw new BoardRefusal({ reason: 'decision-without-questions' });
+    return this.input.incidentRules.escalateIncident(incidentId, escalation, at);
   }
 
   private freshAgentFor(incident: Readonly<Incident>, at: string): LogRecord[] {

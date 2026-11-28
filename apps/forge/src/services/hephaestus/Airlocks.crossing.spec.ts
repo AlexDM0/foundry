@@ -11,7 +11,7 @@
  * with the seal lifted and the return counted, the home's gate to `adapt`, and a second package return opens `second-return` naming the
  * package, the ticket kept at its stage (E65, E45); an abandoned ticket never takes the Airlock (E67); and a group's landing gates only the
  * entities it changes, while the group's release landing on the main line gates their consumers too (E68). E66 is the review's catch-up, in
- * `JobLaunch.targetCatchUp.spec.ts`. Git answers from the recorded answer sets of `src/services/hephaestus/testing/AirlockAnswerSets.ts`.
+ * `BuildJobPass.targetCatchUp.spec.ts`. Git answers from the recorded answer sets of `src/services/hephaestus/testing/AirlockAnswerSets.ts`.
  */
 import { join } from 'node:path';
 

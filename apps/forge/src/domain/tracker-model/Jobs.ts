@@ -5,6 +5,7 @@
  */
 import type { JobChanged, Logged } from './@types/BoardChanges.ts';
 import type {
+  LiveDocumentAgent,
   InterruptionCause,
   Job,
   JobEnding,
@@ -20,7 +21,7 @@ import type {
   Airlock,
   HephaestusStopReason,
   PictureReference
-}                                   from './@types/Job.ts';
+} from './@types/Job.ts';
 import type { HatchAppliedRecord, LogRecord, LogRecordFieldsOf }    from './@types/LogRecord.ts';
 import type { DeclaredNeed }                                        from './@types/Need.ts';
 import type { QuestionOptionNotes }                                 from './@types/OptionConsequences.ts';
@@ -28,6 +29,7 @@ import type { TicketDocumentKind }                                  from './@typ
 import type { BoardRecords }                                        from './BoardRecords.ts';
 import { BoardRefusal }                                             from './BoardRefusal.ts';
 import { Playbook }                                                 from './Playbook.ts';
+import type { TicketDocuments }                                     from './TicketDocuments.ts';
 import { LEGAL_SOURCE_STATES_FOR_JOB_MOVE, PROCESSLESS_JOB_STATES } from './constants/JobMoveLegality.ts';
 import {
   CRASH_INTERRUPTION_CAUSES,
@@ -96,7 +98,7 @@ function isCrash(cause: InterruptionCause): boolean {
 }
 
 export class Jobs {
-  constructor(private readonly records: BoardRecords) {}
+  constructor(private readonly records: BoardRecords, private readonly ticketDocuments: TicketDocuments) {}
 
   /** In launch order. */
   jobs(): readonly Readonly<Job>[] {
@@ -447,6 +449,30 @@ export class Jobs {
   hatchAppliedRecordOf(requestId: string): HatchAppliedRecord | null {
     const isTheRequest = (record: LogRecord): record is HatchAppliedRecord => record.kind === 'hatch-applied' && record.fields.requestId === requestId;
     return this.records.storedLogRecords.find(isTheRequest) ?? this.records.loggedRecords.find(isTheRequest) ?? null;
+  }
+
+  /** Any job still on the board for the ticket may hold its agent group or a line child in the worktree. */
+  refuseARepairOfAWorktreeInUse(ticketId: string): void {
+    const jobIds = this.jobs().filter((job) => job.ticketIds.includes(ticketId)).map((job) => job.id);
+    if (jobIds.length > 0) throw new BoardRefusal({ reason: 'worktree-in-use', ticketId, jobIds });
+  }
+
+  /** The job the Bouncer stamped, while it is the one document agent on the board for its ticket's document; else `document-agent-not-live`. */
+  liveDocumentAgentOf(jobId: string | undefined): LiveDocumentAgent {
+    const job      = jobId === undefined ? undefined : this.jobById(jobId);
+    const document = job === undefined ? null : DocumentAgentJobUtil.documentOf(job);
+    const ticketId = job?.ticketIds[0];
+    if (job === undefined || document === null || ticketId === undefined) {
+      throw new BoardRefusal({
+        reason: 'document-agent-not-live', ticketId: ticketId ?? '', document: document ?? 'spec', jobId: jobId ?? ''
+      });
+    }
+    if (DocumentAgentJobUtil.liveAgentOf(this.jobs(), ticketId, document)?.id !== job.id || this.ticketDocuments.documentOf(ticketId, document) === null) {
+      throw new BoardRefusal({
+        reason: 'document-agent-not-live', ticketId, document, jobId: job.id
+      });
+    }
+    return { job, ticketId, document };
   }
 
   private logRecordsSoFar(): LogRecord[] {

@@ -54,26 +54,21 @@ import {
   TWO_TRACKER_SHARED_PACKAGE_SOURCE_FILE
 } from '../../testing/TwoTrackerFixture.ts';
 import { TWO_TRACKER_SCENARIOS } from '../../testing/TwoTrackerScenarios.ts';
-import {
-  agentConfigPathsAmong,
-  CUSTOMS_CHECKS,
-  type ConstitutionOwnership,
-  type CustomsSubject,
-  dataFolderPathsAmong,
-  definitionFileMatcherOf,
-  definitionFilePatternExpressionOf,
-  foreignRefsMovedOf,
-  launchSnapshotOf,
-  pathsOutsideHomeAndReachOf,
-  type ProjectScope,
-  type RefMovesAllowed,
-  refMovesAllowedOf,
-  pathsOutsideWritableFoldersOf,
-  type VerificationCheck,
-  watchedRefsOf,
-  type WatchedRefs,
-  type WritableFolders
-} from './Customs.ts';
+import type {
+  ConstitutionOwnership,
+  CustomsSubject,
+  ProjectScope,
+  WritableFolders
+} from './@types/CustomsSubject.ts';
+import type { VerificationCheck }            from './@types/CustomsVerdict.ts';
+import type { RefMovesAllowed, WatchedRefs } from './@types/RefMoves.ts';
+import { CUSTOMS_CHECKS }                    from './Customs.ts';
+import { CustomsAgentConfigCheck }           from './CustomsAgentConfigCheck.ts';
+import { CustomsDataFolderCheck }            from './CustomsDataFolderCheck.ts';
+import { CustomsDefinitionFilesCheck }       from './CustomsDefinitionFilesCheck.ts';
+import { launchSnapshotOf }                  from './CustomsLaunchSnapshot.ts';
+import { CustomsRefMovesCheck }              from './CustomsRefMovesCheck.ts';
+import { CustomsScopeCheck }                 from './CustomsScopeCheck.ts';
 
 const { FORGE, GAIA } = TWO_TRACKER_PROJECTS;
 const { DATA_FOLDER } = PRODUCT_NAMES;
@@ -101,16 +96,16 @@ describe('a tracker at its repository\'s root reads every path as before', () =>
   ];
 
   test.each(patterns)('the definition pattern "%s" names exactly the paths its expression always named', (pattern) => {
-    const matches = definitionFileMatcherOf(pattern, '');
-    const expression = definitionFilePatternExpressionOf(pattern);
+    const matches = CustomsDefinitionFilesCheck.definitionFileMatcherOf(pattern, '');
+    const expression = CustomsDefinitionFilesCheck.definitionFilePatternExpressionOf(pattern);
     expect(paths.filter(matches)).toEqual(paths.filter((path) => expression.test(path)));
   });
 
   test('its data folder and agent configuration are protected at the root only, a nested copy passing as it always has', () => {
     const changed = [`${DATA_FOLDER}/progress.json`, `apps/forge/${DATA_FOLDER}/progress.json`, '.claude/settings.json', 'apps/gaia/.claude/settings.json', 'apps/gaia/.mcp.json'];
-    expect(dataFolderPathsAmong(changed, '')).toEqual([`${DATA_FOLDER}/progress.json`]);
-    expect(agentConfigPathsAmong(changed, AGENT_NAMING.configurationNames, null)).toEqual(['.claude/settings.json']);
-    expect(agentConfigPathsAmong(changed, AGENT_NAMING.configurationNames, null, '')).toEqual(['.claude/settings.json']);
+    expect(CustomsDataFolderCheck.dataFolderPathsAmong(changed, '')).toEqual([`${DATA_FOLDER}/progress.json`]);
+    expect(CustomsAgentConfigCheck.agentConfigPathsAmong(changed, AGENT_NAMING.configurationNames, null)).toEqual(['.claude/settings.json']);
+    expect(CustomsAgentConfigCheck.agentConfigPathsAmong(changed, AGENT_NAMING.configurationNames, null, '')).toEqual(['.claude/settings.json']);
   });
 
   test('V17 passes it without asking git, with its scope given or absent, since the whole repository is its home', () => {
@@ -130,7 +125,7 @@ describe('a tracker at its repository\'s root reads every path as before', () =>
   });
 
   test('its branches keep their bare names, so it watches every ref, and a journal it shares with no one adds nothing', () => {
-    expect(watchedRefsOf(branchNamesOf(null), TWO_TRACKER_MAIN_LINE, '/example/repository/.forge-worktrees')).toBeNull();
+    expect(CustomsRefMovesCheck.watchedRefsOf(branchNamesOf(null), TWO_TRACKER_MAIN_LINE, '/example/repository/.forge-worktrees')).toBeNull();
     const naming = {
       ownJobId:                     'J1',
       ownBranch:                    'ticket-001',
@@ -140,14 +135,14 @@ describe('a tracker at its repository\'s root reads every path as before', () =>
       refreshWorktreeOf:            () => '',
       constitutionCommitWorktreeOf: () => '',
     };
-    expect(refMovesAllowedOf([], naming)).toEqual(refMovesAllowedOf([], naming, { journaledLandings: [], watchedRefs: null }));
-    expect(Object.hasOwn(refMovesAllowedOf([], naming), 'watchedRefs')).toBe(false);
+    expect(CustomsRefMovesCheck.refMovesAllowedOf([], naming)).toEqual(CustomsRefMovesCheck.refMovesAllowedOf([], naming, { journaledLandings: [], watchedRefs: null }));
+    expect(Object.hasOwn(CustomsRefMovesCheck.refMovesAllowedOf([], naming), 'watchedRefs')).toBe(false);
   });
 });
 
 describe('a project tracker judges paths from its own folder', () => {
   test('a pattern without a leading / names the project\'s file only, and one with it the repository root\'s', () => {
-    const named = (pattern: string, path: string): boolean => definitionFileMatcherOf(pattern, FORGE.folder)(path);
+    const named = (pattern: string, path: string): boolean => CustomsDefinitionFilesCheck.definitionFileMatcherOf(pattern, FORGE.folder)(path);
 
     expect(named('src/**', 'apps/forge/src/Example.ts')).toBe(true);
     expect(named('src/**', 'apps/gaia/src/Example.ts')).toBe(false);
@@ -172,22 +167,23 @@ describe('a project tracker judges paths from its own folder', () => {
       `${FORGE.folder}/${DATA_FOLDER}/progress.json`,
     ];
 
-    expect(pathsOutsideHomeAndReachOf(changed, GAIA_SCOPE)).toEqual([`${FORGE.folder}/${TWO_TRACKER_PROJECT_SOURCE_FILE}`, `${FORGE.folder}/${DATA_FOLDER}/progress.json`]);
-    expect(dataFolderPathsAmong(changed, GAIA.folder)).toEqual([`${FORGE.folder}/${DATA_FOLDER}/progress.json`]);
-    expect(agentConfigPathsAmong(changed, AGENT_NAMING.configurationNames, null, GAIA.folder))
+    expect(CustomsScopeCheck.pathsOutsideHomeAndReachOf(changed, GAIA_SCOPE))
+      .toEqual([`${FORGE.folder}/${TWO_TRACKER_PROJECT_SOURCE_FILE}`, `${FORGE.folder}/${DATA_FOLDER}/progress.json`]);
+    expect(CustomsDataFolderCheck.dataFolderPathsAmong(changed, GAIA.folder)).toEqual([`${FORGE.folder}/${DATA_FOLDER}/progress.json`]);
+    expect(CustomsAgentConfigCheck.agentConfigPathsAmong(changed, AGENT_NAMING.configurationNames, null, GAIA.folder))
       .toEqual([`${GAIA.folder}/.claude/settings.json`, `${TWO_TRACKER_SHARED_PACKAGE_FOLDER}/.MCP.json`]);
   });
 
   test('a reach entry names a file or a folder, its trailing / aside, and never a sibling folder that only starts with its name', () => {
     const scope: ProjectScope = { projectPrefix: GAIA.folder, reach: ['/packages/design-system/', '/turbo.json'] };
     const changed = ['packages/design-system/src/Example.ts', 'turbo.json', 'packages/design-system-extra/Example.ts', 'apps/gaia-extra/Example.ts', 'package.json'];
-    expect(pathsOutsideHomeAndReachOf(changed, scope)).toEqual(['packages/design-system-extra/Example.ts', 'apps/gaia-extra/Example.ts', 'package.json']);
-    expect(pathsOutsideHomeAndReachOf(changed, ROOT_SCOPE)).toEqual([]);
+    expect(CustomsScopeCheck.pathsOutsideHomeAndReachOf(changed, scope)).toEqual(['packages/design-system-extra/Example.ts', 'apps/gaia-extra/Example.ts', 'package.json']);
+    expect(CustomsScopeCheck.pathsOutsideHomeAndReachOf(changed, ROOT_SCOPE)).toEqual([]);
   });
 
   test('its data folder is protected at any depth and in any case, and a folder merely named like it is not', () => {
     const changed = [`${DATA_FOLDER}/progress.json`, `${GAIA.folder}/${DATA_FOLDER.toUpperCase()}/progress.json`, `${GAIA.folder}/${DATA_FOLDER}-notes/example.md`];
-    expect(dataFolderPathsAmong(changed, GAIA.folder)).toEqual(changed.slice(0, 2));
+    expect(CustomsDataFolderCheck.dataFolderPathsAmong(changed, GAIA.folder)).toEqual(changed.slice(0, 2));
   });
 });
 
@@ -206,13 +202,13 @@ describe('a top-level forge with entities', () => {
       'apps/forge-extra/Example.ts',
       'package.json',
     ];
-    expect(pathsOutsideWritableFoldersOf(changed, FORGE_STAGE))
+    expect(CustomsScopeCheck.pathsOutsideWritableFoldersOf(changed, FORGE_STAGE))
       .toEqual(['packages/shared/src/Example.ts', 'apps/forge/vendor/Example.ts', 'apps/forge-extra/Example.ts', 'package.json']);
   });
 
   test('the root entity owns every path no other home holds, its own home inside another one too, and no other entity\'s path', () => {
     const changed = ['package.json', 'docs/Example.md', 'scripts/root-tools/Example.ts', 'scripts/Example.ts', 'apps/forge/src/Example.ts', 'packages/shared/Example.ts'];
-    expect(pathsOutsideWritableFoldersOf(changed, ROOT_STAGE)).toEqual(['scripts/Example.ts', 'apps/forge/src/Example.ts', 'packages/shared/Example.ts']);
+    expect(CustomsScopeCheck.pathsOutsideWritableFoldersOf(changed, ROOT_STAGE)).toEqual(['scripts/Example.ts', 'apps/forge/src/Example.ts', 'packages/shared/Example.ts']);
   });
 
   test('the data folder is protected at the root and in every entity home, in any case, and nowhere deeper', () => {
@@ -222,8 +218,8 @@ describe('a top-level forge with entities', () => {
       `packages/shared/${DATA_FOLDER}/example.json`,
       `apps/forge/src/${DATA_FOLDER}/example.json`,
     ];
-    expect(dataFolderPathsAmong(changed, '', ENTITY_HOMES)).toEqual(changed.slice(0, 3));
-    expect(dataFolderPathsAmong(changed, ''), 'without entity homes only the root\'s, as always').toEqual(changed.slice(0, 1));
+    expect(CustomsDataFolderCheck.dataFolderPathsAmong(changed, '', ENTITY_HOMES)).toEqual(changed.slice(0, 3));
+    expect(CustomsDataFolderCheck.dataFolderPathsAmong(changed, ''), 'without entity homes only the root\'s, as always').toEqual(changed.slice(0, 1));
   });
 
   test('.claude/ and .mcp.json are protected at the root and in every entity home, in any case, and nowhere deeper', () => {
@@ -234,15 +230,16 @@ describe('a top-level forge with entities', () => {
       'apps/forge/src/.claude/settings.json',
       'apps/forge/.mcp.json.example',
     ];
-    expect(agentConfigPathsAmong(changed, AGENT_NAMING.configurationNames, null, '', ENTITY_HOMES)).toEqual(changed.slice(0, 3));
-    expect(agentConfigPathsAmong(changed, AGENT_NAMING.configurationNames, null, ''), 'without entity homes only the root\'s, as always').toEqual(changed.slice(0, 1));
+    expect(CustomsAgentConfigCheck.agentConfigPathsAmong(changed, AGENT_NAMING.configurationNames, null, '', ENTITY_HOMES)).toEqual(changed.slice(0, 3));
+    expect(CustomsAgentConfigCheck.agentConfigPathsAmong(changed, AGENT_NAMING.configurationNames, null, ''), 'without entity homes only the root\'s, as always')
+      .toEqual(changed.slice(0, 1));
   });
 });
 
 describe('a project tracker\'s refs', () => {
   const worktreesRoot = '/example/repository/apps/gaia/.forge-worktrees';
   const ownBranchNames = branchNamesOf(GAIA.namespace);
-  const watchedRefs = watchedRefsOf(ownBranchNames, TWO_TRACKER_MAIN_LINE, worktreesRoot) ?? undefined;
+  const watchedRefs = CustomsRefMovesCheck.watchedRefsOf(ownBranchNames, TWO_TRACKER_MAIN_LINE, worktreesRoot) ?? undefined;
   const allowed: RefMovesAllowed = {
     ownBranch:            ownBranchNames.ticketBranchOf('001'),
     otherJobBranches:     [],
@@ -275,14 +272,15 @@ describe('a project tracker\'s refs', () => {
       'refs/tags/example-tag':  'commit-after',
       'refs/heads/forge-notes': 'commit-after',
     };
-    expect(foreignRefsMovedOf(LINUX_STYLE, { launchRefs, nowRefs }, allowed, `${worktreesRoot}/ticket-001`)).toEqual([ownRefreshHead, ownGroup, 'refs/heads/main']);
+    expect(CustomsRefMovesCheck.foreignRefsMovedOf(LINUX_STYLE, { launchRefs, nowRefs }, allowed, `${worktreesRoot}/ticket-001`))
+      .toEqual([ownRefreshHead, ownGroup, 'refs/heads/main']);
   });
 
   test('without watched refs, every one of those moves still refuses, as for a tracker with bare branch names', () => {
     const { watchedRefs: _watchedRefsLeftOut, ...unscoped } = allowed;
     const launchRefs = { 'refs/heads/person': 'commit-before' };
     const nowRefs = { 'refs/heads/person': 'commit-after', 'refs/stash': 'commit-after' };
-    expect(foreignRefsMovedOf(LINUX_STYLE, { launchRefs, nowRefs }, unscoped, `${worktreesRoot}/ticket-001`)).toEqual(['refs/heads/person', 'refs/stash']);
+    expect(CustomsRefMovesCheck.foreignRefsMovedOf(LINUX_STYLE, { launchRefs, nowRefs }, unscoped, `${worktreesRoot}/ticket-001`)).toEqual(['refs/heads/person', 'refs/stash']);
   });
 });
 
@@ -326,7 +324,7 @@ function forgeBuilderIn(worktreePath: string, launchSnapshot: LaunchSnapshot, re
 }
 
 function forgeRefMovesAllowed(sharedRepository: { journaledLandings: { target: string; commit: string }[]; watchedRefs: WatchedRefs | null }): RefMovesAllowed {
-  return refMovesAllowedOf([], {
+  return CustomsRefMovesCheck.refMovesAllowedOf([], {
     ownJobId:                     'J1',
     ownBranch:                    ticketBranchOfProject(FORGE),
     otherJobBranches:             [],
