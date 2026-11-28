@@ -103,10 +103,6 @@ function pageTitleOf(markup: string): string[] {
 }
 
 /** The brand bar's theme button, the one part of a screen that names its theme. */
-function themeButtonsOf(markup: string): MarkupElement[] {
-  return MarkupTree.elementsIn(MarkupTree.parse(markup), MarkupTree.withRole('button', /^Theme: /));
-}
-
 function onlyThemeButtonOf(markup: string): MarkupElement {
   return MarkupTree.onlyElementIn(MarkupTree.parse(markup), MarkupTree.withRole('button', /^Theme: /));
 }
@@ -210,8 +206,7 @@ describe('the screens of the visual pass', () => {
   });
 
   test('the two themes paint the same markup, but for the theme the theme button shows', () => {
-    const screensWithTheButton = PAINTED_OVER_ARTBOARDS.filter((candidate) => candidate.artboard !== 'B1');
-    for (const screen of screensWithTheButton) {
+    for (const screen of PAINTED_OVER_ARTBOARDS) {
       const dark = screenMarkupOf(screen, 'dark');
       const light = screenMarkupOf(screen, 'light');
       const darkThemeButton = onlyThemeButtonOf(dark);
@@ -220,10 +215,6 @@ describe('the screens of the visual pass', () => {
       expect(MarkupTree.nameOf(lightThemeButton)).toBe('Theme: light. Switch to dark');
       expect(dark.replace(darkThemeButton.source, '')).toBe(light.replace(lightThemeButton.source, ''));
     }
-  });
-
-  test('B1, whose route has no theme button, paints the very same markup in both themes', () => {
-    expect(screenMarkupOf(screenOf('B1'), 'dark')).toBe(screenMarkupOf(screenOf('B1'), 'light'));
   });
 });
 
@@ -271,7 +262,7 @@ describe('each screen shows the state its artboard draws', () => {
     expect(pageTitleOf(screenMarkupOf(screenOf('A4'), 'dark'))).toEqual(['Forges']);
   });
 
-  test('B1: Example Storefront in place, its bar over the board\'s header and main area, no frame, no page title and no theme button', () => {
+  test('B1: Example Storefront in place, its bar over the board\'s header and main area, no frame and no page title', () => {
     const markup = screenMarkupOf(screenOf('B1'), 'dark');
     expect(textsOfClass(markup, 'gaia-forge-frame-bar-name')).toEqual(['Example Storefront']);
     const boardTitleAt = markup.indexOf('<h1 class="board-title">Example Storefront</h1>');
@@ -284,7 +275,6 @@ describe('each screen shows the state its artboard draws', () => {
     const arrowAfterTheWords = MarkupTree.drawnMarkupOf(createElement(Icon, { name: 'arrow-out-of-square', label: null }));
     expect(openInNewTab.source.indexOf(arrowAfterTheWords)).toBeGreaterThan(openInNewTab.source.lastIndexOf('Open in new tab'));
     expect(pageTitleOf(markup)).toEqual([]);
-    expect(themeButtonsOf(markup)).toEqual([]);
   });
 
   test('B1: the board shows its moved Questions view at E2, read over a live stream, not a board still waiting for its first', () => {

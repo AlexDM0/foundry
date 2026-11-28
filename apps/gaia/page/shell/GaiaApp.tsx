@@ -124,21 +124,19 @@ export function themeChoiceHandlerOf(showChoice: (choice: ThemeChoice) => void, 
   };
 }
 
-/** A forge in place leaves the theme button out, so its bar has room for the forge's own line and buttons (`docs/design/screens.md`, the brand bar). */
 export function GaiaShell({
   fleetDocument, streamState, route, view, themeChoice, onThemeChoice, openForgeSetup = null, onGaiaUpdateCommand = null, forgePlaces = NO_FORGE_PLACES
 }: GaiaShellProps) {
-  const barKeepsItsButtons = route.view !== 'forge';
   return (
     <div className="gaia-shell">
       <fieldset className="gaia-shell-controls" disabled={!FleetStreamClient.controlsMayActIn(streamState)}>
         <BrandBar
           status={BrandStatusModel.brandStatusOf(fleetDocument)}
-          themeButton={barKeepsItsButtons ? { choice: themeChoice, onCycle: onThemeChoice } : null}
-          updateButton={barKeepsItsButtons && onGaiaUpdateCommand !== null
+          themeButton={{ choice: themeChoice, onCycle: onThemeChoice }}
+          updateButton={onGaiaUpdateCommand !== null
             ? GaiaUpdateButtonModel.updateButtonOf(fleetDocument?.gaia.update ?? null, onGaiaUpdateCommand)
             : null}
-          menu={barKeepsItsButtons && onGaiaUpdateCommand !== null
+          menu={onGaiaUpdateCommand !== null
             ? GaiaUpdateButtonModel.menuOf(fleetDocument?.gaia.update ?? null, onGaiaUpdateCommand)
             : null}
         />
