@@ -82,6 +82,9 @@
   border: 1px solid var(--line); border-radius: var(--r-3);
 }
 
+/* A selection in the preview is how User anchors a comment, so its text stays selectable. */
+.board-document-article { -webkit-user-select: text; user-select: text; }
+
 /* A plan reads narrower, under its notice, beside a narrower agent; beside the effect pane too, the page ground narrows to a gutter. */
 .board-document-page[data-document="plan"] :is(.board-document-article, .board-document-notice) { box-sizing: border-box; max-width: 760px; }
 

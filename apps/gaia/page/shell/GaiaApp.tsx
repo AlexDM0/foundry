@@ -12,33 +12,38 @@ import {
   useSyncExternalStore,
 } from 'react';
 
-import type { CommandBody }                                              from '../@types/CommandDocument.ts';
-import type { FleetDocument }                                            from '../@types/FleetDocument.ts';
-import { type CommandSender, CommandSenderContext }                      from '../api/CommandSender.ts';
-import { FleetStreamClient, type FleetStreamState }                      from '../api/FleetStreamClient.ts';
-import { browserBoardServicesOf }                                        from '../board/Board.tsx';
-import { BrandBar }                                                      from '../components/BrandBar.tsx';
-import { PageHead }                                                      from '../lib/design-system/DesignSystemInterface.ts';
-import type { ClockReading }                                             from '../shared/@types/ClockReading.ts';
-import type { SetupProgress }                                            from '../shared/@types/SetupProgress.ts';
-import type { ThemeChoice }                                              from '../shared/@types/ThemeChoice.ts';
-import type { ViewParts }                                                from '../shared/@types/ViewParts.ts';
-import { type GaiaRoute, HashRouter, type HashSurroundings }             from '../shared/HashRouter.ts';
-import { FigureLookUtil }                                                from '../shared/utils/FigureLookUtil.ts';
-import { activityViewPartsOf }                                           from '../views/activity/ActivityView.tsx';
-import { agentsViewPartsOf }                                             from '../views/agents/AgentsView.tsx';
-import { attentionViewPartsOf }                                          from '../views/attention/AttentionView.tsx';
-import { CrashLogRequest }                                               from '../views/forge/CrashLogRequest.ts';
-import { type ForgeViewSurroundings, forgeViewPartsOf }                  from '../views/forge/ForgeView.tsx';
-import { forgesViewPartsOf }                                             from '../views/forges/ForgesView.tsx';
-import { BrandStatusModel }                                              from './BrandStatusModel.ts';
-import { ConnectionBanner }                                              from './ConnectionBanner.tsx';
-import type { FleetSource }                                              from './FleetSource.ts';
-import { GaiaUpdateButtonModel }                                         from './GaiaUpdateButtonModel.ts';
-import { MotionReadiness }                                               from './MotionReadiness.ts';
-import { PageClock }                                                     from './PageClock.ts';
-import { Rail }                                                          from './Rail.tsx';
-import { type OpenForgeSetup, RailModel }                                from './RailModel.ts';
+import type { CommandBody }                                  from '../@types/CommandDocument.ts';
+import type { FleetDocument }                                from '../@types/FleetDocument.ts';
+import { type CommandSender, CommandSenderContext }          from '../api/CommandSender.ts';
+import { FleetStreamClient, type FleetStreamState }          from '../api/FleetStreamClient.ts';
+import { browserBoardServicesOf }                            from '../board/Board.tsx';
+import { BrandBar }                                          from '../components/BrandBar.tsx';
+import { PageHead }                                          from '../lib/design-system/DesignSystemInterface.ts';
+import type { ClockReading }                                 from '../shared/@types/ClockReading.ts';
+import type { SetupProgress }                                from '../shared/@types/SetupProgress.ts';
+import type { ThemeChoice }                                  from '../shared/@types/ThemeChoice.ts';
+import type { ViewParts }                                    from '../shared/@types/ViewParts.ts';
+import { type GaiaRoute, HashRouter, type HashSurroundings } from '../shared/HashRouter.ts';
+import { FigureLookUtil }                                    from '../shared/utils/FigureLookUtil.ts';
+import { activityViewPartsOf }                               from '../views/activity/ActivityView.tsx';
+import { agentsViewPartsOf }                                 from '../views/agents/AgentsView.tsx';
+import { attentionViewPartsOf }                              from '../views/attention/AttentionView.tsx';
+import { CrashLogRequest }                                   from '../views/forge/CrashLogRequest.ts';
+import { type ForgeViewSurroundings, forgeViewPartsOf }      from '../views/forge/ForgeView.tsx';
+import { forgesViewPartsOf }                                 from '../views/forges/ForgesView.tsx';
+import { BrandStatusModel }                                  from './BrandStatusModel.ts';
+import { ConnectionBanner }                                  from './ConnectionBanner.tsx';
+import type { FleetSource }                                  from './FleetSource.ts';
+import { GaiaUpdateButtonModel }                             from './GaiaUpdateButtonModel.ts';
+import { MotionReadiness }                                   from './MotionReadiness.ts';
+import { PageClock }                                         from './PageClock.ts';
+import { Rail }                                              from './Rail.tsx';
+import {
+  type ForgePlaces,
+  NO_FORGE_PLACES,
+  type OpenForgeSetup,
+  RailModel,
+} from './RailModel.ts';
 import { SecondsOnScreen }                                               from './SecondsOnScreen.ts';
 import { type ThemeChoiceState, ThemeBootstrap, type ThemeSurroundings } from './ThemeBootstrap.ts';
 import { WindowTitle }                                                   from './WindowTitle.ts';
@@ -54,6 +59,8 @@ export interface GaiaShellProps {
   readonly openForgeSetup?:      OpenForgeSetup | null;
   /** Sends a press of Gaia's own update button; without it the bar shows none. */
   readonly onGaiaUpdateCommand?: ((command: CommandBody) => void) | null;
+  /** Where each forge was left on this page, so its rail row leads back there. */
+  readonly forgePlaces?:         ForgePlaces;
 }
 
 /** The browser around the page, so a spec can stand in for each part. */
@@ -117,26 +124,24 @@ export function themeChoiceHandlerOf(showChoice: (choice: ThemeChoice) => void, 
   };
 }
 
-/** A forge in place leaves the theme button out, so its bar has room for the forge's own line and buttons (`docs/design/screens.md`, the brand bar). */
 export function GaiaShell({
-  fleetDocument, streamState, route, view, themeChoice, onThemeChoice, openForgeSetup = null, onGaiaUpdateCommand = null
+  fleetDocument, streamState, route, view, themeChoice, onThemeChoice, openForgeSetup = null, onGaiaUpdateCommand = null, forgePlaces = NO_FORGE_PLACES
 }: GaiaShellProps) {
-  const barKeepsItsButtons = route.view !== 'forge';
   return (
     <div className="gaia-shell">
       <fieldset className="gaia-shell-controls" disabled={!FleetStreamClient.controlsMayActIn(streamState)}>
         <BrandBar
           status={BrandStatusModel.brandStatusOf(fleetDocument)}
-          themeButton={barKeepsItsButtons ? { choice: themeChoice, onCycle: onThemeChoice } : null}
-          updateButton={barKeepsItsButtons && onGaiaUpdateCommand !== null
+          themeButton={{ choice: themeChoice, onCycle: onThemeChoice }}
+          updateButton={onGaiaUpdateCommand !== null
             ? GaiaUpdateButtonModel.updateButtonOf(fleetDocument?.gaia.update ?? null, onGaiaUpdateCommand)
             : null}
-          menu={barKeepsItsButtons && onGaiaUpdateCommand !== null
+          menu={onGaiaUpdateCommand !== null
             ? GaiaUpdateButtonModel.menuOf(fleetDocument?.gaia.update ?? null, onGaiaUpdateCommand)
             : null}
         />
         <div className="gaia-shell-body">
-          <Rail content={RailModel.railContentOf(fleetDocument, route, openForgeSetup)} />
+          <Rail content={RailModel.railContentOf(fleetDocument, route, openForgeSetup, forgePlaces)} />
           <main className="gaia-shell-main">
             {view.title === null ? null : (
               <div className="gaia-shell-page-title">
@@ -171,6 +176,10 @@ export function GaiaApp({
   useEffect(() => {
     if (redirectedFragment !== null) hash.replaceFragment(redirectedFragment);
   }, [hash, redirectedFragment]);
+  const [forgePlaces, setForgePlaces] = useState<ForgePlaces>(NO_FORGE_PLACES);
+  const forgePlacesForRoute = RailModel.forgePlacesAfterRoute(forgePlaces, route);
+  // Adjusting state while rendering, as for the theme below: the rail's row leads to the place this render shows.
+  if (forgePlacesForRoute !== forgePlaces) setForgePlaces(forgePlacesForRoute);
   const readAtMilliseconds = useSyncExternalStore(clock.subscribe, clock.now, clock.now);
   const secondsMayShow = SecondsOnScreen.secondsMayShowIn(route, fleetDocument);
   useEffect(() => (secondsMayShow ? clock.holdSecondTicks() : undefined), [clock, secondsMayShow]);
@@ -225,6 +234,7 @@ export function GaiaApp({
         onThemeChoice={onThemeChoice}
         openForgeSetup={openForgeSetup}
         onGaiaUpdateCommand={onGaiaUpdateCommand}
+        forgePlaces={forgePlacesForRoute}
       />
     </CommandSenderContext>
   );

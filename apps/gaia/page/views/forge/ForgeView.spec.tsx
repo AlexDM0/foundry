@@ -109,9 +109,9 @@ describe('from Answer on E2 to Example Storefront in place', () => {
     expect(buttonsIn(rendered)).toEqual(['Pause', 'Stop', 'Open in new tab']);
     const barControls = /<span class="gaia-forge-frame-bar-controls">.*<\/span><\/header>/.exec(markup)?.[0];
     expect(barControls).toContain('<svg class="design-system-icon" viewBox="0 0 16 16" data-icon="arrow-out-of-square" aria-hidden="true"');
-    expect(markup).not.toContain('aria-label="Theme: ');
+    expect(markup).toContain('aria-label="Theme: ');
     expect(markup).toContain('Waiting for the forge&#x27;s first board.');
-    expect(markup).toContain(`href="#forge/${TRACKER_IDS.exampleStorefront}" aria-current="page"`);
+    expect(markup).toContain(`href="${STOREFRONT_ON_E2}" aria-current="page"`);
   });
 
   test('the page\'s markup carries no session code and no frame', () => {

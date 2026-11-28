@@ -567,27 +567,6 @@ button.board-pipeline-gate-time:hover { filter: brightness(0.94); }
 
 .board-pipeline-research-footer-status { font-weight: 500; color: var(--ink); }
 
-@media (max-width: 900px) {
-  .board-pipeline-research-layer-body { padding-left: 16px; }
-
-  .board-pipeline-script { grid-template-columns: minmax(0, 1fr); gap: 2px; padding: 6px 0; }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .board-pipeline-research-status:not([data-state="stopped"]):not([data-state="not-launched"]) .board-pipeline-research-status-dot {
-    animation: board-pulse var(--pulse-status) ease-in-out infinite;
-  }
-
-  [data-progress="reading"] .board-pipeline-research-layer-mark { animation: board-pulse var(--pulse-status) ease-in-out infinite; }
-}
-
-/* Research per entity (MonoResearch): the layout card over the sessions list and the findings of the session shown, side by side. A
-   session row has the boards' selection look, a filled neutral ground and a 1 px border, never an orange edge; its Stop sits beside it. */
-.board-pipeline-research-layout {
-  display: flex; flex-direction: column; gap: var(--sp-2); padding: 14px 18px 16px;
-  background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-3);
-}
-
 /* The research layers: one card, one row per layer in research order, each collapsed to its marker, name and progress until opened. A
    dashed ring waits, the orange dot is the layer being read, the check a layer found, a solid ring a layer that found nothing. */
 .board-pipeline-research-layers {
@@ -631,6 +610,27 @@ summary.board-pipeline-research-layer-head:focus-visible { outline: 2px solid va
 .board-pipeline-research-layer-fold[open] .board-pipeline-research-layer-chevron { transform: rotate(90deg); }
 
 .board-pipeline-research-layer-body { padding: 0 16px 12px 42px; }
+
+@media (max-width: 900px) {
+  .board-pipeline-research-layer-body { padding-left: 16px; }
+
+  .board-pipeline-script { grid-template-columns: minmax(0, 1fr); gap: 2px; padding: 6px 0; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .board-pipeline-research-status:not([data-state="stopped"]):not([data-state="not-launched"]) .board-pipeline-research-status-dot {
+    animation: board-pulse var(--pulse-status) ease-in-out infinite;
+  }
+
+  [data-progress="reading"] .board-pipeline-research-layer-mark { animation: board-pulse var(--pulse-status) ease-in-out infinite; }
+}
+
+/* Research per entity (MonoResearch): the layout card over the sessions list and the findings of the session shown, side by side. A
+   session row has the boards' selection look, a filled neutral ground and a 1 px border, never an orange edge; its Stop sits beside it. */
+.board-pipeline-research-layout {
+  display: flex; flex-direction: column; gap: var(--sp-2); padding: 14px 18px 16px;
+  background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-3);
+}
 
 .board-pipeline-research-layout-items { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0; padding: 0 0 0 20px; list-style: none; }
 

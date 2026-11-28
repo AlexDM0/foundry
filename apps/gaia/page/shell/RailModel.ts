@@ -6,6 +6,7 @@
 import type { FleetDocument, FleetDocumentForge }    from '../@types/FleetDocument.ts';
 import type { DotCondition }                         from '../components/ConditionDot.tsx';
 import type { SetupProgress }                        from '../shared/@types/SetupProgress.ts';
+import type { BoardRoute }                           from '../shared/BoardRouter.ts';
 import { type GaiaRoute, type GaiaView, HashRouter } from '../shared/HashRouter.ts';
 import { type MachineLoad, MachineLoadModel }        from '../shared/MachineLoadModel.ts';
 import { FleetDocumentUtil }                         from '../shared/utils/FleetDocumentUtil.ts';
@@ -67,6 +68,11 @@ export interface RailContent {
   readonly machine:     MachineLoad | null;
 }
 
+/** The board route each forge showed last on this page, by tracker id, so its rail row leads back there. */
+export type ForgePlaces = ReadonlyMap<string, BoardRoute>;
+
+export const NO_FORGE_PLACES: ForgePlaces = new Map();
+
 const VIEW_LABELS: Readonly<Record<RailView, string>> = {
   attention: 'Attention',
   agents:    'Agents',
@@ -104,14 +110,25 @@ function openForgeSetupAfterReport(previous: OpenForgeSetup | null, trackerId: s
   return { trackerId, progress };
 }
 
+/** The places after the page showed a route, the same map when nothing changed; a forge's route without a board route keeps its place. */
+function forgePlacesAfterRoute(previous: ForgePlaces, route: GaiaRoute): ForgePlaces {
+  if (route.view !== 'forge' || route.boardRoute === null) return previous;
+  const { trackerId, boardRoute } = route;
+  const knownPlace = previous.get(trackerId);
+  if (knownPlace?.tab === boardRoute.tab && knownPlace.item === boardRoute.item) return previous;
+  return new Map(previous).set(trackerId, boardRoute);
+}
+
 function visibleForgesOf(fleetDocument: FleetDocument): FleetDocumentForge[] {
   const hidden = new Set(fleetDocument.settings.hiddenTrackerIds);
   return fleetDocument.forges.filter((forge) => !hidden.has(forge.trackerId));
 }
 
-/** A forge that cannot open in place opens at its Forges row. */
-function forgeHrefOf(forge: FleetDocumentForge): string {
-  if (ForgeContractUtil.canOpenInPlace(forge)) return HashRouter.fragmentOf({ view: 'forge', trackerId: forge.trackerId, boardRoute: null });
+/** A forge opens in place where it was left; one that cannot open in place opens at its Forges row. */
+function forgeHrefOf(forge: FleetDocumentForge, forgePlaces: ForgePlaces): string {
+  if (ForgeContractUtil.canOpenInPlace(forge)) {
+    return HashRouter.fragmentOf({ view: 'forge', trackerId: forge.trackerId, boardRoute: forgePlaces.get(forge.trackerId) ?? null });
+  }
   return HashRouter.fragmentOf({ view: 'forges', addingARepository: false, forgeInView: forge.trackerId });
 }
 
@@ -180,7 +197,7 @@ function railViewOf(route: GaiaRoute): RailView | null {
   return route.view === 'forge' ? null : route.view;
 }
 
-function forgeRowOf(forge: FleetDocumentForge, currentTrackerId: string | null, openForgeSetup: OpenForgeSetup | null): RailForgeRow {
+function forgeRowOf(forge: FleetDocumentForge, currentTrackerId: string | null, openForgeSetup: OpenForgeSetup | null, forgePlaces: ForgePlaces): RailForgeRow {
   const count = forgeCountOf(forge);
   const setupLine = setupLineOf(forge, openForgeSetup);
   return {
@@ -188,7 +205,7 @@ function forgeRowOf(forge: FleetDocumentForge, currentTrackerId: string | null, 
     project:     forge.project,
     condition:   ForgeTextUtil.dotConditionOf(ForgeTextUtil.shownConditionOf(forge)),
     title:       forgeTitleOf(forge),
-    href:        forgeHrefOf(forge),
+    href:        forgeHrefOf(forge, forgePlaces),
     count,
     isCurrent:   forge.trackerId === currentTrackerId,
     setupLine,
@@ -196,7 +213,12 @@ function forgeRowOf(forge: FleetDocumentForge, currentTrackerId: string | null, 
   };
 }
 
-function railContentOf(fleetDocument: FleetDocument | null, route: GaiaRoute, openForgeSetup: OpenForgeSetup | null = null): RailContent {
+function railContentOf(
+  fleetDocument: FleetDocument | null,
+  route: GaiaRoute,
+  openForgeSetup: OpenForgeSetup | null = null,
+  forgePlaces: ForgePlaces = NO_FORGE_PLACES,
+): RailContent {
   const currentView = railViewOf(route);
   const currentTrackerId = route.view === 'forge' ? route.trackerId : null;
   return {
@@ -207,7 +229,7 @@ function railContentOf(fleetDocument: FleetDocument | null, route: GaiaRoute, op
       count:     viewCountOf(view, fleetDocument),
       isCurrent: view === currentView,
     })),
-    forges:      fleetDocument === null ? [] : visibleForgesOf(fleetDocument).map((forge) => forgeRowOf(forge, currentTrackerId, openForgeSetup)),
+    forges:      fleetDocument === null ? [] : visibleForgesOf(fleetDocument).map((forge) => forgeRowOf(forge, currentTrackerId, openForgeSetup, forgePlaces)),
     noForgeLine: fleetDocument !== null && fleetDocument.forges.length === 0 ? NO_FORGE_LINE : null,
     machine:     fleetDocument === null ? null : MachineLoadModel.machineLoadOf(fleetDocument),
   };
@@ -217,6 +239,7 @@ export const RailModel = {
   railContentOf,
   attentionCountOf,
   openForgeSetupAfterReport,
+  forgePlacesAfterRoute,
   countTextOf,
   VIEW_LABELS,
 } as const;

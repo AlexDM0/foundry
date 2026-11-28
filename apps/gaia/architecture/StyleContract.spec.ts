@@ -666,6 +666,21 @@ function classContractSentencesOf(emitted: EmittedClasses, styled: ReadonlySet<s
 }
 
 /** The board's stylesheets as listed and as found in their folder must be the same, so no stylesheet escapes the board's style checks. */
+/** Each surface the board keeps selectable sets both selection properties to text, and no other board rule makes text selectable. */
+function selectableSurfaceSentencesOf(rules: readonly StylesheetRule[], surfaces: readonly string[]): string[] {
+  const properties = ['user-select', '-webkit-user-select'];
+  const selectableSelectorsOf = (property: string): string[] => rules
+    .filter((rule) => rule.declarations.some((declaration) => declaration.property === property && declaration.value === 'text'))
+    .flatMap((rule) => rule.selector.replace(/^:is\((.*)\)$/s, '$1').split(',').map((selector) => selector.trim()));
+  return properties.flatMap((property) => {
+    const selectable = selectableSelectorsOf(property);
+    return [
+      ...surfaces.filter((surface) => !selectable.includes(surface)).map((surface) => `${surface} does not set ${property}: text`),
+      ...selectable.filter((selector) => !surfaces.includes(selector)).map((selector) => `${selector} sets ${property}: text but is not a selectable surface`),
+    ];
+  });
+}
+
 function boardStylesheetListSentencesOf(listed: readonly string[], present: readonly string[]): string[] {
   return [
     ...present.filter((name) => !listed.includes(name)).map((name) => `styles/board/${name} is not in BOARD_STYLESHEETS`),
@@ -774,6 +789,15 @@ const PACKAGE_RULES: readonly StylesheetRule[] = [...new Bun.Glob('**/*.css').sc
   .sort()
   .flatMap((path) => stylesheetRulesOf(`design-system/${path}`, readFileSync(join(PACKAGE_FOLDER, path), 'utf8')));
 const BOARD_TOKEN_BLOCKS = tokenBlocksOf(BOARD_TOKENS_TEXT);
+/** The board's text User may select, though the library makes the page unselectable: a conversation's messages and a document's preview. */
+const BOARD_SELECTABLE_SURFACES: readonly string[] = [
+  '.board-transcript-text',
+  '.board-chat-prose',
+  '.board-chat-bubble',
+  '.board-chat-system-text',
+  '.board-tool-calls',
+  '.board-document-article',
+];
 /** A hover or press movement of the board's that moves nothing else, with its reason; exact both ways, as the Bridge's `MOVEMENTS_ALLOWED`. */
 const BOARD_MOVEMENTS_ALLOWED: readonly AllowedMovement[] = [];
 /** An ancestor a board reduce selector may name though the animated one does not, as the Bridge's `ANCESTORS_THE_MARKUP_GUARANTEES`. */
@@ -1050,6 +1074,15 @@ describe('the board\'s style checks, on planted stylesheets and components', () 
     ]);
   });
 
+  test('a selectable surface set only unprefixed, and a rule outside the list that makes text selectable, are each named', () => {
+    const plantedRules = stylesheetRulesOf('planted.css', '.board-chat-prose { user-select: text; } :is(.board-card, .board-chat-prose) { -webkit-user-select: text; }');
+    expect(selectableSurfaceSentencesOf(plantedRules, ['.board-chat-prose'])).toEqual([
+      '.board-card sets -webkit-user-select: text but is not a selectable surface',
+    ]);
+    expect(selectableSurfaceSentencesOf(stylesheetRulesOf('planted.css', '.board-chat-prose { user-select: text; }'), ['.board-chat-prose']))
+      .toEqual(['.board-chat-prose does not set -webkit-user-select: text']);
+  });
+
   test('a board class emitted but unstyled and one styled but not emitted are each named against the board stylesheets', () => {
     const emitted = emittedClassesOf([{ path: 'board/kanban/Planted.tsx', text: 'export const view = <p className="board-card board-kept" />;' }]);
     expect(classContractSentencesOf(emitted, styledClassesOf('.board-kept { gap: 0; } .board-dead { gap: 0; }'), BOARD_STYLESHEET_NAME)).toEqual([
@@ -1245,6 +1278,10 @@ describe('the board\'s stylesheets', () => {
     expect(PACKAGE_RULES.length).toBeGreaterThanOrEqual(SMALLEST_CLASS_COUNT);
     expect(unstopped).toEqual([]);
     expect(unusedGuaranteeSentencesOf(BOARD_RULES, BOARD_ANCESTORS_THE_MARKUP_GUARANTEES)).toEqual([]);
+  });
+
+  test('only the conversations\' messages and the document preview opt back in to text selection', () => {
+    expect(selectableSurfaceSentencesOf(BOARD_RULES, BOARD_SELECTABLE_SURFACES)).toEqual([]);
   });
 
   test('every brace balances', () => {
