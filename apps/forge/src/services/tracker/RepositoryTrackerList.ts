@@ -6,8 +6,8 @@
 import { existsSync, mkdirSync, statSync } from 'node:fs';
 import { join }                            from 'node:path';
 
-import { RepositoryLandings }                                                 from '../../lib/git/RepositoryLandings.ts';
-import type { RepositoryLandingFiles, RepositoryTracker, TrackerListReading } from '../../lib/git/RepositoryLandings.ts';
+import type { RepositoryLandingFiles, RepositoryTracker, TrackerListReading } from '../../adapters/repository-landings/RepositoryLandings.ts';
+import { RepositoryLandings }                                                 from '../../adapters/repository-landings/RepositoryLandings.ts';
 import { repositoryRootWithoutGit }                                           from '../../lib/git/RepositoryRootWithoutGit.ts';
 import { GIT_ENTRY_NAME }                                                     from '../../lib/git/constants/GitConventions.ts';
 import { PRODUCT_NAMES }                                                      from '../../shared/constants/ProductNames.ts';
@@ -25,7 +25,13 @@ export type TrackerPlacementRefusal =
   | { reason: 'tracker-above' | 'tracker-below' | 'namespace-held'; tracker: RepositoryTracker }
   | null;
 
-export type TrackerListing = { verdict: 'listed' } | { verdict: 'not-listed'; reason: string };
+/** Why the list did not take the entry: a newer list, a malformed one never written over (its problems as read), or the OS's error. */
+export type TrackerListingFailure =
+  | { failure: 'newer-version'; version: number }
+  | { failure: 'malformed'; problems: readonly string[] }
+  | { failure: 'unwritable'; systemError: string };
+
+export type TrackerListing = { verdict: 'listed' } | { verdict: 'not-listed'; cause: TrackerListingFailure };
 
 /** `null` when the repository keeps no git directory of its own beside its main checkout, a submodule's or a bare one: no list is kept. */
 export function repositoryTrackerListOf(projectDirectory: string): RepositoryTrackerList | null {
@@ -77,10 +83,10 @@ export async function listTracker(
     mkdirSync(list.files.lockDirectoryPath, { recursive: true });
     const write = await withLockAt(list.files.lockDirectoryPath, () => RepositoryLandings.writeTrackerEntry(list.files, tracker), now, lockTaker);
     if (write.verdict === 'written') return { verdict: 'listed' };
-    if (write.verdict === 'newer-version') return { verdict: 'not-listed', reason: `it is of version ${write.version}, newer than this ${PRODUCT_NAMES.PROGRAM} writes` };
-    if (write.verdict === 'malformed') return { verdict: 'not-listed', reason: write.problems.join('; ') };
-    return { verdict: 'not-listed', reason: write.reason };
+    if (write.verdict === 'newer-version') return { verdict: 'not-listed', cause: { failure: 'newer-version', version: write.version } };
+    if (write.verdict === 'malformed') return { verdict: 'not-listed', cause: { failure: 'malformed', problems: write.problems } };
+    return { verdict: 'not-listed', cause: { failure: 'unwritable', systemError: write.systemError } };
   } catch (error) {
-    return { verdict: 'not-listed', reason: error instanceof Error ? error.message : String(error) };
+    return { verdict: 'not-listed', cause: { failure: 'unwritable', systemError: error instanceof Error ? error.message : String(error) } };
   }
 }

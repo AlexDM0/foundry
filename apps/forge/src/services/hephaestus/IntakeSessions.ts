@@ -5,11 +5,11 @@
  */
 import { readFileSync } from 'node:fs';
 
+import type { Job, PictureReference }     from '../../domain/tracker-model/@types/Job.ts';
+import type { EntityKey, PipelineEntity } from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { Board }                     from '../../domain/tracker-model/Board.ts';
 import type { AgentAdapter }              from '../../lib/agent-launch/AgentAdapter.ts';
 import type { WorkerProfile }             from '../../lib/agent-launch/WorkerProfile.ts';
-import type { Job, PictureReference }     from '../../lib/tracker-model/@types/Job.ts';
-import type { EntityKey, PipelineEntity } from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { Board }                     from '../../lib/tracker-model/Board.ts';
 import { filledTemplateOf }               from '../../shared/FilledTemplate.ts';
 import { resourceFilePathOf }             from '../../shared/ResourceFilePath.ts';
 import { PRODUCT_NAMES }                  from '../../shared/constants/ProductNames.ts';

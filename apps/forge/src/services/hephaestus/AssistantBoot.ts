@@ -3,10 +3,10 @@
  * and the board is its memory. Its first message carries every open incident, which is its first delivery turn.
  */
 
-import type { Incident }             from '../../lib/tracker-model/@types/Incident.ts';
-import type { Job }                  from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }            from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Board }                from '../../lib/tracker-model/Board.ts';
+import type { Incident }             from '../../domain/tracker-model/@types/Incident.ts';
+import type { Job }                  from '../../domain/tracker-model/@types/Job.ts';
+import type { LogRecord }            from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { Board }                from '../../domain/tracker-model/Board.ts';
 import { ASSISTANT_HISTORY_RECORDS } from '../../shared/constants/HephaestusLimits.ts';
 
 export interface AssistantHistoryRecord {

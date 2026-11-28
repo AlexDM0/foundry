@@ -13,6 +13,7 @@ import {
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS } from '../../testing/ChildProcessCaseTimeout.ts';
 import { fakeStartedLineSelectorOf }               from '../../testing/FakeAgentAdapter.ts';
 import { fakeAgentChildLaunch }                    from '../../testing/FakeAgentChildLaunch.ts';
+import { detailsLoggerOf }                         from '../../testing/LoggedDetails.ts';
 import { nativePlatformPorts }                     from '../../testing/NativePlatformPorts.ts';
 import {
   createScratchTalos,
@@ -99,7 +100,7 @@ function renewing(connection: TalosConnection, passInFlight: () => number | null
     tickGapMilliseconds:  LEASE_BOUNDS.tickGapMilliseconds,
     passProgress:         { passInFlight },
     wallNowMilliseconds:  () => Date.now(),
-    log:                  (sentence) => logged.push(sentence),
+    log:                  detailsLoggerOf(logged),
     onRenewed:            (renewedAtWallMilliseconds) => renewedAt.push(renewedAtWallMilliseconds),
   });
   return { renewedAt, logged };

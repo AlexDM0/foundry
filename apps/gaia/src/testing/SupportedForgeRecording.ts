@@ -25,6 +25,7 @@ import {
 } from '../lib/forge-client/HephaestusFetch.ts';
 import { CONTRACT_VERSIONS } from '../shared/constants/ContractVersions.ts';
 
+import { SUPPORTED_FORGE_VERSION }           from '../shared/constants/SupportedForgeVersions.ts';
 import { recordAnswer, recordSystemVersion } from './BoundaryRecordings.ts';
 import {
   requestCallShapeOf,
@@ -87,7 +88,7 @@ interface KeptAnswer {
 
 /** The path Gaia calls an endpoint at: the version forge's registry serves the supported forge version. */
 function pathOf(endpointName: HephaestusEndpointName, endpoint: string): string {
-  return ApiPathUtil.versionedPathOf(endpoint, forgeEndpointVersionOf(endpointName));
+  return ApiPathUtil.versionedPathOf(endpoint, forgeEndpointVersionOf(endpointName, SUPPORTED_FORGE_VERSION));
 }
 
 const PATHS = {

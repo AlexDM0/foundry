@@ -5,19 +5,21 @@
  */
 import { existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { join }                               from 'node:path';
+import type { HephaestusLog }                 from '../../adapters/@types/HephaestusLogRecord.ts';
 
 import { GateProfileOutputIngestion }                                                     from '../../adapters/gate-profile-output/GateProfileOutputIngestion.ts';
 import { createGateProfileOutputWriter }                                                  from '../../adapters/gate-profile-output/GateProfileOutputWriter.ts';
+import type { TurboConfigurationProblem }                                                 from '../../adapters/turbo-configuration/@types/TurboConfigurationProblem.ts';
+import type { GateProfileRun, GateProfileRunEnd, GateProfileRunEnding }                   from '../../domain/tracker-model/@types/GateProfile.ts';
+import type { GateOutcome, PipelineStepRun }                                              from '../../domain/tracker-model/@types/Job.ts';
+import type { EntityKey, Pipeline, PipelineGate }                                         from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { PipelineSetup, ResearchFinding, ResearchFindingRecording }                  from '../../domain/tracker-model/@types/PipelineSetup.ts';
+import type { Board }                                                                     from '../../domain/tracker-model/Board.ts';
+import { BoardRefusal }                                                                   from '../../domain/tracker-model/BoardRefusal.ts';
+import { PipelineUtil }                                                                   from '../../domain/tracker-model/utils/PipelineUtil.ts';
 import { GitProcess }                                                                     from '../../lib/git/GitProcess.ts';
 import { GitWorktrees, REAL_WORKTREE_REMOVAL_PRIMITIVES, type WorktreeRemovalPrimitives } from '../../lib/git/GitWorktrees.ts';
 import type { PlatformPorts }                                                             from '../../lib/platform-ports/PlatformPortsFor.ts';
-import type { GateProfileRun, GateProfileRunEnd, GateProfileRunEnding }                   from '../../lib/tracker-model/@types/GateProfile.ts';
-import type { GateOutcome, PipelineStepRun }                                              from '../../lib/tracker-model/@types/Job.ts';
-import type { EntityKey, Pipeline, PipelineGate }                                         from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { PipelineSetup, ResearchFinding, ResearchFindingRecording }                  from '../../lib/tracker-model/@types/PipelineSetup.ts';
-import type { Board }                                                                     from '../../lib/tracker-model/Board.ts';
-import { BoardRefusal }                                                                   from '../../lib/tracker-model/BoardRefusal.ts';
-import { PipelineUtil }                                                                   from '../../lib/tracker-model/utils/PipelineUtil.ts';
 import { CachingChecks, type CachingSuggestion, type RecordedGateTime }                   from '../lifecycle/CachingChecks.ts';
 import { type GateLineRun, type GateLineRefusal, type GateLinesRun }                      from '../lifecycle/GateLineRun.ts';
 import type { GateLineConfiner, LineRunner }                                              from '../lifecycle/GateRun.ts';
@@ -64,12 +66,14 @@ export interface GateProfilingContext {
   hold:               <Result>(mutate: (hold: GateProfileHold) => Result) => Promise<Result>;
   /** Asks for a pass, so the next queued run may take the freed slot. */
   wake:               () => void;
-  log:                (line: string) => void;
+  log:                HephaestusLog;
   runGateLines:       typeof GateLineRun.runOnce;
   runLine:            LineRunner;
   /** Sends `stop` to every live line under the folder and waits, bounded, for their ends. */
   stopLiveLinesUnder: (folder: string) => Promise<void>;
   removalPrimitives?: WorktreeRemovalPrimitives;
+  /** An unreadable turbo configuration as the stored value of its research finding names it. */
+  findingSentenceOf:  (problem: TurboConfigurationProblem) => string;
 }
 
 export interface GateProfiling {
@@ -90,7 +94,7 @@ interface RunInThisProcess {
 }
 
 /** One finding of topic `note` per caching suggestion: the kind is its label, and it names values, never words. */
-function cachingFindingOf(suggestion: CachingSuggestion): ResearchFindingRecording {
+function cachingFindingOf(suggestion: CachingSuggestion, findingSentenceOf: GateProfilingContext['findingSentenceOf']): ResearchFindingRecording {
   const note = { topic: 'note', label: suggestion.kind, script: null } as const;
   switch (suggestion.kind) {
     case 'no-caching-tool':
@@ -102,7 +106,7 @@ function cachingFindingOf(suggestion: CachingSuggestion): ResearchFindingRecordi
     case 'gate-not-through-turbo':
       return { ...note, value: suggestion.gate, sourcePaths: [] };
     case 'turbo-configuration-unreadable':
-      return { ...note, value: suggestion.reason, sourcePaths: [suggestion.file] };
+      return { ...note, value: findingSentenceOf(suggestion.problem), sourcePaths: [suggestion.file] };
   }
 }
 
@@ -131,7 +135,9 @@ function recordedFindingsOf(setup: Readonly<PipelineSetup> | null, entityKey: En
  * the record, in the entity's part for an entity's run. A record that takes no move now, such as one whose Apply waits, gets none: the
  * profile's end is recorded all the same.
  */
-function recordCachingFindings(board: Board, repositoryRoot: string, run: Readonly<GateProfileRun>, at: string): void {
+function recordCachingFindings(
+  board: Board, repositoryRoot: string, run: Readonly<GateProfileRun>, at: string, findingSentenceOf: GateProfilingContext['findingSentenceOf'],
+): void {
   const setup = board.pipelineSetup();
   if (setup === null || run.setupId !== setup.setupId) return;
   const recordedTimes: RecordedGateTime[] = board.gateProfileRuns()
@@ -139,7 +145,7 @@ function recordCachingFindings(board: Board, repositoryRoot: string, run: Readon
     .map((profiled) => ({ name: profiled.gate.name, milliseconds: profiled.elapsedMilliseconds ?? 0 }));
   const gates = draftGatesOf(setup.draft, run);
   for (const suggestion of CachingChecks.cachingSuggestionsOf(repositoryRoot, gates, recordedTimes)) {
-    const recording = cachingFindingOf(suggestion);
+    const recording = cachingFindingOf(suggestion, findingSentenceOf);
     const recorded = recordedFindingsOf(board.pipelineSetup(), run.entity);
     if (recorded.some((finding) => sameFinding(recording, finding))) continue;
     try {
@@ -151,10 +157,10 @@ function recordCachingFindings(board: Board, repositoryRoot: string, run: Readon
   }
 }
 
-/** A gate Talos stopped at its time bound timed out; its time is the line's run time, a sleep not counted. */
-function endingOf(run: GateLinesRun | GateLineRefusal): GateProfileRunEnd {
+/** A gate Talos stopped at its time bound timed out; its time is the line's run time, a sleep not counted. `null`: no line ran. */
+function endingOf(run: GateLinesRun | GateLineRefusal | null): GateProfileRunEnd {
   const cannotRun: GateProfileRunEnd = { ending: 'cannot-run', elapsedMilliseconds: 0, cacheReport: null };
-  if ('verdict' in run) return cannotRun;
+  if (run === null || 'verdict' in run) return cannotRun;
   const [gate] = run.gates;
   if (gate === undefined) return cannotRun;
   return {
@@ -165,8 +171,8 @@ function endingOf(run: GateLinesRun | GateLineRefusal): GateProfileRunEnd {
 }
 
 /** The profiled gate's line, with its run time, when it ran; a profile's prepare steps are not the pipeline's runs and record none. */
-function profiledStepRunsOf(run: GateLinesRun | GateLineRefusal, entity: EntityKey | undefined): PipelineStepRun[] {
-  const stepRun = 'verdict' in run ? null : run.gates[0]?.stepRun ?? null;
+function profiledStepRunsOf(run: GateLinesRun | GateLineRefusal | null, entity: EntityKey | undefined): PipelineStepRun[] {
+  const stepRun = run === null || 'verdict' in run ? null : run.gates[0]?.stepRun ?? null;
   if (stepRun === null) return [];
   return [entity === undefined ? stepRun : { ...stepRun, entity }];
 }
@@ -182,7 +188,7 @@ function createGateProfiling(context: GateProfilingContext): GateProfiling {
 
   function removeWorktree(worktreePath: string): void {
     const removal = GitWorktrees.removeWithRetry({ repositoryDirectory: repositoryRoot, worktreePath, force: 'force' }, removalPrimitives);
-    if (removal.verdict === 'left') context.log(`The gate profile worktree ${worktreePath} is a leftover: ${removal.reason}`);
+    if (removal.verdict === 'left') context.log({ kind: 'gate-profile-worktree-left-over', worktreePath, problem: removal.problem });
   }
 
   function appendOutput(profileRunId: string, text: string): void {
@@ -217,19 +223,21 @@ function createGateProfiling(context: GateProfilingContext): GateProfiling {
           grantsWrites:   false,
           onOutputLine:   (line) => appendOutput(run.profileRunId, `${line}\n`),
         })
-        : { verdict: 'sandbox-unavailable', reason: GitProcess.failureReasonOf(added, ['worktree', 'add']) } as const;
-      if ('verdict' in lines) appendOutput(run.profileRunId, lines.reason);
+        : null;
+      const outputWriter = createGateProfileOutputWriter(outputFilePathOf(workspace.trackerDirectory, run.profileRunId));
+      if (lines === null) outputWriter.appendGitFailure(GitProcess.failureOf(added, ['worktree', 'add']));
+      else if ('verdict' in lines) outputWriter.appendRefusal(lines.refusal);
       const end = endingOf(lines);
       await context.hold(({ board, at }) => {
         // A run this Hephaestus ended as it stopped has no result, as one User stopped has none.
         if (stopSignal.aborted) board.stopGateProfile(run.profileRunId, at);
         const ended = board.endGateProfile(run.profileRunId, end, at);
         if (ended.run.state === 'stopped') return;
-        recordCachingFindings(board, repositoryRoot, ended.run, at);
+        recordCachingFindings(board, repositoryRoot, ended.run, at, context.findingSentenceOf);
         board.recordPipelineStepsRan(profiledStepRunsOf(lines, run.entity), run.phase, at);
       });
     } catch (failure) {
-      context.log(`Gate profile ${run.profileRunId} failed and waits for the next start: ${failure instanceof Error ? failure.message : String(failure)}`);
+      context.log({ kind: 'gate-profile-failed', profileRunId: run.profileRunId, thrownMessage: failure instanceof Error ? failure.message : String(failure) });
     } finally {
       context.gateSlots.release(holder);
       if (existsSync(worktreePath)) removeWorktree(worktreePath);
@@ -285,7 +293,7 @@ function outputFilePathOf(trackerDirectory: string, profileRunId: string): strin
  * line that cannot be read keeps its number and is not sent: it is one piece of shown output, which nothing decides on. The first such line
  * after `afterLineNumber` is logged once per follower, since each stream request and reconnect follows the file again from its start.
  */
-function outputFollowerOf(trackerDirectory: string, profileRunId: string, afterLineNumber: number, log: (line: string) => void): GateProfileOutputFollower {
+function outputFollowerOf(trackerDirectory: string, profileRunId: string, afterLineNumber: number, log: HephaestusLog): GateProfileOutputFollower {
   const outputFilePath = outputFilePathOf(trackerDirectory, profileRunId);
   const ingestion = new GateProfileOutputIngestion(outputFilePath);
   let lineNumber = 0;
@@ -295,7 +303,7 @@ function outputFollowerOf(trackerDirectory: string, profileRunId: string, afterL
     const reading = ingestion.read();
     if (reading.verdict === 'absent') return [];
     if (reading.verdict === 'unreadable') {
-      if (!unreadableFileLogged) log(`The gate profile output ${outputFilePath} could not be read (${reading.reason}); its stream waits.`);
+      if (!unreadableFileLogged) log({ kind: 'gate-profile-output-unreadable', outputFilePath, problem: reading.problem });
       unreadableFileLogged = true;
       return [];
     }
@@ -306,7 +314,9 @@ function outputFollowerOf(trackerDirectory: string, profileRunId: string, afterL
       if (lineReading.verdict === 'readable') {
         lines.push({ lineNumber, text: lineReading.text });
       } else if (!unreadableLineLogged) {
-        log(`Line ${lineNumber} of the gate profile output ${outputFilePath} could not be read (${lineReading.reason}); it and any later unreadable line are not sent.`);
+        log({
+          kind: 'gate-profile-output-line-unreadable', outputFilePath, lineNumber, problem: lineReading.problem
+        });
         unreadableLineLogged = true;
       }
     }

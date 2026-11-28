@@ -12,6 +12,7 @@ import {
 } from 'bun:test';
 
 import { createScratchDirectory, removeScratchDirectory }                      from '../../testing/ScratchWorkspace.ts';
+import type { StepVerdictProblem }                                             from './@types/StepVerdictProblem.ts';
 import { STEP_VERDICT_FORMAT_VERSION, StepVerdictIngestion, type StepVerdict } from './StepVerdictIngestion.ts';
 import { createStepVerdictWriter }                                             from './StepVerdictWriter.ts';
 
@@ -71,27 +72,27 @@ test('a file that is not JSON is unreadable', () => {
 
 test('a verdict of another version, or of none, is unreadable', () => {
   storeDocument({ ...GATE_VERDICT, version: STEP_VERDICT_FORMAT_VERSION + 1 });
-  expect(reading()).toEqual({ verdict: 'unreadable', reason: `its version is not ${STEP_VERDICT_FORMAT_VERSION}` });
+  expect(reading()).toEqual({ verdict: 'unreadable', problem: { code: 'version-differs', field: 'version', expectedVersion: STEP_VERDICT_FORMAT_VERSION } });
   storeDocument({ ...GATE_VERDICT });
-  expect(reading()).toEqual({ verdict: 'unreadable', reason: `its version is not ${STEP_VERDICT_FORMAT_VERSION}` });
+  expect(reading()).toEqual({ verdict: 'unreadable', problem: { code: 'version-differs', field: 'version', expectedVersion: STEP_VERDICT_FORMAT_VERSION } });
 });
 
-test.each([
-  ['treeId', { treeId: null }, 'its "treeId" is not text'],
-  ['phase', { phase: 'deploy' }, 'its "phase" is not a gate phase'],
-  ['phaseHash', { phaseHash: 3 }, 'its "phaseHash" is not text'],
-  ['entityPhaseHashes', { entityPhaseHashes: { shop: 1 } }, 'its "entityPhaseHashes" is not a record of phase hashes'],
-  ['outcome', { outcome: 'red' }, 'its "outcome" is not a step outcome'],
-  ['output', { output: ['line'] }, 'its "output" is not text'],
-  ['exitCode', { exitCode: '1' }, 'its "exitCode" is not an exit code or null'],
-  ['cacheReport', { cacheReport: 'warm' }, 'its "cacheReport" is not a cache report'],
-  ['stepRun', { stepRun: 'gate' }, 'its "stepRun" is not an object'],
-  ['stepRun.stepKind', { stepRun: { ...GATE_VERDICT.stepRun, stepKind: 'install' } }, 'its "stepRun.stepKind" is not a step kind'],
-  ['stepRun.runMilliseconds', { stepRun: { ...GATE_VERDICT.stepRun, runMilliseconds: -1 } }, 'its "stepRun.runMilliseconds" is not a run time'],
-  ['stepRun.ending', { stepRun: { ...GATE_VERDICT.stepRun, ending: 'lost' } }, 'its "stepRun.ending" is not a step ending'],
-])('a wrong %s is unreadable', (_field, change, reason) => {
+test.each<[string, Record<string, unknown>, StepVerdictProblem]>([
+  ['treeId', { treeId: null }, { code: 'field-is-not', field: 'treeId', expected: 'text' }],
+  ['phase', { phase: 'deploy' }, { code: 'field-is-not', field: 'phase', expected: 'a-gate-phase' }],
+  ['phaseHash', { phaseHash: 3 }, { code: 'field-is-not', field: 'phaseHash', expected: 'text' }],
+  ['entityPhaseHashes', { entityPhaseHashes: { shop: 1 } }, { code: 'field-is-not', field: 'entityPhaseHashes', expected: 'a-record-of-phase-hashes' }],
+  ['outcome', { outcome: 'red' }, { code: 'field-is-not', field: 'outcome', expected: 'a-step-outcome' }],
+  ['output', { output: ['line'] }, { code: 'field-is-not', field: 'output', expected: 'text' }],
+  ['exitCode', { exitCode: '1' }, { code: 'field-is-not', field: 'exitCode', expected: 'an-exit-code-or-null' }],
+  ['cacheReport', { cacheReport: 'warm' }, { code: 'field-is-not', field: 'cacheReport', expected: 'a-cache-report' }],
+  ['stepRun', { stepRun: 'gate' }, { code: 'field-is-not', field: 'stepRun', expected: 'an-object' }],
+  ['stepRun.stepKind', { stepRun: { ...GATE_VERDICT.stepRun, stepKind: 'install' } }, { code: 'field-is-not', field: 'stepRun.stepKind', expected: 'a-step-kind' }],
+  ['stepRun.runMilliseconds', { stepRun: { ...GATE_VERDICT.stepRun, runMilliseconds: -1 } }, { code: 'field-is-not', field: 'stepRun.runMilliseconds', expected: 'a-run-time' }],
+  ['stepRun.ending', { stepRun: { ...GATE_VERDICT.stepRun, ending: 'lost' } }, { code: 'field-is-not', field: 'stepRun.ending', expected: 'a-step-ending' }],
+])('a wrong %s is unreadable', (_field, change, problem) => {
   storeDocument({ version: STEP_VERDICT_FORMAT_VERSION, ...GATE_VERDICT, ...change });
-  expect(reading()).toEqual({ verdict: 'unreadable', reason });
+  expect(reading()).toEqual({ verdict: 'unreadable', problem });
 });
 
 test('a folder where the file belongs is unreadable, not absent, and does not throw', () => {

@@ -1,0 +1,52 @@
+[
+  {
+    "case": "a directory stands where the file belongs (built in the spec; {systemError} is the OS message)",
+    "stored": null,
+    "sentence": "the file could not be read: Error: {systemError}"
+  },
+  {
+    "case": "the bytes are not UTF-8 text (built in the spec)",
+    "stored": null,
+    "sentence": "the file is not UTF-8 text"
+  },
+  {
+    "case": "the first line is not the frontmatter fence",
+    "stored": "key: \"search\"\ntitle: \"Search\"\nslot: 1\n---\nBody.\n",
+    "sentence": "the first line must be the frontmatter fence `---`"
+  },
+  {
+    "case": "the frontmatter has no closing fence",
+    "stored": "---\nkey: \"search\"\ntitle: \"Search\"\nslot: 1\nBody.\n",
+    "sentence": "the frontmatter has no closing `---` fence"
+  },
+  {
+    "case": "a line that is not key: value",
+    "stored": "---\nkey: \"search\"\ntitle: \"Search\"\nslot: 1\njust prose\n---\nBody.\n",
+    "sentence": "`just prose` is not a `key: value` line"
+  },
+  {
+    "case": "a quoted value that does not close",
+    "stored": "---\nkey: \"search\"\ntitle: \"Search\nslot: 1\n---\nBody.\n",
+    "sentence": "`title` opens a quoted value that does not close: \"Search"
+  },
+  {
+    "case": "the key is missing",
+    "stored": "---\ntitle: \"Search\"\nslot: 1\n---\nBody.\n",
+    "sentence": "the frontmatter has no `key` key"
+  },
+  {
+    "case": "the title is missing",
+    "stored": "---\nkey: \"search\"\nslot: 1\n---\nBody.\n",
+    "sentence": "the frontmatter has no `title` key"
+  },
+  {
+    "case": "the key is not an epic key",
+    "stored": "---\nkey: \"Search!\"\ntitle: \"Search\"\nslot: 1\n---\nBody.\n",
+    "sentence": "`key` is not an epic key: Search!"
+  },
+  {
+    "case": "the slot is not a colour slot",
+    "stored": "---\nkey: \"search\"\ntitle: \"Search\"\nslot: 99\n---\nBody.\n",
+    "sentence": "`slot` is not a colour slot from 1 to 6: 99"
+  }
+]

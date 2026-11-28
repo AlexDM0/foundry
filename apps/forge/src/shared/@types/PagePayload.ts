@@ -1,9 +1,9 @@
 /** The shape of the progress island, which the render side writes and the page reads. */
 
-import type { DraftSummary }                   from '../../lib/tracker-model/@types/Draft.ts';
-import type { EpicRollup }                     from '../../lib/tracker-model/@types/Epic.ts';
-import type { DisplayState, TicketStage }      from '../../lib/tracker-model/@types/Task.ts';
-import type { ReadyTicket, TicketFrontmatter } from '../../lib/tracker-model/@types/Ticket.ts';
+import type { DraftSummary }                   from '../../domain/tracker-model/@types/Draft.ts';
+import type { EpicRollup }                     from '../../domain/tracker-model/@types/Epic.ts';
+import type { DisplayState, TicketStage }      from '../../domain/tracker-model/@types/Task.ts';
+import type { ReadyTicket, TicketFrontmatter } from '../../domain/tracker-model/@types/Ticket.ts';
 import type { IdentifiedLogEntry }             from './WordedLogEntry.ts';
 import type { WordedProgressDocument }         from './WordedProgressDocument.ts';
 

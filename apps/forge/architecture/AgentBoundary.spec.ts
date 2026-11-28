@@ -42,9 +42,9 @@ interface BoundaryReport {
 const ADAPTER_FOLDER = 'src/lib/claude-code/';
 const FAKE_AGENT_ADAPTER_FILES: readonly string[] = ['src/testing/FakeAgentAdapter.ts', 'src/testing/FakeReportingSessions.ts'];
 const FAKE_AGENT_ADAPTER_FOLDER = 'src/testing/fake-agent/';
-const PORT_FOLDERS: readonly string[] = ['src/lib/agent-launch/', 'src/lib/talos/'];
+const PORT_FOLDERS: readonly string[] = ['src/lib/agent-launch/', 'src/domain/talos/', 'talos/'];
 /** Where the vendor's tool names and transcript folders are a reach; a view's button says "Edit", and a client quotes reported rows. */
-const VENDOR_LOGIC_FOLDERS: readonly string[] = ['src/services/', 'src/lib/', 'cli/'];
+const VENDOR_LOGIC_FOLDERS: readonly string[] = ['src/services/', 'src/lib/', 'src/domain/', 'talos/', 'cli/'];
 /** This repository's own development folders, taken out of a line before it is matched. */
 const DEVELOPMENT_FOLDER_PATTERN = /\.claude\/(?:\.evidence|worktrees|rules)/g;
 const PROSE_FOLDERS: readonly string[] = ['resources/', 'skills/'];
@@ -146,9 +146,9 @@ const ALLOWED_TESTING_LINES: Readonly<Record<string, string>> = {
     'Permanent: records, stamps or traps the real program.',
   'src/testing/BoundaryRecordings.ts: vendor-name: const CLAUDE: RecordedSystem = \'claude\';':
     'Permanent: records, stamps or traps the real program.',
-  'src/testing/BoundaryRecordings.ts: vendor-name: \'src/lib/claude-code/ClaudeCodeAdapter.ts\':      BUN,':
+  'src/testing/BoundaryRecordings.ts: vendor-name: \'src/lib/claude-code/ClaudeCodeAdapter.ts\':           BUN,':
     'Permanent: records, stamps or traps the real program.',
-  'src/testing/BoundaryRecordings.ts: vendor-name: \'src/testing/fake-agent/\':                       CLAUDE,':
+  'src/testing/BoundaryRecordings.ts: vendor-name: \'src/testing/fake-agent/\':                            CLAUDE,':
     'Permanent: records, stamps or traps the real program.',
   'src/testing/BoundarySpecs.ts: vendor-name: { boundary: \'src/lib/claude-code/ClaudeCodeAdapter.ts\', specs: [GUARD_EMPTY_SEARCH_PATH_SPEC] },':
     'Permanent: records, stamps or traps the real program.',
@@ -524,7 +524,7 @@ describe('no entry names the port or Talos', () => {
     const plantedKeys = [
       'src/lib/agent-launch/AgentAdapter.ts: vendor-name: // Claude.',
       'src/lib/agent-launch/WorkerProfile.ts: port-tool-word: // Edit.',
-      'src/lib/talos/Talos.ts: vendor-name: // Claude.',
+      'talos/Talos.ts: vendor-name: // Claude.',
     ];
     expect(portKeysOf([...ALLOWED_LINES, ...plantedKeys])).toEqual(plantedKeys);
   });
@@ -548,7 +548,7 @@ describe('every entry names its package', () => {
 
 describe('the test names each form, planted in memory', () => {
   const servicePath = 'src/services/hephaestus/Planted.ts';
-  const talosPath = 'src/lib/talos/Planted.ts';
+  const talosPath = 'talos/Planted.ts';
   const promptPath = 'resources/prompts/Planted.md';
   const bundlePath = 'skills/planted/SKILL.md';
 
@@ -640,7 +640,7 @@ describe('what the test exempts is exact', () => {
   });
 
   test('the port, Talos and the commands are judged, as a comment too', () => {
-    for (const path of ['src/lib/agent-launch/Planted.ts', 'src/lib/talos/Planted.ts', 'cli/Planted.ts']) {
+    for (const path of ['src/lib/agent-launch/Planted.ts', 'src/domain/talos/Planted.ts', 'talos/Planted.ts', 'src/domain/tracker-model/Planted.ts', 'cli/Planted.ts']) {
       expect(violationsOfPlanted(path, plantedLine)).toEqual([`${path}: vendor-name: ${plantedLine}`]);
       expect(violationsOfPlanted(path, plantedComment)).toEqual([`${path}: vendor-name: ${plantedComment}`]);
     }

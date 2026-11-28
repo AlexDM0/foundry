@@ -1,9 +1,9 @@
+import type { DispatchCapacity }          from '../../domain/tracker-model/@types/Concurrency.ts';
+import type { DraftSummary }              from '../../domain/tracker-model/@types/Draft.ts';
+import type { EpicRollup }                from '../../domain/tracker-model/@types/Epic.ts';
+import type { Task }                      from '../../domain/tracker-model/@types/Task.ts';
+import type { ReadyTicket, TicketStatus } from '../../domain/tracker-model/@types/Ticket.ts';
 import type { ConfinementVerdict }        from '../../lib/gate-confinement/GateConfinement.ts';
-import type { DispatchCapacity }          from '../../lib/tracker-model/@types/Concurrency.ts';
-import type { DraftSummary }              from '../../lib/tracker-model/@types/Draft.ts';
-import type { EpicRollup }                from '../../lib/tracker-model/@types/Epic.ts';
-import type { Task }                      from '../../lib/tracker-model/@types/Task.ts';
-import type { ReadyTicket, TicketStatus } from '../../lib/tracker-model/@types/Ticket.ts';
 import type { WordedProgressDocument }    from '../../shared/@types/WordedProgressDocument.ts';
 import type { TicketJsonUtil }            from '../utils/TicketJsonUtil.ts';
 import type {

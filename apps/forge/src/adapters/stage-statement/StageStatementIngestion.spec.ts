@@ -13,6 +13,7 @@ import {
 } from 'bun:test';
 
 import { createScratchDirectory, removeScratchDirectory }                               from '../../testing/ScratchWorkspace.ts';
+import type { StageStatementProblem }                                                   from './@types/StageStatementProblem.ts';
 import { STAGE_STATEMENT_FORMAT_VERSION, type StageStatement, StageStatementIngestion } from './StageStatementIngestion.ts';
 import { createStageStatementWriter }                                                   from './StageStatementWriter.ts';
 
@@ -58,23 +59,23 @@ test('a file that is not JSON is unreadable', () => {
 
 test('a statement of another version, or of none, is unreadable', () => {
   storeDocument({ version: STAGE_STATEMENT_FORMAT_VERSION + 1, stage: 'package-build', exposedSurfaceChanged: true });
-  expect(reading()).toEqual({ verdict: 'unreadable', reason: `its version is not ${STAGE_STATEMENT_FORMAT_VERSION}` });
+  expect(reading()).toEqual({ verdict: 'unreadable', problem: { code: 'version-differs', field: 'version', expectedVersion: STAGE_STATEMENT_FORMAT_VERSION } });
   storeDocument({ stage: 'package-build', exposedSurfaceChanged: true });
-  expect(reading()).toEqual({ verdict: 'unreadable', reason: `its version is not ${STAGE_STATEMENT_FORMAT_VERSION}` });
+  expect(reading()).toEqual({ verdict: 'unreadable', problem: { code: 'version-differs', field: 'version', expectedVersion: STAGE_STATEMENT_FORMAT_VERSION } });
 });
 
-test.each([
-  ['stage', { stage: 'build' }, 'its "stage" is not a stage that keeps a statement'],
-  ['exposedSurfaceChanged', { stage: 'package-build', exposedSurfaceChanged: 'no' }, 'its "exposedSurfaceChanged" is not true or false'],
+test.each<[string, Record<string, unknown>, StageStatementProblem]>([
+  ['stage', { stage: 'build' }, { code: 'not-a-statement-stage', field: 'stage' }],
+  ['exposedSurfaceChanged', { stage: 'package-build', exposedSurfaceChanged: 'no' }, { code: 'field-is-not', field: 'exposedSurfaceChanged', expected: 'true-or-false' }],
   ['sealedReachPaths', {
     stage: 'package-review', exposedSurfaceConfirmed: true, reviewText: '', sealedReachPaths: 'bun.lock'
-  }, 'its "sealedReachPaths" is not a list of paths'],
-  ['reviewSection', { stage: 'package-review-findings' }, 'its "reviewSection" is not text'],
-  ['packageReturnReason', { stage: 'adapt', returnedPackage: 'tokens', packageReturnReason: 1 }, 'its "packageReturnReason" is not text'],
-  ['refusedReason', { stage: 'package-refused', refusedReason: null }, 'its "refusedReason" is not text'],
-])('a wrong %s is unreadable', (_field, document, reason) => {
+  }, { code: 'field-is-not', field: 'sealedReachPaths', expected: 'a-list-of-paths' }],
+  ['reviewSection', { stage: 'package-review-findings' }, { code: 'field-is-not', field: 'reviewSection', expected: 'text' }],
+  ['packageReturnReason', { stage: 'adapt', returnedPackage: 'tokens', packageReturnReason: 1 }, { code: 'field-is-not', field: 'packageReturnReason', expected: 'text' }],
+  ['refusedReason', { stage: 'package-refused', refusedReason: null }, { code: 'field-is-not', field: 'refusedReason', expected: 'text' }],
+])('a wrong %s is unreadable', (_field, document, problem) => {
   storeDocument({ version: STAGE_STATEMENT_FORMAT_VERSION, ...document });
-  expect(reading()).toEqual({ verdict: 'unreadable', reason });
+  expect(reading()).toEqual({ verdict: 'unreadable', problem });
 });
 
 test('a folder where the file belongs is unreadable, not absent, and does not throw', () => {

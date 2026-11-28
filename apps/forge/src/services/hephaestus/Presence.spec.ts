@@ -14,6 +14,7 @@ import {
 
 import type { PresenceRecord }                            from '../../adapters/presence/@types/PresenceRecord.ts';
 import type { StartClassificationVerdict }                from '../../adapters/presence/@types/StartClassificationVerdict.ts';
+import { detailsLoggerOf }                                from '../../testing/LoggedDetails.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import type { PresenceStart }                             from './@types/PresenceRecord.ts';
 import { hephaestusFilesIn, type HephaestusFiles }        from './HephaestusFiles.ts';
@@ -103,7 +104,7 @@ describe('the presence record', () => {
     writeFileSync(files.presenceFilePath, '[]');
     Presence.reportUnreadablePresence(Presence.readPresence(files), unreadableBoardFiles);
 
-    expect(unreadableBoardFiles.files()).toEqual([{ file: 'hephaestus/presence.json', reason: 'it is not a JSON object' }]);
+    expect(unreadableBoardFiles.files()).toEqual([{ file: 'hephaestus/presence.json', problem: { code: 'not-a-json-object' } }]);
   });
 
   test('a stop writes its ending on its own generation\'s record', () => {
@@ -226,7 +227,7 @@ describe('the heartbeat', () => {
     }));
     const loggedLines: string[] = [];
 
-    const written = Presence.writeHeartbeat(files, 1, ENDED_AT, (line) => loggedLines.push(line));
+    const written = Presence.writeHeartbeat(files, 1, ENDED_AT, detailsLoggerOf(loggedLines));
 
     expect(written.verdict === 'written' && written.record.sequence).toBe(1);
     expect(loggedLines).toEqual(['heartbeat.json could not be read (its heartbeatVersion is not 1); this beat rewrites it.']);

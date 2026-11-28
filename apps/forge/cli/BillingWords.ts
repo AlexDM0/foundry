@@ -1,5 +1,5 @@
 /** How a command line names a billing: `subscription`, or `api` with an optional cap per launch. */
-import type { PipelineBilling } from '../src/lib/tracker-model/@types/Pipeline.ts';
+import type { PipelineBilling } from '../src/domain/tracker-model/@types/Pipeline.ts';
 import { refuseUsage }          from './RecordedIncidentMove.ts';
 import type { ArgumentParser }  from './arguments/ArgumentParser.ts';
 

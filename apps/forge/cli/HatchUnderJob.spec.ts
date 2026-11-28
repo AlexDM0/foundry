@@ -22,7 +22,7 @@ import {
 import type { HatchRequest }                                                                         from '../src/adapters/hatch/@types/HatchFormat.ts';
 import { HatchFormatUtil }                                                                           from '../src/adapters/hatch/utils/HatchFormatUtil.ts';
 import { OperationRefusalWordingUtil }                                                               from '../src/adapters/utils/OperationRefusalWordingUtil.ts';
-import type { Job }                                                                                  from '../src/lib/tracker-model/@types/Job.ts';
+import type { Job }                                                                                  from '../src/domain/tracker-model/@types/Job.ts';
 import { Bouncer }                                                                                   from '../src/services/control/Bouncer.ts';
 import { ControlService }                                                                            from '../src/services/control/ControlService.ts';
 import { listTickets }                                                                               from '../src/services/tracker/TicketStore.ts';

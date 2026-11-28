@@ -10,13 +10,13 @@ import {
   spyOn,
   test
 } from 'bun:test';
+import type { DecisionWording }                        from '../../domain/tracker-model/@types/PlaybookStep.ts';
+import type { Ticket }                                 from '../../domain/tracker-model/@types/Ticket.ts';
+import type { TrackerProgress }                        from '../../domain/tracker-model/@types/TrackerProgress.ts';
+import { Board }                                       from '../../domain/tracker-model/Board.ts';
+import { createLogger }                                from '../../domain/tracker-model/Logger.ts';
 import { GitProcess, type GitHookPolicy, type GitRun } from '../../lib/git/GitProcess.ts';
 import { GitWorktrees }                                from '../../lib/git/GitWorktrees.ts';
-import type { DecisionWording }                        from '../../lib/tracker-model/@types/PlaybookStep.ts';
-import type { Ticket }                                 from '../../lib/tracker-model/@types/Ticket.ts';
-import type { TrackerProgress }                        from '../../lib/tracker-model/@types/TrackerProgress.ts';
-import { Board }                                       from '../../lib/tracker-model/Board.ts';
-import { createLogger }                                from '../../lib/tracker-model/Logger.ts';
 import { LIFECYCLE_LIMITS }                            from '../../shared/constants/LifecycleLimits.ts';
 import { ReviewOutcome }                               from './ReviewOutcome.ts';
 

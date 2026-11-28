@@ -14,19 +14,19 @@ import { dirname, join } from 'node:path';
 import type { RedHandoffFacts }                                                from '../../adapters/red-handoff/RedHandoffIngestion.ts';
 import { StaleGreenSessionOwnerIngestion, type StaleGreenSessionOwnerReading } from '../../adapters/session-owner/StaleGreenSessionOwnerIngestion.ts';
 import { createStaleGreenSessionOwnerWriter }                                  from '../../adapters/session-owner/StaleGreenSessionOwnerWriter.ts';
-import type { AgentAdapter }                                                   from '../../lib/agent-launch/AgentAdapter.ts';
-import { writeFileAtomically }                                                 from '../../lib/atomic-file/AtomicFile.ts';
-import type { EventLogEntry }                                                  from '../../lib/talos/EventLog.ts';
+import type { EventLogEntry }                                                  from '../../domain/talos/EventLog.ts';
 import type {
   InterruptionCause,
   Job,
   JobKind,
   JobRole,
   PictureReference
-}                                                              from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord, LogRecordFieldsOf }  from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Board }                         from '../../lib/tracker-model/Board.ts';
-import { HANDOFF_RED_INTERRUPTION }           from '../../lib/tracker-model/constants/JobStates.ts';
+}                                                              from '../../domain/tracker-model/@types/Job.ts';
+import type { LogRecord, LogRecordFieldsOf }  from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { Board }                         from '../../domain/tracker-model/Board.ts';
+import { HANDOFF_RED_INTERRUPTION }           from '../../domain/tracker-model/constants/JobStates.ts';
+import type { AgentAdapter }                  from '../../lib/agent-launch/AgentAdapter.ts';
+import { writeFileAtomically }                from '../../lib/atomic-file/AtomicFile.ts';
 import { PictureStore }                       from '../tracker/PictureStore.ts';
 import type { BoardChildren }                 from './BoardChildren.ts';
 import { jobFileInDataFolderOf, jobFolderIn } from './HephaestusFiles.ts';
@@ -369,7 +369,8 @@ function staleGreenSessionOwnerOf(
   const recorded = recordedStaleGreenSessionOwnerOf(trackerDirectory, job.id);
   if (recorded.verdict === 'readable') return { verdict: 'answered', sessionOwnerJobId: recorded.sessionOwnerJobId };
   if (recorded.verdict === 'unreadable') {
-    return { verdict: 'unreadable', unreadableFile: { jobId: job.id, file: jobFileInDataFolderOf(job.id, STALE_GREEN_SESSION_OWNER_FILE), reason: recorded.reason } };
+    const file = jobFileInDataFolderOf(job.id, STALE_GREEN_SESSION_OWNER_FILE);
+    return { verdict: 'unreadable', unreadableFile: { jobId: job.id, file, problem: recorded.problem } };
   }
   const predecessor = lastEndedPredecessorOf(logRecords, job);
   // One that cannot be read was still left; the launch that reads it for the handoff refuses before this owner is used.

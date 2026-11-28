@@ -88,7 +88,7 @@ describe('NoticeWordingUtil.warningsOf', () => {
     }];
     const header = {
       restartWarning:  { successorCodeVersion: 'code-example', step: 'read-jobs', error: 'Example error' },
-      unreadableFiles: [{ file: 'talos/launches-3.ndjson', reason: 'line 2: its version is not 1' }],
+      unreadableFiles: [{ file: 'talos/launches-3.ndjson', problem: { code: 'registry-line-field-malformed', field: 'kind', lineNumber: 2 } }],
     };
     expect(NoticeWordingUtil.warningsOf(notices, header)).toEqual([
       { kind: 'restart-failed', text: 'the restart to code code-example failed at read-jobs: Example error' },
@@ -97,11 +97,16 @@ describe('NoticeWordingUtil.warningsOf', () => {
     ]);
   });
 
-  test('the header facts read what Hephaestus keeps, and an entry that names no file and reason is none', () => {
+  test('the header facts read what Hephaestus keeps, and an entry that names no file and problem is none', () => {
     expect(NoticeWordingUtil.headerWarningFactsOf({
       restartWarning:  null,
-      unreadableFiles: [{ file: 'crash-logs/crash-1.json', reason: 'it is not a JSON object' }, { file: 3 }, null],
-    })).toEqual({ restartWarning: null, unreadableFiles: [{ file: 'crash-logs/crash-1.json', reason: 'it is not a JSON object' }] });
+      unreadableFiles: [
+        { file: 'crash-logs/crash-1.json', problem: { code: 'not-a-json-object' } },
+        { file: 'crash-logs/crash-2.json', reason: 'it is not a JSON object' },
+        { file: 3 },
+        null,
+      ],
+    })).toEqual({ restartWarning: null, unreadableFiles: [{ file: 'crash-logs/crash-1.json', problem: { code: 'not-a-json-object' } }] });
     expect(NoticeWordingUtil.headerWarningFactsOf({ restartWarning: null, unreadableFiles: 'none' })).toEqual({ restartWarning: null, unreadableFiles: [] });
   });
 

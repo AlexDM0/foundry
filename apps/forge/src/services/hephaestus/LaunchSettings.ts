@@ -3,11 +3,11 @@
  * entity, else its role's default. An Airlock agent carries on the last worker's session, so it takes that worker's recorded pair.
  */
 
+import type { Job, JobRole }                from '../../domain/tracker-model/@types/Job.ts';
+import type { Pipeline, PipelineAgentRole } from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { AgentPair }                   from '../../domain/tracker-model/@types/Ticket.ts';
+import { PipelineUtil }                     from '../../domain/tracker-model/utils/PipelineUtil.ts';
 import type { AgentEffort }                 from '../../lib/agent-launch/AgentLaunchRequest.ts';
-import type { Job, JobRole }                from '../../lib/tracker-model/@types/Job.ts';
-import type { Pipeline, PipelineAgentRole } from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { AgentPair }                   from '../../lib/tracker-model/@types/Ticket.ts';
-import { PipelineUtil }                     from '../../lib/tracker-model/utils/PipelineUtil.ts';
 import {
   DEFAULT_AGENT_PAIR_OF_ROLE,
   EFFECT_READER_EFFORT,

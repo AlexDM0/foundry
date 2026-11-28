@@ -10,14 +10,15 @@ import {
   readSync
 } from 'node:fs';
 
-import { StoredJsonDocumentUtil } from '../utils/StoredJsonDocumentUtil.ts';
+import { StoredJsonDocumentUtil }        from '../utils/StoredJsonDocumentUtil.ts';
+import type { GateProfileOutputProblem } from './@types/GateProfileOutputProblem.ts';
 
-export type GateProfileOutputLineReading = { verdict: 'readable'; text: string } | { verdict: 'unreadable'; reason: string };
+export type GateProfileOutputLineReading = { verdict: 'readable'; text: string } | { verdict: 'unreadable'; problem: GateProfileOutputProblem };
 
 export type GateProfileOutputReading =
   | { verdict: 'readable'; lines: GateProfileOutputLineReading[] }
   | { verdict: 'absent' }
-  | { verdict: 'unreadable'; reason: string };
+  | { verdict: 'unreadable'; problem: GateProfileOutputProblem };
 
 export const GATE_PROFILE_OUTPUT_FORMAT_VERSION = 1;
 
@@ -27,7 +28,7 @@ function lineReadingOf(lineText: string): GateProfileOutputLineReading {
   const stored = StoredJsonDocumentUtil.documentOfText(lineText, GATE_PROFILE_OUTPUT_FORMAT_VERSION);
   if (stored.verdict === 'unreadable') return stored;
   const { text } = stored.document;
-  return typeof text === 'string' ? { verdict: 'readable', text } : { verdict: 'unreadable', reason: 'its "text" is not a string' };
+  return typeof text === 'string' ? { verdict: 'readable', text } : { verdict: 'unreadable', problem: { code: 'text-not-a-string', field: 'text' } };
 }
 
 /** The bytes of the file from `offset` to its end. */
@@ -57,7 +58,7 @@ export class GateProfileOutputIngestion {
     try {
       bytes = bytesFrom(this.outputFilePath, this.consumedBytes);
     } catch (error) {
-      return { verdict: 'unreadable', reason: `it could not be read (${error instanceof Error ? error.message : 'unknown error'})` };
+      return { verdict: 'unreadable', problem: { code: 'bytes-unreadable', systemError: error instanceof Error ? error.message : 'unknown error' } };
     }
     const lines: GateProfileOutputLineReading[] = [];
     let lineStart = 0;

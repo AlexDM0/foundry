@@ -1,0 +1,17 @@
+[
+  {"case":"a required field is missing","stored":"{\"kind\":\"fix\"}","sentence":"$.name is required"},
+  {"case":"a field the schema does not allow","stored":"{\"name\":\"ab\",\"extra\":1}","sentence":"$.extra is not allowed"},
+  {"case":"the report is not an object","stored":"[\"ab\"]","sentence":"$ is not of type object"},
+  {"case":"a text is shorter than its minimum","stored":"{\"name\":\"a\"}","sentence":"$.name is shorter than 2"},
+  {"case":"a text is longer than its maximum","stored":"{\"name\":\"abcdef\"}","sentence":"$.name is longer than 5"},
+  {"case":"a text does not match its pattern","stored":"{\"name\":\"AB\"}","sentence":"$.name does not match ^[a-z]+$"},
+  {"case":"a value is not of a list of types","stored":"{\"name\":\"ab\",\"nullable\":5}","sentence":"$.nullable is not of type string,null"},
+  {"case":"a value is not one of its words","stored":"{\"name\":\"ab\",\"kind\":\"drop\"}","sentence":"$.kind is not one of fix, file"},
+  {"case":"a value is not its constant","stored":"{\"name\":\"ab\",\"marker\":\"other\"}","sentence":"$.marker is not report"},
+  {"case":"a list has fewer items than its minimum","stored":"{\"name\":\"ab\",\"items\":[]}","sentence":"$.items has fewer than 1 items"},
+  {"case":"a list item is not of its type","stored":"{\"name\":\"ab\",\"items\":[5]}","sentence":"$.items[0] is not of type string"},
+  {"case":"a value matches no anyOf branch","stored":"{\"name\":\"ab\",\"either\":true}","sentence":"$.either matches no anyOf branch"},
+  {"case":"a value matches two oneOf branches","stored":"{\"name\":\"ab\",\"exactly\":1}","sentence":"$.exactly matches 2 oneOf branches, not one"},
+  {"case":"a value matches no oneOf branch","stored":"{\"name\":\"ab\",\"exactly\":\"one\"}","sentence":"$.exactly matches 0 oneOf branches, not one"},
+  {"case":"a then condition does not hold once its if does","stored":"{\"name\":\"ab\",\"filed\":{\"outcome\":\"filed\"}}","sentence":"$.filed.ticket is required"}
+]

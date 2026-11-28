@@ -5,6 +5,7 @@
 import type { ForgeDocumentAnswer } from '../../../lib/forge-client/@types/ForgeClientAnswer.ts';
 import { forgeClientOf }            from '../../../lib/forge-client/ForgeClient.ts';
 import type { ForgeReading }        from '../../../shared/@types/ForgeReading.ts';
+import { SUPPORTED_FORGE_VERSION }  from '../../../shared/constants/SupportedForgeVersions.ts';
 import {
   recordedHephaestusAnswersOf,
   recordedHephaestusFetch,
@@ -21,7 +22,7 @@ const EXAMPLE_TOKEN = 'example-token-0123456789abcdef';
 export const EXAMPLE_READ_STAMP = '2026-11-12T13:19:22.000Z';
 
 async function documentAnsweredOf(answers: readonly RecordedHephaestusAnswer[], route: ForgeDocumentRoute, hephaestusUrl: string): Promise<ForgeDocumentAnswer> {
-  const client = forgeClientOf({ hephaestusFetch: recordedHephaestusFetch(answers) });
+  const client = forgeClientOf({ supportedForgeVersion: SUPPORTED_FORGE_VERSION, hephaestusFetch: recordedHephaestusFetch(answers) });
   const address = { hephaestusUrl } as const;
   if (route === 'identity') return client.identityOf(address);
   if (route === 'summary') return client.summaryOf(address);

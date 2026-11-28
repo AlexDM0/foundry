@@ -12,8 +12,8 @@ import {
 } from 'bun:test';
 
 import { writeHatchRequest }                                 from '../../src/adapters/hatch/HatchFolder.ts';
-import type { Job }                                          from '../../src/lib/tracker-model/@types/Job.ts';
-import type { TicketDocument, TicketDocumentRecord }         from '../../src/lib/tracker-model/@types/TicketDocument.ts';
+import type { Job }                                          from '../../src/domain/tracker-model/@types/Job.ts';
+import type { TicketDocument, TicketDocumentRecord }         from '../../src/domain/tracker-model/@types/TicketDocument.ts';
 import { ControlService }                                    from '../../src/services/control/ControlService.ts';
 import type { DrivePass }                                    from '../../src/services/hephaestus/DrivePass.ts';
 import { HatchInbox }                                        from '../../src/services/hephaestus/HatchInbox.ts';
@@ -27,6 +27,7 @@ import { ECHOED_CONTROL_CONTEXT }                            from '../../src/tes
 import { fakeAgentAdapter, fakeResultLine, fakeStartedLine } from '../../src/testing/FakeAgentAdapter.ts';
 import { fakeGateConfinement }                               from '../../src/testing/FakeGateConfinement.ts';
 import { LIVE_HOLDERS_LOCK_TAKER }                           from '../../src/testing/LockTakers.ts';
+import { detailsLoggerOf }                                   from '../../src/testing/LoggedDetails.ts';
 import { nativePlatformPorts }                               from '../../src/testing/NativePlatformPorts.ts';
 import { useRecordedGit }                                    from '../../src/testing/RecordedGit.ts';
 import { RECORDED_FLOW_MAIN_LINE }                           from '../../src/testing/RecordedGitFlow.ts';
@@ -145,7 +146,7 @@ function startDrivePass(agentAdapter: ReturnType<typeof fakeAgentAdapter>): void
     agentAdapter,
     monitorFolder,
     mainLine:          RECORDED_FLOW_MAIN_LINE,
-    log:               (line) => hephaestusLog.push(line),
+    log:               detailsLoggerOf(hephaestusLog),
     decisionWordingOf: (draft) => HephaestusWording.decisionWordingOf(draft, agentAdapter),
     launchTextOf:      (job, facts) => HephaestusWording.launchTextOf(job, facts, agentAdapter.promptFills),
   });

@@ -8,9 +8,9 @@ import { join }                     from 'node:path';
 
 import { describe, expect, test } from 'bun:test';
 
-import type { StateFrame }                                from '../../lib/talos/@types/TalosFrame.ts';
-import type { ChildEnd, ChildRecord }                     from '../../lib/talos/ChildRecord.ts';
-import type { EventLogEntry }                             from '../../lib/talos/EventLog.ts';
+import type { StateFrame }                                from '../../domain/talos/@types/TalosFrame.ts';
+import type { ChildEnd, ChildRecord }                     from '../../domain/talos/ChildRecord.ts';
+import type { EventLogEntry }                             from '../../domain/talos/EventLog.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { waitUntil }                                      from '../../testing/WaitUntil.ts';

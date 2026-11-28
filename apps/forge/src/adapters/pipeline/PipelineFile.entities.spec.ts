@@ -11,9 +11,10 @@ import {
   expect,
   test,
 } from 'bun:test';
-import type { Pipeline }                                  from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { Pipeline }                                  from '../../domain/tracker-model/@types/Pipeline.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { PipelineFile }                                   from './PipelineFile.ts';
+import { PipelineProblemWording }                         from './PipelineProblemWording.ts';
 
 const NO_PHASES = { build: [], review: [], merge: [] };
 
@@ -33,7 +34,7 @@ function reasonOf(document: unknown): string {
   const pipelineFilePath = join(scratchDirectory, 'pipeline.json');
   writeFileSync(pipelineFilePath, JSON.stringify(document));
   const reading = PipelineFile.read(pipelineFilePath);
-  return reading.verdict === 'malformed' ? reading.reason : `read as ${reading.verdict}`;
+  return reading.verdict === 'malformed' ? PipelineProblemWording.sentenceOf(reading.problem) : `read as ${reading.verdict}`;
 }
 
 function entity(fields: Record<string, unknown>): Record<string, unknown> {

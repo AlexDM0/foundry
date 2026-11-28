@@ -14,8 +14,8 @@ import {
 
 import { recordedPathSegmentOf }   from '../../../adapters/forge-api/testing/BoardDocuments.ts';
 import { BoardDocumentMapUtil }    from '../../../adapters/page-api/BoardDocumentMapUtil.ts';
-import { SUPPORTED_FORGE_VERSION } from '../../../lib/forge-client/constants/SupportedForgeVersions.ts';
 import { GAIA_SYSTEM_VERSION }     from '../../../shared/constants/GaiaSystemVersions.ts';
+import { SUPPORTED_FORGE_VERSION } from '../../../shared/constants/SupportedForgeVersions.ts';
 import { manualTimers }            from '../../../testing/ManualTimers.ts';
 import {
   recordedBoardAnswersOf,

@@ -1,0 +1,37 @@
+[
+  {
+    "case": "a directory stands at its path",
+    "stored": null,
+    "sentence": "it could not be read ({systemError})"
+  },
+  {
+    "case": "its bytes are not UTF-8",
+    "stored": null,
+    "sentence": "it is not UTF-8 text"
+  },
+  {
+    "case": "it is not JSON",
+    "stored": "not json",
+    "sentence": "it is not valid JSON (JSON Parse error: Unexpected identifier \"not\")"
+  },
+  {
+    "case": "it is not a JSON object",
+    "stored": "[]",
+    "sentence": "it is not a JSON object"
+  },
+  {
+    "case": "its holder is not a process identity",
+    "stored": "{\"version\":1,\"holder\":{\"processId\":\"42\"},\"acquiredAt\":\"2026-11-19T09:00:00.000+01:00\",\"state\":\"held\"}",
+    "sentence": "its \"holder\" is not a process identity"
+  },
+  {
+    "case": "its acquiredAt is not a string",
+    "stored": "{\"version\":1,\"holder\":{\"processId\":42,\"startStamp\":null,\"bootIdentity\":null},\"acquiredAt\":null,\"state\":\"held\"}",
+    "sentence": "its \"acquiredAt\" is not a string"
+  },
+  {
+    "case": "its state is not a generation state",
+    "stored": "{\"version\":1,\"holder\":{\"processId\":42,\"startStamp\":null,\"bootIdentity\":null},\"acquiredAt\":\"2026-11-19T09:00:00.000+01:00\",\"state\":\"taken\"}",
+    "sentence": "its \"state\" is not one of held, released"
+  }
+]

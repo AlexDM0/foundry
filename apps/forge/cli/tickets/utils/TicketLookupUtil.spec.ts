@@ -5,7 +5,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { UnreadableRecord }       from '../../../src/services/tracker/@types/BoardRecords.ts';
+import type { UnreadableTicketRecord } from '../../../src/services/tracker/@types/BoardRecords.ts';
 import { PRODUCT_NAMES }               from '../../../src/shared/constants/ProductNames.ts';
 import { boardFixture, ticketFixture } from '../../../src/testing/BoardFixtures.ts';
 import { NO_UNREADABLE_RECORDS }       from '../../../src/testing/FixtureRecordAllocation.ts';
@@ -14,11 +14,11 @@ import { TicketLookupUtil }            from './TicketLookupUtil.ts';
 
 const { requireTicket, refuseAMissingTicket } = TicketLookupUtil;
 
-const UNREADABLE_FOURTH_TICKET: UnreadableRecord = {
+const UNREADABLE_FOURTH_TICKET: UnreadableTicketRecord = {
   record:   'ticket',
   key:      '004',
   location: '/example-agency/storefront/.agent-progress/tickets/004-broken.md',
-  reason:   'the frontmatter has no closing fence',
+  problem:  { code: 'no-closing-fence' },
   line:     1,
 };
 
@@ -52,7 +52,7 @@ describe('TicketLookupUtil.requireTicket', () => {
 
     expect(refusal.status).toBe('unrepaired');
     expect(refusal.message).toBe(
-      'Ticket file ignored: /example-agency/storefront/.agent-progress/tickets/004-broken.md (line 1): the frontmatter has no closing fence',
+      'Ticket file ignored: /example-agency/storefront/.agent-progress/tickets/004-broken.md (line 1): the frontmatter has no closing `---` fence',
     );
   });
 });
@@ -66,13 +66,13 @@ describe('TicketLookupUtil.refuseAMissingTicket', () => {
   });
 
   test('a broken file named by its bare padded id is matched as well as one with a slug', () => {
-    const bareFile: UnreadableRecord = {
-      record: 'ticket', key: '004', location: '/example-agency/storefront/.agent-progress/tickets/004.md', reason: 'unreadable', line: 0
+    const bareFile: UnreadableTicketRecord = {
+      record: 'ticket', key: '004', location: '/example-agency/storefront/.agent-progress/tickets/004.md', problem: { code: 'file-not-utf8-text' }, line: 0
     };
 
     const refusal = refusalFrom(() => refuseAMissingTicket('004', [bareFile]));
 
     expect(refusal.status).toBe('unrepaired');
-    expect(refusal.message).toBe('Ticket file ignored: /example-agency/storefront/.agent-progress/tickets/004.md: unreadable');
+    expect(refusal.message).toBe('Ticket file ignored: /example-agency/storefront/.agent-progress/tickets/004.md: the file is not UTF-8 text');
   });
 });

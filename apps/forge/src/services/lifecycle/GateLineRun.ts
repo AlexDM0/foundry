@@ -3,11 +3,12 @@
  * run and a gate profile share it. Each line runs under Talos in its own step folder of the run's child folder. A gate that changed the
  * checkout fails, and the change is undone before the next gate.
  */
+import type { GateCacheReport, GateOutcome, PipelineStepRun } from '../../domain/tracker-model/@types/Job.ts';
+import type { PipelineGate, PipelineStep }                    from '../../domain/tracker-model/@types/Pipeline.ts';
 import { GitProcess }                                         from '../../lib/git/GitProcess.ts';
 import { GitWorktrees }                                       from '../../lib/git/GitWorktrees.ts';
 import type { ShellLine }                                     from '../../lib/shell-line/ShellLine.ts';
-import type { GateCacheReport, GateOutcome, PipelineStepRun } from '../../lib/tracker-model/@types/Job.ts';
-import type { PipelineGate, PipelineStep }                    from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { LineRefusal }                                   from '../../shared/@types/LineRefusal.ts';
 import {
   GateRun,
   type GateConfinement,
@@ -41,7 +42,7 @@ export interface GateLineRunRequest extends GateLineRequest {
 /** A line the confinement port refused: nothing of the run judged the checkout. */
 export interface GateLineRefusal {
   verdict: 'sandbox-unavailable';
-  reason:  string;
+  refusal: LineRefusal;
 }
 
 export interface SingleGateRun {
@@ -84,7 +85,7 @@ async function runLine(
   const { directory, childFolder } = place;
   const statusFile = GateRun.lineStatusFileOf();
   const line = GateRun.runnableLineOf(request, storedLine, { directory, statusFile }, confinement);
-  if (line.verdict === 'refused') return { verdict: 'sandbox-unavailable', reason: line.reason };
+  if (line.verdict === 'refused') return { verdict: 'sandbox-unavailable', refusal: line.refusal };
   return GateRun.runGate({
     argv:              line.argv,
     verbatimArguments: line.verbatimArguments,

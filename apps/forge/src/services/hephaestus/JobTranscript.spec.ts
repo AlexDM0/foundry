@@ -15,10 +15,10 @@ import {
 } from 'bun:test';
 
 import { createAssistantChatsWriter }                     from '../../adapters/assistant-chats/AssistantChatsWriter.ts';
+import type { ClientEntry }                               from '../../domain/talos/@types/TalosFrame.ts';
+import { createEventLogWriter }                           from '../../domain/talos/EventLog.ts';
+import type { LogRecord }                                 from '../../domain/tracker-model/@types/LogRecord.ts';
 import type { AgentSessionEvent }                         from '../../lib/agent-launch/AgentSessionEvent.ts';
-import type { ClientEntry }                               from '../../lib/talos/@types/TalosFrame.ts';
-import { createEventLogWriter }                           from '../../lib/talos/EventLog.ts';
-import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { TranscriptEntry }                           from '../../shared/@types/TranscriptEntry.ts';
 import { fakeAgentAdapter }                               from '../../testing/FakeAgentAdapter.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';

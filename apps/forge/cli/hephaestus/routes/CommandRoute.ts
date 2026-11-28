@@ -13,7 +13,7 @@ import { type AgentCommandPreparationContext, AgentCommandPreparation } from '..
 import { AgentPrograms }                                                from '../../../src/services/control/AgentPrograms.ts';
 import { CONTROL_COMMAND_KINDS }                                        from '../../../src/services/control/ControlService.ts';
 import type { AgentProgramChecks }                                      from '../../../src/services/hephaestus/AgentProgramChecks.ts';
-import type { RouteAnswer }                                             from '../../../src/services/hephaestus/HephaestusServer.ts';
+import { HephaestusServer, type RouteAnswer }                           from '../../../src/services/hephaestus/HephaestusServer.ts';
 import { MachineAgentLimit }                                            from '../../../src/services/hephaestus/MachineAgentLimit.ts';
 import type { BoardStore }                                              from '../../../src/services/store/BoardStore.ts';
 import { readingBoardOfContents }                                       from '../../../src/services/tracker/BoardOfContents.ts';
@@ -22,6 +22,7 @@ import type { Workspace }                                               from '..
 import type { ControlCommand, ControlCommandOf }                        from '../../../src/shared/@types/ControlCommand.ts';
 import type { ControlContext }                                          from '../../../src/shared/@types/ControlContext.ts';
 import type { EffectReadingSource }                                     from '../../../src/shared/@types/EffectReading.ts';
+import type { MachineConfigUnwritableProblem }                          from '../../../src/shared/@types/MachineConfigProblem.ts';
 import { OperationRefusal }                                             from '../../../src/shared/OperationRefusal.ts';
 import { SERVED_CONTRACT_VERSIONS }                                     from '../../../src/shared/constants/HephaestusApiContracts.ts';
 import { agentCommandPreparationContextOf, preparedForgeAt }            from '../../AgentCommandContext.ts';
@@ -58,13 +59,6 @@ export interface CommandRouteRequest {
   agentProgramChecks?:  AgentProgramChecks;
 }
 
-const HTTP_STATUS = {
-  OK:          200,
-  BAD_REQUEST: 400,
-  CONFLICT:    409,
-  LOCKED:      423,
-} as const;
-
 function controlContextOf(request: CommandRouteRequest): ControlContext {
   const effectReadings = request.effectReadings?.() ?? null;
   const insideHephaestus = insideHephaestusControlContextOf(request.context.agentAdapter);
@@ -93,7 +87,7 @@ function refusalBodyOf({ code, fields, sentence }: ForgeRefusalDocument): Record
   };
 }
 
-const MALFORMED: RouteAnswer = { status: HTTP_STATUS.BAD_REQUEST, body: refusalBodyOf({ code: 'malformed-body', fields: {}, sentence: MALFORMED_BODY_TEXT }) };
+const MALFORMED: RouteAnswer = HephaestusServer.routeAnswerOf('malformed-body', refusalBodyOf({ code: 'malformed-body', fields: {}, sentence: MALFORMED_BODY_TEXT }));
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -130,11 +124,11 @@ function controlCommandOfBody(kind: string, body: Record<string, unknown>): Cont
 }
 
 function appliedAnswerOf(applied: { outcome: string; result?: unknown }): RouteAnswer {
-  return { status: HTTP_STATUS.OK, body: { controlVersion: CONTROL_VERSION, ...applied } };
+  return HephaestusServer.routeAnswerOf('answered', { controlVersion: CONTROL_VERSION, ...applied });
 }
 
 function refusedAnswerOf(refusal: OperationRefusal): RouteAnswer {
-  return { status: HTTP_STATUS.CONFLICT, body: refusalBodyOf(RefusalDocumentUtil.refusalDocumentOf(refusal)) };
+  return HephaestusServer.routeAnswerOf('refused', refusalBodyOf(RefusalDocumentUtil.refusalDocumentOf(refusal)));
 }
 
 function machineAgentLimitAnswerOf(body: Record<string, unknown>, request: CommandRouteRequest): RouteAnswer {
@@ -172,8 +166,10 @@ async function machineAgentProgramAnswerOf(body: Record<string, unknown>, reques
     await AgentCommandPreparation.requireRunningProgram(vendor, programPath, preparationContextOf(request, registeredRepositoryRootsIn(monitorFolder)));
     const written = MachineConfigFile.writeAgentProgram(monitorFolder, vendor, programPath);
     if (written !== 'written') {
-      const reason = written.verdict === 'newer-version' ? `its version ${written.version} is newer than this program reads` : written.reason;
-      throw new OperationRefusal('refused', { kind: 'machine-config-unwritable', filePath: MachineConfigFile.pathIn(monitorFolder), reason });
+      const problem: MachineConfigUnwritableProblem = written.verdict === 'newer-version'
+        ? { code: 'version-newer', field: 'version', version: written.version }
+        : written.problem;
+      throw new OperationRefusal('refused', { kind: 'machine-config-unwritable', filePath: MachineConfigFile.pathIn(monitorFolder), problem });
     }
     // The machine's config is not in the pass's fingerprint, so only a forced pass tries a job not launched for its program again.
     request.wake(true);
@@ -224,10 +220,7 @@ export async function answerControlCommand(body: unknown, request: CommandRouteR
   const command = controlCommandOfBody(kind, body);
   if (command === null) return MALFORMED;
   if (request.launchesHeld()) {
-    return {
-      status: HTTP_STATUS.LOCKED,
-      body:   refusalBodyOf({ code: INSTALL_HELD_REFUSAL, fields: {}, sentence: INSTALL_HELD_TEXT }),
-    };
+    return HephaestusServer.routeAnswerOf('launches-held', refusalBodyOf({ code: INSTALL_HELD_REFUSAL, fields: {}, sentence: INSTALL_HELD_TEXT }));
   }
   const { context, workspace, boardStore } = request;
   try {

@@ -41,7 +41,7 @@ export type SpecRequirement =
 export const BOUNDARY_OF_RECORDING_REQUIREMENT: Readonly<Record<RecordedBoundaryRequirement, string>> = {
   'git-recording':              'src/lib/git/GitProcess.ts',
   'process-table-recording':    'src/lib/process-identity/',
-  'local-endpoint-recording':   'src/lib/talos/LocalEndpointFor.ts',
+  'local-endpoint-recording':   'src/lib/local-endpoint/LocalEndpointFor.ts',
   'folder-watch-recording':     'src/lib/quiet-watch/QuietWatch.ts',
   'gate-confinement-recording': 'src/lib/gate-confinement/',
 };

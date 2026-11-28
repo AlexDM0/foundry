@@ -1,0 +1,77 @@
+[
+  {
+    "case": "a directory in the file's place, which cannot be read (built as a directory; the OS message is {systemError})",
+    "stored": null,
+    "sentence": "it could not be read ({systemError})"
+  },
+  {
+    "case": "the bytes are not UTF-8 (built as the byte 0xFF)",
+    "stored": null,
+    "sentence": "it is not UTF-8 text"
+  },
+  {
+    "case": "the text is not JSON",
+    "stored": "{",
+    "sentence": "it is not valid JSON (JSON Parse error: Expected '}')"
+  },
+  {
+    "case": "the document is a list, not an object",
+    "stored": "[]",
+    "sentence": "the document is not a JSON object"
+  },
+  {
+    "case": "formatVersion is missing",
+    "stored": "{\"blob\":\"cccccccccccccccccccccccccccccccccccccccc\",\"annotations\":[{\"lineText\":\"- Keep it fast.\",\"occurrence\":1,\"kind\":\"research\",\"path\":null}]}",
+    "sentence": "formatVersion is missing, and this build reads 1"
+  },
+  {
+    "case": "formatVersion is a version this build does not read",
+    "stored": "{\"formatVersion\":2,\"blob\":\"cccccccccccccccccccccccccccccccccccccccc\",\"annotations\":[{\"lineText\":\"- Keep it fast.\",\"occurrence\":1,\"kind\":\"research\",\"path\":null}]}",
+    "sentence": "formatVersion is 2, and this build reads 1"
+  },
+  {
+    "case": "blob is an empty text",
+    "stored": "{\"formatVersion\":1,\"blob\":\"\",\"annotations\":[{\"lineText\":\"- Keep it fast.\",\"occurrence\":1,\"kind\":\"research\",\"path\":null}]}",
+    "sentence": "blob is not a blob id"
+  },
+  {
+    "case": "annotations is not a list",
+    "stored": "{\"formatVersion\":1,\"blob\":\"cccccccccccccccccccccccccccccccccccccccc\",\"annotations\":{}}",
+    "sentence": "annotations is not a list"
+  },
+  {
+    "case": "the first annotation is not an object",
+    "stored": "{\"formatVersion\":1,\"blob\":\"cccccccccccccccccccccccccccccccccccccccc\",\"annotations\":[\"text\"]}",
+    "sentence": "annotations[0] is not an object"
+  },
+  {
+    "case": "the first annotation has a key it does not know",
+    "stored": "{\"formatVersion\":1,\"blob\":\"cccccccccccccccccccccccccccccccccccccccc\",\"annotations\":[{\"lineText\":\"- Keep it fast.\",\"occurrence\":1,\"kind\":\"research\",\"path\":null,\"colour\":\"red\"}]}",
+    "sentence": "annotations[0].colour is not a key of annotations[0]; the keys are lineText, occurrence, kind, path"
+  },
+  {
+    "case": "the first annotation lacks a key",
+    "stored": "{\"formatVersion\":1,\"blob\":\"cccccccccccccccccccccccccccccccccccccccc\",\"annotations\":[{\"lineText\":\"- Keep it fast.\",\"occurrence\":1,\"kind\":\"research\"}]}",
+    "sentence": "annotations[0].path is missing"
+  },
+  {
+    "case": "the first annotation's lineText is not a text",
+    "stored": "{\"formatVersion\":1,\"blob\":\"cccccccccccccccccccccccccccccccccccccccc\",\"annotations\":[{\"lineText\":3,\"occurrence\":1,\"kind\":\"research\",\"path\":null}]}",
+    "sentence": "annotations[0].lineText is not a text"
+  },
+  {
+    "case": "the first annotation's occurrence is below 1",
+    "stored": "{\"formatVersion\":1,\"blob\":\"cccccccccccccccccccccccccccccccccccccccc\",\"annotations\":[{\"lineText\":\"- Keep it fast.\",\"occurrence\":0,\"kind\":\"research\",\"path\":null}]}",
+    "sentence": "annotations[0].occurrence is not a whole number of at least 1"
+  },
+  {
+    "case": "the first annotation's kind is outside the vocabulary",
+    "stored": "{\"formatVersion\":1,\"blob\":\"cccccccccccccccccccccccccccccccccccccccc\",\"annotations\":[{\"lineText\":\"- Keep it fast.\",\"occurrence\":1,\"kind\":\"rumour\",\"path\":null}]}",
+    "sentence": "annotations[0].kind is \"rumour\", which is not one of contributing, research, installed-default"
+  },
+  {
+    "case": "the first annotation's path is neither null nor a text",
+    "stored": "{\"formatVersion\":1,\"blob\":\"cccccccccccccccccccccccccccccccccccccccc\",\"annotations\":[{\"lineText\":\"- Keep it fast.\",\"occurrence\":1,\"kind\":\"research\",\"path\":4}]}",
+    "sentence": "annotations[0].path is neither null nor a text"
+  }
+]

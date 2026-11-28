@@ -13,6 +13,7 @@ import {
 
 import { createScratchDirectory, removeScratchDirectory }                                       from '../../testing/ScratchWorkspace.ts';
 import { LAUNCH_SETTINGS_FORMAT_VERSION, LaunchSettingsIngestion, type RecordedLaunchSettings } from './LaunchSettingsIngestion.ts';
+import { LaunchSettingsProblemWording }                                                         from './LaunchSettingsProblemWording.ts';
 import { createLaunchSettingsWriter }                                                           from './LaunchSettingsWriter.ts';
 
 let scratchDirectory = '';
@@ -20,6 +21,11 @@ let scratchDirectory = '';
 const settingsFilePath = (): string => join(scratchDirectory, 'launch-settings.json');
 
 const reading = (): ReturnType<LaunchSettingsIngestion['read']> => new LaunchSettingsIngestion(settingsFilePath()).read();
+
+/** The reading with its problem worded, as User reads it. */
+function wordedReadingOf(read: ReturnType<LaunchSettingsIngestion['read']>): object {
+  return read.verdict === 'unreadable' ? { verdict: read.verdict, reason: LaunchSettingsProblemWording.sentenceOf(read.problem) } : read;
+}
 
 const SETTINGS: RecordedLaunchSettings = { model: 'fable', effort: 'xhigh' };
 
@@ -50,9 +56,9 @@ test('a file that is not JSON is unreadable', () => {
 
 test('a pair of another version, or of none, is unreadable', () => {
   writeFileSync(settingsFilePath(), `${JSON.stringify({ ...SETTINGS, version: LAUNCH_SETTINGS_FORMAT_VERSION + 1 })}\n`);
-  expect(reading()).toEqual({ verdict: 'unreadable', reason: `its version is not ${LAUNCH_SETTINGS_FORMAT_VERSION}` });
+  expect(wordedReadingOf(reading())).toEqual({ verdict: 'unreadable', reason: `its version is not ${LAUNCH_SETTINGS_FORMAT_VERSION}` });
   writeFileSync(settingsFilePath(), `${JSON.stringify(SETTINGS)}\n`);
-  expect(reading()).toEqual({ verdict: 'unreadable', reason: `its version is not ${LAUNCH_SETTINGS_FORMAT_VERSION}` });
+  expect(wordedReadingOf(reading())).toEqual({ verdict: 'unreadable', reason: `its version is not ${LAUNCH_SETTINGS_FORMAT_VERSION}` });
 });
 
 test.each([
@@ -60,7 +66,7 @@ test.each([
   ['effort', { effort: 3 }, 'its "effort" is not text'],
 ])('a wrong %s is unreadable', (_field, change, reason) => {
   writeFileSync(settingsFilePath(), `${JSON.stringify({ version: LAUNCH_SETTINGS_FORMAT_VERSION, ...SETTINGS, ...change })}\n`);
-  expect(reading()).toEqual({ verdict: 'unreadable', reason });
+  expect(wordedReadingOf(reading())).toEqual({ verdict: 'unreadable', reason });
 });
 
 test('a folder where the file belongs is unreadable, not absent, and does not throw', () => {

@@ -4,11 +4,11 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { TicketPriority, TicketStatus }             from '../../lib/tracker-model/@types/Ticket.ts';
-import type { TicketOfferKind }                          from '../../lib/tracker-model/MoveOffers.ts';
-import { TICKET_OFFER_KINDS }                            from '../../lib/tracker-model/MoveOffers.ts';
-import { TICKET_STATUSES, TICKET_STATUSES_USER_READIES } from '../../lib/tracker-model/constants/Statuses.ts';
-import { TICKET_PRIORITIES }                             from '../../lib/tracker-model/constants/TicketFields.ts';
+import type { TicketPriority, TicketStatus }             from '../../domain/tracker-model/@types/Ticket.ts';
+import type { TicketOfferKind }                          from '../../domain/tracker-model/MoveOffers.ts';
+import { TICKET_OFFER_KINDS }                            from '../../domain/tracker-model/MoveOffers.ts';
+import { TICKET_STATUSES, TICKET_STATUSES_USER_READIES } from '../../domain/tracker-model/constants/Statuses.ts';
+import { TICKET_PRIORITIES }                             from '../../domain/tracker-model/constants/TicketFields.ts';
 import { ticketInStatusFixture }                         from '../../testing/BoardFixtures.ts';
 
 const AT = '2026-11-20T10:00:00+01:00';

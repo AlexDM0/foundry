@@ -4,34 +4,35 @@
  */
 import { readFileSync }                                       from 'node:fs';
 import type { RedHandoffFacts }                               from '../../src/adapters/red-handoff/RedHandoffIngestion.ts';
+import { UnreadableFileProblemWordingUtil }                   from '../../src/adapters/utils/UnreadableFileProblemWordingUtil.ts';
+import type { DecisionQuestionOption }                        from '../../src/domain/tracker-model/@types/Decision.ts';
+import type { Incident }                                      from '../../src/domain/tracker-model/@types/Incident.ts';
+import type { Job }                                           from '../../src/domain/tracker-model/@types/Job.ts';
+import type { Pipeline, PipelineGate }                        from '../../src/domain/tracker-model/@types/Pipeline.ts';
+import type { PipelineSetup, ResearchFinding, SetupQuestion } from '../../src/domain/tracker-model/@types/PipelineSetup.ts';
+import type { DecisionDraft, DecisionWording }                from '../../src/domain/tracker-model/@types/PlaybookStep.ts';
+import type { DocumentApprover, TicketDocumentKind }          from '../../src/domain/tracker-model/@types/TicketDocument.ts';
+import { ENTITY_DECISION_ANSWERS }                            from '../../src/domain/tracker-model/constants/EntityDecisionAnswers.ts';
+import { DEFAULT_CONSTITUTION_SOURCES }                       from '../../src/domain/tracker-model/constants/PipelineSetupVocabulary.ts';
+import { ROOT_ENTITY_KEY }                                    from '../../src/domain/tracker-model/utils/EntityOwnershipUtil.ts';
 import type { AgentAdapter }                                  from '../../src/lib/agent-launch/AgentAdapter.ts';
 import { AgentBillingUtil }                                   from '../../src/lib/agent-launch/utils/AgentBillingUtil.ts';
-import type { DecisionQuestionOption }                        from '../../src/lib/tracker-model/@types/Decision.ts';
-import type { Incident }                                      from '../../src/lib/tracker-model/@types/Incident.ts';
-import type { Job }                                           from '../../src/lib/tracker-model/@types/Job.ts';
-import type { Pipeline, PipelineGate }                        from '../../src/lib/tracker-model/@types/Pipeline.ts';
-import type { PipelineSetup, ResearchFinding, SetupQuestion } from '../../src/lib/tracker-model/@types/PipelineSetup.ts';
-import type { DecisionDraft, DecisionWording }                from '../../src/lib/tracker-model/@types/PlaybookStep.ts';
-import type { DocumentApprover, TicketDocumentKind }          from '../../src/lib/tracker-model/@types/TicketDocument.ts';
-import { ENTITY_DECISION_ANSWERS }                            from '../../src/lib/tracker-model/constants/EntityDecisionAnswers.ts';
-import { DEFAULT_CONSTITUTION_SOURCES }                       from '../../src/lib/tracker-model/constants/PipelineSetupVocabulary.ts';
-import { ROOT_ENTITY_KEY }                                    from '../../src/lib/tracker-model/utils/EntityOwnershipUtil.ts';
 import { ALLOWED_MOVES_BY_INCIDENT_KIND }                     from '../../src/services/control/constants/AllowedMovesByIncidentKind.ts';
-import type { AssistantFacts }                                from '../../src/services/hephaestus/AssistantBoot.ts';
-import type { AssistantChatFacts }                            from '../../src/services/hephaestus/AssistantSession.ts';
+import type {
+  AirlockFacts,
+  JobLaunchFacts,
+  JobLaunchText,
+  ReviewFindingsFacts
+} from '../../src/services/hephaestus/@types/JobLaunchFacts.ts';
+import type { AssistantFacts }     from '../../src/services/hephaestus/AssistantBoot.ts';
+import type { AssistantChatFacts } from '../../src/services/hephaestus/AssistantSession.ts';
 import type {
   CrossedPackageResult,
   CrossingStageFacts,
   RefusedPackageChange,
   SealedPackageReview
 } from '../../src/services/hephaestus/CrossingStages.ts';
-import type { DependentFixFacts, DependentFixWording } from '../../src/services/hephaestus/DependentFixTickets.ts';
-import type {
-  AirlockFacts,
-  JobLaunchFacts,
-  JobLaunchText,
-  ReviewFindingsFacts
-} from '../../src/services/hephaestus/DrivePass.ts';
+import type { DependentFixFacts, DependentFixWording }                from '../../src/services/hephaestus/DependentFixTickets.ts';
 import type { PackageNeedFacts, PackageNeedWording }                  from '../../src/services/hephaestus/EntityDecisionAnswers.ts';
 import type { NeedsSettledFacts }                                     from '../../src/services/hephaestus/NeedTickets.ts';
 import { filledTemplateOf }                                           from '../../src/shared/FilledTemplate.ts';
@@ -637,7 +638,7 @@ function incidentTextOf(incident: Readonly<Incident>): string {
   const job     = incident.jobId === null ? '' : `, job ${incident.jobId}`;
   return [
     `${incident.id} ${incident.kind}${tickets}${job}`,
-    ...Object.entries(incident.facts).map(([fact, value]) => `  ${fact}: ${value}`),
+    ...Object.entries(UnreadableFileProblemWordingUtil.wordedIncidentFactsOf(incident)).map(([fact, value]) => `  ${fact}: ${value}`),
     `  moves: ${ALLOWED_MOVES_BY_INCIDENT_KIND[incident.kind].join(', ')}; default ${incident.defaultMove}`,
   ].join('\n');
 }

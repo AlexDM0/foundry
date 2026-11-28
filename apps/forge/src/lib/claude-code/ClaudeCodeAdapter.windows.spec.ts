@@ -46,20 +46,20 @@ function windowsProfile(): WorkerProfile {
 
 function windowsRequest(): AgentLaunchRequest {
   return {
-    programPath:       win32.join(HOME, '.local', 'bin', 'claude.exe'),
-    sessionId:         claudeSessionIdOf('tracker-example', 'J1'),
-    resume:            false,
-    workingDirectory:  WORKTREE,
-    homeDirectory:     HOME,
-    firstMessage:      'Build the ticket.',
-    roleBrief:         'You are a builder.',
-    model:             'opus',
-    effort:            'medium',
-    environment:       { USERPROFILE: HOME },
-    profile:           windowsProfile(),
-    confinement:       'unconfined-by-design',
-    jobFilesDirectory: JOB_FILES,
-    reportSchema:      null,
+    programPath:          win32.join(HOME, '.local', 'bin', 'claude.exe'),
+    sessionId:            claudeSessionIdOf('tracker-example', 'J1'),
+    resume:               false,
+    workingDirectory:     WORKTREE,
+    homeDirectory:        HOME,
+    firstMessage:         'Build the ticket.',
+    roleBrief:            'You are a builder.',
+    model:                'opus',
+    effort:               'medium',
+    environment:          { USERPROFILE: HOME },
+    profile:              windowsProfile(),
+    confinement:          'unconfined-by-design',
+    launchFilesDirectory: JOB_FILES,
+    reportSchema:         null,
   };
 }
 

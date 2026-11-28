@@ -2,15 +2,22 @@
  * The one path every crash a live forge process sees runs: it writes the crash log once, ends the generation's presence `crashed` and stops the
  * lease renewal, synchronously so a dying process makes them, then tells the registry within a bound. It never throws.
  */
-import type { CrashedComponent, CrashLogError, CrashLogJob } from '../../adapters/crash-log/@types/CrashLogRecord.ts';
-import type { PresenceRegistration }                         from '../tracker/MonitorRegistration.ts';
-import type { CrashLogWrite }                                from './@types/CrashLogRecord.ts';
-import type { PresenceUpdate }                               from './@types/PresenceRecord.ts';
-import { CrashLog }                                          from './CrashLog.ts';
-import type { HephaestusFiles }                              from './HephaestusFiles.ts';
-import { Presence }                                          from './Presence.ts';
-import type { UnreadableBoardFiles }                         from './UnreadableBoardFiles.ts';
-import { CRASH_PATH_REGISTRY_BOUND_MILLISECONDS }            from './constants/PresenceLimits.ts';
+import type { HephaestusLog } from '../../adapters/@types/HephaestusLogRecord.ts';
+import type {
+  CrashedComponent,
+  CrashErrorOrigin,
+  CrashLogError,
+  CrashLogJob
+} from '../../adapters/crash-log/@types/CrashLogRecord.ts';
+import type { PresenceRegistration }              from '../tracker/MonitorRegistration.ts';
+import type { CrashLogWrite }                     from './@types/CrashLogRecord.ts';
+import type { PresenceUpdate }                    from './@types/PresenceRecord.ts';
+import { CrashLog }                               from './CrashLog.ts';
+import type { HephaestusFiles }                   from './HephaestusFiles.ts';
+import { Presence }                               from './Presence.ts';
+import { thrownNamedOf }                          from './ThrownNaming.ts';
+import type { UnreadableBoardFiles }              from './UnreadableBoardFiles.ts';
+import { CRASH_PATH_REGISTRY_BOUND_MILLISECONDS } from './constants/PresenceLimits.ts';
 
 /** The registry's presence key of a crash, which the crash path's registry step writes. */
 export type RegistryCrashReport = Extract<PresenceRegistration, { state: 'crashed' }>;
@@ -26,7 +33,7 @@ export interface CrashPathContext {
   stopLeaseRenewal:           () => void;
   writeRegistryCrash:         (report: RegistryCrashReport) => Promise<unknown>;
   stampNow:                   () => string;
-  log:                        (line: string) => void;
+  log:                        HephaestusLog;
   /** The serving Hephaestus's board files it could not read; the crash path reports a crash log it cannot read there. */
   unreadableBoardFiles:       UnreadableBoardFiles;
   registryBoundMilliseconds?: number;
@@ -45,10 +52,6 @@ export interface CrashPathOutcome {
   registry:     'written' | 'cut-off' | 'failed';
 }
 
-function describedFailureOf(thrown: unknown): string {
-  return thrown instanceof Error ? thrown.message : String(thrown);
-}
-
 function readingOrNull<Value>(read: () => Value | null): Value | null {
   try {
     return read();
@@ -62,9 +65,8 @@ function writeTheCrashLog(context: CrashPathContext, crash: Crash, recordedAt: s
   const presenceReading = readingOrNull(() => Presence.readPresence(files));
   const heartbeatReading = readingOrNull(() => Presence.readHeartbeat(files));
   // The dying process has no board header left to warn in, so an unreadable file is logged and left out of the crash log.
-  for (const [fileName, reading] of [['presence.json', presenceReading], ['heartbeat.json', heartbeatReading]] as const) {
-    if (reading?.verdict === 'unreadable') context.log(`The crash log of Hephaestus lock ${generation} leaves out ${fileName}, which cannot be read: ${reading.reason}`);
-  }
+  if (presenceReading?.verdict === 'unreadable') context.log({ kind: 'crash-log-leaves-out-presence', generation, problem: presenceReading.problem });
+  if (heartbeatReading?.verdict === 'unreadable') context.log({ kind: 'crash-log-leaves-out-heartbeat', generation, problem: heartbeatReading.problem });
   const presence = presenceReading?.verdict === 'read' && presenceReading.record.generation === generation ? presenceReading.record : null;
   const heartbeat = heartbeatReading?.verdict === 'read' && heartbeatReading.record.generation === generation ? heartbeatReading.record : null;
   const record = CrashLog.assemble({
@@ -85,7 +87,7 @@ function writeTheCrashLog(context: CrashPathContext, crash: Crash, recordedAt: s
   try {
     return CrashLog.writeOnce(files, record, context.unreadableBoardFiles);
   } catch (thrown) {
-    context.log(`The crash log of Hephaestus lock ${generation} could not be written: ${describedFailureOf(thrown)}`);
+    context.log({ kind: 'crash-log-unwritten', generation, ...thrownNamedOf(thrown) });
     return 'not-written';
   }
 }
@@ -95,7 +97,7 @@ function writeTheCrashedEnding(context: CrashPathContext, crash: Crash, crashLog
     const ending = { kind: 'crashed', component: crash.component, crashLogNumber } as const;
     return Presence.writeEnding(context.files, context.generation, ending, at).verdict;
   } catch (thrown) {
-    context.log(`The crashed ending of Hephaestus lock ${context.generation} could not be written: ${describedFailureOf(thrown)}`);
+    context.log({ kind: 'crashed-ending-unwritten', generation: context.generation, ...thrownNamedOf(thrown) });
     return 'not-written';
   }
 }
@@ -104,7 +106,7 @@ function stopTheLeaseRenewal(context: CrashPathContext): void {
   try {
     context.stopLeaseRenewal();
   } catch (thrown) {
-    context.log(`The lease renewal could not be stopped: ${describedFailureOf(thrown)}`);
+    context.log({ kind: 'lease-renewal-unstoppable', ...thrownNamedOf(thrown) });
   }
 }
 
@@ -119,7 +121,7 @@ async function boundedRegistryWrite(context: CrashPathContext, report: RegistryC
       await context.writeRegistryCrash(report);
       return 'written';
     } catch (thrown) {
-      context.log(`The registry could not be told of the crash: ${describedFailureOf(thrown)}`);
+      context.log({ kind: 'registry-crash-unwritten', ...thrownNamedOf(thrown) });
       return 'failed';
     }
   })();
@@ -164,9 +166,12 @@ function record(context: CrashPathContext, crash: Crash): Promise<CrashPathOutco
 /**
  * Listens for an uncaught exception and an unhandled rejection. Each runs the crash path, removes both listeners and rethrows in a microtask,
  * so the process still dies as an uncaught error does; the bound rethrows if the registry step has not settled. A process that serves no
- * generation yet has nothing to record and only rethrows. Answers the removal of both listeners.
+ * generation yet has nothing to record and only rethrows. `crashErrorOf` is the edge's, which words a refusal for the crash log. Answers the
+ * removal of both listeners.
  */
-function listenForProcessCrashes(contextNow: () => CrashPathContext | null): () => void {
+function listenForProcessCrashes(
+  contextNow: () => CrashPathContext | null, crashErrorOf: (origin: CrashErrorOrigin, thrown: unknown) => CrashLogError
+): () => void {
   const removeListeners = (): void => {
     process.off('uncaughtException', onUncaughtException);
     process.off('unhandledRejection', onUnhandledRejection);
@@ -190,7 +195,7 @@ function listenForProcessCrashes(contextNow: () => CrashPathContext | null): () 
       return;
     }
     boundTimer = setTimeout(rethrow, context.registryBoundMilliseconds ?? CRASH_PATH_REGISTRY_BOUND_MILLISECONDS);
-    void record(context, { component: 'hephaestus', error: CrashLog.errorOf(origin, thrown) }).then(rethrow, rethrow);
+    void record(context, { component: 'hephaestus', error: crashErrorOf(origin, thrown) }).then(rethrow, rethrow);
   }
 
   function onUncaughtException(thrown: unknown): void {

@@ -2,8 +2,8 @@
  * Blocks until the log holds a `decision-opened` or `incident-escalated` record past position `--after` (the log's length when absent),
  * then prints them with their positions and the position to wait after next. A stop signal ends the wait with nothing printed.
  */
+import type { LogRecord }                 from '../../../src/domain/tracker-model/@types/LogRecord.ts';
 import { type PlatformWatch, QuietWatch } from '../../../src/lib/quiet-watch/QuietWatch.ts';
-import type { LogRecord }                 from '../../../src/lib/tracker-model/@types/LogRecord.ts';
 import { OperationRefusal }               from '../../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                  from '../../../src/shared/constants/ProductNames.ts';
 import { boardStoreOf }                   from '../../BoardStoreOf.ts';

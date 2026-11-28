@@ -13,7 +13,7 @@ import { lockfileDependencyGraphOf } from './LockfileDependencyGraph.ts';
 const PROGRAM_ROOT = join(import.meta.dir, '..', '..', '..');
 
 const SHIPPING_FILES   = ['agent-progress.ts', 'talos.ts', 'package.json'];
-const SHIPPING_FOLDERS = ['cli', 'src', 'resources', 'skills'];
+const SHIPPING_FOLDERS = ['cli', 'talos', 'src', 'resources', 'skills'];
 const LOCKFILE_NAME    = 'bun.lock';
 
 const SKIPPED_FOLDER_NAMES = new Set(['node_modules', 'testing']);

@@ -86,9 +86,9 @@ const ALLOWED_PLATFORM_LINES: Readonly<Record<string, string>> = {
     'The composition root carries the platform, so a spec can choose it.',
   'talos.ts: process-platform: process.exit(await runTalos(Bun.argv.slice(2), clock, process.platform, process.env[\'SystemRoot\'], ownVariableOf));':
     'Talos has no CommandContext; its binary is its composition root.',
-  'src/lib/talos/SynchronousCallsThread.ts: platform-property: supervision = processSupervisionFor(request.platform, request.systemRoot ?? undefined);':
+  'talos/SynchronousCallsThread.ts: platform-property: supervision = processSupervisionFor(request.platform, request.systemRoot ?? undefined);':
     'A worker has no context; the start message carries the platform from Talos, and the thread hands it straight to the selector.',
-  'src/lib/talos/SynchronousCallsThread.ts: platform-property: localEndpoint = localEndpointFor(request.platform, \'\');':
+  'talos/SynchronousCallsThread.ts: platform-property: localEndpoint = localEndpointFor(request.platform, \'\');':
     'The same start message gives the endpoint selector the platform, so the endpoint is prepared and released on the thread.',
   'setup.ts: process-platform: platform: process.platform, checkoutDirectory: import.meta.dir, homeDirectory: homedir(), runningBun: process.execPath':
     'Machine setup runs before any CommandContext exists; its entry is its composition root.',
@@ -98,7 +98,7 @@ const ALLOWED_PLATFORM_LINES: Readonly<Record<string, string>> = {
     'Lib writes have no context, so this selector reads the platform at call time.',
   'src/services/hephaestus/HeldSlotCreateFor.ts: process-platform: return heldSlotCreateMeansTakenFor(process.platform);':
     'The gate slots have no context, as the FileReplace port they create through, so this selector reads the platform at call time.',
-  'src/lib/tracker-model/utils/NetworkDomainUtil.ts: search-path-separator: const [firstGroup = \'\'] = address.split(\':\');':
+  'src/domain/tracker-model/utils/NetworkDomainUtil.ts: search-path-separator: const [firstGroup = \'\'] = address.split(\':\');':
     'Splits an IPv6 address into its groups; no search path is involved.',
   'src/lib/process-identity/ProcessSupervision.ts: detached-spawn: readonly detached:     boolean;':
     'The port\'s type, not a spawn.',
@@ -207,7 +207,7 @@ describe('the scan saw the tree', () => {
   test('it recognises the adapters, and the forms it looks for really stand in them', () => {
     const adapters = SOURCES.filter((source) => isPlatformAdapter(source.path));
     expect(adapters.map((source) => source.path)).toEqual(expect.arrayContaining([
-      'cli/setup/SetupPlatformFor.ts', 'src/lib/gate-confinement/DarwinSeatbelt.ts', 'src/lib/shell-line/ShellLineFor.ts', 'src/lib/talos/PosixSocketEndpoint.ts',
+      'cli/setup/SetupPlatformFor.ts', 'src/lib/gate-confinement/DarwinSeatbelt.ts', 'src/lib/shell-line/ShellLineFor.ts', 'src/lib/local-endpoint/PosixSocketEndpoint.ts',
     ]));
     const formsInAdapters = new Set(adapters.flatMap((source) => source.text.split('\n').flatMap(formsNamedBy)));
     expect([...formsInAdapters]).toEqual(expect.arrayContaining([
@@ -231,10 +231,10 @@ describe('the scan saw the tree', () => {
       'src/lib/owner-only-files/WindowsOwnerOnlyFiles.ts',
       'src/lib/process-identity/ProcessSupervisionFor.ts',
       'src/lib/program-check/ProgramCheck.ts',
-      'src/lib/talos/Talos.ts',
       'src/services/hephaestus/GpgDirectories.ts',
       'src/services/hephaestus/InstallChangeWatch.ts',
       'src/services/hephaestus/TalosStart.ts',
+      'talos/Talos.ts',
     ]);
   });
 });
@@ -399,16 +399,16 @@ describe('every Linux and Windows adapter is named by a contract spec', () => {
   });
 
   test('an adapter file no contract names fails, and so does one only a comment or a plain spec names', () => {
-    const plantedAdapter = { path: 'src/lib/talos/LinuxPlantedEndpoint.ts', text: 'export const planted = 1;\n' };
-    const commentOnly = { path: 'src/lib/talos/Planted.contract.spec.ts', text: '// LinuxPlantedEndpoint\n' };
-    const plainSpec = { path: 'src/lib/talos/LinuxPlantedEndpoint.spec.ts', text: 'import { planted } from \'./LinuxPlantedEndpoint.ts\';\n' };
+    const plantedAdapter = { path: 'src/lib/local-endpoint/LinuxPlantedEndpoint.ts', text: 'export const planted = 1;\n' };
+    const commentOnly = { path: 'src/lib/local-endpoint/Planted.contract.spec.ts', text: '// LinuxPlantedEndpoint\n' };
+    const plainSpec = { path: 'src/lib/local-endpoint/LinuxPlantedEndpoint.spec.ts', text: 'import { planted } from \'./LinuxPlantedEndpoint.ts\';\n' };
     expect(contractReportOf([...SOURCES, plantedAdapter, commentOnly, plainSpec], allowedAdapters).unnamedAdapters).toEqual([plantedAdapter.path]);
   });
 
   test('an import or a subject name in a contract names it', () => {
-    const plantedAdapter = { path: 'src/lib/talos/WindowsPlantedEndpoint.ts', text: 'export const planted = 1;\n' };
-    const importingContract = { path: 'src/lib/talos/Planted.contract.spec.ts', text: 'import { planted } from \'./WindowsPlantedEndpoint.ts\';\n' };
-    const namingContract = { path: 'src/lib/talos/Planted.contract.spec.ts', text: '{ name: \'WindowsPlantedEndpoint over a fake pipe\', build },\n' };
+    const plantedAdapter = { path: 'src/lib/local-endpoint/WindowsPlantedEndpoint.ts', text: 'export const planted = 1;\n' };
+    const importingContract = { path: 'src/lib/local-endpoint/Planted.contract.spec.ts', text: 'import { planted } from \'./WindowsPlantedEndpoint.ts\';\n' };
+    const namingContract = { path: 'src/lib/local-endpoint/Planted.contract.spec.ts', text: '{ name: \'WindowsPlantedEndpoint over a fake pipe\', build },\n' };
     expect(contractReportOf([...SOURCES, plantedAdapter, importingContract], allowedAdapters).unnamedAdapters).toEqual([]);
     expect(contractReportOf([...SOURCES, plantedAdapter, namingContract], allowedAdapters).unnamedAdapters).toEqual([]);
   });
@@ -424,12 +424,12 @@ describe('what the boundary exempts is exact', () => {
 
   test('an adapter or a selector under src/lib may name a primitive', () => {
     for (const fileName of ['WindowsPipeEndpoint', 'LinuxEndpoint', 'DarwinEndpoint', 'PosixEndpoint', 'EndpointFor']) {
-      expect(violationsOfPlanted(`src/lib/talos/${fileName}.ts`, pipeLine)).toEqual([]);
+      expect(violationsOfPlanted(`src/lib/local-endpoint/${fileName}.ts`, pipeLine)).toEqual([]);
     }
   });
 
   test('a core file in an adapter\'s folder, or an adapter name outside src/lib, is judged like any other', () => {
-    for (const path of ['src/lib/talos/TalosHelper.ts', 'src/services/hephaestus/PosixHelper.ts', 'src/services/hephaestus/HelperFor.ts', 'cli/WindowsOpener.ts']) {
+    for (const path of ['src/lib/local-endpoint/EndpointHelper.ts', 'src/services/hephaestus/PosixHelper.ts', 'src/services/hephaestus/HelperFor.ts', 'cli/WindowsOpener.ts']) {
       expect(violationsOfPlanted(path, pipeLine)).toEqual([`${path}: pipe-name: ${pipeLine}`]);
     }
   });

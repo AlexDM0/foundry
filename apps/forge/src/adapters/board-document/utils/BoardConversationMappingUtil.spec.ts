@@ -4,8 +4,8 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { Decision }                from '../../../lib/tracker-model/@types/Decision.ts';
-import type { LogRecord }               from '../../../lib/tracker-model/@types/LogRecord.ts';
+import type { Decision }                from '../../../domain/tracker-model/@types/Decision.ts';
+import type { LogRecord }               from '../../../domain/tracker-model/@types/LogRecord.ts';
 import { BoardConversationMappingUtil } from './BoardConversationMappingUtil.ts';
 
 const AT = '2026-11-19T10:00:00+01:00';

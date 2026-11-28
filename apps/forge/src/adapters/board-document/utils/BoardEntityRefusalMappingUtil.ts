@@ -10,9 +10,9 @@ import type {
   PipelineDraftEditDocument
 } from 'forge-contracts/BoardPipelineDocuments';
 
-import type { EntityKey, Pipeline, PipelineEntity }   from '../../../lib/tracker-model/@types/Pipeline.ts';
-import { EntityOwnershipUtil, type PipelineEntities } from '../../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
-import { EntityValidationUtil, type EntityRefusal }   from '../../../lib/tracker-model/utils/EntityValidationUtil.ts';
+import type { EntityKey, Pipeline, PipelineEntity }   from '../../../domain/tracker-model/@types/Pipeline.ts';
+import { EntityOwnershipUtil, type PipelineEntities } from '../../../domain/tracker-model/utils/EntityOwnershipUtil.ts';
+import { EntityValidationUtil, type EntityRefusal }   from '../../../domain/tracker-model/utils/EntityValidationUtil.ts';
 import { OperationRefusalWordingUtil }                from '../../utils/OperationRefusalWordingUtil.ts';
 
 /** The review step a whitelisted package gets when a fix gives it one. */

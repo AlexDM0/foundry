@@ -10,6 +10,12 @@ import {
   relative
 } from 'node:path';
 
+import type { HephaestusLogRecord }                   from '../../adapters/@types/HephaestusLogRecord.ts';
+import { PRIVATE_FOLDER_NAME }                        from '../../domain/talos/constants/TalosProtocol.ts';
+import type { JobRole }                               from '../../domain/tracker-model/@types/Job.ts';
+import type { EntityKey, Pipeline, PipelineEntity }   from '../../domain/tracker-model/@types/Pipeline.ts';
+import { EntityOwnershipUtil, type PipelineEntities } from '../../domain/tracker-model/utils/EntityOwnershipUtil.ts';
+import { PipelineUtil }                               from '../../domain/tracker-model/utils/PipelineUtil.ts';
 import type {
   CommitSigning,
   NetworkDomainGuard,
@@ -17,18 +23,13 @@ import type {
   StageEditGuard,
   WorkerProfile
 } from '../../lib/agent-launch/WorkerProfile.ts';
-import { type GitPathStyle, GitPaths }                from '../../lib/git/GitPaths.ts';
-import { GitProcess }                                 from '../../lib/git/GitProcess.ts';
-import type { ShellLine }                             from '../../lib/shell-line/ShellLine.ts';
-import { PRIVATE_FOLDER_NAME }                        from '../../lib/talos/constants/TalosProtocol.ts';
-import type { JobRole }                               from '../../lib/tracker-model/@types/Job.ts';
-import type { EntityKey, Pipeline, PipelineEntity }   from '../../lib/tracker-model/@types/Pipeline.ts';
-import { EntityOwnershipUtil, type PipelineEntities } from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
-import { PipelineUtil }                               from '../../lib/tracker-model/utils/PipelineUtil.ts';
-import type { BranchNames }                           from '../../shared/BranchNames.ts';
-import { type CacheFolderStyle, GateCachePaths }      from './GateCachePaths.ts';
-import { GpgDirectories }                             from './GpgDirectories.ts';
-import { hephaestusFilesIn }                          from './HephaestusFiles.ts';
+import { type GitPathStyle, GitPaths }           from '../../lib/git/GitPaths.ts';
+import { GitProcess }                            from '../../lib/git/GitProcess.ts';
+import type { ShellLine }                        from '../../lib/shell-line/ShellLine.ts';
+import type { BranchNames }                      from '../../shared/BranchNames.ts';
+import { type CacheFolderStyle, GateCachePaths } from './GateCachePaths.ts';
+import { GpgDirectories }                        from './GpgDirectories.ts';
+import { hephaestusFilesIn }                     from './HephaestusFiles.ts';
 
 /** Everything a job's confinement names, read once at launch; every path absolute. */
 export interface SandboxFacts {
@@ -131,10 +132,12 @@ function commitSigningOf(directories: GpgDirectories | null, hostPaths: HostPath
   return { kind: 'agent-sockets', sockets: keyboxdSocket === null ? [agentSocket] : [agentSocket, keyboxdSocket] };
 }
 
-/** The one line a repository that signs its commits gets when a worker's profile commits unsigned; `null` when nothing is lost. */
-function unsignedCommitNoticeOf(profile: Pick<WorkerProfile, 'commitSigning'>, repositorySignsCommits: boolean, jobId: string): string | null {
+/** The one record a repository that signs its commits gets logged when a worker's profile commits unsigned; `null` when nothing is lost. */
+function unsignedCommitNoticeOf(
+  profile: Pick<WorkerProfile, 'commitSigning'>, repositorySignsCommits: boolean, jobId: string,
+): Extract<HephaestusLogRecord, { kind: 'commits-unsigned-despite-signing' }> | null {
   if (!repositorySignsCommits || profile.commitSigning.kind !== 'unsigned') return null;
-  return `Job ${jobId} commits unsigned although the repository sets commit.gpgsign: no gpg-agent socket reaches its sandbox.`;
+  return { kind: 'commits-unsigned-despite-signing', jobId };
 }
 
 /** Each credential path the vendor names, then GnuPG's home: whole while commits go unsigned, only its private keys while an agent signs. */
@@ -187,12 +190,11 @@ function deniedRootsMadeBeforeLaunchOf(facts: DeniedRootFacts): string[] {
   return facts.sandboxDenyShape === 'mount-points' ? agentConfigurationFoldersOf(facts) : [];
 }
 
-/** Makes each denied root a launch makes; the reason the launch is refused when one cannot be made, otherwise `null`. */
-function unmadeDeniedRootRefusalOf(
+/** Makes each denied root a launch makes; the first that cannot be made refuses the launch, otherwise `null`. */
+function unmadeDeniedRootOf(
   facts: DeniedRootFacts, folderMaker: FolderMaker = REAL_FOLDER_MAKER
 ): string | null {
-  const unmadeRoot = deniedRootsMadeBeforeLaunchOf(facts).find((root) => !folderMaker.makeFolder(root));
-  return unmadeRoot === undefined ? null : `the denied folder ${unmadeRoot} could not be made, so it would get no read-only mount`;
+  return deniedRootsMadeBeforeLaunchOf(facts).find((root) => !folderMaker.makeFolder(root)) ?? null;
 }
 
 /** The roots every job of the worktree is denied writing, whatever other jobs run. */
@@ -584,7 +586,7 @@ export const WorkerProfiles = Object.freeze({
   fixedDeniedWritableRootsOf,
   deniedWritableRootsOf,
   deniedRootsMadeBeforeLaunchOf,
-  unmadeDeniedRootRefusalOf,
+  unmadeDeniedRootOf,
   nestedCheckoutAncestorsOf,
   nestedCheckoutProfileOf,
   deniedReadableRootsOf,

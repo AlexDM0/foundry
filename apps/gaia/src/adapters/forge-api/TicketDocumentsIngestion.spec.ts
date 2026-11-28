@@ -6,6 +6,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import { forgeEndpointVersionOf }                               from '../../lib/forge-client/ForgeClient.ts';
+import { SUPPORTED_FORGE_VERSION }                              from '../../shared/constants/SupportedForgeVersions.ts';
 import { TicketDocumentsIngestion }                             from './TicketDocumentsIngestion.ts';
 import { RECORDED_TICKET_IDS, recordedTicketDocumentsAnswerOf } from './testing/TicketDocumentsRecordings.ts';
 
@@ -17,7 +18,7 @@ async function savedDocumentsBody(): Promise<Record<string, unknown>> {
 
 describe('ticketDocumentsOf', () => {
   test('reads at the endpoint version forge\'s registry serves the supported forge', () => {
-    expect(forgeEndpointVersionOf('ticketDocuments')).toBe(1);
+    expect(forgeEndpointVersionOf('ticketDocuments', SUPPORTED_FORGE_VERSION)).toBe(1);
   });
 
   test('reads the recorded documents of the saved draft: a spec at version 1 by the person, with its Markdown as source, and an unwritten plan', async () => {

@@ -15,9 +15,9 @@ import {
 
 import type { JobLiveFactsWithSilence }                           from '../../adapters/@types/BoardStateParts.ts';
 import type { FullStatusDocument }                                from '../../adapters/@types/StatusDocument.ts';
-import type { LogRecord }                                         from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Pipeline }                                          from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { MergeTargetOf }                                     from '../../lib/tracker-model/AirlockClaims.ts';
+import type { LogRecord }                                         from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { Pipeline }                                          from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { MergeTargetOf }                                     from '../../domain/tracker-model/AirlockClaims.ts';
 import { PICTURE_SIZE_LIMIT_BYTES, PICTURES_PER_MESSAGE_LIMIT }   from '../../shared/constants/HephaestusLimits.ts';
 import { boardFixture, ticketFixture }                            from '../../testing/BoardFixtures.ts';
 import { EXAMPLE_AGENT_FACTS }                                    from '../../testing/ExampleAgentFacts.ts';

@@ -2,20 +2,20 @@
  * A validated progress.json in the current format mapped to the model and back, field by field. Keys the file held that the tool does not
  * know ride along on the model's objects in the file's order and are written back; nothing else reaches the file unless a mapper names it.
  */
-import type { Decision, DecisionQuestion, DecisionQuestionOption } from '../../../lib/tracker-model/@types/Decision.ts';
-import type { Incident, IncidentDeliveryTurn }                     from '../../../lib/tracker-model/@types/Incident.ts';
+import type { Decision, DecisionQuestion, DecisionQuestionOption } from '../../../domain/tracker-model/@types/Decision.ts';
+import type { Incident, IncidentDeliveryTurn }                     from '../../../domain/tracker-model/@types/Incident.ts';
 import type {
   Job,
   JobEventCursor,
   JobIntake,
   Airlock
-} from '../../../lib/tracker-model/@types/Job.ts';
-import type { DeclaredNeed }                 from '../../../lib/tracker-model/@types/Need.ts';
-import type { QuestionOptionNotes }          from '../../../lib/tracker-model/@types/OptionConsequences.ts';
-import type { Task, TaskPhase, TicketStage } from '../../../lib/tracker-model/@types/Task.ts';
-import type { TrackerProgress }              from '../../../lib/tracker-model/@types/TrackerProgress.ts';
-import { CommentAnchorUtil }                 from '../../../lib/tracker-model/utils/CommentAnchorUtil.ts';
-import { OptionConsequencesUtil }            from '../../../lib/tracker-model/utils/OptionConsequencesUtil.ts';
+} from '../../../domain/tracker-model/@types/Job.ts';
+import type { DeclaredNeed }                 from '../../../domain/tracker-model/@types/Need.ts';
+import type { QuestionOptionNotes }          from '../../../domain/tracker-model/@types/OptionConsequences.ts';
+import type { Task, TaskPhase, TicketStage } from '../../../domain/tracker-model/@types/Task.ts';
+import type { TrackerProgress }              from '../../../domain/tracker-model/@types/TrackerProgress.ts';
+import { CommentAnchorUtil }                 from '../../../domain/tracker-model/utils/CommentAnchorUtil.ts';
+import { OptionConsequencesUtil }            from '../../../domain/tracker-model/utils/OptionConsequencesUtil.ts';
 import type { WordedLogEntry }               from '../../../shared/@types/WordedLogEntry.ts';
 import type { WordedProgressDocument }       from '../../../shared/@types/WordedProgressDocument.ts';
 import type {

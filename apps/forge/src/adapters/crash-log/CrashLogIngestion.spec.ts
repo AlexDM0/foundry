@@ -15,6 +15,7 @@ import {
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import type { CrashLogRecord }                            from './@types/CrashLogRecord.ts';
 import { CrashLogIngestion }                              from './CrashLogIngestion.ts';
+import { CrashLogProblemWording }                         from './CrashLogProblemWording.ts';
 import { createCrashLogWriter }                           from './CrashLogWriter.ts';
 import { TalosChildRecordCopy }                           from './TalosChildRecordCopy.ts';
 
@@ -54,6 +55,11 @@ const crashLogFilePath = (): string => join(scratchDirectory, 'crash-1.json');
 
 const reading = (): ReturnType<CrashLogIngestion['read']> => new CrashLogIngestion(crashLogFilePath()).read();
 
+/** The reading with its problem worded, as User reads it. */
+function wordedReadingOf(read: ReturnType<CrashLogIngestion['read']>): object {
+  return read.verdict === 'unreadable' ? { verdict: read.verdict, reason: CrashLogProblemWording.sentenceOf(read.problem) } : read;
+}
+
 beforeEach(() => {
   scratchDirectory = createScratchDirectory('crash-log-ingestion');
 });
@@ -78,7 +84,7 @@ test('a missing log is absent', () => {
 test('a log that is not JSON is unreadable', () => {
   writeFileSync(crashLogFilePath(), 'not json');
 
-  expect(reading()).toMatchObject({ verdict: 'unreadable', reason: expect.stringContaining('not valid JSON') });
+  expect(reading()).toMatchObject({ verdict: 'unreadable', problem: { code: 'not-json' } });
 });
 
 test.each([
@@ -100,7 +106,7 @@ test.each([
 ])('%s is unreadable', (_case, changes, reason) => {
   writeFileSync(crashLogFilePath(), JSON.stringify({ ...RECORD, ...changes }));
 
-  expect(reading()).toEqual({ verdict: 'unreadable', reason });
+  expect(wordedReadingOf(reading())).toEqual({ verdict: 'unreadable', reason });
 });
 
 test('a child record is copied as stored: parsed where it is JSON, its text where it is not, and nothing where none was written', () => {

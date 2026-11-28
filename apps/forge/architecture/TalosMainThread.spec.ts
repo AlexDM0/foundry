@@ -9,22 +9,22 @@ import ts                         from 'typescript';
 import { type ImportGraph, importGraphScannerOf, repositoryRootOfThisCheckout } from '../src/testing/ImportGraph.ts';
 
 const TALOS_BINARY_PATH = 'talos.ts';
-const TALOS_MAIN_MODULE_PATH = 'src/lib/talos/Talos.ts';
-const SYNCHRONOUS_CALLS_THREAD_PATH = 'src/lib/talos/SynchronousCallsThread.ts';
+const TALOS_MAIN_MODULE_PATH = 'talos/Talos.ts';
+const SYNCHRONOUS_CALLS_THREAD_PATH = 'talos/SynchronousCallsThread.ts';
 const SYNCHRONOUS_CALL_NAME = /Sync$/;
 const ATOMICS_WAIT = 'Atomics.wait';
 
 /** `<path>: <enclosing function>: <called name>`, one entry per call, each with why it stays. */
 const ALLOWED_BLOCKING_CALLS: Readonly<Record<string, string>> = {
-  'src/lib/talos/Talos.ts: fail: appendFileSync':
+  'talos/Talos.ts: fail: appendFileSync':
     'The cause of a failed synchronous call: the thread that would write it may be what failed, and the process exits right after it.',
 };
 
 /** `<path>: <use>` of a module both threads load that reaches a synchronous primitive, each with why it does not block the main thread. */
 const ALLOWED_SHARED_MODULE_USES: Readonly<Record<string, string>> = {
-  'src/lib/talos/Talos.ts: processSupervisionFor(…).spawnOptionsFor':
+  'talos/Talos.ts: processSupervisionFor(…).spawnOptionsFor':
     'The spawn options of a kind, a constant object; every process-table read and signal of the port runs on the thread.',
-  'src/lib/talos/Talos.ts: localEndpointFor(…)':
+  'talos/Talos.ts: localEndpointFor(…)':
     'Talos\'s ports narrow it to `serverOf`, which creates a server; preparing and releasing the endpoint run on the thread.',
 };
 
@@ -160,15 +160,15 @@ describe('the scan saw the main thread', () => {
   test('it reaches the main module, the socket server and the child supervisor, and leaves what the thread loads to the thread', () => {
     const mainThreadModules = mainThreadModulesOf(SCANNER.graph);
     expect(mainThreadModules).toEqual(expect.arrayContaining([
-      TALOS_BINARY_PATH, TALOS_MAIN_MODULE_PATH, 'src/lib/talos/ChildSupervisor.ts', 'src/lib/talos/TalosSocketServer.ts', 'src/lib/talos/SynchronousCallsClient.ts',
+      TALOS_BINARY_PATH, TALOS_MAIN_MODULE_PATH, 'talos/ChildSupervisor.ts', 'talos/TalosSocketServer.ts', 'talos/SynchronousCallsClient.ts',
     ]));
     expect(runtimeClosureOf(SCANNER.graph, TALOS_BINARY_PATH)).toContain('src/lib/process-identity/ProcessSupervisionFor.ts');
     expect(mainThreadModules).not.toContain('src/lib/process-identity/ProcessSupervisionFor.ts');
   });
 
   test('a type-only import loads nothing: the event log, which the main thread names only as types, is not reached', () => {
-    expect(runtimeClosureOf(SCANNER.graph, TALOS_BINARY_PATH)).not.toContain('src/lib/talos/EventLog.ts');
-    expect(blockingCallsIn(SCANNER.graph, 'src/lib/talos/EventLog.ts').length).toBeGreaterThan(0);
+    expect(runtimeClosureOf(SCANNER.graph, TALOS_BINARY_PATH)).not.toContain('src/domain/talos/EventLog.ts');
+    expect(blockingCallsIn(SCANNER.graph, 'src/domain/talos/EventLog.ts').length).toBeGreaterThan(0);
   });
 });
 
@@ -179,13 +179,13 @@ test('no module of the main thread calls a synchronous primitive but the allowli
 
 test('the main thread takes from a module both threads load, that reaches a synchronous primitive, only the listed uses, and each is found', () => {
   expect([...blockingSharedModulesOf(SCANNER.graph)]).toEqual(expect.arrayContaining([
-    'src/lib/process-identity/ProcessSupervisionFor.ts', 'src/lib/talos/LocalEndpointFor.ts',
+    'src/lib/process-identity/ProcessSupervisionFor.ts', 'src/lib/local-endpoint/LocalEndpointFor.ts',
   ]));
   expect(sharedModuleUsesOnTheMainThread(SCANNER.graph)).toEqual(Object.keys(ALLOWED_SHARED_MODULE_USES).sort());
 });
 
 describe('each form is named', () => {
-  const plantedPath = 'src/lib/talos/PlantedBlocking.ts';
+  const plantedPath = 'talos/PlantedBlocking.ts';
 
   test.each([
     ['a synchronous file read', 'readFileSync(\'/example\');', 'readFileSync'],
@@ -214,7 +214,7 @@ describe('each form is named', () => {
   test('a second synchronous write in another function of the main module is not covered by its allowlist entry', () => {
     const plantedWrite = 'export function plantedWrite(): void {\n  appendFileSync(\'/example\', \'example\');\n}\n';
     const graph = SCANNER.graphWithPlantedFiles({ [TALOS_MAIN_MODULE_PATH]: `${SCANNER.graph.sourceTextOf(TALOS_MAIN_MODULE_PATH)}\n${plantedWrite}` });
-    expect(violationsOf(graph)).toEqual(['src/lib/talos/Talos.ts: plantedWrite: appendFileSync']);
+    expect(violationsOf(graph)).toEqual(['talos/Talos.ts: plantedWrite: appendFileSync']);
   });
 
   test('a second synchronous write at the allowlisted site itself is not covered by its allowlist entry', () => {
@@ -222,12 +222,12 @@ describe('each form is named', () => {
     const mainModuleSource = SCANNER.graph.sourceTextOf(TALOS_MAIN_MODULE_PATH);
     expect(mainModuleSource).toContain(allowedWrite);
     const graph = SCANNER.graphWithPlantedFiles({ [TALOS_MAIN_MODULE_PATH]: mainModuleSource.replace(allowedWrite, `appendFileSync(talosLogPath, 'again');\n${allowedWrite}`) });
-    expect(violationsOf(graph)).toEqual(['src/lib/talos/Talos.ts: fail: appendFileSync']);
+    expect(violationsOf(graph)).toEqual(['talos/Talos.ts: fail: appendFileSync']);
   });
 
   test('a new main-thread use of a module both threads load, that reaches a synchronous primitive, is named', () => {
     const plantedUse = 'export function plantedIdentity(): unknown {\n  return processSupervisionFor(\'darwin\', undefined).identityOf(1);\n}\n';
     const graph = SCANNER.graphWithPlantedFiles({ [TALOS_MAIN_MODULE_PATH]: `${SCANNER.graph.sourceTextOf(TALOS_MAIN_MODULE_PATH)}\n${plantedUse}` });
-    expect(sharedModuleUsesOnTheMainThread(graph)).toContain('src/lib/talos/Talos.ts: processSupervisionFor(…).identityOf');
+    expect(sharedModuleUsesOnTheMainThread(graph)).toContain('talos/Talos.ts: processSupervisionFor(…).identityOf');
   });
 });

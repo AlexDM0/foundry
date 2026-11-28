@@ -6,11 +6,11 @@
 import { describe, expect, test } from 'bun:test';
 
 import type { UnreadablePipelineReading }                from '../../adapters/pipeline/PipelineFile.ts';
-import type { Job }                                      from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }                                from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Pipeline }                                 from '../../lib/tracker-model/@types/Pipeline.ts';
-import { Board }                                         from '../../lib/tracker-model/Board.ts';
-import { createLogger }                                  from '../../lib/tracker-model/Logger.ts';
+import type { Job }                                      from '../../domain/tracker-model/@types/Job.ts';
+import type { LogRecord }                                from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { Pipeline }                                 from '../../domain/tracker-model/@types/Pipeline.ts';
+import { Board }                                         from '../../domain/tracker-model/Board.ts';
+import { createLogger }                                  from '../../domain/tracker-model/Logger.ts';
 import type { ControlCommand }                           from '../../shared/@types/ControlCommand.ts';
 import { OperationRefusal, type OperationRefusalDetail } from '../../shared/OperationRefusal.ts';
 import {
@@ -116,8 +116,8 @@ describe('an unreadable pipeline.json', () => {
     ['older', { verdict: 'older' }, { kind: 'older-pipeline', filePath: PIPELINE_LOCATION }],
     [
       'malformed',
-      { verdict: 'malformed', reason: 'gates[0] has no name' },
-      { kind: 'malformed-pipeline', filePath: PIPELINE_LOCATION, reason: 'gates[0] has no name' },
+      { verdict: 'malformed', problem: { code: 'has-no-name', field: 'gates[0]' } },
+      { kind: 'malformed-pipeline', filePath: PIPELINE_LOCATION, problem: { code: 'has-no-name', field: 'gates[0]' } },
     ],
   ])('an %s file refuses every pipeline write before the Board changes', (_case, reading, detail) => {
     for (const command of PIPELINE_WRITES) {

@@ -6,6 +6,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import type { ForgeControlCommand } from 'forge-contracts/ForgeControlCommand';
+import { SUPPORTED_FORGE_VERSION }  from '../../shared/constants/SupportedForgeVersions.ts';
 import {
   BOARD_SITUATIONS,
   everyRecordedHephaestusAnswerOf,
@@ -25,7 +26,6 @@ import {
 
 import type { ForgeStreamEvent, HephaestusAccess, HephaestusAddress }         from './@types/ForgeClientAnswer.ts';
 import { forgeClientOf, forgeEndpointVersionOf, type HephaestusEndpointName } from './ForgeClient.ts';
-import { SUPPORTED_FORGE_VERSION }                                            from './constants/SupportedForgeVersions.ts';
 
 const HEPHAESTUS_URL = 'http://127.0.0.1:4951/';
 const EXAMPLE_TOKEN = 'example-token-0123456789abcdef';
@@ -38,7 +38,9 @@ function hephaestusFetchOf(situation: HephaestusSituation): RecordedHephaestusFe
 }
 
 function clientOf(hephaestusFetch: RecordedHephaestusFetch) {
-  return forgeClientOf({ hephaestusFetch, requestTimeoutMilliseconds: SHORT_BOUND_MILLISECONDS, streamOpenTimeoutMilliseconds: SHORT_BOUND_MILLISECONDS });
+  return forgeClientOf({
+    supportedForgeVersion: SUPPORTED_FORGE_VERSION, hephaestusFetch, requestTimeoutMilliseconds: SHORT_BOUND_MILLISECONDS, streamOpenTimeoutMilliseconds: SHORT_BOUND_MILLISECONDS
+  });
 }
 
 async function followedSnapshotsOf(hephaestusFetch: RecordedHephaestusFetch, stopAfterSnapshots: number | null = null) {
@@ -441,7 +443,7 @@ describe('the paths a Hephaestus is called at', () => {
       'picture',
       'ticketDocuments',
     ];
-    expect(endpointNames.map((endpointName) => forgeEndpointVersionOf(endpointName))).toEqual([1, 3, 5, 5, 3, 4, 1, 4, 1, 1, 1, 1, 1]);
+    expect(endpointNames.map((endpointName) => forgeEndpointVersionOf(endpointName, SUPPORTED_FORGE_VERSION))).toEqual([1, 3, 5, 5, 3, 4, 1, 4, 1, 1, 1, 1, 1]);
   });
 
   test('answer the refusal a forge from before system versions gives its versions, as it gives any unknown path', async () => {

@@ -6,7 +6,7 @@
 import type { Socket }              from 'node:net';
 import { beforeEach, expect, test } from 'bun:test';
 
-import { listenOnIdleTalosSocket, talosHelloLineOf } from './IdleTalosSocket.ts';
+import { listenOnIdleTalosSocket, talosHelloLineOf } from '../../talos/testing/IdleTalosSocket.ts';
 import {
   createRecordedLocalEndpoint,
   type DestroyAnswer,
@@ -31,7 +31,7 @@ beforeEach(() => {
 function nextEndpoint(): string {
   lastInstance += 1;
   return recorded.endpoint.endpointOf({
-    monitorFolder: '/example/monitor', trackerId: 'tracker-example', name: 'J-1', instance: lastInstance
+    socketFolder: '/example/monitor/private', scope: 'tracker-example', name: 'J-1', instance: lastInstance
   });
 }
 
@@ -247,7 +247,7 @@ describeWhenRecorded(['local-endpoint-recording'], 'a Talos socket over the mock
   ] as const)('answers a hello with %s with the frames, the end and the close the real one gave', async (_case, secret, callShape) => {
     const endpoint = nextEndpoint();
     const listening = await listenOnIdleTalosSocket(recorded.endpoint, endpoint, TALOS_SECRET);
-    if (listening.verdict !== 'listening') throw new Error(listening.reason);
+    if (listening.verdict !== 'listening') throw new Error(listening.systemError);
     const client = watched((await connectOutcomeOf(endpoint)).socket, true);
     client.socket.write(talosHelloLineOf(secret));
     await afterEveryMockedAnswer();

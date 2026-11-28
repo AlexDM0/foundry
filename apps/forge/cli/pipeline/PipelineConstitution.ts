@@ -5,7 +5,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve }      from 'node:path';
 
-import type { ConstitutionSources }                         from '../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import type { ConstitutionSources }                         from '../../src/domain/tracker-model/@types/PipelineSetup.ts';
 import { OperationRefusal }                                 from '../../src/shared/OperationRefusal.ts';
 import type { CommandContext }                              from '../CommandContext.ts';
 import { requirePipedStandardInput, STANDARD_INPUT_MARKER } from '../PipedStandardInput.ts';

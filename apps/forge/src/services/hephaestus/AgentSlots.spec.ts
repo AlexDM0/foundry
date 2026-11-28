@@ -23,6 +23,7 @@ import { AGENT_SLOT_FORMAT_VERSION }                      from '../../adapters/a
 import { MachineLimitsFile }                              from '../../adapters/machine-limits/MachineLimitsFile.ts';
 import type { ProcessIdentity }                           from '../../lib/process-identity/ProcessIdentity.ts';
 import { OperationRefusal }                               from '../../shared/OperationRefusal.ts';
+import { detailsLoggerOf }                                from '../../testing/LoggedDetails.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { AGENT_SLOTS_FOLDER, AgentSlots }                 from './AgentSlots.ts';
 import { MachineAgentLimit }                              from './MachineAgentLimit.ts';
@@ -51,7 +52,7 @@ function slotsOf(
     limit,
     ownProcess,
     hephaestusIsLive: (hephaestus) => hephaestus !== null && liveProcessIds.has(hephaestus.processId),
-    log:              (line) => loggedLines.push(line),
+    log:              detailsLoggerOf(loggedLines),
   });
 }
 
@@ -136,7 +137,7 @@ describe('agent slots', () => {
       limit:            1,
       ownProcess:       FIRST_HEPHAESTUS,
       hephaestusIsLive: (hephaestus) => hephaestus !== null && live.has(hephaestus.processId),
-      log:              (line) => loggedLines.push(line),
+      log:              detailsLoggerOf(loggedLines),
       unreadableSlotPathsLogged,
     });
     expect(slotsOfAPass().tryAcquire('tracker-a', 'J1')).toBe(false);

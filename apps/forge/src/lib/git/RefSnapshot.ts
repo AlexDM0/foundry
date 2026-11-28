@@ -2,7 +2,8 @@
  * Every ref and every worktree's HEAD at one moment, and the difference between two such moments: what moved that the caller did not
  * allow to move, so a ref changed behind the caller's back is named rather than missed.
  */
-import { GitProcess } from './GitProcess.ts';
+import type { GitRunFailure } from './@types/GitProblem.ts';
+import { GitProcess }         from './GitProcess.ts';
 
 const FIELD_SEPARATOR = '\0';
 
@@ -16,7 +17,7 @@ export interface RefSnapshot {
 
 export type RefSnapshotReading =
   | { verdict: 'read'; snapshot: RefSnapshot }
-  | { verdict: 'git-failed'; reason: string };
+  | { verdict: 'git-failed'; problem: GitRunFailure };
 
 export interface AllowedMovements {
   refs:          readonly string[];
@@ -54,10 +55,10 @@ function worktreeHeadsOf(output: string): Record<string, string> {
 export function takeRefSnapshot(repositoryDirectory: string): RefSnapshotReading {
   const refArguments = ['for-each-ref', '--format=%(refname)%00%(objectname)'];
   const refRun       = GitProcess.run(repositoryDirectory, refArguments);
-  if (!GitProcess.succeeded(refRun)) return { verdict: 'git-failed', reason: GitProcess.failureReasonOf(refRun, refArguments) };
+  if (!GitProcess.succeeded(refRun)) return { verdict: 'git-failed', problem: GitProcess.failureOf(refRun, refArguments) };
   const worktreeArguments = ['worktree', 'list', '--porcelain', '-z'];
   const worktreeRun       = GitProcess.run(repositoryDirectory, worktreeArguments);
-  if (!GitProcess.succeeded(worktreeRun)) return { verdict: 'git-failed', reason: GitProcess.failureReasonOf(worktreeRun, worktreeArguments) };
+  if (!GitProcess.succeeded(worktreeRun)) return { verdict: 'git-failed', problem: GitProcess.failureOf(worktreeRun, worktreeArguments) };
   return { verdict: 'read', snapshot: { refs: refsOf(refRun.standardOutput), worktreeHeads: worktreeHeadsOf(worktreeRun.standardOutput) } };
 }
 

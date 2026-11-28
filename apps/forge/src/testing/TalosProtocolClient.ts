@@ -4,7 +4,7 @@
  */
 import { type Socket } from 'node:net';
 
-import type { TalosFrame }     from '../lib/talos/@types/TalosFrame.ts';
+import type { TalosFrame }     from '../domain/talos/@types/TalosFrame.ts';
 import { nativePlatformPorts } from './NativePlatformPorts.ts';
 import { firstValueOf }        from './WaitUntil.ts';
 

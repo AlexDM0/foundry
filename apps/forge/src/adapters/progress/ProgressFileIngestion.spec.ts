@@ -6,11 +6,12 @@ import { writeFileSync }          from 'node:fs';
 import { join }                   from 'node:path';
 import { afterAll, expect, test } from 'bun:test';
 
-import { ConcurrencyUtil }                                 from '../../lib/tracker-model/utils/ConcurrencyUtil.ts';
+import { ConcurrencyUtil }                                 from '../../domain/tracker-model/utils/ConcurrencyUtil.ts';
 import { emptyProgress, fileRow }                          from '../../testing/ProgressFixtures.ts';
 import { createScratchDirectory, removeScratchDirectory }  from '../../testing/ScratchWorkspace.ts';
 import { OLDER_FORMAT_ADVICE }                             from '../constants/OlderFormatAdvice.ts';
 import { ProgressFileIngestion, type ProgressFileReading } from './ProgressFileIngestion.ts';
+import { ProgressFileProblemWording }                      from './ProgressFileProblemWording.ts';
 import { emptyDocument, versionTwoDocumentOf }             from './testing/ProgressFileFixtures.ts';
 
 const FILED_AT = '2026-09-18T20:11:03+02:00';
@@ -42,13 +43,13 @@ test('a tracker that has never been initialised is absent, not unreadable', () =
 test('a file that is not JSON is unreadable and says so', () => {
   const result = readBack('store-not-json', '{ this is not json');
   expect(result.verdict).toBe('unreadable');
-  expect(result.verdict === 'unreadable' ? result.reason : '').toContain('not valid JSON');
+  expect(result.verdict === 'unreadable' ? ProgressFileProblemWording.sentenceOf(result.problem) : '').toContain('not valid JSON');
 });
 
 test('a document from a future format version is refused rather than half-read', () => {
   const result = readBack('store-future-version', { ...emptyDocument(), version: 4 });
   expect(result.verdict).toBe('unreadable');
-  expect(result.verdict === 'unreadable' ? result.reason : '').toStartWith('version is 4, ');
+  expect(result.verdict === 'unreadable' ? ProgressFileProblemWording.sentenceOf(result.problem) : '').toStartWith('version is 4, ');
 });
 
 test('the model read from a version 3 file holds neither the format\'s version nor a log', () => {
@@ -70,7 +71,7 @@ test('a document with no concurrency limit reads, and its figures fall back to t
 test('a concurrency limit that is not a whole number of at least 1 makes the file unreadable, and the reason names the field', () => {
   for (const malformedLimit of [0, -1, 2.5, '3', null]) {
     const result = readBack('store-malformed-limit', { ...emptyDocument(), concurrencyLimit: malformedLimit });
-    expect(result.verdict === 'unreadable' ? result.reason : '', JSON.stringify(malformedLimit)).toContain('concurrencyLimit');
+    expect(result.verdict === 'unreadable' ? ProgressFileProblemWording.sentenceOf(result.problem) : '', JSON.stringify(malformedLimit)).toContain('concurrencyLimit');
   }
 });
 
@@ -81,7 +82,8 @@ test('a file holding a key the retired checks verb stored is refused as an older
   };
   for (const [key, value] of Object.entries(retiredValues)) {
     const result = readBack('store-retired-pipeline-key', { ...emptyDocument(), [key]: value });
-    expect(result.verdict === 'unreadable' ? result.reason : '', key).toBe(`${key} is present, and the gate pipeline lives in pipeline.json; ${OLDER_FORMAT_ADVICE}`);
+    const sentence = result.verdict === 'unreadable' ? ProgressFileProblemWording.sentenceOf(result.problem) : '';
+    expect(sentence, key).toBe(`${key} is present, and the gate pipeline lives in pipeline.json; ${OLDER_FORMAT_ADVICE}`);
   }
 });
 
@@ -101,7 +103,7 @@ test('a task whose status this build does not know makes the whole file unreadab
   const document = { ...progress, tasks: [{ ...progress.tasks[0], status: 'blocked' }] };
   const result = readBack('store-unknown-status', document);
   expect(result.verdict).toBe('unreadable');
-  const reason = result.verdict === 'unreadable' ? result.reason : '';
+  const reason = result.verdict === 'unreadable' ? ProgressFileProblemWording.sentenceOf(result.problem) : '';
   expect(reason).toContain('tasks[0].status');
   expect(reason).toContain('blocked');
   expect(reason, 'the reason lists what a status may be').toContain('delivered');
@@ -157,7 +159,7 @@ test('every other missing or mistyped field is named too', () => {
   for (const { prefix, document, named } of cases) {
     const result = readBack(prefix, document);
     expect(result.verdict, named).toBe('unreadable');
-    expect(result.verdict === 'unreadable' ? result.reason : '', named).toContain(named);
+    expect(result.verdict === 'unreadable' ? ProgressFileProblemWording.sentenceOf(result.problem) : '', named).toContain(named);
   }
 });
 

@@ -2,10 +2,10 @@
  * The gate run of a merged tree or a stale green, on the pipeline Hephaestus read for it: a pipeline without entities runs once from the
  * tracker's project folder; a pipeline with entities runs each gated entity's part from its first home folder.
  */
-import type { MergedTreeGate }          from '../../adapters/gate-outcome/@types/MergedTreeGate.ts';
-import type { GatePhase, GateRunStamp } from '../../lib/tracker-model/@types/GatePhase.ts';
-import type { EntityKey, Pipeline }     from '../../lib/tracker-model/@types/Pipeline.ts';
-import { PipelineUtil }                 from '../../lib/tracker-model/utils/PipelineUtil.ts';
+import type { MergedTreeGateRunEnd }    from '../../adapters/gate-outcome/@types/MergedTreeGate.ts';
+import type { GatePhase, GateRunStamp } from '../../domain/tracker-model/@types/GatePhase.ts';
+import type { EntityKey, Pipeline }     from '../../domain/tracker-model/@types/Pipeline.ts';
+import { PipelineUtil }                 from '../../domain/tracker-model/utils/PipelineUtil.ts';
 import {
   type EntityPipelinesRunRequest,
   type EntityPipelinesVerdict,
@@ -27,20 +27,20 @@ export interface MergedTreeGateRunRequest {
 }
 
 /** A run's verdict as the Airlocks read it: the stamp of the pipeline it read, the entity a stopping step belongs to, and the steps that ran. */
-function mergedTreeGateOf(verdict: EntityPipelinesVerdict, phase: GatePhase, stamp: GateRunStamp | null): MergedTreeGate {
+function mergedTreeGateOf(verdict: EntityPipelinesVerdict, phase: GatePhase, stamp: GateRunStamp | null): MergedTreeGateRunEnd {
   const cacheReports = verdict.cacheReports.length === 0 ? {} : { cacheReports: { phase, gates: verdict.cacheReports } };
   const stepRuns = verdict.stepRuns.length === 0 ? {} : { stepRuns: { phase, steps: verdict.stepRuns } };
   if (verdict.outcome === 'passed') return {
     outcome: 'passed', step: null, output: '', stamp, ...cacheReports, ...stepRuns
   };
+  const stopped = {
+    ...(verdict.entity === undefined ? {} : { entity: verdict.entity }), stamp, ...cacheReports, ...stepRuns
+  };
+  if (verdict.outcome === 'sandbox-unavailable') return {
+    outcome: 'sandbox-unavailable', step: verdict.step, refusal: verdict.refusal, ...stopped
+  };
   return {
-    outcome: verdict.outcome,
-    step:    'step' in verdict ? verdict.step : verdict.gate,
-    ...(verdict.entity === undefined ? {} : { entity: verdict.entity }),
-    output:  verdict.output,
-    stamp,
-    ...cacheReports,
-    ...stepRuns,
+    outcome: verdict.outcome, step: 'step' in verdict ? verdict.step : verdict.gate, output: verdict.output, ...stopped
   };
 }
 
@@ -52,7 +52,7 @@ export function mergedTreeGateStampOf(pipeline: Readonly<Pipeline> | null, phase
   return PipelineUtil.entitiesGateRunStampOf(pipeline, phase, gatedEntities ?? Object.keys(entities));
 }
 
-export async function runMergedTreeGates(request: MergedTreeGateRunRequest): Promise<MergedTreeGate> {
+export async function runMergedTreeGates(request: MergedTreeGateRunRequest): Promise<MergedTreeGateRunEnd> {
   const {
     pipeline, phase, gatedEntities, runRequest, projectPrefix, runOnePipeline
   } = request;

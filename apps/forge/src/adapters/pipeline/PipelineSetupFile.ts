@@ -1,11 +1,10 @@
 /**
  * `pipeline-setup.json` beside the progress file: the one open setup record, read, validated and mapped here, and written through the
- * hold. A file the read cannot map whole is `malformed` with the reason, never a throw. Keys this build does not know are kept at the top
+ * hold. A file the read cannot map whole is `malformed` with the problem, never a throw. Keys this build does not know are kept at the top
  * level, after its own, in their stored order, so a read and a write leave the file byte-identical.
  */
-import { JsonRecordUtil }                        from '../../lib/json-record/JsonRecordUtil.ts';
-import type { DraftAnswer, DraftQuestionOption } from '../../lib/tracker-model/@types/Draft.ts';
-import type { Pipeline }                         from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { DraftAnswer, DraftQuestionOption } from '../../domain/tracker-model/@types/Draft.ts';
+import type { Pipeline }                         from '../../domain/tracker-model/@types/Pipeline.ts';
 import {
   type ApplyRequest,
   type CheckedGate,
@@ -23,8 +22,9 @@ import {
   type SetupQuestion,
   type SetupQuestionSubject,
   type SourceAnnotation
-} from '../../lib/tracker-model/@types/PipelineSetup.ts';
-import { GATE_OUTCOMES }    from '../../lib/tracker-model/constants/JobStates.ts';
+} from '../../domain/tracker-model/@types/PipelineSetup.ts';
+import type { PipelineSetupProblem } from '../../domain/tracker-model/@types/PipelineSetupProblem.ts';
+import { GATE_OUTCOMES }             from '../../domain/tracker-model/constants/JobStates.ts';
 import {
   APPLY_REQUEST_REASONS,
   APPLY_REQUEST_STATES,
@@ -40,8 +40,9 @@ import {
   SETUP_QUESTION_STEPS,
   SETUP_QUESTION_SUBJECT_KINDS,
   SOURCE_ANNOTATION_KINDS
-} from '../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
-import { PipelineDraftEditUtil } from '../../lib/tracker-model/utils/PipelineDraftEditUtil.ts';
+} from '../../domain/tracker-model/constants/PipelineSetupVocabulary.ts';
+import { PipelineDraftEditUtil } from '../../domain/tracker-model/utils/PipelineDraftEditUtil.ts';
+import { JsonRecordUtil }        from '../../lib/json-record/JsonRecordUtil.ts';
 import { JsonTextUtil }          from '../../shared/utils/JsonTextUtil.ts';
 import { storedFileTextOf }      from '../StoredFileText.ts';
 import { StoredValueUtil }       from '../utils/StoredValueUtil.ts';
@@ -100,47 +101,51 @@ const CHECKED_GATE_KEYS = ['name', 'outcomes', 'durationsMilliseconds', 'verdict
 const SETUP_ENTITY_KEYS = ['agentJobId', 'findings', 'questions', 'constitution'] as const;
 const OPTIONAL_SETUP_ENTITY_KEYS = ['check'] as const;
 
-type Mapped<Value> = { value: Value } | { problem: string };
+type Mapped<Value> = { value: Value } | { problem: PipelineSetupProblem };
 
-function problemOf(problem: string): { problem: string } {
+function problemOf(problem: PipelineSetupProblem): { problem: PipelineSetupProblem } {
   return { problem };
 }
 
 function closedRecordOf(value: unknown, path: string, keys: readonly string[]): Mapped<Record<string, unknown>> {
-  if (!JsonRecordUtil.valueIsAPlainObject(value)) return problemOf(`${path} is not an object`);
+  if (!JsonRecordUtil.valueIsAPlainObject(value)) return problemOf({ code: 'not-an-object', field: path });
   const unknownKey = Object.keys(value).find((key) => !keys.includes(key));
-  if (unknownKey !== undefined) return problemOf(`${path}.${unknownKey} is not a key of ${path}; the keys are ${keys.join(', ')}`);
+  if (unknownKey !== undefined) return problemOf({
+    code: 'not-a-key-of', field: path, key: unknownKey, knownKeys: keys
+  });
   const missingKey = keys.find((key) => !Object.hasOwn(value, key));
-  return missingKey === undefined ? { value } : problemOf(`${path}.${missingKey} is missing`);
+  return missingKey === undefined ? { value } : problemOf({ code: 'missing', field: `${path}.${missingKey}` });
 }
 
 function textOf(value: unknown, path: string): Mapped<string> {
-  return typeof value === 'string' ? { value } : problemOf(`${path} is not a text`);
+  return typeof value === 'string' ? { value } : problemOf({ code: 'not-a-text', field: path });
 }
 
 function nullableTextOf(value: unknown, path: string): Mapped<string | null> {
-  return value === null || typeof value === 'string' ? { value } : problemOf(`${path} is neither null nor a text`);
+  return value === null || typeof value === 'string' ? { value } : problemOf({ code: 'neither-null-nor-a-text', field: path });
 }
 
 function flagOf(value: unknown, path: string): Mapped<boolean> {
-  return typeof value === 'boolean' ? { value } : problemOf(`${path} is not true or false`);
+  return typeof value === 'boolean' ? { value } : problemOf({ code: 'not-true-or-false', field: path });
 }
 
 function countOf(value: unknown, path: string, lowest: number): Mapped<number> {
-  return StoredValueUtil.wholeNumberIsAtLeast(value, lowest) ? { value } : problemOf(`${path} is not a whole number of at least ${lowest}`);
+  return StoredValueUtil.wholeNumberIsAtLeast(value, lowest) ? { value } : problemOf({ code: 'not-a-whole-number-of-at-least', field: path, lowest });
 }
 
 function wordOf<Word extends string>(value: unknown, path: string, vocabulary: readonly Word[]): Mapped<Word> {
   const words: readonly unknown[] = vocabulary;
-  return words.includes(value) ? { value: value as Word } : problemOf(`${path} is ${JSON.stringify(value)}, which is not one of ${vocabulary.join(', ')}`);
+  return words.includes(value) ? { value: value as Word } : problemOf({
+    code: 'not-a-word-of', field: path, storedValue: value, vocabulary
+  });
 }
 
 function textsOf(value: unknown, path: string): Mapped<string[]> {
-  return Array.isArray(value) && value.every((item) => typeof item === 'string') ? { value: [...value] } : problemOf(`${path} is not a list of texts`);
+  return Array.isArray(value) && value.every((item) => typeof item === 'string') ? { value: [...value] } : problemOf({ code: 'not-a-list-of-texts', field: path });
 }
 
 function listOf<Item>(value: unknown, path: string, itemOf: (item: unknown, itemPath: string) => Mapped<Item>): Mapped<Item[]> {
-  if (!Array.isArray(value)) return problemOf(`${path} is not a list`);
+  if (!Array.isArray(value)) return problemOf({ code: 'not-a-list', field: path });
   const items: Item[] = [];
   for (const [index, item] of value.entries()) {
     const mapped = itemOf(item, `${path}[${index}]`);
@@ -291,7 +296,7 @@ function draftOf(value: unknown): Mapped<Pipeline | null> {
   if (value === null) return { value: null };
   const reading = PipelineFile.draftReadingOf(value);
   if (reading.verdict === 'readable') return { value: reading.pipeline };
-  return problemOf(`draft is not a pipeline: ${reading.verdict === 'malformed' ? reading.reason : 'its version is older'}`);
+  return problemOf({ code: 'draft-not-a-pipeline', field: 'draft', draftProblem: reading.verdict === 'malformed' ? reading.problem : null });
 }
 
 function editOf(value: unknown, path: string): Mapped<SetupEdit> {
@@ -300,7 +305,7 @@ function editOf(value: unknown, path: string): Mapped<SetupEdit> {
   if ('problem' in record) return record;
   const fields = record.value;
   const { field } = fields;
-  if (typeof field !== 'string' || !PipelineDraftEditUtil.fieldIsWellFormed(field)) return problemOf(`${path}.field is not a draft field`);
+  if (typeof field !== 'string' || !PipelineDraftEditUtil.fieldIsWellFormed(field)) return problemOf({ code: 'not-a-draft-field', field: `${path}.field` });
   const batch = hasBatch ? textOf(fields['batch'], `${path}.batch`) : null;
   if (batch !== null && 'problem' in batch) return batch;
   const mapped = fieldsOf<Omit<SetupEdit, 'batch'>>({
@@ -390,10 +395,10 @@ function setupEntityOf(value: unknown, path: string): Mapped<PipelineSetupEntity
 }
 
 function setupEntitiesOf(value: unknown): Mapped<Record<string, PipelineSetupEntity>> {
-  if (!JsonRecordUtil.valueIsAPlainObject(value)) return problemOf('entities is not an object');
+  if (!JsonRecordUtil.valueIsAPlainObject(value)) return problemOf({ code: 'not-an-object', field: 'entities' });
   const entries: [string, PipelineSetupEntity][] = [];
   for (const [entityKey, entityValue] of Object.entries(value)) {
-    if (entityKey === '') return problemOf('entities has an empty entity key');
+    if (entityKey === '') return problemOf({ code: 'has-an-empty-entity-key', field: 'entities' });
     const entity = setupEntityOf(entityValue, `entities.${entityKey}`);
     if ('problem' in entity) return entity;
     entries.push([entityKey, entity.value]);
@@ -417,7 +422,7 @@ function billingOf(value: unknown): Mapped<PipelineSetup['billing']> {
   if (value === null) return { value: null };
   const billing = PipelineFile.billingOf(value);
   if ('problem' in billing) return billing;
-  return billing.value === undefined ? problemOf('billing is missing') : { value: billing.value };
+  return billing.value === undefined ? problemOf({ code: 'missing', field: 'billing' }) : { value: billing.value };
 }
 
 /** `null` until User chose the agent, else the agent as `pipeline.json` stores it. */
@@ -425,21 +430,21 @@ function setupAgentOf(value: unknown): Mapped<PipelineSetup['agent']> {
   if (value === null) return { value: null };
   const agent = PipelineFile.agentOf(value);
   if ('problem' in agent) return agent;
-  return agent.value === undefined ? problemOf('agent is missing') : { value: agent.value };
+  return agent.value === undefined ? problemOf({ code: 'missing', field: 'agent' }) : { value: agent.value };
 }
 
 function setupIdOf(value: unknown): Mapped<string> {
   if (typeof value === 'string' && SETUP_ID_PATTERN.test(value)) return { value };
-  return problemOf(`setupId is ${JSON.stringify(value) ?? 'missing'}, and it has to be a setup id such as S1`);
+  return problemOf({ code: 'not-a-setup-id', field: 'setupId', storedValue: value });
 }
 
 function openedAtEntityOf(value: unknown): Mapped<string> {
-  return typeof value === 'string' && value !== '' ? { value } : problemOf('openedAtEntity is not an entity key');
+  return typeof value === 'string' && value !== '' ? { value } : problemOf({ code: 'not-an-entity-key', field: 'openedAtEntity' });
 }
 
 function setupOf(document: Record<string, unknown>): Mapped<PipelineSetup> {
   const missingKey = OWNED_KEYS.find((key) => !Object.hasOwn(document, key));
-  if (missingKey !== undefined) return problemOf(`${missingKey} is missing`);
+  if (missingKey !== undefined) return problemOf({ code: 'missing', field: missingKey });
   const ownedKeys: readonly string[] = [...OWNED_KEYS, ...OPTIONAL_OWNED_KEYS];
   const check = Object.hasOwn(document, 'check') ? checkOf(document['check'], 'check') : null;
   if (check !== null && 'problem' in check) return check;
@@ -483,21 +488,26 @@ function setupOf(document: Record<string, unknown>): Mapped<PipelineSetup> {
 }
 
 function documentReadingOf(document: unknown): PipelineSetupReading {
-  if (!JsonRecordUtil.valueIsAPlainObject(document)) return { verdict: 'malformed', reason: 'the document is not a JSON object' };
+  if (!JsonRecordUtil.valueIsAPlainObject(document)) return { verdict: 'malformed', problem: { code: 'not-a-json-object' } };
   const { formatVersion } = document;
   if (formatVersion !== PIPELINE_SETUP_FORMAT_VERSION) {
-    return { verdict: 'malformed', reason: `formatVersion is ${JSON.stringify(formatVersion) ?? 'missing'}, and this build reads ${PIPELINE_SETUP_FORMAT_VERSION}` };
+    return {
+      verdict: 'malformed',
+      problem: {
+        code: 'format-version-not-read', field: 'formatVersion', storedValue: formatVersion, readVersion: PIPELINE_SETUP_FORMAT_VERSION
+      }
+    };
   }
   const setup = setupOf(document);
-  return 'problem' in setup ? { verdict: 'malformed', reason: setup.problem } : { verdict: 'readable', setup: setup.value };
+  return 'problem' in setup ? { verdict: 'malformed', problem: setup.problem } : { verdict: 'readable', setup: setup.value };
 }
 
 function read(setupFilePath: string): PipelineSetupReading {
   const storedText = storedFileTextOf(setupFilePath);
   if (storedText.verdict === 'absent') return storedText;
-  if (storedText.verdict === 'unreadable') return { verdict: 'malformed', reason: storedText.reason };
+  if (storedText.verdict === 'unreadable') return { verdict: 'malformed', problem: storedText.problem };
   const parsedJson = StoredValueUtil.parsedJsonOf(storedText.text);
-  if (parsedJson.verdict === 'unparseable') return { verdict: 'malformed', reason: parsedJson.problem };
+  if (parsedJson.verdict === 'unparseable') return { verdict: 'malformed', problem: parsedJson.problem };
   return documentReadingOf(parsedJson.value);
 }
 

@@ -1,5 +1,9 @@
 /**
- * A pass abandoned on one of the tracker lock's expected conditions, and a crash for anything else. Git answers from the recorded flow
+ * A pass abandoned on one of the tracker lock's expected conditions, and a crash for anything else. What matters: a pass whose hold throws
+ * `tracker-lock-held` three times in a row raises the notice and writes the count to presence, and the next pass that runs to its end clears
+ * both; an abandoned forced pass is tried again at the next wake-up, even one with nothing observed changed; a pass that throws a plain error
+ * runs the crash path once and no wake-up runs another pass, and one that throws a refusal of forge's own defect logs the refusal's sentence,
+ * not its code. The throws come from the hold's first phase; git answers from the recorded flow
  * stages and Talos from `src/testing/RecordedTalosStages.ts`.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -16,6 +20,7 @@ import { OperationRefusal }                                  from '../../shared/
 import { createScratchDrivePass }                            from '../../testing/DrivePassHarness.ts';
 import { fakeAgentAdapter }                                  from '../../testing/FakeAgentAdapter.ts';
 import { fakeGateConfinement }                               from '../../testing/FakeGateConfinement.ts';
+import { detailsLoggerOf }                                   from '../../testing/LoggedDetails.ts';
 import { nativePlatformPorts }                               from '../../testing/NativePlatformPorts.ts';
 import { useRecordedGit }                                    from '../../testing/RecordedGit.ts';
 import { RECORDED_FLOW_MAIN_LINE }                           from '../../testing/RecordedGitFlow.ts';
@@ -67,7 +72,7 @@ function startedDrivePass(): DrivePass {
       }],
       context: ''
     }),
-    log:            (line) => hephaestusLog.push(line),
+    log:            detailsLoggerOf(hephaestusLog),
     afterHoldPhase: (phase) => {
       if (phase !== 'relayed-commands') return;
       holdsEntered += 1;
@@ -191,5 +196,14 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a pass that throws anything e
     expect(holdsEntered).toBe(1);
     expect(crashesHandedToTheCrashPath).toEqual([crash]);
     expect(storedAbandonedPasses().inARow).toBe(0);
+  });
+
+  test('a refusal of forge\'s own defect is logged as its sentence, as the plain error it was', async () => {
+    const current = startedDrivePass();
+    const crash = new OperationRefusal('unrepaired', { kind: 'merge-job-holds-no-slot', jobId: 'J4' });
+    throwsOfThePasses = [crash];
+    await passOnce(current, true);
+    expect(crashesHandedToTheCrashPath).toEqual([crash]);
+    expect(hephaestusLog).toContain('Drive pass crashed: Merge job J4 holds no slot.; the crash path runs and no further pass runs.');
   });
 });

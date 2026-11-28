@@ -10,12 +10,13 @@ import type {
   BoardQuestionHistoryEntryDocument
 } from 'forge-contracts/BoardConversationDocuments';
 
-import type { Decision, DecisionQuestionOption } from '../../../lib/tracker-model/@types/Decision.ts';
-import type { Incident }                         from '../../../lib/tracker-model/@types/Incident.ts';
-import type { LogRecord }                        from '../../../lib/tracker-model/@types/LogRecord.ts';
-import type { LineRange }                        from '../../../lib/tracker-model/@types/TicketDocument.ts';
+import type { Decision, DecisionQuestionOption } from '../../../domain/tracker-model/@types/Decision.ts';
+import type { Incident }                         from '../../../domain/tracker-model/@types/Incident.ts';
+import type { LogRecord }                        from '../../../domain/tracker-model/@types/LogRecord.ts';
+import type { LineRange }                        from '../../../domain/tracker-model/@types/TicketDocument.ts';
 import type { PictureLimits }                    from '../../@types/BoardStateParts.ts';
 import { RefusalDocumentUtil }                   from '../../utils/RefusalDocumentUtil.ts';
+import { UnreadableFileProblemWordingUtil }      from '../../utils/UnreadableFileProblemWordingUtil.ts';
 import { TicketDocumentsMappingUtil }            from './TicketDocumentsMappingUtil.ts';
 
 const FIRST_OPTION_LETTER_CODE = 'a'.charCodeAt(0);
@@ -65,7 +66,7 @@ function incidentOf(incident: Incident): BoardIncidentDocument {
     kind:            incident.kind,
     ticketIds:       [...incident.ticketIds],
     jobId:           incident.jobId,
-    facts:           { ...incident.facts },
+    facts:           UnreadableFileProblemWordingUtil.wordedIncidentFactsOf(incident),
     defaultMove:     incident.defaultMove,
     deliveredInTurn: incident.deliveredInTurn === null ? null : { jobId: incident.deliveredInTurn.jobId, chatSequence: incident.deliveredInTurn.chatSequence },
     openedAt:        incident.openedAt,

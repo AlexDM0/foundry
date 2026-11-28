@@ -19,20 +19,18 @@ import {
 } from 'bun:test';
 
 import type { LaunchSnapshot }                                 from '../../adapters/@types/LaunchSnapshot.ts';
-import type { LogRecord }                                      from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { LogRecord }                                      from '../../domain/tracker-model/@types/LogRecord.ts';
 import { fakeAgentAdapter }                                    from '../../testing/FakeAgentAdapter.ts';
 import { useRecordedGit }                                      from '../../testing/RecordedGit.ts';
 import { GIT_SCENARIOS }                                       from '../../testing/RecordedGitScenarios.ts';
 import { createScratchDirectory, removeScratchDirectory }      from '../../testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded, testWhenNotRunningAsRoot } from '../../testing/ToolGuard.ts';
-import {
-  agentConfigTouchedBeforeLaunch,
-  launchSnapshotOf,
-  refMovesAllowedOf,
-  CUSTOMS_CHECKS,
-  type CustomsSubject,
-  type VerificationCheck
-} from './Customs.ts';
+import type { CustomsSubject }                                 from './@types/CustomsSubject.ts';
+import type { VerificationCheck }                              from './@types/CustomsVerdict.ts';
+import { CUSTOMS_CHECKS }                                      from './Customs.ts';
+import { CustomsAgentConfigCheck }                             from './CustomsAgentConfigCheck.ts';
+import { launchSnapshotOf }                                    from './CustomsLaunchSnapshot.ts';
+import { CustomsRefMovesCheck }                                from './CustomsRefMovesCheck.ts';
 
 const TICKET_BODY = '## Acceptance\nA1. The example holds.\n';
 /** The fake agent's naming, which is Claude Code's. */
@@ -140,7 +138,7 @@ function buildJobAcross(logRecords: readonly LogRecord[], refreshWorktree = '', 
   return {
     ...reviewerSubject([]),
     role:            'builder',
-    refMovesAllowed: refMovesAllowedOf(logRecords, {
+    refMovesAllowed: CustomsRefMovesCheck.refMovesAllowedOf(logRecords, {
       ownJobId:                     OWN_BUILD_JOB_ID,
       ownBranch,
       otherJobBranches:             [],
@@ -311,9 +309,9 @@ describeWhenGitIsRecorded('V13: no change to agent configuration', () => {
 
   test('before a launch, the branch\'s own commits past its target are read: a target holding .claude/ passes, the branch adding it refuses', () => {
     enter(GIT_SCENARIOS.TICKET_BRANCH_MADE);
-    expect(agentConfigTouchedBeforeLaunch(repositoryDirectory, MAIN_LINE, AGENT_NAMING.configurationNames).verdict).toBe('passed');
+    expect(CustomsAgentConfigCheck.agentConfigTouchedBeforeLaunch(repositoryDirectory, MAIN_LINE, AGENT_NAMING.configurationNames).verdict).toBe('passed');
     enter(GIT_SCENARIOS.TICKET_BRANCH_ADDS_AGENT_CONFIG);
-    expect(agentConfigTouchedBeforeLaunch(repositoryDirectory, MAIN_LINE, AGENT_NAMING.configurationNames))
+    expect(CustomsAgentConfigCheck.agentConfigTouchedBeforeLaunch(repositoryDirectory, MAIN_LINE, AGENT_NAMING.configurationNames))
       .toEqual({ verdict: 'refused', reason: 'branch-touches-agent-config', facts: ['.claude/settings.json'] });
   });
 });

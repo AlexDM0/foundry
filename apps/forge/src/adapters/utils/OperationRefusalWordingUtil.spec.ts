@@ -4,9 +4,10 @@
  */
 import { expect, test } from 'bun:test';
 
-import type { BoardRefusalDetail }     from '../../lib/tracker-model/BoardRefusal.ts';
+import type { BoardRefusalDetail }     from '../../domain/tracker-model/BoardRefusal.ts';
 import type { UnreadableTracker }      from '../../shared/@types/UnreadableTracker.ts';
 import { OperationRefusal }            from '../../shared/OperationRefusal.ts';
+import type { OperationRefusalDetail } from '../../shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }               from '../../shared/constants/ProductNames.ts';
 import { ROOT_OVERRIDE_VARIABLE }      from '../../shared/constants/RootOverrideVariable.ts';
 import { OperationRefusalWordingUtil } from './OperationRefusalWordingUtil.ts';
@@ -29,7 +30,8 @@ test('a malformed Hephaestus poll interval names the variable, the value and wha
 });
 
 test('a Hephaestus lock that cannot be created whole names the file, the failure and what the user can do', () => {
-  const refusal = new OperationRefusal('refused', { kind: 'hephaestus-lock-not-created-whole', hephaestusLockFilePath: '/example/hephaestus/lock-1.json', reason: 'Error: EPERM' });
+  const hephaestusLockFilePath = '/example/hephaestus/lock-1.json';
+  const refusal = new OperationRefusal('refused', { kind: 'hephaestus-lock-not-created-whole', hephaestusLockFilePath, systemError: 'Error: EPERM' });
   expect(OperationRefusalWordingUtil.messageOf(refusal)).toBe(
     'The Hephaestus lock /example/hephaestus/lock-1.json cannot be created whole (Error: EPERM), so Hephaestus did not start. Its claim needs a hard link: '
     + 'move the data folder to a filesystem that allows one.'
@@ -52,21 +54,23 @@ test('an absent progress file is named by its path and said to be missing', () =
     .toBe('/example/.agent-progress/progress.json cannot be read: it is not there');
 });
 
-test('an unreadable progress file is named by its path, followed by the adapter reason verbatim', () => {
+test('an unreadable progress file is named by its path, followed by its problem worded', () => {
   expect(unreadableTrackerMessageOf({
     verdict:        'unreadable',
     unreadableFile: 'progress-file',
     filePath:       '/example/.agent-progress/progress.json',
-    reason:         'it is not valid JSON (Unexpected end of JSON input)',
+    problem:        { code: 'not-json', parserError: 'Unexpected end of JSON input' },
   })).toBe('/example/.agent-progress/progress.json cannot be read: it is not valid JSON (Unexpected end of JSON input)');
 });
 
-test('an unreadable log is called the log, followed by the adapter reason verbatim', () => {
+test('an unreadable log is called the log, followed by its problem worded with the file and the line', () => {
   expect(unreadableTrackerMessageOf({
     verdict:        'unreadable',
     unreadableFile: 'log-file',
     filePath:       '/example/.agent-progress/log.jsonl',
-    reason:         '/example/.agent-progress/log.jsonl, line 1: fields.text is not a string',
+    problem:        {
+      code: 'field-not-text', field: 'fields.text', logFilePath: '/example/.agent-progress/log.jsonl', lineNumber: 1
+    },
   })).toBe('The log cannot be read: /example/.agent-progress/log.jsonl, line 1: fields.text is not a string');
 });
 
@@ -102,7 +106,7 @@ test('a journal that stayed is worded naming it, what kept it and that the next 
   const refusal = new OperationRefusal('unrepaired', {
     kind:            'hold-journal-unremovable',
     journalFilePath: '/example/.agent-progress/hold-journal.json',
-    reason:          'Error: EBUSY',
+    systemError:     'Error: EBUSY',
   });
   expect(OperationRefusalWordingUtil.messageOf(refusal)).toBe(
     'The write finished, but /example/.agent-progress/hold-journal.json could not be removed (Error: EBUSY), so a later command would replay it. '
@@ -150,8 +154,13 @@ test('the by-hand task and namespace refusals are worded as their verbs printed 
       'The board has 2 job(s) on it, which run under its current branch names; let them end first. Nothing was written.',
     ],
     [
-      new OperationRefusal('refused', { kind: 'namespace-branch-list-failed', reason: 'git exited 128' }),
-      'git did not list the branches (git exited 128). Nothing was written.',
+      new OperationRefusal('refused', {
+        kind:    'namespace-branch-list-failed',
+        problem: {
+          code: 'git-exited', gitArguments: ['branch', '--list'], exitCode: 128, gitMessage: 'fatal: bad'
+        }
+      }),
+      'git did not list the branches (git branch --list exited with 128: fatal: bad). Nothing was written.',
     ],
     [
       new OperationRefusal('refused', { kind: 'namespace-not-free', refusal: { reason: 'branch-blocks-namespace', branch: PROGRAM }, wantedNamespace: 'web' }),
@@ -189,4 +198,17 @@ test('a document refusal names its ticket, document and versions', () => {
   expect(OperationRefusalWordingUtil.boardRefusalMessageOf({
     reason: 'document-version-moved', ticketId: '004', document: 'plan', version: null, headNumber: 1
   })).toContain('The plan of #004 is at version 1, not empty: read it again first.');
+});
+
+test.each<[OperationRefusalDetail, string]>([
+  [{ kind: 'merge-job-holds-no-slot', jobId: 'J3' }, 'Merge job J3 holds no slot.'],
+  [{ kind: 'crash-log-number-not-free', attempts: 5, crashLogDirectory: '/example/crash-logs' }, 'No crash log number was free after 5 attempts in /example/crash-logs.'],
+  [{ kind: 'ticket-file-not-allocated', ticketId: '004' }, 'Ticket #004 was changed in a hold that neither listed nor allocated it, so the store holds no file for it.'],
+  [{ kind: 'relayed-command-sent-setup-message', messageKind: 'setup-opened' }, 'A relayed command reached the setup message setup-opened, which only User\'s own commands send.'],
+  [{ kind: 'relayed-command-read-main-constitution' }, 'A relayed command reached the reading of main\'s constitution, which only User\'s own commands read.'],
+  [{ kind: 'relayed-command-judged-billing', vendor: 'example-vendor' }, 'A relayed command reached the billing of example-vendor, which only User\'s own commands set.'],
+])('a defect of forge\'s own code is worded as its throw was, in both channels: %p', (detail, sentence) => {
+  const refusal = new OperationRefusal('unrepaired', detail);
+  expect(OperationRefusalWordingUtil.messageOf(refusal)).toBe(sentence);
+  expect(OperationRefusalWordingUtil.apiMessageOf(refusal)).toBe(sentence);
 });

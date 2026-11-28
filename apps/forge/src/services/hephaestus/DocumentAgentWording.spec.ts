@@ -4,7 +4,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { CommentAnchor, DocumentProposal }                 from '../../lib/tracker-model/@types/TicketDocument.ts';
+import type { CommentAnchor, DocumentProposal }                 from '../../domain/tracker-model/@types/TicketDocument.ts';
 import type { ControlCommand }                                  from '../../shared/@types/ControlCommand.ts';
 import { boardFixture, ticketFixture }                          from '../../testing/BoardFixtures.ts';
 import { ECHOED_CONTROL_CONTEXT }                               from '../../testing/EchoedControlContext.ts';

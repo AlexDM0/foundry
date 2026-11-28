@@ -5,7 +5,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { Board }          from '../../lib/tracker-model/Board.ts';
+import type { Board }          from '../../domain/tracker-model/Board.ts';
 import type { ControlCommand } from '../../shared/@types/ControlCommand.ts';
 import {
   boardFixture,

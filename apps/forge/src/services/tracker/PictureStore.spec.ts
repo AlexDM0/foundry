@@ -13,10 +13,11 @@ import {
   test
 } from 'bun:test';
 
+import type { Job }                                                   from '../../domain/tracker-model/@types/Job.ts';
+import type { LogRecord }                                             from '../../domain/tracker-model/@types/LogRecord.ts';
 import type { FileReplace }                                           from '../../lib/atomic-file/FileReplace.ts';
 import type { OwnerOnlyFiles }                                        from '../../lib/owner-only-files/OwnerOnlyFiles.ts';
-import type { Job }                                                   from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }                                             from '../../lib/tracker-model/@types/LogRecord.ts';
+import { OperationRefusal }                                           from '../../shared/OperationRefusal.ts';
 import { PICTURE_ENCODED_SIZE_LIMIT_BYTES, PICTURE_SIZE_LIMIT_BYTES } from '../../shared/constants/HephaestusLimits.ts';
 import { createScratchDirectory, removeScratchDirectory }             from '../../testing/ScratchWorkspace.ts';
 import { PictureStore }                                               from './PictureStore.ts';
@@ -43,9 +44,15 @@ function recordingOwnerOnlyFiles(): OwnerOnlyFiles & { restricted: string[] } {
   const restricted: string[] = [];
   return {
     restricted,
-    restrictFolder: (folder) => restricted.push(`folder ${folder}`),
-    restrictFile:   (path) => restricted.push(`file ${path}`),
-    isOwnerOnly:    () => true,
+    restrictFolder: (folder) => {
+      restricted.push(`folder ${folder}`);
+      return { verdict: 'restricted' };
+    },
+    restrictFile: (path) => {
+      restricted.push(`file ${path}`);
+      return { verdict: 'restricted' };
+    },
+    isOwnerOnly: () => true,
   };
 }
 
@@ -108,6 +115,19 @@ describe('storing a picture', () => {
     const fileNames = readdirSync(folder);
     expect(fileNames).toHaveLength(1);
     expect(ownerOnlyFiles.restricted).toEqual([`folder ${folder}`, `file ${join(folder, fileNames[0] ?? '')}`]);
+  });
+
+  test('refuses a picture whose folder cannot be proved owner-only, before its bytes are written', () => {
+    const trackerDirectory = scratchTrackerDirectory();
+    const folder = PictureStore.picturesFolderOf(trackerDirectory);
+    const refusingOwnerOnlyFiles: OwnerOnlyFiles = {
+      restrictFolder: (path) => ({ verdict: 'refused', cause: 'not-proved-owner-only', path }),
+      restrictFile:   () => ({ verdict: 'restricted' }),
+      isOwnerOnly:    () => false,
+    };
+    expect(() => PictureStore.storePicture(refusingOwnerOnlyFiles, trackerDirectory, PNG_BYTES))
+      .toThrow(new OperationRefusal('unrepaired', { kind: 'path-not-owner-only', path: folder, cause: 'not-proved-owner-only' }));
+    expect(existsSync(folder)).toBe(false);
   });
 });
 

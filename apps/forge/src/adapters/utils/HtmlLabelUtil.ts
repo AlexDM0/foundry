@@ -2,7 +2,7 @@
  * The page's words for a priority that differ from the value: a lane group's title and a mark's title. A status, a type and a priority
  * word print as their values.
  */
-import type { TicketPriority } from '../../lib/tracker-model/@types/Ticket.ts';
+import type { TicketPriority } from '../../domain/tracker-model/@types/Ticket.ts';
 
 const GROUP_TITLE_FOR_PRIORITY: Readonly<Record<TicketPriority, string>> = { high: 'High', normal: 'Normal', low: 'Low' };
 

@@ -11,10 +11,10 @@ import {
   test
 } from 'bun:test';
 
-import type { Pipeline }                                   from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { LoadedTicketDocumentRecord, TicketDocument } from '../../lib/tracker-model/@types/TicketDocument.ts';
-import { PipelineUtil }                                    from '../../lib/tracker-model/utils/PipelineUtil.ts';
-import { TicketDocumentVersionUtil }                       from '../../lib/tracker-model/utils/TicketDocumentVersionUtil.ts';
+import type { Pipeline }                                   from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { LoadedTicketDocumentRecord, TicketDocument } from '../../domain/tracker-model/@types/TicketDocument.ts';
+import { PipelineUtil }                                    from '../../domain/tracker-model/utils/PipelineUtil.ts';
+import { TicketDocumentVersionUtil }                       from '../../domain/tracker-model/utils/TicketDocumentVersionUtil.ts';
 import { OperationRefusal }                                from '../../shared/OperationRefusal.ts';
 import { ticketFixture }                                   from '../../testing/BoardFixtures.ts';
 import { GIT_CALL_SHAPES, useRecordedGit }                 from '../../testing/RecordedGit.ts';

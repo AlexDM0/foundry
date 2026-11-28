@@ -12,6 +12,7 @@ import {
 } from 'bun:test';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { HoldJournalIngestion, type JournaledFile }       from './HoldJournalIngestion.ts';
+import { HoldJournalProblemWording }                      from './HoldJournalProblemWording.ts';
 import { createHoldJournalWriter }                        from './HoldJournalWriter.ts';
 
 let scratchDirectory: string | null = null;
@@ -86,5 +87,5 @@ test.each([
   const journalReading = reading();
 
   expect(journalReading.verdict).toBe('malformed');
-  expect(journalReading.verdict === 'malformed' ? journalReading.reason : '').toContain(reason);
+  expect(journalReading.verdict === 'malformed' ? HoldJournalProblemWording.sentenceOf(journalReading.problem) : '').toContain(reason);
 });

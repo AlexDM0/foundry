@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { dirname }                         from 'node:path';
+import type { Epic }                       from '../../domain/tracker-model/@types/Epic.ts';
 import { writeFileAtomically }             from '../../lib/atomic-file/AtomicFile.ts';
-import type { Epic }                       from '../../lib/tracker-model/@types/Epic.ts';
 import { EpicDocumentUtil }                from './utils/EpicDocumentUtil.ts';
 
 /** Writes through `src/lib/atomic-file/AtomicFile.ts`; an epic whose frontmatter would read back unchanged keeps the stored frontmatter text. */

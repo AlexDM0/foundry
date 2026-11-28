@@ -1,0 +1,182 @@
+[
+  {
+    "case": "a directory in the file's place, which cannot be read (built as a directory; the OS message is {systemError})",
+    "stored": null,
+    "sentence": "it could not be read ({systemError})"
+  },
+  {
+    "case": "the bytes are not UTF-8 (built as the byte 0xFF)",
+    "stored": null,
+    "sentence": "it is not UTF-8 text"
+  },
+  {
+    "case": "the text is not JSON",
+    "stored": "{",
+    "sentence": "it is not valid JSON (JSON Parse error: Expected '}')"
+  },
+  {
+    "case": "the document is a list, not an object",
+    "stored": "[]",
+    "sentence": "the document is not a JSON object"
+  },
+  {
+    "case": "formatVersion is missing",
+    "stored": "{\"nextRunNumber\":2,\"runs\":[{\"profileRunId\":\"P1\",\"setupId\":\"S1\",\"phase\":\"build\",\"gate\":{\"name\":\"build\",\"run\":\"bun run build\"},\"gateHash\":\"abc\",\"prepare\":[],\"state\":\"passed\",\"stopRequested\":false,\"elapsedMilliseconds\":10}]}",
+    "sentence": "formatVersion is missing, and this build reads 1"
+  },
+  {
+    "case": "formatVersion is a version this build does not read",
+    "stored": "{\"formatVersion\":2,\"nextRunNumber\":2,\"runs\":[{\"profileRunId\":\"P1\",\"setupId\":\"S1\",\"phase\":\"build\",\"gate\":{\"name\":\"build\",\"run\":\"bun run build\"},\"gateHash\":\"abc\",\"prepare\":[],\"state\":\"passed\",\"stopRequested\":false,\"elapsedMilliseconds\":10}]}",
+    "sentence": "formatVersion is 2, and this build reads 1"
+  },
+  {
+    "case": "nextRunNumber is missing",
+    "stored": "{\"formatVersion\":1,\"runs\":[{\"profileRunId\":\"P1\",\"setupId\":\"S1\",\"phase\":\"build\",\"gate\":{\"name\":\"build\",\"run\":\"bun run build\"},\"gateHash\":\"abc\",\"prepare\":[],\"state\":\"passed\",\"stopRequested\":false,\"elapsedMilliseconds\":10}]}",
+    "sentence": "nextRunNumber is missing"
+  },
+  {
+    "case": "nextRunNumber is below the first run number",
+    "stored": "{\"formatVersion\":1,\"nextRunNumber\":0,\"runs\":[{\"profileRunId\":\"P1\",\"setupId\":\"S1\",\"phase\":\"build\",\"gate\":{\"name\":\"build\",\"run\":\"bun run build\"},\"gateHash\":\"abc\",\"prepare\":[],\"state\":\"passed\",\"stopRequested\":false,\"elapsedMilliseconds\":10}]}",
+    "sentence": "nextRunNumber is not a whole number of at least 1"
+  },
+  {
+    "case": "runs is not a list",
+    "stored": "{\"formatVersion\":1,\"nextRunNumber\":2,\"runs\":{}}",
+    "sentence": "runs is not a list"
+  },
+  {
+    "case": "a run is not an object",
+    "stored": "{\"formatVersion\":1,\"nextRunNumber\":2,\"runs\":[\"run\"]}",
+    "sentence": "runs[0] is not an object"
+  },
+  {
+    "case": "a run has a key it does not know",
+    "stored": "{\"formatVersion\":1,\"nextRunNumber\":2,\"runs\":[{\"profileRunId\":\"P1\",\"setupId\":\"S1\",\"phase\":\"build\",\"gate\":{\"name\":\"build\",\"run\":\"bun run build\"},\"gateHash\":\"abc\",\"prepare\":[],\"state\":\"passed\",\"stopRequested\":false,\"elapsedMilliseconds\":10,\"colour\":\"red\"}]}",
+    "sentence": "runs[0].colour is not a key of runs[0]; the keys are profileRunId, setupId, entity, phase, gate, gateHash, prepare, state, stopRequested, elapsedMilliseconds, cacheReport"
+  },
+  {
+    "case": "a run lacks a required key",
+    "stored": "{\"formatVersion\":1,\"nextRunNumber\":2,\"runs\":[{\"profileRunId\":\"P1\",\"setupId\":\"S1\",\"phase\":\"build\",\"gate\":{\"name\":\"build\",\"run\":\"bun run build\"},\"prepare\":[],\"state\":\"passed\",\"stopRequested\":false,\"elapsedMilliseconds\":10}]}",
+    "sentence": "runs[0].gateHash is missing"
+  },
+  {
+    "case": "a run's profileRunId is not a run id",
+    "stored": "{\"formatVersion\":1,\"nextRunNumber\":2,\"runs\":[{\"profileRunId\":\"R1\",\"setupId\":\"S1\",\"phase\":\"build\",\"gate\":{\"name\":\"build\",\"run\":\"bun run build\"},\"gateHash\":\"abc\",\"prepare\":[],\"state\":\"passed\",\"stopRequested\":false,\"elapsedMilliseconds\":10}]}",
+    "sentence": "runs[0].profileRunId is \"R1\", and it has to be an id such as P1"
+  },
+  {
+    "case": "a run's setupId is not a setup id",
+    "stored": "{\"formatVersion\":1,\"nextRunNumber\":2,\"runs\":[{\"profileRunId\":\"P1\",\"setupId\":\"X\",\"phase\":\"build\",\"gate\":{\"name\":\"build\",\"run\":\"bun run build\"},\"gateHash\":\"abc\",\"prepare\":[],\"state\":\"passed\",\"stopRequested\":false,\"elapsedMilliseconds\":10}]}",
+    "sentence": "runs[0].setupId is \"X\", and it has to be an id such as S1"
+  },
+  {
+    "case": "a run's entity is an empty text",
+    "stored": "{\"formatVersion\":1,\"nextRunNumber\":2,\"runs\":[{\"profileRunId\":\"P1\",\"setupId\":\"S1\",\"phase\":\"build\",\"gate\":{\"name\":\"build\",\"run\":\"bun run build\"},\"gateHash\":\"abc\",\"prepare\":[],\"state\":\"passed\",\"stopRequested\":false,\"elapsedMilliseconds\":10,\"entity\":\"\"}]}",
+    "sentence": "runs[0].entity is not a text"
+  },
+  {
+    "case": "a run's phase is outside the vocabulary",
+    "stored": "{\"formatVersion\":1,\"nextRunNumber\":2,\"runs\":[{\"profileRunId\":\"P1\",\"setupId\":\"S1\",\"phase\":\"deploy\",\"gate\":{\"name\":\"build\",\"run\":\"bun run build\"},\"gateHash\":\"abc\",\"prepare\":[],\"state\":\"passed\",\"stopRequested\":false,\"elapsedMilliseconds\":10}]}",
+    "sentence": "runs[0].phase is \"deploy\", which is not one of build, review, merge"
+  },
+  {
+    "case": "a run's gate is not an object",
+    "stored": "{\"formatVersion\":1,\"nextRunNumber\":2,\"runs\":[{\"profileRunId\":\"P1\",\"setupId\":\"S1\",\"phase\":\"build\",\"gate\":[],\"gateHash\":\"abc\",\"prepare\":[],\"state\":\"passed\",\"stopRequested\":false,\"elapsedMilliseconds\":10}]}",
+    "sentence": "runs[0].gate is not an object"
+  },
+  {
+    "case": "a run's gate has a key it does not know",
+    "stored": "{\"formatVersion\":1,\"nextRunNumber\":2,\"runs\":[{\"profileRunId\":\"P1\",\"setupId\":\"S1\",\"phase\":\"build\",\"gate\":{\"name\":\"build\",\"run\":\"bun run build\",\"fix\":\"x\"},\"gateHash\":\"abc\",\"prepare\":[],\"state\":\"passed\",\"stopRequested\":false,\"elapsedMilliseconds\":10}]}",
+    "sentence": "runs[0].gate.fix is not a key of runs[0].gate; the keys are name, run, in, network"
+  },
+  {
+    "case": "a run's gate lacks its run",
+    "stored": "{\"formatVersion\":1,\"nextRunNumber\":2,\"runs\":[{\"profileRunId\":\"P1\",\"setupId\":\"S1\",\"phase\":\"build\",\"gate\":{\"name\":\"build\"},\"gateHash\":\"abc\",\"prepare\":[],\"state\":\"passed\",\"stopRequested\":false,\"elapsedMilliseconds\":10}]}",
+    "sentence": "runs[0].gate.run is missing"
+  },
+  {
+    "case": "a run's gate name is not a text",
+    "stored": "{\"formatVersion\":1,\"nextRunNumber\":2,\"runs\":[{\"profileRunId\":\"P1\",\"setupId\":\"S1\",\"phase\":\"build\",\"gate\":{\"name\":1,\"run\":\"bun run build\"},\"gateHash\":\"abc\",\"prepare\":[],\"state\":\"passed\",\"stopRequested\":false,\"elapsedMilliseconds\":10}]}",
+    "sentence": "runs[0].gate.name is not a text"
+  },
+  {
+    "case": "a run's gate run line is empty",
+    "stored": "{\"formatVersion\":1,\"nextRunNumber\":2,\"runs\":[{\"profileRunId\":\"P1\",\"setupId\":\"S1\",\"phase\":\"build\",\"gate\":{\"name\":\"build\",\"run\":\"\"},\"gateHash\":\"abc\",\"prepare\":[],\"state\":\"passed\",\"stopRequested\":false,\"elapsedMilliseconds\":10}]}",
+    "sentence": "runs[0].gate.run is not a text"
+  },
+  {
+    "case": "a run's gate folder is not a text",
+    "stored": "{\"formatVersion\":1,\"nextRunNumber\":2,\"runs\":[{\"profileRunId\":\"P1\",\"setupId\":\"S1\",\"phase\":\"build\",\"gate\":{\"name\":\"build\",\"run\":\"bun run build\",\"in\":1},\"gateHash\":\"abc\",\"prepare\":[],\"state\":\"passed\",\"stopRequested\":false,\"elapsedMilliseconds\":10}]}",
+    "sentence": "runs[0].gate.in is not a text"
+  },
+  {
+    "case": "a run's gate network is not a list",
+    "stored": "{\"formatVersion\":1,\"nextRunNumber\":2,\"runs\":[{\"profileRunId\":\"P1\",\"setupId\":\"S1\",\"phase\":\"build\",\"gate\":{\"name\":\"build\",\"run\":\"bun run build\",\"network\":\"x\"},\"gateHash\":\"abc\",\"prepare\":[],\"state\":\"passed\",\"stopRequested\":false,\"elapsedMilliseconds\":10}]}",
+    "sentence": "runs[0].gate.network is not a list"
+  },
+  {
+    "case": "a run's gate network holds a non-text",
+    "stored": "{\"formatVersion\":1,\"nextRunNumber\":2,\"runs\":[{\"profileRunId\":\"P1\",\"setupId\":\"S1\",\"phase\":\"build\",\"gate\":{\"name\":\"build\",\"run\":\"bun run build\",\"network\":[1]},\"gateHash\":\"abc\",\"prepare\":[],\"state\":\"passed\",\"stopRequested\":false,\"elapsedMilliseconds\":10}]}",
+    "sentence": "runs[0].gate.network[0] is not a text"
+  },
+  {
+    "case": "a run's gateHash is not a text",
+    "stored": "{\"formatVersion\":1,\"nextRunNumber\":2,\"runs\":[{\"profileRunId\":\"P1\",\"setupId\":\"S1\",\"phase\":\"build\",\"gate\":{\"name\":\"build\",\"run\":\"bun run build\"},\"gateHash\":null,\"prepare\":[],\"state\":\"passed\",\"stopRequested\":false,\"elapsedMilliseconds\":10}]}",
+    "sentence": "runs[0].gateHash is not a text"
+  },
+  {
+    "case": "a run's prepare is not a list",
+    "stored": "{\"formatVersion\":1,\"nextRunNumber\":2,\"runs\":[{\"profileRunId\":\"P1\",\"setupId\":\"S1\",\"phase\":\"build\",\"gate\":{\"name\":\"build\",\"run\":\"bun run build\"},\"gateHash\":\"abc\",\"prepare\":{},\"state\":\"passed\",\"stopRequested\":false,\"elapsedMilliseconds\":10}]}",
+    "sentence": "runs[0].prepare is not a list"
+  },
+  {
+    "case": "a prepare step is not an object",
+    "stored": "{\"formatVersion\":1,\"nextRunNumber\":2,\"runs\":[{\"profileRunId\":\"P1\",\"setupId\":\"S1\",\"phase\":\"build\",\"gate\":{\"name\":\"build\",\"run\":\"bun run build\"},\"gateHash\":\"abc\",\"prepare\":[1],\"state\":\"passed\",\"stopRequested\":false,\"elapsedMilliseconds\":10}]}",
+    "sentence": "runs[0].prepare[0] is not an object"
+  },
+  {
+    "case": "a prepare step has a key it does not know",
+    "stored": "{\"formatVersion\":1,\"nextRunNumber\":2,\"runs\":[{\"profileRunId\":\"P1\",\"setupId\":\"S1\",\"phase\":\"build\",\"gate\":{\"name\":\"build\",\"run\":\"bun run build\"},\"gateHash\":\"abc\",\"prepare\":[{\"name\":\"build\",\"run\":\"bun run build\",\"fix\":\"x\"}],\"state\":\"passed\",\"stopRequested\":false,\"elapsedMilliseconds\":10}]}",
+    "sentence": "runs[0].prepare[0].fix is not a key of runs[0].prepare[0]; the keys are name, run, in"
+  },
+  {
+    "case": "a prepare step lacks its name",
+    "stored": "{\"formatVersion\":1,\"nextRunNumber\":2,\"runs\":[{\"profileRunId\":\"P1\",\"setupId\":\"S1\",\"phase\":\"build\",\"gate\":{\"name\":\"build\",\"run\":\"bun run build\"},\"gateHash\":\"abc\",\"prepare\":[{\"run\":\"x\"}],\"state\":\"passed\",\"stopRequested\":false,\"elapsedMilliseconds\":10}]}",
+    "sentence": "runs[0].prepare[0].name is missing"
+  },
+  {
+    "case": "a prepare step name is not a text",
+    "stored": "{\"formatVersion\":1,\"nextRunNumber\":2,\"runs\":[{\"profileRunId\":\"P1\",\"setupId\":\"S1\",\"phase\":\"build\",\"gate\":{\"name\":\"build\",\"run\":\"bun run build\"},\"gateHash\":\"abc\",\"prepare\":[{\"name\":1,\"run\":\"x\"}],\"state\":\"passed\",\"stopRequested\":false,\"elapsedMilliseconds\":10}]}",
+    "sentence": "runs[0].prepare[0].name is not a text"
+  },
+  {
+    "case": "a prepare step run line is not a text",
+    "stored": "{\"formatVersion\":1,\"nextRunNumber\":2,\"runs\":[{\"profileRunId\":\"P1\",\"setupId\":\"S1\",\"phase\":\"build\",\"gate\":{\"name\":\"build\",\"run\":\"bun run build\"},\"gateHash\":\"abc\",\"prepare\":[{\"name\":\"install\",\"run\":1}],\"state\":\"passed\",\"stopRequested\":false,\"elapsedMilliseconds\":10}]}",
+    "sentence": "runs[0].prepare[0].run is not a text"
+  },
+  {
+    "case": "a prepare step folder is not a text",
+    "stored": "{\"formatVersion\":1,\"nextRunNumber\":2,\"runs\":[{\"profileRunId\":\"P1\",\"setupId\":\"S1\",\"phase\":\"build\",\"gate\":{\"name\":\"build\",\"run\":\"bun run build\"},\"gateHash\":\"abc\",\"prepare\":[{\"name\":\"install\",\"run\":\"x\",\"in\":\"\"}],\"state\":\"passed\",\"stopRequested\":false,\"elapsedMilliseconds\":10}]}",
+    "sentence": "runs[0].prepare[0].in is not a text"
+  },
+  {
+    "case": "a run's state is outside the vocabulary",
+    "stored": "{\"formatVersion\":1,\"nextRunNumber\":2,\"runs\":[{\"profileRunId\":\"P1\",\"setupId\":\"S1\",\"phase\":\"build\",\"gate\":{\"name\":\"build\",\"run\":\"bun run build\"},\"gateHash\":\"abc\",\"prepare\":[],\"state\":\"sleeping\",\"stopRequested\":false,\"elapsedMilliseconds\":10}]}",
+    "sentence": "runs[0].state is \"sleeping\", which is not one of queued, running, passed, red, cannot-run, timed-out, stopped"
+  },
+  {
+    "case": "a run's stopRequested is not true or false",
+    "stored": "{\"formatVersion\":1,\"nextRunNumber\":2,\"runs\":[{\"profileRunId\":\"P1\",\"setupId\":\"S1\",\"phase\":\"build\",\"gate\":{\"name\":\"build\",\"run\":\"bun run build\"},\"gateHash\":\"abc\",\"prepare\":[],\"state\":\"passed\",\"stopRequested\":\"no\",\"elapsedMilliseconds\":10}]}",
+    "sentence": "runs[0].stopRequested is not true or false"
+  },
+  {
+    "case": "a run's elapsedMilliseconds is negative",
+    "stored": "{\"formatVersion\":1,\"nextRunNumber\":2,\"runs\":[{\"profileRunId\":\"P1\",\"setupId\":\"S1\",\"phase\":\"build\",\"gate\":{\"name\":\"build\",\"run\":\"bun run build\"},\"gateHash\":\"abc\",\"prepare\":[],\"state\":\"passed\",\"stopRequested\":false,\"elapsedMilliseconds\":-1}]}",
+    "sentence": "runs[0].elapsedMilliseconds is neither null nor a whole number of at least 0"
+  },
+  {
+    "case": "a run's cacheReport is outside the vocabulary",
+    "stored": "{\"formatVersion\":1,\"nextRunNumber\":2,\"runs\":[{\"profileRunId\":\"P1\",\"setupId\":\"S1\",\"phase\":\"build\",\"gate\":{\"name\":\"build\",\"run\":\"bun run build\"},\"gateHash\":\"abc\",\"prepare\":[],\"state\":\"passed\",\"stopRequested\":false,\"elapsedMilliseconds\":10,\"cacheReport\":\"warm\"}]}",
+    "sentence": "runs[0].cacheReport is \"warm\", which is not one of hit, partial, miss"
+  }
+]

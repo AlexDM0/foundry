@@ -4,8 +4,9 @@
  */
 import { realpathSync } from 'node:fs';
 
+import { GitProblemWording }      from '../../../src/adapters/GitProblemWording.ts';
+import type { RepositoryTracker } from '../../../src/adapters/repository-landings/RepositoryLandings.ts';
 import { GitProcess }             from '../../../src/lib/git/GitProcess.ts';
-import type { RepositoryTracker } from '../../../src/lib/git/RepositoryLandings.ts';
 import { projectLocationOf }      from '../../../src/services/tracker/ProjectLocation.ts';
 import type { ProjectLocation }   from '../../../src/services/tracker/ProjectLocation.ts';
 import {
@@ -73,7 +74,7 @@ function listedTrackersOrRefuse(list: RepositoryTrackerList): RepositoryTracker[
     case 'malformed':
       throw new OperationRefusal('refused', listUnreadableTextOf(list, reading.problems.join('; ')));
     case 'unreadable':
-      throw new OperationRefusal('refused', listUnreadableTextOf(list, reading.reason));
+      throw new OperationRefusal('refused', listUnreadableTextOf(list, reading.systemError));
   }
 }
 
@@ -81,7 +82,8 @@ function listedTrackersOrRefuse(list: RepositoryTrackerList): RepositoryTracker[
 function refuseANamespaceABranchHolds(repositoryRoot: string, branchNamespace: string): void {
   const branchList = GitProcess.run(repositoryRoot, BRANCH_LIST_ARGUMENTS);
   if (!GitProcess.succeeded(branchList)) {
-    throw new OperationRefusal('refused', `git did not list the branches (${GitProcess.failureReasonOf(branchList, BRANCH_LIST_ARGUMENTS)}). ${NOTHING_WRITTEN}`);
+    const failure = GitProblemWording.sentenceOf(GitProcess.failureOf(branchList, BRANCH_LIST_ARGUMENTS));
+    throw new OperationRefusal('refused', `git did not list the branches (${failure}). ${NOTHING_WRITTEN}`);
   }
   const branches = branchList.standardOutput.split('\n').filter((branch) => branch !== '');
   const refusal  = BranchNamespaceUtil.refusalOf(branches, branchNamesOf(null), branchNamespace);

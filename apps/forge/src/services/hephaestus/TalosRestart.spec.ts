@@ -5,7 +5,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { DoneFrame }                          from '../../lib/talos/@types/TalosFrame.ts';
+import type { DoneFrame }                          from '../../domain/talos/@types/TalosFrame.ts';
 import type { TalosConnection, TalosFrameRequest } from './TalosConnection.ts';
 import { quitTalosForRestart }                     from './TalosRestart.ts';
 

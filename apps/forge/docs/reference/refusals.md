@@ -465,7 +465,7 @@ Words here: [Hephaestus](../glossary.md#hephaestus), [Hephaestus lock](../glossa
 | `needs git <version> or newer` | `git-below-floor` | `init` or `start` found a git below 2.38, or none on the `PATH`, before writing anything. | Install git 2.38 or newer. | [Adopting a repository](../cli.md#adopting-a-repository) |
 | `cannot be created whole` | `hephaestus-lock-not-created-whole` | The Hephaestus lock claim needs a hard link, and the filesystem refused it. | Move the data folder to a filesystem that allows hard links. | |
 | `A Hephaestus already serves this board` | `hephaestus-already-running` | A live Hephaestus lock names another Hephaestus. | Use it, or run `stop`. | |
-| `No Hephaestus serves this board` | `hephaestus-down` | The Hephaestus that `start` started was gone again before `start` read its Hephaestus lock. | Run `start` again, or read `hephaestus.log`. | |
+| `No Hephaestus serves this board` | `hephaestus-down` | The Hephaestus that `start` started was gone again before `start` read its Hephaestus lock. | Run `start` again, or run `forge hephaestus-log`. | |
 | `at the same moment and holds the newer Hephaestus lock` | `hephaestus-contended` | Two starts raced and this one lost. | Nothing. The other one serves. | |
 | `took this board over from the Hephaestus lock` | `hephaestus-lock-taken` | A newer generation took over. **Exit 2.** | Nothing. The newer Hephaestus drives. | |
 | `is in use, so Hephaestus did not start` | `hephaestus-port-in-use` | The candidate ports are taken. The range form reads `Every port from`. | Pass a free `--port`. | |
@@ -610,7 +610,7 @@ These sentences come from `cli/` as text and carry no code.
 | Refused by | Where |
 | --- | --- |
 | [Customs](../glossary.md#customs): a report refused, routed to a resume or an incident | `src/services/lifecycle/Customs.ts` |
-| Landing: `target-moved`, `dirty-checkout`, `acceptance-waived` and the rest, with the action each leads to | `src/services/hephaestus/Airlocks.ts` |
+| Landing: `target-moved`, `dirty-checkout`, `acceptance-waived` and the rest, with the action each leads to | `src/services/hephaestus/AirlockLandings.ts` |
 | The Hatch ladder: which check refuses a relayed command, in order | `src/services/control/Bouncer.ts` |
 | HTTP guards: `forbidden`, `unauthorized`, `not-ready`, `not-found` | [Hephaestus API](hephaestus-api.md) |
 | Argument errors: a missing id, an unknown option, an unknown command | `cli/`. Each prints its own remedy, most with a `Usage:` line, at exit 1. |
@@ -631,7 +631,7 @@ These rows print as listed above, and the sentence is not the whole truth.
 ## Coverage
 
 At commit e408bd50 a one-off script, not kept in the repository, matched every `case` in
-`src/adapters/utils/OperationRefusalWordingUtil.ts`, every `reason` in `src/lib/tracker-model/BoardRefusal.ts` and every
+`src/adapters/utils/OperationRefusalWordingUtil.ts`, every `reason` in `src/domain/tracker-model/BoardRefusal.ts` and every
 key of `RoleCommandRefusalReason` to a `Code` cell here, and every code here to the source. No spec keeps this page in
 step; rerun the comparison after changing a wording.
 The counts below are that commit's. The rows under [Ticket documents](#ticket-documents), `job-is-document-agent` and
@@ -654,7 +654,7 @@ row per reason.
 | Concept | Path | Symbol | Spec that holds it |
 | --- | --- | --- | --- |
 | The refusal and its status | `src/shared/OperationRefusal.ts` | `OperationRefusal`, `OperationRefusalDetail` | `src/shared/OperationRefusal.spec.ts` |
-| A Board rule's refusal | `src/lib/tracker-model/BoardRefusal.ts` | `BoardRefusalDetail` | `src/lib/tracker-model/BoardRefusal.spec.ts` |
+| A Board rule's refusal | `src/domain/tracker-model/BoardRefusal.ts` | `BoardRefusalDetail` | `src/domain/tracker-model/BoardRefusal.spec.ts` |
 | All wording | `src/adapters/utils/OperationRefusalWordingUtil.ts` | `messageOf`, `boardRefusalMessageOf` | `src/adapters/utils/OperationRefusalWordingUtil.spec.ts` |
 | The API sentence | `src/adapters/utils/OperationRefusalWordingUtil.ts` | `apiMessageOf` | `src/adapters/utils/OperationRefusalWordingUtil.apiChannel.spec.ts` |
 | Exit codes | `cli/Main.ts` | `runCommandLine` | `cli/Main.spec.ts` |

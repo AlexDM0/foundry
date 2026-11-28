@@ -5,9 +5,9 @@
  */
 import { describe, expect, test } from 'bun:test';
 
+import type { Pipeline }        from '../../domain/tracker-model/@types/Pipeline.ts';
 import { dataFoldersFor }       from '../../lib/data-folders/DataFoldersFor.ts';
 import { createPosixShellLine } from '../../lib/shell-line/PosixShellLine.ts';
-import type { Pipeline }        from '../../lib/tracker-model/@types/Pipeline.ts';
 import {
   type FolderEntries,
   NO_TOOLCHAIN,
@@ -148,7 +148,7 @@ describe('E7: the .claude folder of every entity home', () => {
     };
     expect(WorkerProfiles.deniedRootsMadeBeforeLaunchOf(facts)).toEqual([`${WORKTREE}/.claude`, `${WORKTREE}/apps/gaia/.claude`]);
     const unmakable = `${WORKTREE}/apps/gaia/.claude`;
-    expect(WorkerProfiles.unmadeDeniedRootRefusalOf(facts, { makeFolder: (path) => path !== unmakable })).toContain(unmakable);
+    expect(WorkerProfiles.unmadeDeniedRootOf(facts, { makeFolder: (path) => path !== unmakable })).toBe(unmakable);
   });
 });
 

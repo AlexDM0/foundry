@@ -21,9 +21,9 @@ import {
 } from 'bun:test';
 import { createProgressFileWriter }                       from '../../adapters/progress/ProgressFileWriter.ts';
 import { createTicketFileWriter }                         from '../../adapters/tickets/TicketFileWriter.ts';
-import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { TicketType }                                from '../../lib/tracker-model/@types/Ticket.ts';
-import { TaskRecordUtil }                                 from '../../lib/tracker-model/utils/TaskRecordUtil.ts';
+import type { LogRecord }                                 from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { TicketType }                                from '../../domain/tracker-model/@types/Ticket.ts';
+import { TaskRecordUtil }                                 from '../../domain/tracker-model/utils/TaskRecordUtil.ts';
 import { emptyProgress }                                  from '../../testing/ProgressFixtures.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { localStoreLayoutOf }                             from './LocalStoreLayout.ts';
@@ -145,7 +145,7 @@ describe('createTicket and listTickets', () => {
 
     expect(listing.tickets.map((ticket) => ticket.frontmatter.id)).toEqual(['001']);
     expect(listing.unreadable).toEqual([{
-      record: 'ticket', key: '002', location: brokenPath, reason: 'the frontmatter has no closing `---` fence', line: 3
+      record: 'ticket', key: '002', location: brokenPath, problem: { code: 'no-closing-fence' }, line: 3
     }]);
   });
 
@@ -279,7 +279,13 @@ describe('a ticket file renamed by hand', () => {
       ticketLocations: new Map(),
       contentRestored: [],
       unreadable:      [{
-        record: 'ticket', key: '012', location: renamedPath, reason: 'the file name says #012 but its `id` is 001', line: 2
+        record:   'ticket',
+        key:      '012',
+        location: renamedPath,
+        problem:  {
+          code: 'file-name-names-another-id', field: 'id', idInFileName: '012', storedId: '001'
+        },
+        line: 2,
       }],
     });
     expect(nextTicketId(workspace, NOTHING_SPENT_IN_HOLD)).toBe('013');
@@ -298,10 +304,22 @@ describe('a ticket file renamed by hand', () => {
       contentRestored: [],
       unreadable:      [
         {
-          record: 'ticket', key: '001', location: first.location, reason: 'ticket #001 is also held by copy-of-the-first.md', line: 2
+          record:   'ticket',
+          key:      '001',
+          location: first.location,
+          problem:  {
+            code: 'id-held-twice', field: 'id', storedId: '001', otherFileNames: ['copy-of-the-first.md']
+          },
+          line: 2,
         },
         {
-          record: 'ticket', key: '001', location: copyPath, reason: 'ticket #001 is also held by 001-fix-the-export-dialog.md', line: 2
+          record:   'ticket',
+          key:      '001',
+          location: copyPath,
+          problem:  {
+            code: 'id-held-twice', field: 'id', storedId: '001', otherFileNames: ['001-fix-the-export-dialog.md']
+          },
+          line: 2,
         },
       ],
     });

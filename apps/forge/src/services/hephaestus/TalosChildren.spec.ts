@@ -14,13 +14,14 @@ import {
   test
 } from 'bun:test';
 
+import { listenOnTalosSocket }                            from '../../../talos/TalosSocketServer.ts';
+import type { DoneFrame, ReceivedClientFrame }            from '../../domain/talos/@types/TalosFrame.ts';
+import type { ChildEnd }                                  from '../../domain/talos/ChildRecord.ts';
+import { endpointFolderOf }                               from '../../domain/talos/TalosFiles.ts';
+import { TALOS_PROTOCOL_VERSION }                         from '../../domain/talos/constants/TalosProtocol.ts';
 import type { AgentLaunchPlan }                           from '../../lib/agent-launch/AgentLaunchPlan.ts';
 import type { PlatformPorts }                             from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { ProcessIdentity }                           from '../../lib/process-identity/ProcessIdentity.ts';
-import type { DoneFrame, ReceivedClientFrame }            from '../../lib/talos/@types/TalosFrame.ts';
-import type { ChildEnd }                                  from '../../lib/talos/ChildRecord.ts';
-import { listenOnTalosSocket }                            from '../../lib/talos/TalosSocketServer.ts';
-import { TALOS_PROTOCOL_VERSION }                         from '../../lib/talos/constants/TalosProtocol.ts';
 import { SESSION_STOP_GRACE_MILLISECONDS }                from '../../shared/constants/HephaestusLimits.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { PlantedChild }                                   from '../../testing/PlantedChild.ts';
@@ -207,7 +208,7 @@ async function childrenOverServedTalos(
 ): Promise<ServedTalos> {
   lastEndpointInstance += 1;
   const endpoint = recordedEndpoint.endpoint.endpointOf({
-    monitorFolder, trackerId: 'tracker-example', name: 'talos', instance: lastEndpointInstance
+    socketFolder: endpointFolderOf(monitorFolder), scope: 'tracker-example', name: 'talos', instance: lastEndpointInstance
   });
   const framesSeen: ReceivedClientFrame[] = [];
   const listening = await listenOnTalosSocket({
@@ -222,7 +223,7 @@ async function childrenOverServedTalos(
       return answerOf(frame);
     },
   });
-  if (listening.verdict !== 'listening') throw new Error(`the Talos endpoint cannot listen: ${listening.reason}`);
+  if (listening.verdict !== 'listening') throw new Error(`the Talos endpoint cannot listen: ${listening.systemError}`);
   closers.push(listening.server.close);
   const outcome = await connectToTalos({
     endpoint, secret: EXAMPLE_SECRET, localEndpoint: recordedEndpoint.endpoint, frameTimeoutMilliseconds

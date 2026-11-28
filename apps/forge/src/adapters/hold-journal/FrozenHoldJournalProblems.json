@@ -1,0 +1,47 @@
+[
+  {
+    "case": "a directory stands where the file belongs (built in the spec; {systemError} is the OS message)",
+    "stored": null,
+    "sentence": "it could not be read ({systemError})"
+  },
+  {
+    "case": "the bytes are not UTF-8 text (built in the spec)",
+    "stored": null,
+    "sentence": "it is not UTF-8 text"
+  },
+  {
+    "case": "the text is not JSON",
+    "stored": "{ \"version\": 1,",
+    "sentence": "it is not valid JSON ({parserError})"
+  },
+  {
+    "case": "the document is not a JSON object",
+    "stored": "[]\n",
+    "sentence": "it is not a JSON object"
+  },
+  {
+    "case": "the version is another",
+    "stored": "{\"version\":2,\"files\":[]}\n",
+    "sentence": "its version is not 1"
+  },
+  {
+    "case": "files is not a list",
+    "stored": "{\"version\":1,\"files\":{}}\n",
+    "sentence": "its \"files\" is not a list"
+  },
+  {
+    "case": "an entry is not an object",
+    "stored": "{\"version\":1,\"files\":[\"tickets/004.md\"]}\n",
+    "sentence": "files[0] is not an object"
+  },
+  {
+    "case": "an entry path leaves the data folder",
+    "stored": "{\"version\":1,\"files\":[{\"path\":\"../outside.md\",\"contents\":\"x\"}]}\n",
+    "sentence": "files[0].path is not a path inside the data folder"
+  },
+  {
+    "case": "an entry holds both contents and removed",
+    "stored": "{\"version\":1,\"files\":[{\"path\":\"tickets/004.md\",\"contents\":\"x\",\"removed\":true}]}\n",
+    "sentence": "files[0] holds neither a string \"contents\" nor \"removed\": true"
+  }
+]

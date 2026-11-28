@@ -1,0 +1,52 @@
+[
+  {
+    "case": "a directory stands at its path",
+    "stored": null,
+    "sentence": "it could not be read ({systemError})"
+  },
+  {
+    "case": "its bytes are not UTF-8",
+    "stored": null,
+    "sentence": "it is not UTF-8 text"
+  },
+  {
+    "case": "it is not JSON",
+    "stored": "not json",
+    "sentence": "it is not valid JSON (JSON Parse error: Unexpected identifier \"not\")"
+  },
+  {
+    "case": "it is not a JSON object",
+    "stored": "[]",
+    "sentence": "it is not a JSON object"
+  },
+  {
+    "case": "its windows is not an object",
+    "stored": "{}",
+    "sentence": "its \"windows\" is not an object"
+  },
+  {
+    "case": "it names a window with no name",
+    "stored": "{\"windows\":{\"\":{}}}",
+    "sentence": "it names a window with no name"
+  },
+  {
+    "case": "a window is not an object",
+    "stored": "{\"windows\":{\"five-hour\":3}}",
+    "sentence": "its window \"five-hour\" is not an object"
+  },
+  {
+    "case": "a window has no number or null lengthHours",
+    "stored": "{\"windows\":{\"five-hour\":{\"lengthHours\":\"5\",\"utilization\":0.5,\"resetsAt\":\"2026-11-19T09:00:00.000Z\"}}}",
+    "sentence": "its window \"five-hour\" has no number or null \"lengthHours\""
+  },
+  {
+    "case": "a window has no number utilization",
+    "stored": "{\"windows\":{\"five-hour\":{\"lengthHours\":5,\"resetsAt\":\"2026-11-19T09:00:00.000Z\"}}}",
+    "sentence": "its window \"five-hour\" has no number \"utilization\""
+  },
+  {
+    "case": "a window has no stamp resetsAt",
+    "stored": "{\"windows\":{\"five-hour\":{\"lengthHours\":null,\"utilization\":0.5,\"resetsAt\":\"tomorrow\"}}}",
+    "sentence": "its window \"five-hour\" has no stamp \"resetsAt\""
+  }
+]

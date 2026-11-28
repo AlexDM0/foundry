@@ -5,24 +5,25 @@
  */
 import { join } from 'node:path';
 
+import type { WaiverProposalsProblem }                   from '../../adapters/waiver-proposals/@types/WaiverProposalsProblem.ts';
 import { WaiverProposalsIngestion, type WaiverProposal } from '../../adapters/waiver-proposals/WaiverProposalsIngestion.ts';
 import { createWaiverProposalsWriter }                   from '../../adapters/waiver-proposals/WaiverProposalsWriter.ts';
+import type { Job }                                      from '../../domain/tracker-model/@types/Job.ts';
+import type { LogRecord }                                from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { Pipeline }                                 from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { DecisionDraft, DecisionWording }           from '../../domain/tracker-model/@types/PlaybookStep.ts';
+import type { ReviewClaim, ReviewFinding }               from '../../domain/tracker-model/@types/ReviewRecord.ts';
+import type { RoundLimits }                              from '../../domain/tracker-model/@types/ReviewRound.ts';
+import type { Board }                                    from '../../domain/tracker-model/Board.ts';
+import { PipelineUtil }                                  from '../../domain/tracker-model/utils/PipelineUtil.ts';
+import { RoundVerdictUtil }                              from '../../domain/tracker-model/utils/RoundVerdictUtil.ts';
+import { TicketStageUtil }                               from '../../domain/tracker-model/utils/TicketStageUtil.ts';
 import { readChangeSize, readCommitsDiff }               from '../../lib/git/BranchDiffs.ts';
 import { GitProcess }                                    from '../../lib/git/GitProcess.ts';
 import { GitWorktrees }                                  from '../../lib/git/GitWorktrees.ts';
-import type { Job }                                      from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }                                from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Pipeline }                                 from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { DecisionDraft, DecisionWording }           from '../../lib/tracker-model/@types/PlaybookStep.ts';
-import type { ReviewClaim, ReviewFinding }               from '../../lib/tracker-model/@types/ReviewRecord.ts';
-import type { RoundLimits }                              from '../../lib/tracker-model/@types/ReviewRound.ts';
-import type { Board }                                    from '../../lib/tracker-model/Board.ts';
-import { PipelineUtil }                                  from '../../lib/tracker-model/utils/PipelineUtil.ts';
-import { RoundVerdictUtil }                              from '../../lib/tracker-model/utils/RoundVerdictUtil.ts';
-import { TicketStageUtil }                               from '../../lib/tracker-model/utils/TicketStageUtil.ts';
 import { TICKET_SECTION_PATTERNS }                       from '../../shared/constants/TicketSectionPatterns.ts';
 import { ReworkCountUtil }                               from '../../shared/rework/utils/ReworkCountUtil.ts';
-import { ticketIdFiledByRequest }                        from './Customs.ts';
+import { CustomsReportChecks }                           from './CustomsReportChecks.ts';
 
 export interface ReviewPassRequest {
   board:             Board;
@@ -129,7 +130,7 @@ function findingsOf(report: unknown, filedTicketIdOfRequest: (requestId: string)
 }
 
 function filedTicketIdResolver(records: readonly LogRecord[], jobId: string): (requestId: string) => string {
-  return (requestId) => ticketIdFiledByRequest(records, jobId, requestId) ?? requestId;
+  return (requestId) => CustomsReportChecks.ticketIdFiledByRequest(records, jobId, requestId) ?? requestId;
 }
 
 function reviewSectionOf(round: number, report: unknown, claims: readonly ReviewClaim[], findings: readonly ReviewFinding[]): string {
@@ -306,7 +307,7 @@ function bodyWithWaivedItems(body: string, proposals: readonly WaiverProposal[])
 /** What acting on a waiver answer did: its records, or the stored proposals a grant needed that could not be read, on which it did nothing. */
 export type WaiverAnswerOutcome =
   | { verdict: 'acted'; logged: LogRecord[] }
-  | { verdict: 'proposals-unreadable'; proposalsPath: string; reason: string };
+  | { verdict: 'proposals-unreadable'; proposalsPath: string; problem: WaiverProposalsProblem };
 
 /**
  * Acts on User's recorded answer to the `waiver` decision: a grant writes each proposed item waived and queues the ticket while its green is
@@ -328,7 +329,7 @@ function actOnWaiverAnswer(
   if (answers.some((answer) => answer.trim().toLowerCase().startsWith(WAIVER_REFUSAL_ANSWER))) return endAsFailedPass('waiver-refused');
   const proposalsPath = waiverProposalsPathOf(jobFolder);
   const reading = new WaiverProposalsIngestion(proposalsPath).read();
-  if (reading.verdict === 'unreadable') return { verdict: 'proposals-unreadable', proposalsPath, reason: reading.reason };
+  if (reading.verdict === 'unreadable') return { verdict: 'proposals-unreadable', proposalsPath, problem: reading.problem };
   if (reading.verdict === 'absent') return endAsFailedPass('waiver-proposals-unreadable');
   const body = board.tickets().find((candidate) => candidate.frontmatter.id === ticketId)?.body ?? '';
   logged.push(...board.editTicket(ticketId, { body: { text: bodyWithWaivedItems(body, reading.proposals), appends: false }, writtenBy: 'board' }, at).logged);

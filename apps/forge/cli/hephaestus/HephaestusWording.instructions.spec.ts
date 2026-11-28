@@ -14,9 +14,9 @@ import {
 } from 'bun:test';
 
 
-import type { Job }                                               from '../../src/lib/tracker-model/@types/Job.ts';
-import type { InstructionEntry, Pipeline }                        from '../../src/lib/tracker-model/@types/Pipeline.ts';
-import type { JobLaunchFacts }                                    from '../../src/services/hephaestus/DrivePass.ts';
+import type { Job }                                               from '../../src/domain/tracker-model/@types/Job.ts';
+import type { InstructionEntry, Pipeline }                        from '../../src/domain/tracker-model/@types/Pipeline.ts';
+import type { JobLaunchFacts }                                    from '../../src/services/hephaestus/@types/JobLaunchFacts.ts';
 import { InstructionFiles, defaultInstructionPathOf }             from '../../src/services/hephaestus/InstructionFiles.ts';
 import { PRODUCT_NAMES }                                          from '../../src/shared/constants/ProductNames.ts';
 import { fakeAgentAdapter }                                       from '../../src/testing/FakeAgentAdapter.ts';

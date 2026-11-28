@@ -1,0 +1,37 @@
+[
+  {
+    "case": "a directory stands at its path",
+    "stored": null,
+    "sentence": "it could not be read ({systemError})"
+  },
+  {
+    "case": "its bytes are not UTF-8",
+    "stored": null,
+    "sentence": "it is not UTF-8 text"
+  },
+  {
+    "case": "it is not JSON",
+    "stored": "not json",
+    "sentence": "it is not valid JSON (JSON Parse error: Unexpected identifier \"not\")"
+  },
+  {
+    "case": "it is not a JSON object",
+    "stored": "[]",
+    "sentence": "it is not a JSON object"
+  },
+  {
+    "case": "its version is not a whole number",
+    "stored": "{\"version\":\"1\"}",
+    "sentence": "its \"version\" is not a whole number"
+  },
+  {
+    "case": "its version is older than this build reads",
+    "stored": "{\"version\":0}",
+    "sentence": "its \"version\" 0 is older than 1"
+  },
+  {
+    "case": "its agent limit is below 1",
+    "stored": "{\"version\":1,\"agentLimit\":0}",
+    "sentence": "its \"agentLimit\" is not a whole number of at least 1"
+  }
+]

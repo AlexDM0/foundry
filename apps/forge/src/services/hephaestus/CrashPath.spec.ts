@@ -18,6 +18,7 @@ import {
 
 import type { CrashLogRecord }                                        from '../../adapters/crash-log/@types/CrashLogRecord.ts';
 import type { PresenceRecord }                                        from '../../adapters/presence/@types/PresenceRecord.ts';
+import { detailsLoggerOf }                                            from '../../testing/LoggedDetails.ts';
 import { createScratchDirectory, removeScratchDirectory }             from '../../testing/ScratchWorkspace.ts';
 import { CrashLog }                                                   from './CrashLog.ts';
 import { CrashPath, type CrashPathContext, type RegistryCrashReport } from './CrashPath.ts';
@@ -72,8 +73,8 @@ function fakeCrashPathOf(overrides: Partial<CrashPathContext> = {}): FakeCrashPa
     stopLeaseRenewal:     () => { renewalStops += 1; },
     writeRegistryCrash:   async (report) => { registryReports.push(report); },
     stampNow:             () => CRASHED_AT,
-    log:                  (line) => { logLines.push(line); },
-    unreadableBoardFiles: createUnreadableBoardFiles((line) => { logLines.push(line); }),
+    log:                  detailsLoggerOf(logLines),
+    unreadableBoardFiles: createUnreadableBoardFiles(detailsLoggerOf(logLines)),
     ...overrides,
   };
   return {

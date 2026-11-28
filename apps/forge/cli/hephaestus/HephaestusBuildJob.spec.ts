@@ -18,15 +18,15 @@ import {
 } from 'bun:test';
 
 
+import type { ChildLaunch }                                    from '../../src/domain/talos/ChildLaunch.ts';
+import type { Job, JobState }                                  from '../../src/domain/tracker-model/@types/Job.ts';
+import type { AgentStepSettings, PipelineReview }              from '../../src/domain/tracker-model/@types/Pipeline.ts';
+import type { Board }                                          from '../../src/domain/tracker-model/Board.ts';
 import type { AgentAdapter }                                   from '../../src/lib/agent-launch/AgentAdapter.ts';
 import type { AgentLaunchRequest }                             from '../../src/lib/agent-launch/AgentLaunchRequest.ts';
 import type { NetworkDomainGuard }                             from '../../src/lib/agent-launch/WorkerProfile.ts';
 import { SANDBOX_EXEC_PATH }                                   from '../../src/lib/gate-confinement/DarwinSeatbelt.ts';
 import type { GateConfinement }                                from '../../src/lib/gate-confinement/GateConfinement.ts';
-import type { ChildLaunch }                                    from '../../src/lib/talos/ChildLaunch.ts';
-import type { Job, JobState }                                  from '../../src/lib/tracker-model/@types/Job.ts';
-import type { AgentStepSettings, PipelineReview }              from '../../src/lib/tracker-model/@types/Pipeline.ts';
-import type { Board }                                          from '../../src/lib/tracker-model/Board.ts';
 import type { BoardChildren }                                  from '../../src/services/hephaestus/BoardChildren.ts';
 import type { DrivePass }                                      from '../../src/services/hephaestus/DrivePass.ts';
 import { HatchInbox }                                          from '../../src/services/hephaestus/HatchInbox.ts';
@@ -48,6 +48,7 @@ import {
 import { FAKE_CONFINER_ARGV, FAKE_MISSING_TOOLS_REASON, fakeGateConfinement } from '../../src/testing/FakeGateConfinement.ts';
 import { type LoggedGitCall, startGitCallLog }                                from '../../src/testing/GitCallLog.ts';
 import { inheritedEnvironment }                                               from '../../src/testing/InheritedEnvironment.ts';
+import { detailsLoggerOf }                                                    from '../../src/testing/LoggedDetails.ts';
 import { nativePlatformPorts }                                                from '../../src/testing/NativePlatformPorts.ts';
 import { useRecordedGit }                                                     from '../../src/testing/RecordedGit.ts';
 import {
@@ -61,6 +62,7 @@ import {
 } from '../../src/testing/RecordedGitFlow.ts';
 import { type RecordedTalosStages, useRecordedTalosStages }               from '../../src/testing/RecordedTalosStages.ts';
 import { createScratchDirectory, removeScratchDirectory, runScratchRoot } from '../../src/testing/ScratchWorkspace.ts';
+import { spawningShellRequestOf }                                         from '../../src/testing/SpawningShellRequest.ts';
 import { childFilesIn, talosChildReadingsWith }                           from '../../src/testing/TalosChildReadings.ts';
 import { describeWhenRecorded, EVERY_RECORDING_REQUIREMENT }              from '../../src/testing/ToolGuard.ts';
 import { waitUntil }                                                      from '../../src/testing/WaitUntil.ts';
@@ -185,7 +187,7 @@ async function drivePassPlaying(steps: readonly FakeAgentStep[], gateConfinement
     mainLine:             RECORDED_FLOW_MAIN_LINE,
     decisionWordingOf:    (draft) => HephaestusWording.decisionWordingOf(draft, fakeAgentAdapter()),
     redHandoffMessageOf:  HephaestusWording.redHandoffMessageOf,
-    log:                  (line) => hephaestusLog.push(line),
+    log:                  detailsLoggerOf(hephaestusLog),
     afterHoldPhase:       (phase, board) => {
       recordBuildStateChanges(phase, board);
       afterEachHoldPhase(board);
@@ -594,7 +596,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'Hatch folder watches', () => 
       monitorFolder,
       inheritedEnvironment: inheritedEnvironment(),
       mainLine:             RECORDED_FLOW_MAIN_LINE,
-      log:                  (line) => hephaestusLog.push(line),
+      log:                  detailsLoggerOf(hephaestusLog),
       watchHatchFolder:     (hatchDirectory) => watchedHatchFolders.push(hatchDirectory),
     });
     await passUntil(drivePass, () => loggedEntries('job-launched').some((entry) => entry.fields['kind'] === 'build'), 'the build launch');
@@ -631,7 +633,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a network guard that cannot s
       monitorFolder,
       inheritedEnvironment: inheritedEnvironment(),
       mainLine:             RECORDED_FLOW_MAIN_LINE,
-      log:                  (line) => hephaestusLog.push(line),
+      log:                  detailsLoggerOf(hephaestusLog),
     });
     await passUntil(drivePass, builderLaunched, 'the build launch');
 
@@ -728,7 +730,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'operational failures', () => 
     const drivePass = await drivePassPlaying(buildingSession(), confinement);
     await passUntil(drivePass, () => buildJobEnding() !== undefined, 'the build job\'s end');
     const launch = lineLaunchIn(join(jobFolderOf(firstBuildJobId()), 'gate-1'));
-    expect(launch.argv).toEqual([...ports.shellLine.spawnRequestOf('true', join(jobFolderOf(firstBuildJobId()), 'gate-1-line-status')).argv]);
+    expect(launch.argv).toEqual([...spawningShellRequestOf(ports.shellLine, 'true', join(jobFolderOf(firstBuildJobId()), 'gate-1-line-status')).argv]);
     expect(launch.workingDirectory).toBe(join(requireWorkspace(repositoryDirectory).rootDirectory, WORKTREES_FOLDER, 'ticket-001'));
     expect(openIncidentKinds()).toEqual([]);
     expect(hephaestusLog.filter((line) => line.includes('did not run'))).toEqual([]);

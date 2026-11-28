@@ -1,0 +1,77 @@
+[
+  {
+    "case": "a directory in the file's place, which cannot be read",
+    "stored": null,
+    "sentence": "it could not be read ({systemError})"
+  },
+  {
+    "case": "bytes that are not UTF-8",
+    "stored": null,
+    "sentence": "it is not UTF-8 text"
+  },
+  {
+    "case": "text that is not JSON",
+    "stored": "{\"formatVersion\": ",
+    "sentence": "it is not valid JSON (JSON Parse error: Unexpected EOF)"
+  },
+  {
+    "case": "JSON that is a list, not an object",
+    "stored": "[]",
+    "sentence": "it is not a JSON object"
+  },
+  {
+    "case": "no formatVersion",
+    "stored": "{}",
+    "sentence": "its formatVersion is not 1"
+  },
+  {
+    "case": "another formatVersion",
+    "stored": "{\"formatVersion\":2}",
+    "sentence": "its formatVersion is not 1"
+  },
+  {
+    "case": "gate as a list",
+    "stored": "{\"formatVersion\":1,\"gate\":[]}",
+    "sentence": "its \"gate\" is not an object"
+  },
+  {
+    "case": "an outcome that is no gate outcome",
+    "stored": "{\"formatVersion\":1,\"gate\":{\"outcome\":\"green\",\"step\":null,\"output\":\"\",\"stamp\":null}}",
+    "sentence": "\"gate.outcome\" is no gate outcome"
+  },
+  {
+    "case": "a step that is a number",
+    "stored": "{\"formatVersion\":1,\"gate\":{\"outcome\":\"passed\",\"step\":1,\"output\":\"\",\"stamp\":null}}",
+    "sentence": "\"gate.step\" is neither null nor a step name"
+  },
+  {
+    "case": "an entity that is a number",
+    "stored": "{\"formatVersion\":1,\"gate\":{\"outcome\":\"passed\",\"step\":null,\"output\":\"\",\"stamp\":null,\"entity\":1}}",
+    "sentence": "\"gate.entity\" is not an entity key"
+  },
+  {
+    "case": "no output",
+    "stored": "{\"formatVersion\":1,\"gate\":{\"outcome\":\"passed\",\"step\":null,\"stamp\":null}}",
+    "sentence": "\"gate.output\" is not text"
+  },
+  {
+    "case": "a stamp of no phase",
+    "stored": "{\"formatVersion\":1,\"gate\":{\"outcome\":\"passed\",\"step\":null,\"output\":\"\",\"stamp\":{\"phase\":\"deploy\",\"phaseHash\":\"abc\"}}}",
+    "sentence": "\"gate.stamp\" is neither null nor a phase with its hash"
+  },
+  {
+    "case": "a stamp whose entityPhaseHashes is a list",
+    "stored": "{\"formatVersion\":1,\"gate\":{\"outcome\":\"passed\",\"step\":null,\"output\":\"\",\"stamp\":{\"phase\":\"build\",\"phaseHash\":\"abc\",\"entityPhaseHashes\":[]}}}",
+    "sentence": "\"gate.stamp.entityPhaseHashes\" is not a hash by entity"
+  },
+  {
+    "case": "cacheReports with an unknown report",
+    "stored": "{\"formatVersion\":1,\"gate\":{\"outcome\":\"passed\",\"step\":null,\"output\":\"\",\"stamp\":null,\"cacheReports\":{\"phase\":\"build\",\"gates\":[{\"gateName\":\"test\",\"cacheReport\":\"warm\"}]}}}",
+    "sentence": "\"gate.cacheReports\" is not the cache reports of a gate run"
+  },
+  {
+    "case": "stepRuns with a step of no kind",
+    "stored": "{\"formatVersion\":1,\"gate\":{\"outcome\":\"passed\",\"step\":null,\"output\":\"\",\"stamp\":null,\"stepRuns\":{\"phase\":\"build\",\"steps\":[{\"stepKind\":\"lint\",\"stepName\":\"x\",\"runMilliseconds\":1,\"ending\":\"passed\"}]}}}",
+    "sentence": "\"gate.stepRuns\" is not the step lines of a gate run"
+  }
+]

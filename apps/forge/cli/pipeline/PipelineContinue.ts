@@ -1,5 +1,5 @@
 /** `pipeline continue <S> <step>`: User's Continue on the current step, the only way out of a step that needs a recheck. */
-import { PIPELINE_SETUP_STEPS }                           from '../../src/lib/tracker-model/constants/PipelineSetupVocabulary.ts';
+import { PIPELINE_SETUP_STEPS }                           from '../../src/domain/tracker-model/constants/PipelineSetupVocabulary.ts';
 import type { CommandContext }                            from '../CommandContext.ts';
 import { refuseUsage }                                    from '../RecordedIncidentMove.ts';
 import type { ArgumentParser }                            from '../arguments/ArgumentParser.ts';

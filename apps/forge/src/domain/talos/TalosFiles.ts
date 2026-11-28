@@ -1,0 +1,49 @@
+/** Where Talos and the endpoints keep their files. */
+import { join } from 'node:path';
+
+import { PRIVATE_FOLDER_NAME, TALOS_FOLDER_NAME } from './constants/TalosProtocol.ts';
+
+export interface ChildFiles { recordPath: string; eventLogPath: string; standardErrorPath: string }
+
+export function talosFolderOf(boardFolder: string): string {
+  return join(boardFolder, TALOS_FOLDER_NAME);
+}
+
+export function startFilePathOf(boardFolder: string, startNumber: number): string {
+  return join(talosFolderOf(boardFolder), `start-${startNumber}.json`);
+}
+
+export function talosRecordPathOf(boardFolder: string, startNumber: number): string {
+  return join(talosFolderOf(boardFolder), `talos-${startNumber}.json`);
+}
+
+export function talosLogPathOf(boardFolder: string, startNumber: number): string {
+  return join(talosFolderOf(boardFolder), `talos-${startNumber}.log`);
+}
+
+export function launchRegistryPathOf(boardFolder: string, startNumber: number): string {
+  return join(talosFolderOf(boardFolder), `launches-${startNumber}.ndjson`);
+}
+
+/** `childFolder` is `/`-separated and relative to the board folder, as a launch names it. */
+export function childFilesOf(boardFolder: string, childFolder: string, instance: number): ChildFiles {
+  const folder = join(boardFolder, ...childFolder.split('/'));
+  return {
+    recordPath:        join(folder, `child-${instance}.json`),
+    eventLogPath:      join(folder, `events-${instance}.ndjson`),
+    standardErrorPath: join(folder, `child-${instance}.log`),
+  };
+}
+
+/** The owner-only folder of the monitor folder, which holds every socket; the monitor folder is in the user's profile on every OS. */
+export function endpointFolderOf(monitorFolder: string): string {
+  return join(monitorFolder, PRIVATE_FOLDER_NAME);
+}
+
+export function privateFolderOf(monitorFolder: string, trackerId: string): string {
+  return join(endpointFolderOf(monitorFolder), trackerId);
+}
+
+export function talosSecretPathOf(monitorFolder: string, trackerId: string, startNumber: number): string {
+  return join(privateFolderOf(monitorFolder, trackerId), `talos-${startNumber}.secret`);
+}

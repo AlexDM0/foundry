@@ -18,21 +18,22 @@ import {
   test
 } from 'bun:test';
 
-import type { PlatformPorts }                  from '../../lib/platform-ports/PlatformPortsFor.ts';
-import type { ProcessIdentity }                from '../../lib/process-identity/ProcessIdentity.ts';
-import type { ProcessSupervision }             from '../../lib/process-identity/ProcessSupervision.ts';
-import { type ChildRecord, childRecordTextOf } from '../../lib/talos/ChildRecord.ts';
-import { launchRegistryEntryLineOf }           from '../../lib/talos/LaunchRegistry.ts';
+import { type ChildRecord, childRecordTextOf } from '../../domain/talos/ChildRecord.ts';
+import { launchRegistryEntryLineOf }           from '../../domain/talos/LaunchRegistry.ts';
 import {
   childFilesOf,
   launchRegistryPathOf,
   startFilePathOf,
   talosRecordPathOf,
   talosSecretPathOf
-} from '../../lib/talos/TalosFiles.ts';
-import { type TalosRecord, talosRecordTextOf }            from '../../lib/talos/TalosRecord.ts';
-import { talosStartFileOf }                               from '../../lib/talos/TalosStartFile.ts';
-import { TALOS_PROTOCOL_VERSION }                         from '../../lib/talos/constants/TalosProtocol.ts';
+} from '../../domain/talos/TalosFiles.ts';
+import { type TalosRecord, talosRecordTextOf }            from '../../domain/talos/TalosRecord.ts';
+import { talosStartFileOf }                               from '../../domain/talos/TalosStartFile.ts';
+import { TALOS_PROTOCOL_VERSION }                         from '../../domain/talos/constants/TalosProtocol.ts';
+import type { PlatformPorts }                             from '../../lib/platform-ports/PlatformPortsFor.ts';
+import type { ProcessIdentity }                           from '../../lib/process-identity/ProcessIdentity.ts';
+import type { ProcessSupervision }                        from '../../lib/process-identity/ProcessSupervision.ts';
+import { detailsLoggerOf }                                from '../../testing/LoggedDetails.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import type { TalosConnection, TalosConnectionOutcome }   from './TalosConnection.ts';
@@ -226,7 +227,7 @@ function contextWith(
       endpointOf:   ({ name, instance }) => `/example/${name}-${instance}.sock`,
       endpointFits: () => endpointFits,
     },
-    ownerOnlyFiles: { restrictFolder: () => undefined, restrictFile: () => undefined, isOwnerOnly: () => true },
+    ownerOnlyFiles: { restrictFolder: () => ({ verdict: 'restricted' }), restrictFile: () => ({ verdict: 'restricted' }), isOwnerOnly: () => true },
   };
   const context: TalosStartContext = {
     boardFolder,
@@ -247,8 +248,8 @@ function contextWith(
       return undefined;
     },
     hold:                 createTalosStartHold(),
-    log:                  (sentence) => logged.push(sentence),
-    unreadableBoardFiles: createUnreadableBoardFiles((sentence) => logged.push(sentence)),
+    log:                  detailsLoggerOf(logged),
+    unreadableBoardFiles: createUnreadableBoardFiles(detailsLoggerOf(logged)),
   };
   return {
     context, spawned, logged, connects
@@ -380,7 +381,9 @@ test('a registry line that does not fit is reported to the board header, its oth
 
   expect(await ensureTalos(context)).toMatchObject({ verdict: 'started', previousTalos: 'lost', sweptOrphans: 1 });
   expect(childFileText('jobs/J-1', 'lost-cause')).toBe('agent-crashed\n');
-  expect(context.unreadableBoardFiles.files()).toEqual([{ file: 'talos/launches-1.ndjson', reason: expect.stringMatching(/^line 1: it is not valid JSON/) }]);
+  expect(context.unreadableBoardFiles.files()).toEqual([
+    { file: 'talos/launches-1.ndjson', problem: { code: 'registry-line-not-json', parserError: expect.any(String) as unknown as string, lineNumber: 1 } },
+  ]);
 });
 
 test('a refused forced stop of an orphan stores the refusal, no cause, and is not counted as swept', async () => {
@@ -405,7 +408,8 @@ test('refusals that cannot be read are reported to the board header and count no
   const { context, logged } = contextWith(() => WELCOMED);
 
   expect(await ensureTalos(context)).toMatchObject({ verdict: 'started', previousTalos: 'lost', sweptOrphans: 0 });
-  expect(context.unreadableBoardFiles.files()).toEqual([{ file: 'jobs/J-1/child-1.refused-forced-stops', reason: 'its version is not 1' }]);
+  const versionDiffers = { code: 'version-differs', field: 'version', expectedVersion: 1 } as const;
+  expect(context.unreadableBoardFiles.files()).toEqual([{ file: 'jobs/J-1/child-1.refused-forced-stops', problem: versionDiffers }]);
   expect(logged.some((line) => line.includes('cannot read the board file jobs/J-1/child-1.refused-forced-stops'))).toBe(true);
   expect(JSON.parse(childFileText('jobs/J-1', 'refused-forced-stops') ?? 'null')).toEqual({ version: 1, refusals: 1, treeProcessIds: [stubbornChild.processId] });
 });

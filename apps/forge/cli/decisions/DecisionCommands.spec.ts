@@ -10,7 +10,7 @@ import {
   expect,
   test
 }                                             from 'bun:test';
-import type { DecisionOpening }                   from '../../src/lib/tracker-model/@types/Decision.ts';
+import type { DecisionOpening }                   from '../../src/domain/tracker-model/@types/Decision.ts';
 import { localStoreLayoutOf }                     from '../../src/services/tracker/LocalStoreLayout.ts';
 import { writeTracker }                           from '../../src/services/tracker/TrackerPipeline.ts';
 import { workspacePathsFor }                      from '../../src/services/tracker/Workspace.ts';

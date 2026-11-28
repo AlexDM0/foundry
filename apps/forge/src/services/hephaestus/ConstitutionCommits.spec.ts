@@ -155,7 +155,7 @@ describe('a refused commit', () => {
     const request = plantedRequest();
     answering(request, { mainBlob: OTHER_BLOB });
 
-    expect(ConstitutionCommits.commitConstitution(request)).toEqual({ verdict: 'refused', reason: 'constitution-moved', gitFailure: null });
+    expect(ConstitutionCommits.commitConstitution(request)).toEqual({ verdict: 'refused', reason: 'constitution-moved', problem: null });
     expect(existsSync(commitWorktreeOf(request.repositoryRoot, 'J1'))).toBe(false);
   });
 
@@ -164,7 +164,7 @@ describe('a refused commit', () => {
     answering(signed, { commit: 'unsigned' });
     const unsigned = ConstitutionCommits.commitConstitution(signed);
     expect(unsigned).toMatchObject({ verdict: 'refused', reason: 'constitution-commit-unsigned' });
-    expect(unsigned.verdict === 'refused' ? unsigned.gitFailure : null).toContain('gpg failed to sign the data');
+    expect(unsigned.verdict === 'refused' && unsigned.problem?.code === 'git-exited' ? unsigned.problem.gitMessage : null).toContain('gpg failed to sign the data');
     removeScratchDirectory(`${signed.repositoryRoot}-worktrees`);
     removeScratchDirectory(signed.repositoryRoot);
 
@@ -177,24 +177,24 @@ describe('a refused commit', () => {
     const request = plantedRequest();
     answering(request, { paths: 'constitution-and-base' });
 
-    expect(ConstitutionCommits.commitConstitution(request)).toEqual({ verdict: 'refused', reason: 'constitution-commit-unexpected-paths', gitFailure: null });
+    expect(ConstitutionCommits.commitConstitution(request)).toEqual({ verdict: 'refused', reason: 'constitution-commit-unexpected-paths', problem: null });
   });
 
   test('a list whose commit changes a path outside it is refused, so that path never lands', () => {
     const request = plantedRequest({ constitutions: entityConstitutions() });
     answering(request, { constitutionPaths: ['CONSTITUTION.md', ENTITY_CONSTITUTION_PATH], paths: 'constitution-and-base' });
 
-    expect(ConstitutionCommits.commitConstitution(request)).toEqual({ verdict: 'refused', reason: 'constitution-commit-unexpected-paths', gitFailure: null });
+    expect(ConstitutionCommits.commitConstitution(request)).toEqual({ verdict: 'refused', reason: 'constitution-commit-unexpected-paths', problem: null });
   });
 
   test('an empty list or one that names a path twice is refused before git is asked', () => {
     const empty = plantedRequest({ constitutions: [] });
-    expect(ConstitutionCommits.commitConstitution(empty)).toEqual({ verdict: 'refused', reason: 'constitution-commit-unexpected-paths', gitFailure: null });
+    expect(ConstitutionCommits.commitConstitution(empty)).toEqual({ verdict: 'refused', reason: 'constitution-commit-unexpected-paths', problem: null });
     removeScratchDirectory(empty.repositoryRoot);
 
     const rootConstitution = { path: 'CONSTITUTION.md', baseBlob: MAIN_BLOB, markdown: DRAFT_CONSTITUTION_TEXT };
     const twice = plantedRequest({ constitutions: [rootConstitution, rootConstitution] });
-    expect(ConstitutionCommits.commitConstitution(twice)).toEqual({ verdict: 'refused', reason: 'constitution-commit-unexpected-paths', gitFailure: null });
+    expect(ConstitutionCommits.commitConstitution(twice)).toEqual({ verdict: 'refused', reason: 'constitution-commit-unexpected-paths', problem: null });
     expect(recordedGit.flowCalls()).toEqual([]);
   });
 });

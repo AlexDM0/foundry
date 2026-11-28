@@ -1,8 +1,7 @@
 /**
  * One ticket's documents record read into the model: a file that cannot be read or parsed, or that breaks its shape, is a `malformed`
- * verdict with its reason, never a throw. Only the current format is read.
+ * verdict with its problem, never a throw. Only the current format is read.
  */
-import { JsonRecordUtil } from '../../lib/json-record/JsonRecordUtil.ts';
 import type {
   CommentAnchor,
   DiagramAnchor,
@@ -16,40 +15,49 @@ import type {
   TicketDocument,
   TicketDocumentKind,
   TicketDocumentRecord
-} from '../../lib/tracker-model/@types/TicketDocument.ts';
-import { TICKET_DOCUMENT_KINDS, TICKET_DOCUMENTS_FORMAT_VERSION } from '../../lib/tracker-model/@types/TicketDocument.ts';
+} from '../../domain/tracker-model/@types/TicketDocument.ts';
+import { TICKET_DOCUMENT_KINDS, TICKET_DOCUMENTS_FORMAT_VERSION } from '../../domain/tracker-model/@types/TicketDocument.ts';
+import { JsonRecordUtil }                                         from '../../lib/json-record/JsonRecordUtil.ts';
 import { storedFileTextOf }                                       from '../StoredFileText.ts';
 import { StoredValueUtil }                                        from '../utils/StoredValueUtil.ts';
+import type { TicketDocumentsProblem }                            from './@types/TicketDocumentsProblem.ts';
 
 export type TicketDocumentsFileReading =
   | { verdict: 'parsed'; record: TicketDocumentRecord }
-  | { verdict: 'malformed'; reason: string };
+  | { verdict: 'malformed'; problem: TicketDocumentsProblem };
 
-/** Thrown inside the parse only, and read back as the verdict's reason. */
-class RecordShapeProblem extends Error {}
+const RECORD_ROOT = 'the record';
 
-function problem(reason: string): never {
-  throw new RecordShapeProblem(reason);
+/** Thrown inside the parse only, and read back as the verdict's problem. */
+class RecordShapeProblem extends Error {
+  constructor(readonly problem: TicketDocumentsProblem) {
+    super(problem.code);
+  }
+}
+
+function problem(found: TicketDocumentsProblem): never {
+  throw new RecordShapeProblem(found);
 }
 
 function objectAt(value: unknown, where: string): Record<string, unknown> {
-  return JsonRecordUtil.recordOf(value) ?? problem(`${where} is not an object`);
+  return JsonRecordUtil.recordOf(value) ?? problem(where === RECORD_ROOT ? { code: 'record-not-an-object' } : { code: 'field-not-an-object', field: where });
 }
 
 function textAt(value: unknown, where: string): string {
-  return typeof value === 'string' ? value : problem(`${where} is not text`);
+  return typeof value === 'string' ? value : problem({ code: 'field-not-text', field: where });
 }
 
 function countAt(value: unknown, where: string): number {
-  return StoredValueUtil.wholeNumberIsAtLeast(value, 0) ? value : problem(`${where} is not a whole number`);
+  return StoredValueUtil.wholeNumberIsAtLeast(value, 0) ? value : problem({ code: 'field-not-a-whole-number', field: where });
 }
 
 function listAt(value: unknown, where: string): unknown[] {
-  return Array.isArray(value) ? value : problem(`${where} is not a list`);
+  return Array.isArray(value) ? value : problem({ code: 'field-not-a-list', field: where });
 }
 
 function oneOf<Value extends string>(value: unknown, allowed: readonly Value[], where: string): Value {
-  return typeof value === 'string' && (allowed as readonly string[]).includes(value) ? value as Value : problem(`${where} is not one of ${allowed.join(', ')}`);
+  if (typeof value === 'string' && (allowed as readonly string[]).includes(value)) return value as Value;
+  return problem({ code: 'field-not-one-of', field: where, allowedValues: allowed });
 }
 
 /** An optional key: absent stays absent, so the record writes back as it was read. */
@@ -133,7 +141,7 @@ function messageAt(value: unknown, where: string): DocumentMessage {
     ...optional(fields, 'answer', (answer) => answerAt(answer, `${where}.answer`)),
     ...optional(fields, 'anchor', (anchor) => anchorAt(anchor, `${where}.anchor`)),
     ...optional(fields, 'placement', (placement) => rangeAt(placement, `${where}.placement`)),
-    ...optional(fields, 'orphaned', (orphaned) => (orphaned === true ? true as const : problem(`${where}.orphaned is not true`))),
+    ...optional(fields, 'orphaned', (orphaned) => (orphaned === true ? true as const : problem({ code: 'field-not-true', field: `${where}.orphaned` }))),
     text:      textAt(fields['text'], `${where}.text`),
     from:      oneOf(fields['from'], ['person', 'board'], `${where}.from`),
     state:     oneOf(fields['state'], ['queued', 'sent', 'applied', 'withdrawn'], `${where}.state`),
@@ -192,11 +200,11 @@ function documentAt(value: unknown, where: string): TicketDocument {
 }
 
 function recordOf(value: unknown): TicketDocumentRecord {
-  const fields = objectAt(value, 'the record');
-  if (fields['version'] !== TICKET_DOCUMENTS_FORMAT_VERSION) problem(`version is not ${TICKET_DOCUMENTS_FORMAT_VERSION}`);
+  const fields = objectAt(value, RECORD_ROOT);
+  if (fields['version'] !== TICKET_DOCUMENTS_FORMAT_VERSION) problem({ code: 'record-version-differs', field: 'version', expectedVersion: TICKET_DOCUMENTS_FORMAT_VERSION });
   const documents = listAt(fields['documents'], 'documents').map((document, index) => documentAt(document, `documents[${index}]`));
   const kinds = documents.map((document) => document.kind);
-  if (new Set(kinds).size !== kinds.length) problem('documents holds a kind twice');
+  if (new Set(kinds).size !== kinds.length) problem({ code: 'kind-held-twice', field: 'documents' });
   return {
     version:  TICKET_DOCUMENTS_FORMAT_VERSION,
     ticketId: textAt(fields['ticketId'], 'ticketId'),
@@ -207,11 +215,11 @@ function recordOf(value: unknown): TicketDocumentRecord {
 
 function parsedRecordOf(text: string): TicketDocumentsFileReading {
   const parsed = StoredValueUtil.parsedJsonOf(text);
-  if (parsed.verdict === 'unparseable') return { verdict: 'malformed', reason: parsed.problem };
+  if (parsed.verdict === 'unparseable') return { verdict: 'malformed', problem: parsed.problem };
   try {
     return { verdict: 'parsed', record: recordOf(parsed.value) };
   } catch (error) {
-    if (error instanceof RecordShapeProblem) return { verdict: 'malformed', reason: error.message };
+    if (error instanceof RecordShapeProblem) return { verdict: 'malformed', problem: error.problem };
     throw error;
   }
 }
@@ -221,8 +229,8 @@ export class TicketDocumentsFileIngestion {
 
   read(): TicketDocumentsFileReading {
     const stored = storedFileTextOf(this.recordFilePath);
-    if (stored.verdict === 'absent') return { verdict: 'malformed', reason: 'the file is missing' };
-    if (stored.verdict === 'unreadable') return { verdict: 'malformed', reason: stored.reason };
+    if (stored.verdict === 'absent') return { verdict: 'malformed', problem: { code: 'record-file-missing' } };
+    if (stored.verdict === 'unreadable') return { verdict: 'malformed', problem: stored.problem };
     return parsedRecordOf(stored.text);
   }
 

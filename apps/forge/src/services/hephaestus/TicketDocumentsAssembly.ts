@@ -7,16 +7,16 @@ import type { BoardTicketDocumentsSummaryDocument } from 'forge-contracts/BoardP
 import type { ForgeTicketDocumentsDocument }        from 'forge-contracts/TicketDocumentsDocument';
 
 import { TicketDocumentsMappingUtil, type TicketDocumentFacts } from '../../adapters/board-document/utils/TicketDocumentsMappingUtil.ts';
+import type { Job, JobRole }                                    from '../../domain/tracker-model/@types/Job.ts';
+import type { Pipeline }                                        from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { Ticket, TicketFrontmatter }                       from '../../domain/tracker-model/@types/Ticket.ts';
+import type { LoadedTicketDocumentRecord, TicketDocumentKind }  from '../../domain/tracker-model/@types/TicketDocument.ts';
+import { TICKET_DOCUMENT_KINDS }                                from '../../domain/tracker-model/@types/TicketDocument.ts';
+import { TICKET_STATUSES_NO_AGENT_HAS_PICKED_UP }               from '../../domain/tracker-model/constants/Statuses.ts';
+import { PipelineUtil }                                         from '../../domain/tracker-model/utils/PipelineUtil.ts';
+import { TicketDocumentReadinessUtil }                          from '../../domain/tracker-model/utils/TicketDocumentReadinessUtil.ts';
+import { TicketWritingUtil }                                    from '../../domain/tracker-model/utils/TicketWritingUtil.ts';
 import { GitProcess }                                           from '../../lib/git/GitProcess.ts';
-import type { Job, JobRole }                                    from '../../lib/tracker-model/@types/Job.ts';
-import type { Pipeline }                                        from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { Ticket, TicketFrontmatter }                       from '../../lib/tracker-model/@types/Ticket.ts';
-import type { LoadedTicketDocumentRecord, TicketDocumentKind }  from '../../lib/tracker-model/@types/TicketDocument.ts';
-import { TICKET_DOCUMENT_KINDS }                                from '../../lib/tracker-model/@types/TicketDocument.ts';
-import { TICKET_STATUSES_NO_AGENT_HAS_PICKED_UP }               from '../../lib/tracker-model/constants/Statuses.ts';
-import { PipelineUtil }                                         from '../../lib/tracker-model/utils/PipelineUtil.ts';
-import { TicketDocumentReadinessUtil }                          from '../../lib/tracker-model/utils/TicketDocumentReadinessUtil.ts';
-import { TicketWritingUtil }                                    from '../../lib/tracker-model/utils/TicketWritingUtil.ts';
 import type { EffectReading }                                   from '../../shared/@types/EffectReading.ts';
 import { OperationRefusal }                                     from '../../shared/OperationRefusal.ts';
 import { InstructionFiles }                                     from './InstructionFiles.ts';

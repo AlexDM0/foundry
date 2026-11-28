@@ -3,8 +3,8 @@
  * Acceptance evidence under its own, owned by the last home build stage. A stage replaces only its own part; any other text the section held,
  * such as the filing template's guidance or a handoff written before the ticket crossed, is code's to replace.
  */
-import type { TicketStage, TicketStageName } from '../../../lib/tracker-model/@types/Task.ts';
-import { TicketStageUtil }                   from '../../../lib/tracker-model/utils/TicketStageUtil.ts';
+import type { TicketStage, TicketStageName } from '../../../domain/tracker-model/@types/Task.ts';
+import { TicketStageUtil }                   from '../../../domain/tracker-model/utils/TicketStageUtil.ts';
 
 export interface HandoffStagePart {
   stage:              TicketStage;

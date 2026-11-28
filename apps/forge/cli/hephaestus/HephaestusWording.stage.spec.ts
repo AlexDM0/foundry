@@ -5,9 +5,9 @@
 import { readFileSync }           from 'node:fs';
 import { describe, expect, test } from 'bun:test';
 
-import type { Job }                                 from '../../src/lib/tracker-model/@types/Job.ts';
+import type { Job }                                 from '../../src/domain/tracker-model/@types/Job.ts';
+import type { JobLaunchFacts, ReviewFindingsFacts } from '../../src/services/hephaestus/@types/JobLaunchFacts.ts';
 import type { CrossingStageFacts }                  from '../../src/services/hephaestus/CrossingStages.ts';
-import type { JobLaunchFacts, ReviewFindingsFacts } from '../../src/services/hephaestus/DrivePass.ts';
 import type { NeedsSettledFacts }                   from '../../src/services/hephaestus/NeedTickets.ts';
 import { resourceFilePathOf }                       from '../../src/shared/ResourceFilePath.ts';
 import { PRODUCT_NAMES }                            from '../../src/shared/constants/ProductNames.ts';

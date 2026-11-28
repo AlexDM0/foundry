@@ -56,18 +56,29 @@ are the specs in `architecture/`; `bun run test:architecture` runs them, and `bu
 ### Imports
 
 ```
-src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → tracker → lifecycle → control → store → hephaestus)  →  cli/
+src/lib/  →  src/domain/  →  src/shared/  →  src/adapters/  →  src/services/ (render → tracker → lifecycle → control → store → hephaestus)  →  cli/
 packages/forge-contracts/, packages/system-versions/  →  src/shared/ and every layer above it (by name)
 packages/forge-contracts/  →  src/adapters/board-document/ (the board document's mappers), src/adapters/board-commands/ (the commands')
+talos.ts  →  talos/ (the Talos program)  →  src/domain/talos/ (its contract with Hephaestus), src/lib/
 ```
 
 - `architecture/ImportDirection.spec.ts` holds the direction, cycles, barrels, sibling-command and command-set
-  isolation, the bin shim, the `testing/` allowlist (`TESTING_FOLDER_IMPORTERS`), a lib package's declared "depends on"
-  packages and the tracker model's isolation. What two commands share is hoisted to the level above both, or passed as a
-  structurally typed parameter. No command set (a folder directly under `cli/` but its shared folders) imports another,
-  and the `cli/` root imports a set only in `cli/CommandTable.ts`, which composes them, and in test code.
-- A `src/lib/` package knows nothing about its callers: no forge names, file names, wording or exit codes.
-  App values arrive as parameters; a refusal leaves as a verdict (except the `Board`, see Deviations).
+  isolation, the bin shim, the `testing/` allowlist (`TESTING_FOLDER_IMPORTERS`), the declared "depends on" packages of
+  a `src/lib/` or `src/domain/` package and the tracker model's isolation. What two commands share is hoisted to the
+  level above both, or passed as a structurally typed parameter. No command set (a folder directly under `cli/` but its
+  shared folders) imports another, and the `cli/` root imports a set only in `cli/CommandTable.ts`, which composes them,
+  and in test code.
+- A `src/lib/` package is a building block and knows nothing about its callers: no forge names, file names, wording
+  or exit codes. App values arrive as parameters; a refusal leaves as a verdict. `architecture/LibNamesNoCaller.spec.ts`
+  holds that no shipping file of it names Hephaestus, a job, a ticket or a tracker.
+- `src/domain/` holds forge's own models: the tracker model (`src/domain/tracker-model/`, the `Board`) and Talos's
+  contract with Hephaestus (`src/domain/talos/`: its frames, records, launches, event log and files). A domain package
+  imports `src/lib/` and the domain packages its main module declares.
+- `talos/` is the Talos program, the second entry program beside `cli/`: only `talos.ts` imports it, and besides only
+  the test code of `src/services/hephaestus/` (`TALOS_PROGRAM_SPEC_IMPORTERS`), to run its socket server against
+  Hephaestus's client, and, through `talos/testing/`, the specs of `src/lib/local-endpoint/` and `src/testing/`, which
+  hold the endpoint against Talos's idle socket (`TESTING_FOLDER_IMPORTERS`). `architecture/TalosClosure.spec.ts` holds
+  what it reaches.
 - A package in `packages/` imports no file of an app. forge imports a package only by its name and only when
   `package.json` declares it as a `workspace:^` dependency, never by a file path. Every declared package is one
   workspace-package layer, and it imports another package only when its own `package.json` declares it.
@@ -124,6 +135,7 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 - A refusal thrown from `src/` carries a wordless `detail`; only `cli/` builds one from words (the install-version
   mismatch is its one detail). Every printed refusal is worded by the one refusal-wording util in `src/adapters/`,
   which no service imports.
+- `architecture/ErrorThrows.spec.ts` holds that no shipping code throws `new Error(` outside its exact allowlist.
 - Exit codes: 0 done or nothing to do; 1 an actionable refusal or unknown command; 2 `unrepaired` or any other
   throw. `cli/Main.ts` maps them, in that one place, and `agent-progress.ts` exits. Five deliberate exit-0
   failures are under Deviations.
@@ -165,11 +177,11 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 - The repository tooling is for the owner only, on macOS and Linux. `.claude/hooks/` is bash. `.readme-graphics/` is
   one Python script. It is not part of the product, and it needs no Windows form.
 - `eslint.config.js` (`CONFINED_REACHES`, the clock selectors) holds `process.env` to `src/shared/Environment.ts`,
-  `process.exit` to `agent-progress.ts`, `talos.ts` and `setup.ts` (Deviations), `process.cwd`, `homedir()` and
-  the clock in `src/` and `cli/` to `cli/CommandContext.ts` (`homedir()` also to `setup.ts`), `process.platform`
+  `process.exit` to `agent-progress.ts`, `talos.ts` and `setup.ts` (Deviations), `process.cwd`, `homedir()` and the
+  clock in `src/`, `talos/` and `cli/` to `cli/CommandContext.ts` (`homedir()` also to `setup.ts`), `process.platform`
   and `chmodSync` in shipping code to the sites it names, and `process.chdir` to nowhere. The environment is read
-  through documented getters; specs set it in a child process (one exception, Deviations). The product's own
-  variables are named from `PRODUCT_NAMES.ENVIRONMENT_PREFIX`, never as literals.
+  through documented getters; specs set it in a child process (one exception, Deviations). The product's own variables
+  are named from `PRODUCT_NAMES.ENVIRONMENT_PREFIX`, never as literals.
 - A command takes everything (directory, now, streams, stdin, prompt, platform, home) from its `CommandContext`.
 - Every write of a file a reader may hold open goes through the atomic-file package.
 
@@ -305,12 +317,12 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 | Rule | Done instead | Why |
 | --- | --- | --- |
 | Ingestion reads, validates and maps in separate steps. | The ticket parse is one line-oriented pass. | A second walk would risk the unowned lines kept byte for byte. |
-| No work at module load. | `agent-progress.ts` runs the command on import, `talos.ts` runs its Talos, `src/lib/talos/SynchronousCallsThread.ts` answers Talos's synchronous calls as its worker's entry module, `launcher.ts` starts `agent-progress.ts`, `setup.ts` runs the machine setup, the preload `src/testing/TestRunReport.ts` registers its report, the preload `src/testing/ProgramTrapGuard.ts` installs its program traps, the preload `src/testing/SharedCaseDeadlinePreload.ts` registers its loader plugin, the preload `src/testing/RecordedBoundariesGuard.ts` registers its case hooks and its spawn check, the preload `src/testing/TalosOfTheNextProtocolPreload.ts` registers its loader plugin in a Talos a spec spawns, the preload `cli/testing/OtherProductNamesPreload.ts` registers its name swap, the fake agent `src/testing/fake-agent/FakeAgentChild.ts` plays its scenario, `src/testing/CheckRecordingStamps.ts` checks the recording stamps, `src/testing/RecordBoundary.ts` records a boundary. | They are entry points. |
+| No work at module load. | `agent-progress.ts` runs the command on import, `talos.ts` runs its Talos, `talos/SynchronousCallsThread.ts` answers Talos's synchronous calls as its worker's entry module, `launcher.ts` starts `agent-progress.ts`, `setup.ts` runs the machine setup, the preload `src/testing/TestRunReport.ts` registers its report, the preload `src/testing/ProgramTrapGuard.ts` installs its program traps, the preload `src/testing/SharedCaseDeadlinePreload.ts` registers its loader plugin, the preload `src/testing/RecordedBoundariesGuard.ts` registers its case hooks and its spawn check, the preload `src/testing/TalosOfTheNextProtocolPreload.ts` registers its loader plugin in a Talos a spec spawns, the preload `cli/testing/OtherProductNamesPreload.ts` registers its name swap, the fake agent `src/testing/fake-agent/FakeAgentChild.ts` plays its scenario, `src/testing/CheckRecordingStamps.ts` checks the recording stamps, `src/testing/RecordBoundary.ts` records a boundary. | They are entry points. |
 | Only `src/shared/Environment.ts` reads the environment. | `src/lib/git/GitProcess.ts` reads `Bun.env` to give the inherited environment, with the ceiling added, to git. | A `src/lib` package cannot import `src/shared/`. |
-| Only `src/shared/Environment.ts` reads the environment. | `talos.ts` reads `SystemRoot` and gives it to `runTalos`, with a reader of any other variable, for the variables that a launch copies. | Talos imports nothing outside `src/lib/talos/` and the packages it declares, so it cannot reach `src/shared/` (`architecture/TalosClosure.spec.ts`). |
+| Only `src/shared/Environment.ts` reads the environment. | `talos.ts` reads `SystemRoot` and gives it to `runTalos`, with a reader of any other variable, for the variables that a launch copies. | Talos imports nothing outside `talos/` and the packages it declares, so it cannot reach `src/shared/` (`architecture/TalosClosure.spec.ts`). |
 | Specs never set the environment in-process. | `src/shared/Environment.integration.spec.ts` does, once; the preload `src/testing/ProgramTrapGuard.ts` prepends its traps to `PATH`; `src/services/hephaestus/GpgDirectories.integration.spec.ts` removes the `gpgconf` trap from `PATH` for its own file; the preload `src/testing/TestRunReport.ts` sets `TMPDIR` through `moveTemporaryFolderTo` (`src/shared/Environment.ts`, called from `src/testing/ScratchWorkspace.ts`). | It tests the getters themselves; the traps must lead every spawn's `PATH`; the real-system spec of gpgconf must reach the real gpgconf; the run and every child that it starts must use a temp folder of the run's own. |
 | A frozen table comes from the previous implementation. | `cli/FrozenInstalledSurface.json` is taken from the installed files. | No previous implementation holds them. |
-| A frozen table comes from the previous implementation and is retaken on a change. | `src/lib/talos/FrozenTalosHandshake.json` is never retaken: `src/lib/talos/TalosHandshake.frozen.spec.ts` holds that each frozen `hello` reads as itself, each frozen answer is written byte for byte, and the three frames' keys equal the table's. | The first frame of every Talos protocol is read by `helloFrameOf` alone and must never change, so a Hephaestus of any version can tell a Talos of another (design decision 6). |
+| A frozen table comes from the previous implementation and is retaken on a change. | `src/domain/talos/FrozenTalosHandshake.json` is never retaken: `src/domain/talos/TalosHandshake.frozen.spec.ts` holds that each frozen `hello` reads as itself, each frozen answer is written byte for byte, and the three frames' keys equal the table's. | The first frame of every Talos protocol is read by `helloFrameOf` alone and must never change, so a Hephaestus of any version can tell a Talos of another (design decision 6). |
 | External values are mapped into their type at the boundary. | Talos's `clientFrameOf` maps a `launch` frame with its launch left `unknown` (`ReceivedClientFrame`); `childLaunchOf(value, boardFolder)` maps it at the launch, and a malformed launch is answered `done` with the frame's own `frameId`. A launch names no endpoint, so it is checked against none. | A launch's folders are read against the board folder, which the frame parser does not know, and a frame whose launch is malformed still gets its answer. |
 | An older file is refused with `OLDER_FORMAT_ADVICE`. | A `pipeline.json` of an earlier format is refused with its own `older-pipeline` wording: set the pipeline up again (`cli/OlderPipelineRefusal.spec.ts`). | No release converts a pipeline, so `update` with an earlier program would not help. |
 | Only the current stored format is read. | A ticket stored with `type` `change` or `feature` reads as `ticket` everywhere, and every write keeps its stored `type` line. | Stored tickets are never rewritten; both are older names for `ticket`. |
@@ -318,11 +330,12 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 | Only the current stored format is read. | A stored open `pipeline-proposal` decision is read, and the Playbook withdraws it at the next pass. | Stored files are never rewritten. The one-shot proposal that the decision accepts is retired. |
 | Only the current stored format is read. | A `log.jsonl` record with the job kind or role `onboarder` reads as `pipeline-agent`. | The log is append-only and is never rewritten. |
 | Only the current stored format is read. | A lock or slot record (a lock generation, the Hephaestus lock, an agent slot, a gate run slot) of today's fields reads whatever its version, and is judged by the process it names; one whose process is gone, or that cannot be read, is taken over and logged (`docs/cli.md`, "Lock and slot records"). | Such a record is a holding by a live process, not stored data: refusing it would show a running Hephaestus as down, or stop every command until User removes it. Nothing is converted, so it is no migration. |
-| Only `agent-progress.ts` exits. | `talos.ts`, the Talos binary, exits with the code `runTalos` in `src/lib/talos/` returns, and imports nothing else, held by `architecture/ImportDirection.spec.ts` and `architecture/TalosClosure.spec.ts`. `setup.ts` exits with the code `runSetup` in `cli/setup/` returns, and imports only `cli/`. | It is a second entry point: Hephaestus spawns it, detached, once per board. |
+| Only `agent-progress.ts` exits. | `talos.ts`, the Talos binary, exits with the code `runTalos` in `talos/` returns, and imports nothing else, held by `architecture/ImportDirection.spec.ts` and `architecture/TalosClosure.spec.ts`. `setup.ts` exits with the code `runSetup` in `cli/setup/` returns, and imports only `cli/`. | It is a second entry point: Hephaestus spawns it, detached, once per board. |
 | Every write of a file a reader may hold open goes through the atomic-file package. | Talos appends a child's `events-<instance>.ndjson` in place, fsynced before the child's `end` is written. | An append-only log is never replaced; a reader ignores an unterminated last line. |
 | Every write of a file a reader may hold open goes through the atomic-file package. | Hephaestus appends a gate profile's output to `<data>/gate-profile-runs/<P>.ndjson` in place, outside the hold, one line for each piece. | The output stream is append-only and is never replaced; a reader ignores an unterminated last line. |
 | Every write of a file a reader may hold open goes through the atomic-file package. | Hephaestus appends `hephaestus.log` in place, one line per write. | A log someone tails is never replaced; an atomic rewrite would break the tail. |
-| A `src/lib/` package leaves a refusal as a verdict. | The tracker model's `Board` throws `BoardRefusal`. | A domain class throws a typed domain error. |
+| A service passes a typed problem on, and `src/adapters/` or `cli/` words it at the edge. | Three services take an injected wording port for a problem whose sentence they store: the Airlocks (`AirlocksContext` in `src/services/hephaestus/@types/Airlocks.ts`) for the note of a `merge-refused` decision (`mergeDecisionSentenceOf`, in `AirlockMergeIn.ts` and `AirlockAgents.ts`: a git problem, or an invalid report's problems beside Customs facts) and for the `gitFailure` of a refused Apply (`applyRefusalSentenceOf`, in `ConstitutionCommitAirlock.ts`), `src/services/hephaestus/PipelineChecking.ts` for a pipeline check's `cannot-run` reason (`checkReasonSentenceOf`), and `src/services/hephaestus/GateProfiling.ts` for a research finding's `value` (`findingSentenceOf`). `DrivePass` passes them on from `cli/hephaestus/HephaestusForeground.ts`, which gives the adapters' wording. | Each is a text field of a stored format (the board's decisions, its pipeline setup record and `log.jsonl`): storing the problem in its place changes that format, which this change leaves as it is. |
+| A package leaves a refusal as a verdict. | The tracker model's `Board` throws `BoardRefusal`. | A domain class throws a typed domain error. |
 | One reference per fact. | `resources/templates/Reference.md`, installed as `.forge/reference.md`, copies three `docs/cli.md` sections verbatim (ticket format, ticket moves, exit codes); a change to either changes both, held by `cli/ReferenceCopies.spec.ts`. | Agents elsewhere cannot read `docs/cli.md`. |
 | A failure exits non-zero. | `hook session-start` exits 0 whatever happens, printing nothing on failure and skipping the install check. | A failing session-start entry would reach every session in the repository. |
 | A failure exits non-zero. | `hook bash-domains` exits 0 whatever happens, skipping the install check and answering deny through its JSON on any failure. | A hook that errors lets the call through; the deny is what keeps the network inside the ticket's line. |
@@ -332,7 +345,7 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 | A failure exits non-zero. | A monitor registry (`~/.forge-monitor/projects.json`) that cannot be read or written, a newer version or a malformed one is reported on stderr and the command keeps its exit code. | The command's own work is done; the registry is only a pointer for a monitor. |
 | Code starts beside its only consumer; never in anticipation. | `src/services/hephaestus/SessionConfinement.ts` wraps a session in forge's `GateConfinement` when its agent adapter declares `ownConfinement: 'none'`, though Claude Code, the one adapter, confines its sessions itself. | The owner's rule of 2026-11-18 makes a session's confinement the port's declaration, not an assumption about the vendor; the path is held by specs over a planted adapter and by the contract integration spec. |
 | Code starts beside its only consumer and moves, generalised, on a second one. | The store port `BoardStore` (`src/services/store/BoardStore.ts`) has one adapter, `LocalFilesBoardStore`, and a contract spec, `src/services/store/BoardStore.contract.spec.ts`, that any adapter must pass; `architecture/StoreBoundary.spec.ts` holds that no shipping code outside the adapter names a record's path. | The forge keeps a remote store possible (`docs/monorepo/hephaestus-talos.md`, sections 4 and 5): the seam is fixed before a second adapter exists, and the contract is what a second adapter must pass. |
-| Code names no agent vendor (`architecture/AgentBoundary.spec.ts`). | The model tiers `haiku`, `sonnet`, `opus` and `fable` and the efforts up to `max` are forge's tier words in the model, the pipeline and the views. | A pipeline names a tier and an effort; the agent adapter maps them to its own models (`src/lib/tracker-model/constants/AgentSettings.ts:5-7`). |
+| Code names no agent vendor (`architecture/AgentBoundary.spec.ts`). | The model tiers `haiku`, `sonnet`, `opus` and `fable` and the efforts up to `max` are forge's tier words in the model, the pipeline and the views. | A pipeline names a tier and an effort; the agent adapter maps them to its own models (`src/domain/tracker-model/constants/AgentSettings.ts:5-7`). |
 
 ## Local rules
 

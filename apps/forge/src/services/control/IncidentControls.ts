@@ -3,9 +3,8 @@
  * be open and of a kind whose row in the Bouncer's table allows the move, and a job or park move targets its own job or ticket. The move
  * then marks it handled in the same hold. User may run each move too, so the check holds whoever names the incident.
  */
-import type { Logged }                        from '../../lib/tracker-model/@types/BoardChanges.ts';
-import type { Incident, IncidentMove }        from '../../lib/tracker-model/@types/Incident.ts';
-import { BoardRefusal }                       from '../../lib/tracker-model/BoardRefusal.ts';
+import type { Logged }                        from '../../domain/tracker-model/@types/BoardChanges.ts';
+import type { Incident, IncidentMove }        from '../../domain/tracker-model/@types/Incident.ts';
 import type { ControlCommand }                from '../../shared/@types/ControlCommand.ts';
 import type { ControlCommandOf as CommandOf } from '../../shared/@types/ControlCommand.ts';
 import { OperationRefusal }                   from '../../shared/OperationRefusal.ts';
@@ -45,13 +44,13 @@ export function incidentForMove(
   }
   const allowing = change.board.incidents().filter((incident) => subject.concerns(incident) && Bouncer.incidentMoveVerdictOf(incident, command) === null);
   if (allowing.length > 1) {
-    throw new BoardRefusal({
-      reason: 'several-open-incidents', subject: subject.name, move: command.kind, incidentIds: allowing.map((incident) => incident.id)
+    throw new OperationRefusal('refused', {
+      kind: 'several-open-incidents', subject: subject.name, move: command.kind, incidentIds: allowing.map((incident) => incident.id)
     });
   }
   const [only] = allowing;
   if (only !== undefined) return only;
-  if (requiresIncident) throw new BoardRefusal({ reason: 'no-open-incident', subject: subject.name, move: command.kind });
+  if (requiresIncident) throw new OperationRefusal('refused', { kind: 'no-open-incident', subject: subject.name, move: command.kind });
   return null;
 }
 

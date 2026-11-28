@@ -75,7 +75,7 @@ const CLAUSES: readonly PortClause<ExecutableResolver>[] = [
   {
     claim: 'names the repository root as the reason for a path inside it',
     check: (resolver) => {
-      expect(resolver.absolutePathOf('planted-tool', ['/repository'])).toMatchObject({ verdict: 'refused', cause: 'inside-forbidden-root' });
+      expect(resolver.absolutePathOf('planted-tool', ['/repository'])).toMatchObject({ verdict: 'refused', cause: 'inside-forbidden-root', forbiddenRoot: '/repository' });
     },
   },
 ];

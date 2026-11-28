@@ -7,17 +7,17 @@ import { join } from 'node:path';
 
 import { describe, expect, test } from 'bun:test';
 
-import type { AgentAdapter }                                                  from '../../lib/agent-launch/AgentAdapter.ts';
-import type { AgentLaunchRequest }                                            from '../../lib/agent-launch/AgentLaunchRequest.ts';
-import type { WorkerProfile }                                                 from '../../lib/agent-launch/WorkerProfile.ts';
-import { dataFoldersFor }                                                     from '../../lib/data-folders/DataFoldersFor.ts';
-import type { ConfinementVerdict }                                            from '../../lib/gate-confinement/GateConfinement.ts';
-import { fakeAgentAdapter }                                                   from '../../testing/FakeAgentAdapter.ts';
-import { FAKE_CONFINER_ARGV, FAKE_MISSING_TOOLS_REASON, fakeGateConfinement } from '../../testing/FakeGateConfinement.ts';
-import { createScratchDirectory, removeScratchDirectory }                     from '../../testing/ScratchWorkspace.ts';
-import { IntakeSessions }                                                     from './IntakeSessions.ts';
-import { PipelineAgentSessions }                                              from './PipelineAgentSessions.ts';
-import { NETWORK_DOMAINS_REFUSAL, SessionConfinement }                        from './SessionConfinement.ts';
+import type { AgentAdapter }                                            from '../../lib/agent-launch/AgentAdapter.ts';
+import type { AgentLaunchRequest }                                      from '../../lib/agent-launch/AgentLaunchRequest.ts';
+import type { WorkerProfile }                                           from '../../lib/agent-launch/WorkerProfile.ts';
+import { dataFoldersFor }                                               from '../../lib/data-folders/DataFoldersFor.ts';
+import type { ConfinementVerdict }                                      from '../../lib/gate-confinement/GateConfinement.ts';
+import { fakeAgentAdapter }                                             from '../../testing/FakeAgentAdapter.ts';
+import { FAKE_CONFINER_ARGV, FAKE_UNAVAILABILITY, fakeGateConfinement } from '../../testing/FakeGateConfinement.ts';
+import { createScratchDirectory, removeScratchDirectory }               from '../../testing/ScratchWorkspace.ts';
+import { IntakeSessions }                                               from './IntakeSessions.ts';
+import { PipelineAgentSessions }                                        from './PipelineAgentSessions.ts';
+import { SessionConfinement }                                           from './SessionConfinement.ts';
 import {
   NO_TOOLCHAIN,
   type ProfiledRole,
@@ -26,6 +26,7 @@ import {
 } from './WorkerProfiles.ts';
 
 const WORKTREE = '/example/repository/.forge-worktrees/ticket-007';
+const UNAVAILABLE_REFUSAL = { verdict: 'refused', refusal: { cause: 'confinement-unavailable', unavailability: FAKE_UNAVAILABILITY } } as const;
 const HATCH_DIRECTORY = '/example/repository/.forge-worktrees/hatch/J4';
 const HOME_DIRECTORY = '/home/alex-example';
 const JOB_FILES_DIRECTORY = '/example/repository/.forge/jobs/J4';
@@ -71,7 +72,7 @@ function adapterOf(ownConfinement: 'applies-the-profile' | 'none'): AgentAdapter
   return { ...adapter, capabilities: { ...adapter.capabilities, ownConfinement }, sessionWritablePathsOf: () => AGENT_FOLDERS };
 }
 
-function launchRequestOf(profile: WorkerProfile, jobFilesDirectory = JOB_FILES_DIRECTORY): AgentLaunchRequest {
+function launchRequestOf(profile: WorkerProfile, launchFilesDirectory = JOB_FILES_DIRECTORY): AgentLaunchRequest {
   return {
     programPath:      '/example/bin/agent',
     sessionId:        'example-session',
@@ -85,7 +86,7 @@ function launchRequestOf(profile: WorkerProfile, jobFilesDirectory = JOB_FILES_D
     environment:      {},
     profile,
     confinement:      'confined',
-    jobFilesDirectory,
+    launchFilesDirectory,
     reportSchema:     null,
   };
 }
@@ -138,8 +139,8 @@ describe('who confines a session', () => {
     const port = fakeGateConfinement('confined');
     const builder = roleProfileOf('builder');
     expect(SessionConfinement.refusalOf(capabilities, port, builder)).toBeNull();
-    expect(SessionConfinement.refusalOf(capabilities, port, { ...builder, shellNetworkDomains: ['registry.example.org'] })).toBe(NETWORK_DOMAINS_REFUSAL);
-    expect(SessionConfinement.refusalOf(capabilities, port, { ...builder, webNetworkDomains: ['docs.example.org'] })).toBe(NETWORK_DOMAINS_REFUSAL);
+    expect(SessionConfinement.refusalOf(capabilities, port, { ...builder, shellNetworkDomains: ['registry.example.org'] })).toEqual({ cause: 'network-domains-unconfinable' });
+    expect(SessionConfinement.refusalOf(capabilities, port, { ...builder, webNetworkDomains: ['docs.example.org'] })).toEqual({ cause: 'network-domains-unconfinable' });
     expect(SessionConfinement.refusalOf(capabilities, port, PROFILE_OF_ROLE['product-owner'] ?? builder)).toBeNull();
   });
 });
@@ -154,32 +155,27 @@ describe('the launch of a session', () => {
   });
 
   test('an agent with no sandbox runs its argv wrapped by the port, under the plan of its profile', () => {
-    const jobFilesDirectory = createScratchDirectory('session-confinement');
+    const launchFilesDirectory = createScratchDirectory('session-confinement');
     try {
       const port = fakeGateConfinement('confined');
       const adapter = adapterOf('none');
-      const request = launchRequestOf(roleProfileOf('builder'), jobFilesDirectory);
+      const request = launchRequestOf(roleProfileOf('builder'), launchFilesDirectory);
       const launch = SessionConfinement.sessionLaunchOf(adapter, port, request);
 
       expect(launch).toEqual({ verdict: 'runs', plan: { ...adapter.planOf(request), argv: [...FAKE_CONFINER_ARGV, ...adapter.planOf(request).argv] } });
       expect(port.plans).toEqual([SessionConfinement.planOf(request, AGENT_FOLDERS)]);
     } finally {
-      removeScratchDirectory(jobFilesDirectory);
+      removeScratchDirectory(launchFilesDirectory);
     }
   });
 
   test('an agent with no sandbox is refused where the port is unavailable, and runs unwrapped where it confines nothing by design', () => {
     const adapter = adapterOf('none');
     const request = launchRequestOf(roleProfileOf('builder'));
-    expect(SessionConfinement.sessionLaunchOf(adapter, fakeGateConfinement('unavailable'), request)).toEqual({ verdict: 'refused', reason: FAKE_MISSING_TOOLS_REASON });
+    expect(SessionConfinement.sessionLaunchOf(adapter, fakeGateConfinement('unavailable'), request)).toEqual(UNAVAILABLE_REFUSAL);
     const unconfined = { ...request, confinement: 'unconfined-by-design' } as const;
     const windows = fakeGateConfinement('unconfined-by-design');
     expect(SessionConfinement.sessionLaunchOf(adapter, windows, unconfined)).toEqual({ verdict: 'runs', plan: adapter.planOf(unconfined) });
     expect(windows.plans).toEqual([]);
-  });
-
-  test('a launch that cannot run confined throws for a session host, which reports the throw as its refusal', () => {
-    const request = launchRequestOf(roleProfileOf('builder'));
-    expect(() => SessionConfinement.confinedPlanOf(adapterOf('none'), fakeGateConfinement('unavailable'), request)).toThrow(FAKE_MISSING_TOOLS_REASON);
   });
 });

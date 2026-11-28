@@ -13,6 +13,7 @@ import {
 } from 'bun:test';
 
 import { createScratchDirectory, removeScratchDirectory }                               from '../../testing/ScratchWorkspace.ts';
+import type { TargetConflictProblem }                                                   from './@types/TargetConflictProblem.ts';
 import { TARGET_CONFLICT_FORMAT_VERSION, type TargetConflict, TargetConflictIngestion } from './TargetConflictIngestion.ts';
 import { createTargetConflictWriter }                                                   from './TargetConflictWriter.ts';
 
@@ -48,17 +49,17 @@ test('a file that is not JSON is unreadable', () => {
 
 test('a conflict of another version, or of none, is unreadable', () => {
   writeFileSync(conflictFilePath(), `${JSON.stringify({ ...CONFLICT, version: TARGET_CONFLICT_FORMAT_VERSION + 1 })}\n`);
-  expect(reading()).toEqual({ verdict: 'unreadable', reason: `its version is not ${TARGET_CONFLICT_FORMAT_VERSION}` });
+  expect(reading()).toEqual({ verdict: 'unreadable', problem: { code: 'version-differs', field: 'version', expectedVersion: TARGET_CONFLICT_FORMAT_VERSION } });
   writeFileSync(conflictFilePath(), `${JSON.stringify(CONFLICT)}\n`);
-  expect(reading()).toEqual({ verdict: 'unreadable', reason: `its version is not ${TARGET_CONFLICT_FORMAT_VERSION}` });
+  expect(reading()).toEqual({ verdict: 'unreadable', problem: { code: 'version-differs', field: 'version', expectedVersion: TARGET_CONFLICT_FORMAT_VERSION } });
 });
 
-test.each([
-  ['targetTip', { targetTip: false }, 'its "targetTip" is not a commit'],
-  ['conflictedFiles', { conflictedFiles: null }, 'its "conflictedFiles" is not a list of paths'],
-])('a wrong %s is unreadable', (_field, change, reason) => {
+test.each<[string, Record<string, unknown>, TargetConflictProblem]>([
+  ['targetTip', { targetTip: false }, { code: 'field-is-not', field: 'targetTip', expected: 'a-commit' }],
+  ['conflictedFiles', { conflictedFiles: null }, { code: 'field-is-not', field: 'conflictedFiles', expected: 'a-list-of-paths' }],
+])('a wrong %s is unreadable', (_field, change, problem) => {
   writeFileSync(conflictFilePath(), `${JSON.stringify({ version: TARGET_CONFLICT_FORMAT_VERSION, ...CONFLICT, ...change })}\n`);
-  expect(reading()).toEqual({ verdict: 'unreadable', reason });
+  expect(reading()).toEqual({ verdict: 'unreadable', problem });
 });
 
 test('a folder where the file belongs is unreadable, not absent, and does not throw', () => {

@@ -1,0 +1,72 @@
+[
+  {
+    "case": "a directory in the file's place, which cannot be read",
+    "stored": null,
+    "sentence": "it could not be read ({systemError})"
+  },
+  {
+    "case": "bytes that are not UTF-8",
+    "stored": null,
+    "sentence": "it is not UTF-8 text"
+  },
+  {
+    "case": "text that is not JSON",
+    "stored": "{\"version\": ",
+    "sentence": "it is not valid JSON (JSON Parse error: Unexpected EOF)"
+  },
+  {
+    "case": "JSON that is a list, not an object",
+    "stored": "[]",
+    "sentence": "it is not a JSON object"
+  },
+  {
+    "case": "no version",
+    "stored": "{}",
+    "sentence": "its version is not 1"
+  },
+  {
+    "case": "another version",
+    "stored": "{\"version\":2}",
+    "sentence": "its version is not 1"
+  },
+  {
+    "case": "no startCommit",
+    "stored": "{\"version\":1,\"contentHashAtLaunch\":\"def\",\"launchSnapshot\":{\"refs\":{\"main\":\"abc\"},\"hooksFolderDigest\":null}}",
+    "sentence": "its \"startCommit\" is not text"
+  },
+  {
+    "case": "a contentHashAtLaunch that is a number",
+    "stored": "{\"version\":1,\"startCommit\":\"abc\",\"contentHashAtLaunch\":1,\"launchSnapshot\":{\"refs\":{\"main\":\"abc\"},\"hooksFolderDigest\":null}}",
+    "sentence": "its \"contentHashAtLaunch\" is not text"
+  },
+  {
+    "case": "documentVersionsAtLaunch as null",
+    "stored": "{\"version\":1,\"startCommit\":\"abc\",\"contentHashAtLaunch\":\"def\",\"launchSnapshot\":{\"refs\":{\"main\":\"abc\"},\"hooksFolderDigest\":null},\"documentVersionsAtLaunch\":null}",
+    "sentence": "its \"documentVersionsAtLaunch\" is not text"
+  },
+  {
+    "case": "a homeEntity that is a number",
+    "stored": "{\"version\":1,\"startCommit\":\"abc\",\"contentHashAtLaunch\":\"def\",\"launchSnapshot\":{\"refs\":{\"main\":\"abc\"},\"hooksFolderDigest\":null},\"homeEntity\":1}",
+    "sentence": "its \"homeEntity\" is not an entity key"
+  },
+  {
+    "case": "dependentsFixedInGroup as text",
+    "stored": "{\"version\":1,\"startCommit\":\"abc\",\"contentHashAtLaunch\":\"def\",\"launchSnapshot\":{\"refs\":{\"main\":\"abc\"},\"hooksFolderDigest\":null},\"dependentsFixedInGroup\":\"web\"}",
+    "sentence": "its \"dependentsFixedInGroup\" is not a list of entity keys"
+  },
+  {
+    "case": "no launchSnapshot",
+    "stored": "{\"version\":1,\"startCommit\":\"abc\",\"contentHashAtLaunch\":\"def\"}",
+    "sentence": "its \"launchSnapshot\" is not an object"
+  },
+  {
+    "case": "launchSnapshot refs as a list",
+    "stored": "{\"version\":1,\"startCommit\":\"abc\",\"contentHashAtLaunch\":\"def\",\"launchSnapshot\":{\"refs\":[],\"hooksFolderDigest\":null}}",
+    "sentence": "its \"launchSnapshot.refs\" is not a record of commits"
+  },
+  {
+    "case": "launchSnapshot with no hooksFolderDigest",
+    "stored": "{\"version\":1,\"startCommit\":\"abc\",\"contentHashAtLaunch\":\"def\",\"launchSnapshot\":{\"refs\":{}}}",
+    "sentence": "its \"launchSnapshot.hooksFolderDigest\" is not text or null"
+  }
+]

@@ -5,8 +5,8 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { Epic }                                from '../../lib/tracker-model/@types/Epic.ts';
-import type { Ticket }                              from '../../lib/tracker-model/@types/Ticket.ts';
+import type { Epic }                                from '../../domain/tracker-model/@types/Epic.ts';
+import type { Ticket }                              from '../../domain/tracker-model/@types/Ticket.ts';
 import { boardFixture, epicFixture, ticketFixture } from '../../testing/BoardFixtures.ts';
 import { loadedRecordFixture }                      from '../../testing/TicketDocumentRecordFixtures.ts';
 import { boardFactsOf }                             from './BoardFacts.ts';

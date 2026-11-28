@@ -2,7 +2,7 @@
  * Ticket document records and document agent jobs built by hand, for the specs of Hephaestus's document sessions, which run before the
  * Board's own document moves write them. Every version names its text by content hash, as the store loads it.
  */
-import type { Job }    from '../lib/tracker-model/@types/Job.ts';
+import type { Job }    from '../domain/tracker-model/@types/Job.ts';
 import type {
   DocumentApproval,
   DocumentMessage,
@@ -10,9 +10,9 @@ import type {
   LoadedTicketDocumentRecord,
   TicketDocument,
   TicketDocumentKind
-} from '../lib/tracker-model/@types/TicketDocument.ts';
-import { DocumentAgentJobUtil }      from '../lib/tracker-model/utils/DocumentAgentJobUtil.ts';
-import { TicketDocumentVersionUtil } from '../lib/tracker-model/utils/TicketDocumentVersionUtil.ts';
+} from '../domain/tracker-model/@types/TicketDocument.ts';
+import { DocumentAgentJobUtil }      from '../domain/tracker-model/utils/DocumentAgentJobUtil.ts';
+import { TicketDocumentVersionUtil } from '../domain/tracker-model/utils/TicketDocumentVersionUtil.ts';
 
 export const DOCUMENT_FIXTURE_AT = '2026-11-24T10:00:00.000Z';
 

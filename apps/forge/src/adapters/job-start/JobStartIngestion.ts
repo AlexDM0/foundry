@@ -1,8 +1,9 @@
 /** `start.json`, what a worktree job's first launch kept for its verification, read into the job's start: read, validate, map. */
-import type { EntityKey }         from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { EntityKey }         from '../../domain/tracker-model/@types/Pipeline.ts';
 import type { LaunchSnapshot }    from '../@types/LaunchSnapshot.ts';
 import { JobFileShapeUtil }       from '../utils/JobFileShapeUtil.ts';
 import { StoredJsonDocumentUtil } from '../utils/StoredJsonDocumentUtil.ts';
+import type { JobStartProblem }   from './@types/JobStartProblem.ts';
 
 export const JOB_START_FORMAT_VERSION = 1;
 
@@ -21,7 +22,7 @@ export interface JobStart {
 export type JobStartReading =
   | { verdict: 'readable'; start: JobStart }
   | { verdict: 'absent' }
-  | { verdict: 'unreadable'; reason: string };
+  | { verdict: 'unreadable'; problem: JobStartProblem };
 
 export class JobStartIngestion {
   constructor(private readonly startFilePath: string) {}
@@ -31,14 +32,14 @@ export class JobStartIngestion {
     const stored = StoredJsonDocumentUtil.documentAt(this.startFilePath, JOB_START_FORMAT_VERSION);
     if (stored.verdict !== 'readable') return stored;
     const { document } = stored;
-    const problem = JobFileShapeUtil.firstFieldProblemOf(document, {
+    const problem = JobFileShapeUtil.firstMistypedFieldOf(document, {
       startCommit:              [JobFileShapeUtil.valueIsText, 'text'],
       contentHashAtLaunch:      [JobFileShapeUtil.valueIsText, 'text'],
       documentVersionsAtLaunch: [JobFileShapeUtil.optional(JobFileShapeUtil.valueIsText), 'text'],
-      homeEntity:               [JobFileShapeUtil.optional(JobFileShapeUtil.valueIsText), 'an entity key'],
-      dependentsFixedInGroup:   [JobFileShapeUtil.optional(JobFileShapeUtil.valueIsATextList), 'a list of entity keys'],
-    }) ?? JobFileShapeUtil.launchSnapshotProblemOf(document['launchSnapshot']);
-    if (problem !== null) return { verdict: 'unreadable', reason: problem };
+      homeEntity:               [JobFileShapeUtil.optional(JobFileShapeUtil.valueIsText), 'an-entity-key'],
+      dependentsFixedInGroup:   [JobFileShapeUtil.optional(JobFileShapeUtil.valueIsATextList), 'a-list-of-entity-keys'],
+    }) ?? JobFileShapeUtil.launchSnapshotMistypedFieldOf(document['launchSnapshot']);
+    if (problem !== null) return { verdict: 'unreadable', problem };
     const snapshot = document['launchSnapshot'] as LaunchSnapshot;
     const documentVersionsAtLaunch = document['documentVersionsAtLaunch'] as string | undefined;
     const homeEntity = document['homeEntity'] as EntityKey | undefined;

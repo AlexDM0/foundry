@@ -14,11 +14,11 @@ import type {
   BoardTodayDocument
 } from 'forge-contracts/BoardReadingDocuments';
 
-import type { PipelineAgentRole }                                                                              from '../../../lib/tracker-model/@types/Pipeline.ts';
-import type { Task }                                                                                           from '../../../lib/tracker-model/@types/Task.ts';
-import type { JobOffers, TicketOffers }                                                                        from '../../../lib/tracker-model/MoveOffers.ts';
-import { CONCURRENCY_LIMIT_CEILING_AGENTS, DEFAULT_CONCURRENCY_LIMIT_AGENTS, LOWEST_CONCURRENCY_LIMIT_AGENTS } from '../../../lib/tracker-model/constants/ConcurrencyLimits.ts';
-import { jobStopHoldOf }                                                                                       from '../../../lib/tracker-model/constants/JobStopHolds.ts';
+import type { PipelineAgentRole }                                                                              from '../../../domain/tracker-model/@types/Pipeline.ts';
+import type { Task }                                                                                           from '../../../domain/tracker-model/@types/Task.ts';
+import type { JobOffers, TicketOffers }                                                                        from '../../../domain/tracker-model/MoveOffers.ts';
+import { CONCURRENCY_LIMIT_CEILING_AGENTS, DEFAULT_CONCURRENCY_LIMIT_AGENTS, LOWEST_CONCURRENCY_LIMIT_AGENTS } from '../../../domain/tracker-model/constants/ConcurrencyLimits.ts';
+import { jobStopHoldOf }                                                                                       from '../../../domain/tracker-model/constants/JobStopHolds.ts';
 import {
   DEFAULT_APPROVALS,
   DEFAULT_DOCUMENTS_OF_ROLE,
@@ -27,15 +27,15 @@ import {
   type DocumentReadingRole,
   FIXED_DOCUMENTS_OF_ROLE,
   RE_REVIEW_THRESHOLD_STEP_LINES
-} from '../../../lib/tracker-model/constants/PipelineDefaults.ts';
-import { FIRST_REPEAT_REVIEW_ROUND }         from '../../../lib/tracker-model/constants/ReviewRounds.ts';
+} from '../../../domain/tracker-model/constants/PipelineDefaults.ts';
+import { FIRST_REPEAT_REVIEW_ROUND }         from '../../../domain/tracker-model/constants/ReviewRounds.ts';
 import {
   TICKET_STATUSES_NO_AGENT_HAS_PICKED_UP,
   TICKET_STATUSES_THAT_CLOSE_A_TICKET,
   TICKET_STATUSES_THAT_SETTLE_A_DEPENDENCY
-} from '../../../lib/tracker-model/constants/Statuses.ts';
-import { DEFAULT_TICKET_PRIORITY }                                 from '../../../lib/tracker-model/constants/TicketFields.ts';
-import { TicketDefaultsUtil }                                      from '../../../lib/tracker-model/utils/TicketDefaultsUtil.ts';
+} from '../../../domain/tracker-model/constants/Statuses.ts';
+import { DEFAULT_TICKET_PRIORITY }                                 from '../../../domain/tracker-model/constants/TicketFields.ts';
+import { TicketDefaultsUtil }                                      from '../../../domain/tracker-model/utils/TicketDefaultsUtil.ts';
 import type { PageTicket, PageTicketFacts }                        from '../../../shared/@types/PagePayload.ts';
 import { DISPATCH_PROTOCOL }                                       from '../../../shared/constants/DispatchProtocol.ts';
 import { DEFAULT_AGENT_PAIR_OF_ROLE, WORKER_EFFORT, WORKER_MODEL } from '../../../shared/constants/HephaestusLimits.ts';
@@ -43,6 +43,7 @@ import type { AttentionEntry }                                     from '../../.
 import type { TodayFigures }                                       from '../../../shared/monitor/TodayFigures.ts';
 import { type HeaderWarningFacts, NoticeWordingUtil }              from '../../../shared/monitor/utils/NoticeWordingUtil.ts';
 import { RefusalDocumentUtil }                                     from '../../utils/RefusalDocumentUtil.ts';
+import { UnreadableFileProblemWordingUtil }                        from '../../utils/UnreadableFileProblemWordingUtil.ts';
 import { BoardPipelineMappingUtil }                                from './BoardPipelineMappingUtil.ts';
 
 /** The limits forge's rules apply, beside the page's figures in `limits`. */
@@ -98,7 +99,11 @@ function noticesOf(notices: readonly unknown[]): BoardNoticeDocument[] {
 /** The header's warnings as the monitor serves them, with the facts each sentence names. */
 function warningsOf(notices: readonly unknown[], header: HeaderWarningFacts): BoardNoticeDocument[] {
   return NoticeWordingUtil.wordedWarningsOf(NoticeWordingUtil.noticeFactsIn(notices), header)
-    .map((warning) => ({ kind: warning.kind, facts: { ...warning.facts }, sentence: warning.text }));
+    .map((warning) => ({
+      kind:     warning.kind,
+      facts:    warning.problem === undefined ? { ...warning.facts } : { ...warning.facts, reason: UnreadableFileProblemWordingUtil.sentenceOfCarried(warning.problem) },
+      sentence: warning.text,
+    }));
 }
 
 function todayOf(calendarDate: string, figures: TodayFigures): BoardTodayDocument {

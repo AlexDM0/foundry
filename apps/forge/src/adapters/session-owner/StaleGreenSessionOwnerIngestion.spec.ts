@@ -11,6 +11,7 @@ import {
   test,
 } from 'bun:test';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import type { StaleGreenSessionOwnerProblem }             from './@types/StaleGreenSessionOwnerProblem.ts';
 import { StaleGreenSessionOwnerIngestion }                from './StaleGreenSessionOwnerIngestion.ts';
 import { createStaleGreenSessionOwnerWriter }             from './StaleGreenSessionOwnerWriter.ts';
 
@@ -40,18 +41,18 @@ test.each([['an ended job', 'J1'], ['no ended session', null]])('what the writer
   expect(reading()).toEqual({ verdict: 'readable', sessionOwnerJobId });
 });
 
-test.each([
-  ['not JSON', '{', 'it is not valid JSON'],
-  ['no version', '{"sessionOwnerJobId":"J1"}', 'its version is not 1'],
-  ['another version', '{"version":2,"sessionOwnerJobId":"J1"}', 'its version is not 1'],
-  ['no owner', '{"version":1}', '"sessionOwnerJobId" is neither a job id nor null'],
-  ['an owner that is no string', '{"version":1,"sessionOwnerJobId":7}', '"sessionOwnerJobId" is neither a job id nor null'],
-  ['an empty owner', '{"version":1,"sessionOwnerJobId":""}', '"sessionOwnerJobId" is neither a job id nor null'],
-])('%s is unreadable, never a throw', (_case, storedText, reason) => {
+test.each<[string, string, Partial<StaleGreenSessionOwnerProblem>]>([
+  ['not JSON', '{', { code: 'not-json' }],
+  ['no version', '{"sessionOwnerJobId":"J1"}', { code: 'version-differs', field: 'version', expectedVersion: 1 }],
+  ['another version', '{"version":2,"sessionOwnerJobId":"J1"}', { code: 'version-differs', field: 'version', expectedVersion: 1 }],
+  ['no owner', '{"version":1}', { code: 'neither-a-job-id-nor-null', field: 'sessionOwnerJobId' }],
+  ['an owner that is no string', '{"version":1,"sessionOwnerJobId":7}', { code: 'neither-a-job-id-nor-null', field: 'sessionOwnerJobId' }],
+  ['an empty owner', '{"version":1,"sessionOwnerJobId":""}', { code: 'neither-a-job-id-nor-null', field: 'sessionOwnerJobId' }],
+])('%s is unreadable, never a throw', (_case, storedText, problem) => {
   writeFileSync(ownerFilePath, storedText);
 
   const ownerReading = reading();
 
   expect(ownerReading.verdict).toBe('unreadable');
-  expect(ownerReading.verdict === 'unreadable' ? ownerReading.reason : '').toContain(reason);
+  expect(ownerReading.verdict === 'unreadable' ? ownerReading.problem : null).toMatchObject(problem);
 });

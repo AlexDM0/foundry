@@ -13,7 +13,7 @@ import {
 
 import type { ForgeStreamEvent, ForgeStreamFollow, MonitorFollowEnd }     from '../../lib/forge-client/@types/ForgeClientAnswer.ts';
 import { forgeClientOf }                                                  from '../../lib/forge-client/ForgeClient.ts';
-import { SUPPORTED_FORGE_VERSION }                                        from '../../lib/forge-client/constants/SupportedForgeVersions.ts';
+import { SUPPORTED_FORGE_VERSION }                                        from '../../shared/constants/SupportedForgeVersions.ts';
 import { manualTimers, type ManualTimers }                                from '../../testing/ManualTimers.ts';
 import type { RecordedHephaestusFetch }                                   from '../../testing/RecordedAnswers.ts';
 import { createBoardStreams, type BoardStreams, type RelayStreamRequest } from './BoardStreams.ts';
@@ -43,7 +43,7 @@ afterEach(() => {
 });
 
 function boardEventsRequest(mapEvent: RelayStreamRequest['mapEvent'] = (event) => ({ verdict: 'relayed', event: { eventName: event.eventName, data: '{}' } })): RelayStreamRequest {
-  const forgeClient = forgeClientOf({ hephaestusFetch });
+  const forgeClient = forgeClientOf({ supportedForgeVersion: SUPPORTED_FORGE_VERSION, hephaestusFetch });
   return {
     trackerId:          STOREFRONT_TRACKER_ID,
     forgeSystemVersion: SUPPORTED_FORGE_VERSION,

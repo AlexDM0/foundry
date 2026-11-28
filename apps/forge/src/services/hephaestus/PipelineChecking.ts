@@ -5,14 +5,16 @@
  */
 import { existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { join }                               from 'node:path';
+import type { HephaestusLog }                 from '../../adapters/@types/HephaestusLogRecord.ts';
 
+import type { PipelineCheckProblem }                                                      from '../../adapters/pipeline/PipelineCheckProblemWording.ts';
+import type { EntityKey }                                                                 from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { PipelineCheckEnding, PipelineCheckResult, PipelineCheckStart }              from '../../domain/tracker-model/@types/PipelineSetup.ts';
+import type { Board }                                                                     from '../../domain/tracker-model/Board.ts';
+import { CHECK_OUTPUT_LIMIT_CHARACTERS, NO_TOUCHED_GATE_REASON }                          from '../../domain/tracker-model/constants/PipelineSetupVocabulary.ts';
 import { GitProcess }                                                                     from '../../lib/git/GitProcess.ts';
 import { GitWorktrees, REAL_WORKTREE_REMOVAL_PRIMITIVES, type WorktreeRemovalPrimitives } from '../../lib/git/GitWorktrees.ts';
 import type { PlatformPorts }                                                             from '../../lib/platform-ports/PlatformPortsFor.ts';
-import type { EntityKey }                                                                 from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { PipelineCheckEnding, PipelineCheckResult, PipelineCheckStart }              from '../../lib/tracker-model/@types/PipelineSetup.ts';
-import type { Board }                                                                     from '../../lib/tracker-model/Board.ts';
-import { CHECK_OUTPUT_LIMIT_CHARACTERS, NO_TOUCHED_GATE_REASON }                          from '../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
 import type { SetupMessage }                                                              from '../../shared/@types/ControlContext.ts';
 import { EntityFoldersUtil }                                                              from '../../shared/utils/EntityFoldersUtil.ts';
 import { messagedToTheSetupAgent }                                                        from '../control/PipelineSetupControls.ts';
@@ -49,13 +51,15 @@ export interface PipelineCheckingContext {
   hold:                  <Result>(mutate: (hold: PipelineCheckHold) => Result) => Promise<Result>;
   /** Asks for a pass, so a waiting gate may take the freed slot. */
   wake:                  () => void;
-  log:                   (line: string) => void;
+  log:                   HephaestusLog;
   runProposalTwice:      typeof ProposalTwiceRun.runProposalTwice;
   runLine:               LineRunner;
   /** Sends `stop` to every live line under the folder and waits, bounded, for their ends. */
   stopLiveLinesUnder:    (folder: string) => Promise<void>;
   /** Words the check's end for the pipeline agent, since only `cli/` holds words. */
   setupMessageWordingOf: (message: SetupMessage) => string;
+  /** Why the check could not run, as its stored `cannot-run` reason names it. */
+  checkReasonSentenceOf: (problem: PipelineCheckProblem) => string;
   removalPrimitives?:    WorktreeRemovalPrimitives;
 }
 
@@ -130,7 +134,7 @@ function createPipelineChecking(context: PipelineCheckingContext): PipelineCheck
 
   function removeWorktree(worktreePath: string): void {
     const removal = GitWorktrees.removeWithRetry({ repositoryDirectory: repositoryRoot, worktreePath, force: 'force' }, removalPrimitives);
-    if (removal.verdict === 'left') context.log(`The pipeline check worktree ${worktreePath} is a leftover: ${removal.reason}`);
+    if (removal.verdict === 'left') context.log({ kind: 'pipeline-check-worktree-left-over', worktreePath, problem: removal.problem });
   }
 
   /** The record keeps the end, and the session of the check's level hears it in the same hold; a record that moved on keeps nothing. */
@@ -146,7 +150,7 @@ function createPipelineChecking(context: PipelineCheckingContext): PipelineCheck
     const snapshotCommit = GitProcess.resolvedCommitOf(repositoryRoot, context.mainLine);
     if (snapshotCommit === null) return { state: 'cannot-run', reason: MAIN_LINE_UNRESOLVED_REASON };
     const added = GitProcess.run(repositoryRoot, ['worktree', 'add', '--quiet', '--detach', worktreePath, snapshotCommit]);
-    if (!GitProcess.succeeded(added)) return { state: 'cannot-run', reason: GitProcess.failureReasonOf(added, ['worktree', 'add']) };
+    if (!GitProcess.succeeded(added)) return { state: 'cannot-run', reason: context.checkReasonSentenceOf(GitProcess.failureOf(added, ['worktree', 'add'])) };
     const { signal: stopSignal } = running.stopController;
     const checkedSteps = rootedStartOf(started);
     const record = await context.runProposalTwice({
@@ -161,7 +165,7 @@ function createPipelineChecking(context: PipelineCheckingContext): PipelineCheck
       snapshotCommit,
       grantsWrites:   false,
     });
-    return 'verdict' in record ? { state: 'cannot-run', reason: record.reason } : { state: 'checked', result: checkResultOf(record) };
+    return 'verdict' in record ? { state: 'cannot-run', reason: context.checkReasonSentenceOf(record.refusal) } : { state: 'checked', result: checkResultOf(record) };
   }
 
   /** Never throws: a failure is logged, and the check reads `stopped` at the next start. */
@@ -185,7 +189,7 @@ function createPipelineChecking(context: PipelineCheckingContext): PipelineCheck
         else recordEnding(board, level, ending, at);
       });
     } catch (failure) {
-      context.log(`Pipeline check of setup ${setupId} failed and waits for the next start: ${failure instanceof Error ? failure.message : String(failure)}`);
+      context.log({ kind: 'pipeline-check-failed', setupId, thrownMessage: failure instanceof Error ? failure.message : String(failure) });
     } finally {
       context.gateSlots.release(holder);
       if (existsSync(worktreePath)) removeWorktree(worktreePath);

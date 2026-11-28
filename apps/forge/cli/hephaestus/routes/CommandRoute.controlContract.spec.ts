@@ -14,7 +14,7 @@ import type { ForgeControlCommand } from 'forge-contracts/ForgeControlCommand';
 
 import { MachineLimitsFile }                             from '../../../src/adapters/machine-limits/MachineLimitsFile.ts';
 import { OperationRefusalWordingUtil }                   from '../../../src/adapters/utils/OperationRefusalWordingUtil.ts';
-import { CONCURRENCY_LIMIT_CEILING_AGENTS }              from '../../../src/lib/tracker-model/constants/ConcurrencyLimits.ts';
+import { CONCURRENCY_LIMIT_CEILING_AGENTS }              from '../../../src/domain/tracker-model/constants/ConcurrencyLimits.ts';
 import { localStoreLayoutOf }                            from '../../../src/services/tracker/LocalStoreLayout.ts';
 import { requireWorkspace }                              from '../../../src/services/tracker/Workspace.ts';
 import type { ControlCommandOf }                         from '../../../src/shared/@types/ControlCommand.ts';

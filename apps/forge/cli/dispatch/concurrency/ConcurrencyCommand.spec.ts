@@ -11,7 +11,7 @@ import {
   expect,
   test
 }                                                                             from 'bun:test';
-import type { Job, JobKind, JobRole }             from '../../../src/lib/tracker-model/@types/Job.ts';
+import type { Job, JobKind, JobRole }             from '../../../src/domain/tracker-model/@types/Job.ts';
 import { localStoreLayoutOf }                     from '../../../src/services/tracker/LocalStoreLayout.ts';
 import { workspacePathsFor }                      from '../../../src/services/tracker/Workspace.ts';
 import { useRecordedGit }                         from '../../../src/testing/RecordedGit.ts';

@@ -1,8 +1,8 @@
 /** Maps the Board's answers into the fields `status --json` carries for Hephaestus and an orchestrator, the ticket defaults resolved. */
-import type { Task }          from '../../lib/tracker-model/@types/Task.ts';
-import type { Ticket }        from '../../lib/tracker-model/@types/Ticket.ts';
-import type { Board }         from '../../lib/tracker-model/Board.ts';
-import { TicketDefaultsUtil } from '../../lib/tracker-model/utils/TicketDefaultsUtil.ts';
+import type { Task }          from '../../domain/tracker-model/@types/Task.ts';
+import type { Ticket }        from '../../domain/tracker-model/@types/Ticket.ts';
+import type { Board }         from '../../domain/tracker-model/Board.ts';
+import { TicketDefaultsUtil } from '../../domain/tracker-model/utils/TicketDefaultsUtil.ts';
 import type {
   InProgressIds,
   PausedBuildEntry,
@@ -13,6 +13,7 @@ import type {
   TicketRowEntry,
   TicketRowsEntry
 }                             from '../@types/StatusDocumentFields.ts';
+import { UnreadableFileProblemWordingUtil } from './UnreadableFileProblemWordingUtil.ts';
 
 function inProgressIdsOf(board: Board): InProgressIds {
   return { inProgressTicketIds: board.inProgressTicketIds(), inProgressReviewOfIds: board.inProgressReviewOfIds() };
@@ -63,9 +64,12 @@ function jobsOf(board: Board): StatusJobs {
   return { jobs: board.jobs() };
 }
 
-/** Carried by both documents, each empty when none is open, as `jobsOf`. */
+/** Carried by both documents, each empty when none is open, as `jobsOf`; an unreadable file's incident facts are served worded. */
 function decisionsAndIncidentsOf(board: Board): StatusDecisionsAndIncidents {
-  return { decisions: board.decisions(), incidents: board.incidents() };
+  return {
+    decisions: board.decisions(),
+    incidents: board.incidents().map((incident) => ({ ...incident, facts: UnreadableFileProblemWordingUtil.wordedIncidentFactsOf(incident) })),
+  };
 }
 
 export const StatusDocumentUtil = {

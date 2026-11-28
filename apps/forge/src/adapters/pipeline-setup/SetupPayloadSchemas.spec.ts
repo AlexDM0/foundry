@@ -4,7 +4,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { PipelineDraftEdit, ResearchScript } from '../../lib/tracker-model/@types/PipelineSetup.ts';
+import type { PipelineDraftEdit, ResearchScript } from '../../domain/tracker-model/@types/PipelineSetup.ts';
 import { SetupPayloadSchemas }                    from './SetupPayloadSchemas.ts';
 
 const QUESTION = {

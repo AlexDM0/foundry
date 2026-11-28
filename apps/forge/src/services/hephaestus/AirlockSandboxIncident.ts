@@ -2,26 +2,29 @@
  * An Airlock agent whose worktree's denied root cannot be made does not launch, and the Airlock waits on it. The `sandbox-unavailable` incident
  * tells the Assistant so; the launch is tried again each pass, and opens no second incident while the first stands. The launch that succeeds closes it.
  */
-import type { Incident }                    from '../../lib/tracker-model/@types/Incident.ts';
-import type { LogRecord }                   from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Board }                       from '../../lib/tracker-model/Board.ts';
+import type { Incident }                    from '../../domain/tracker-model/@types/Incident.ts';
+import type { LogRecord }                   from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { Board }                       from '../../domain/tracker-model/Board.ts';
+import type { LineRefusal }                 from '../../shared/@types/LineRefusal.ts';
+import { StepProblemFactsUtil }             from '../../shared/utils/StepProblemFactsUtil.ts';
 import { type FolderMaker, WorkerProfiles } from './WorkerProfiles.ts';
 
 /** The `step` a refused Airlock agent launch names in its incident. */
 const AIRLOCK_AGENT_LAUNCH_STEP = 'airlock-agent';
 
+/** An Airlock agent whose launch was refused: a denied root could not be made, or forge's confinement refused its session. */
 export interface UnmadeAirlockAgentRoot {
-  jobId:  string;
-  reason: string;
+  jobId:   string;
+  refusal: LineRefusal;
 }
 
 function unmadeRootOf(
   jobId: string,
-  facts: Parameters<typeof WorkerProfiles.unmadeDeniedRootRefusalOf>[0],
+  facts: Parameters<typeof WorkerProfiles.unmadeDeniedRootOf>[0],
   folderMaker?: FolderMaker,
 ): UnmadeAirlockAgentRoot | null {
-  const reason = WorkerProfiles.unmadeDeniedRootRefusalOf(facts, folderMaker);
-  return reason === null ? null : { jobId, reason };
+  const deniedRoot = WorkerProfiles.unmadeDeniedRootOf(facts, folderMaker);
+  return deniedRoot === null ? null : { jobId, refusal: { code: 'denied-root-unmade', deniedRoot } };
 }
 
 /** Opens the incident unless one stands open for the job, or the job has left the board; answers what it logged. */
@@ -34,7 +37,7 @@ function openOnce(board: Board, unmadeRoot: UnmadeAirlockAgentRoot, at: string):
     kind:        'sandbox-unavailable',
     ticketIds:   job.ticketIds,
     jobId:       job.id,
-    facts:       { step: AIRLOCK_AGENT_LAUNCH_STEP, reason: unmadeRoot.reason },
+    facts:       { step: AIRLOCK_AGENT_LAUNCH_STEP, ...StepProblemFactsUtil.factsOf(unmadeRoot.refusal) },
     defaultMove: 'gate-retry',
   }, at).logged;
 }

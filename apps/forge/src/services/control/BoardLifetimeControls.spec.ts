@@ -6,7 +6,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import { OperationRefusalWordingUtil }                          from '../../adapters/utils/OperationRefusalWordingUtil.ts';
-import type { Board }                                           from '../../lib/tracker-model/Board.ts';
+import type { Board }                                           from '../../domain/tracker-model/Board.ts';
 import type { ControlCommand }                                  from '../../shared/@types/ControlCommand.ts';
 import { OperationRefusal, type OperationRefusalDetail }        from '../../shared/OperationRefusal.ts';
 import { boardFixture, ticketFixture }                          from '../../testing/BoardFixtures.ts';

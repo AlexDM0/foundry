@@ -3,6 +3,7 @@
  * with the forge up or down, and takes no lock.
  */
 import type { CrashLogJob, CrashLogRecord }        from '../../src/adapters/crash-log/@types/CrashLogRecord.ts';
+import { CrashLogProblemWording }                  from '../../src/adapters/crash-log/CrashLogProblemWording.ts';
 import type { StartClassificationVerdict }         from '../../src/adapters/presence/@types/StartClassificationVerdict.ts';
 import { CrashLog }                                from '../../src/services/hephaestus/CrashLog.ts';
 import { hephaestusFilesIn, type HephaestusFiles } from '../../src/services/hephaestus/HephaestusFiles.ts';
@@ -98,7 +99,9 @@ export const crashLogCommand: CommandHandler = (commandArguments, context) => {
   const path = CrashLog.pathOf(files, crashLogNumber);
   const reading = CrashLog.read(files, crashLogNumber);
   if (reading.verdict === 'absent') throw new OperationRefusal('refused', { kind: 'no-crash-log', number: crashLogNumber });
-  if (reading.verdict === 'unreadable') throw new OperationRefusal('unrepaired', `Crash log ${crashLogNumber} (${path}) cannot be read: ${reading.reason}.`);
+  if (reading.verdict === 'unreadable') {
+    throw new OperationRefusal('unrepaired', `Crash log ${crashLogNumber} (${path}) cannot be read: ${CrashLogProblemWording.sentenceOf(reading.problem)}.`);
+  }
   OutputUtil.printEntity(commandArguments, context, { number: crashLogNumber, path, ...reading.record }, crashLogTextOf(crashLogNumber, path, reading.record));
   return Promise.resolve();
 };

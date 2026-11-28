@@ -1,10 +1,10 @@
 /** A validated log.jsonl line rebuilt as the model's record: only its kind's known keys, in the order the logger writes them. */
-import type { GateRunCacheReports, PictureReference } from '../../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord, LogRecordKind }              from '../../../lib/tracker-model/@types/LogRecord.ts';
-import type { AgentPair }                             from '../../../lib/tracker-model/@types/Ticket.ts';
-import type { ViewRange }                             from '../../../lib/tracker-model/@types/TrackerProgress.ts';
-import type { LogFieldShape }                         from '../../../lib/tracker-model/constants/LogRecordSchema.ts';
-import { LOG_RECORD_SCHEMA, LOG_RECORD_SUBJECT_IDS }  from '../../../lib/tracker-model/constants/LogRecordSchema.ts';
+import type { GateRunCacheReports, PictureReference } from '../../../domain/tracker-model/@types/Job.ts';
+import type { LogRecord, LogRecordKind }              from '../../../domain/tracker-model/@types/LogRecord.ts';
+import type { AgentPair }                             from '../../../domain/tracker-model/@types/Ticket.ts';
+import type { ViewRange }                             from '../../../domain/tracker-model/@types/TrackerProgress.ts';
+import type { LogFieldShape }                         from '../../../domain/tracker-model/constants/LogRecordSchema.ts';
+import { LOG_RECORD_SCHEMA, LOG_RECORD_SUBJECT_IDS }  from '../../../domain/tracker-model/constants/LogRecordSchema.ts';
 import type { LogFileReading, StoredLogReading }      from '../@types/StoredLog.ts';
 import { ReviewRecordFieldsUtil }                     from './ReviewRecordFieldsUtil.ts';
 

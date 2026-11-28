@@ -14,8 +14,6 @@ export type GuardCommandVerdict =
   | { readonly verdict: 'found'; readonly command: readonly string[] }
   | { readonly verdict: 'refused'; readonly part: GuardCommandPart; readonly cause: GuardCommandCause; readonly path: string | null };
 
-const PART_NAMES: Readonly<Record<GuardCommandPart, string>> = { 'runtime': 'the Bun runtime', 'entry-script': 'the entry script' };
-
 function realPathOrItselfOf(path: string): string {
   try {
     return realpathSync(path);
@@ -49,14 +47,4 @@ function guardCommandOf(programCommand: readonly string[], repositoryRoot: strin
     ?? { verdict: 'found', command: [...programCommand] };
 }
 
-function refusalReasonOf(refusal: Extract<GuardCommandVerdict, { verdict: 'refused' }>, repositoryRoot: string): string {
-  const partName = PART_NAMES[refusal.part];
-  if (refusal.path === null) return `${partName} is not in Hephaestus's command`;
-  if (refusal.cause === 'missing') return `${partName} ${refusal.path} is not an absolute path to a file`;
-  return `${partName} ${refusal.path} lies inside the repository ${repositoryRoot}`;
-}
-
-export const GuardCommand = Object.freeze({
-  guardCommandOf,
-  refusalReasonOf,
-});
+export const GuardCommand = Object.freeze({ guardCommandOf, });

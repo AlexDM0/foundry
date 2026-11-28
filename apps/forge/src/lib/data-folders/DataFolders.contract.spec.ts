@@ -1,5 +1,6 @@
 /** One contract for the `DataFolders` port: every folder is absolute under the adapter's own path module; no adapter must still start. */
 import { tmpdir } from 'node:os';
+import { join }   from 'node:path';
 
 import { expect, test } from 'bun:test';
 
@@ -15,7 +16,8 @@ const CLAUSES: readonly PortClause<DataFolders>[] = [{
     const { pathModule } = dataFolders;
     expect(dataFolders.temporaryRoots().every((root) => pathModule.isAbsolute(root))).toBe(true);
     expect(dataFolders.temporaryRoots().length).toBeGreaterThan(0);
-    expect(pathModule.isAbsolute(dataFolders.systemFolder())).toBe(true);
+    const systemFolder = dataFolders.systemFolder();
+    expect(systemFolder.verdict === 'found' && pathModule.isAbsolute(systemFolder.folder)).toBe(true);
     expect(dataFolders.monitorFolderOf('/Users/alex-example')).toBe(pathModule.join('/Users/alex-example', '.example-monitor'));
     expect(dataFolders.temporaryFolderOf({})).toBeNull();
   },
@@ -61,10 +63,10 @@ test('Windows folders join with a backslash and the root is the machine\'s own',
 test('the Windows system folder sits under SystemRoot, a Windows off C: included, and none is guessed without a drive-absolute one', () => {
   const temporaryDirectory = (): string => 'D:\\Example\\Temporary';
   const dataFoldersUnder = (systemRoot: string | undefined): DataFolders => createWindowsDataFolders({ temporaryDirectory, monitorFolderName: '', systemRoot: () => systemRoot });
-  expect(dataFoldersUnder('D:\\Windows').systemFolder()).toBe('D:\\Windows\\System32');
-  expect(dataFoldersUnder('D:\\Windows\\').systemFolder()).toBe('D:\\Windows\\System32');
+  expect(dataFoldersUnder('D:\\Windows').systemFolder()).toEqual({ verdict: 'found', folder: 'D:\\Windows\\System32' });
+  expect(dataFoldersUnder('D:\\Windows\\').systemFolder()).toEqual({ verdict: 'found', folder: 'D:\\Windows\\System32' });
   for (const unusableRoot of [undefined, '', 'Windows', '\\Windows']) {
-    expect(() => dataFoldersUnder(unusableRoot).systemFolder()).toThrow('SystemRoot');
+    expect(dataFoldersUnder(unusableRoot).systemFolder()).toEqual({ verdict: 'refused', cause: 'no-drive-absolute-system-root' });
   }
 });
 
@@ -81,10 +83,10 @@ test('Windows names bin and Scripts as executable folders and four runnable exte
   expect(dataFoldersFor('darwin', '').executableFileExtensions).toEqual([]);
 });
 
-test('a platform with no adapter keeps the machine\'s own scratch root, so a process starts, and refuses a folder', () => {
+test('a platform with no adapter keeps the machine\'s own scratch root and monitor folder, so a process starts, and refuses the system folder', () => {
   const dataFolders = dataFoldersFor('example-platform', '.example-monitor');
   expect(dataFolders.temporaryRoots()).toEqual([tmpdir()]);
   expect(dataFolders.temporaryFolderOf({ TMPDIR: '/example' })).toBeNull();
-  expect(() => dataFolders.monitorFolderOf('/home')).toThrow('example-platform');
-  expect(() => dataFolders.systemFolder()).toThrow('example-platform');
+  expect(dataFolders.monitorFolderOf('/home')).toBe(join('/home', '.example-monitor'));
+  expect(dataFolders.systemFolder()).toEqual({ verdict: 'refused', cause: 'no-adapter' });
 });

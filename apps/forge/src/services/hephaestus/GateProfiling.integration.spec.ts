@@ -7,7 +7,8 @@ import { join }                     from 'node:path';
 
 import { afterEach, beforeEach, expect } from 'bun:test';
 
-import type { Board }                                                             from '../../lib/tracker-model/Board.ts';
+import { TurboConfigurationProblemWording }                                       from '../../adapters/turbo-configuration/TurboConfigurationProblemWording.ts';
+import type { Board }                                                             from '../../domain/tracker-model/Board.ts';
 import type { ControlCommand }                                                    from '../../shared/@types/ControlCommand.ts';
 import { environmentCopy }                                                        from '../../shared/Environment.ts';
 import { WorktreesFolder }                                                        from '../../shared/WorktreesFolder.ts';
@@ -104,6 +105,7 @@ function realProfiling(): ReturnType<typeof GateProfiling.createGateProfiling> {
     runGateLines:       (request) => GateLineRun.runOnce(request),
     runLine:            spawnedLineRunner,
     stopLiveLinesUnder: () => Promise.resolve(),
+    findingSentenceOf:  TurboConfigurationProblemWording.sentenceOf,
   });
 }
 

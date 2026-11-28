@@ -31,6 +31,7 @@ import type { ForgeReading }                                                    
 import type { GaiaCommand }                                                                             from '../../shared/@types/GaiaCommand.ts';
 import { CONTRACT_VERSIONS }                                                                            from '../../shared/constants/ContractVersions.ts';
 import { GAIA_SETTINGS_DEFAULTS }                                                                       from '../../shared/constants/GaiaSettingsDefaults.ts';
+import { SUPPORTED_FORGE_VERSION }                                                                      from '../../shared/constants/SupportedForgeVersions.ts';
 import {
   recordedHephaestusAnswersOf,
   recordedHephaestusFetch,
@@ -168,7 +169,7 @@ function controlOver(controlOptions: ControlOptions): ForgeControl {
   return createForgeControl({
     readRegistry: async () => registry,
     readings:     () => forges.map((forge) => forge.reading),
-    forgeClient:  forgeClientOf({ hephaestusFetch: controlOptions.hephaestusFetch ?? recordedHephaestusFetch([]) }),
+    forgeClient:  forgeClientOf({ supportedForgeVersion: SUPPORTED_FORGE_VERSION, hephaestusFetch: controlOptions.hephaestusFetch ?? recordedHephaestusFetch([]) }),
     forgeProgram: createForgeProgram({
       processRun:          controlOptions.processRun ?? recordedProcessRun([]),
       settingsProgramPath: () => settingsStore.settings().forgeProgramPath,

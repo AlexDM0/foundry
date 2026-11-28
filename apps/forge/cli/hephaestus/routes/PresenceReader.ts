@@ -2,12 +2,13 @@
  * The answers of `GET /api/presence` and `GET /api/crash-log`, read fresh from the board's files at each request and mapped into the
  * contract's documents by `PresenceDocumentAssembly`.
  */
+import { CrashLogProblemWording }                          from '../../../src/adapters/crash-log/CrashLogProblemWording.ts';
 import { RefusalDocumentUtil }                             from '../../../src/adapters/utils/RefusalDocumentUtil.ts';
+import { readingBoardOf }                                  from '../../../src/domain/tracker-model/ReadingBoard.ts';
 import type { PlatformPorts }                              from '../../../src/lib/platform-ports/PlatformPortsFor.ts';
-import { readingBoardOf }                                  from '../../../src/lib/tracker-model/ReadingBoard.ts';
 import { CrashLog }                                        from '../../../src/services/hephaestus/CrashLog.ts';
 import type { HephaestusFiles }                            from '../../../src/services/hephaestus/HephaestusFiles.ts';
-import type { RouteAnswer }                                from '../../../src/services/hephaestus/HephaestusServer.ts';
+import { HephaestusServer, type RouteAnswer }              from '../../../src/services/hephaestus/HephaestusServer.ts';
 import { Presence }                                        from '../../../src/services/hephaestus/Presence.ts';
 import { PresenceDocumentAssembly, type NumberedCrashLog } from '../../../src/services/hephaestus/PresenceDocumentAssembly.ts';
 import { PresenceStatus }                                  from '../../../src/services/hephaestus/PresenceStatus.ts';
@@ -25,19 +26,9 @@ export interface PresenceSource {
   unreadableBoardFiles: UnreadableBoardFiles;
 }
 
-const PRESENCE_STATUS = {
-  ANSWERED: 200,
-  STARTING: 503,
-} as const;
-
-const CRASH_LOG_STATUS = {
-  ANSWERED:     200,
-  NO_CRASH_LOG: 404,
-} as const;
-
 const CRASH_LOG_NUMBER_PATTERN = /^[1-9]\d*$/;
 
-const STARTING_ANSWER: RouteAnswer = { status: PRESENCE_STATUS.STARTING, body: { refusal: 'starting' } };
+const STARTING_ANSWER: RouteAnswer = HephaestusServer.routeAnswerOf('starting', { refusal: 'starting' });
 
 /**
  * Every crash log that can be read, oldest first; one that cannot is left out of the list, refused when asked for by its number, and
@@ -74,13 +65,13 @@ function presenceAnswerOf(source: PresenceSource, servedGeneration: number | nul
     limits:          LIFECYCLE_LIMITS,
     crashLogs:       readableCrashLogsOf(files, unreadableBoardFiles),
   });
-  return { status: PRESENCE_STATUS.ANSWERED, body: document };
+  return HephaestusServer.routeAnswerOf('answered', document);
 }
 
 /** Served as every refusal is: its code, its fields and the sentence the command line prints. */
 function noCrashLogAnswerOf(crashLogNumber: number | null): RouteAnswer {
   const { code, fields, sentence } = RefusalDocumentUtil.refusalDocumentOf(new OperationRefusal('refused', { kind: 'no-crash-log', number: crashLogNumber }));
-  return { status: CRASH_LOG_STATUS.NO_CRASH_LOG, body: { refusal: code, fields, text: sentence } };
+  return HephaestusServer.routeAnswerOf('not-found', { refusal: code, fields, text: sentence });
 }
 
 function writtenCrashLogNumberOf(writtenNumber: string): number | null {
@@ -93,8 +84,10 @@ function crashLogAnswerOf(files: HephaestusFiles, writtenNumber: string | null):
   if (crashLogNumber === null) return noCrashLogAnswerOf(null);
   const reading = CrashLog.read(files, crashLogNumber);
   if (reading.verdict === 'absent') return noCrashLogAnswerOf(crashLogNumber);
-  if (reading.verdict === 'unreadable') throw new Error(`Crash log ${crashLogNumber} cannot be read: ${reading.reason}.`);
-  return { status: CRASH_LOG_STATUS.ANSWERED, body: PresenceDocumentAssembly.crashLogDocumentOf(crashLogNumber, reading.record) };
+  if (reading.verdict === 'unreadable') {
+    throw new OperationRefusal('unrepaired', `Crash log ${crashLogNumber} cannot be read: ${CrashLogProblemWording.sentenceOf(reading.problem)}.`);
+  }
+  return HephaestusServer.routeAnswerOf('answered', PresenceDocumentAssembly.crashLogDocumentOf(crashLogNumber, reading.record));
 }
 
 export const PresenceReader = Object.freeze({ presenceAnswerOf, crashLogAnswerOf, readableCrashLogsOf });

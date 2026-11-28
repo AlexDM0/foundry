@@ -1,6 +1,6 @@
 import { chmodSync, mkdirSync, statSync } from 'node:fs';
 
-import type { OwnerOnlyFiles } from './OwnerOnlyFiles.ts';
+import type { OwnerOnlyFiles, OwnerOnlyRestriction } from './OwnerOnlyFiles.ts';
 
 export interface OwnerOnlyPrimitives {
   readonly createFolder: (folder: string, mode: number) => void;
@@ -12,6 +12,8 @@ export interface OwnerOnlyPrimitives {
 const OWNER_ONLY_FOLDER_MODE = 0o700;
 const OWNER_ONLY_FILE_MODE   = 0o600;
 const GROUP_AND_OTHER_BITS   = 0o077;
+/** A mode change that did not throw holds: the mode bits are the whole access rule. */
+const RESTRICTED: OwnerOnlyRestriction = Object.freeze({ verdict: 'restricted' });
 
 export const REAL_POSIX_OWNER_ONLY_PRIMITIVES: OwnerOnlyPrimitives = Object.freeze({
   createFolder: (folder: string, mode: number) => {
@@ -26,9 +28,13 @@ export function createPosixOwnerOnlyFiles({ createFolder, changeMode, modeOf }: 
     restrictFolder: (folder) => {
       createFolder(folder, OWNER_ONLY_FOLDER_MODE);
       changeMode(folder, OWNER_ONLY_FOLDER_MODE);
+      return RESTRICTED;
     },
-    restrictFile: (path) => changeMode(path, OWNER_ONLY_FILE_MODE),
-    isOwnerOnly:  (path) => {
+    restrictFile: (path) => {
+      changeMode(path, OWNER_ONLY_FILE_MODE);
+      return RESTRICTED;
+    },
+    isOwnerOnly: (path) => {
       try {
         return (modeOf(path) & GROUP_AND_OTHER_BITS) === 0;
       } catch {

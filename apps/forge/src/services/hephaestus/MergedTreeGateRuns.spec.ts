@@ -17,9 +17,10 @@ import {
   test
 } from 'bun:test';
 
-import type { MergedTreeGate }                            from '../../adapters/gate-outcome/@types/MergedTreeGate.ts';
+import type { MergedTreeGate, MergedTreeGateRunEnd }      from '../../adapters/gate-outcome/@types/MergedTreeGate.ts';
 import { MERGED_TREE_GATE_OUTCOME_FORMAT_VERSION }        from '../../adapters/gate-outcome/MergedTreeGateOutcomeIngestion.ts';
-import type { GateRunStamp }                              from '../../lib/tracker-model/@types/GatePhase.ts';
+import type { GateRunStamp }                              from '../../domain/tracker-model/@types/GatePhase.ts';
+import { detailsLoggerOf }                                from '../../testing/LoggedDetails.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { firstValueOf, waitUntil }                        from '../../testing/WaitUntil.ts';
 import { LinePausedError }                                from '../lifecycle/GateRun.ts';
@@ -33,11 +34,11 @@ import {
 
 const STAMP: GateRunStamp = { phase: 'merge', phaseHash: 'example-phase-hash' };
 
-const PASSED_GATE: MergedTreeGate = {
+const PASSED_GATE: MergedTreeGateRunEnd & MergedTreeGate = {
   outcome: 'passed', step: null, output: '', stamp: STAMP
 };
 
-const RED_GATE: MergedTreeGate = {
+const RED_GATE: MergedTreeGateRunEnd & MergedTreeGate = {
   outcome: 'failed', step: 'tests', output: 'expected 2, received 3', stamp: STAMP
 };
 
@@ -46,7 +47,7 @@ interface FakeRun {
   /** The folder and the stop signal the last run started was handed. */
   runFolder:  string;
   stopSignal: AbortSignal | null;
-  finish:     (gate: MergedTreeGate) => void;
+  finish:     (gate: MergedTreeGateRunEnd) => void;
   fail:       (failure: Error) => void;
 }
 
@@ -79,7 +80,7 @@ function runsUnderTest(): RunsUnderTest {
   const runs = createMergedTreeGateRuns({
     boardFolder,
     wake:               (forced) => wakes.push(forced),
-    log:                (sentence) => sentences.push(sentence),
+    log:                detailsLoggerOf(sentences),
     stopLiveLinesUnder: () => Promise.resolve(),
   });
   const requestOf = (overrides: Partial<MergedTreeGateRunRequest> = {}): MergedTreeGateRunRequest => ({
@@ -89,7 +90,7 @@ function runsUnderTest(): RunsUnderTest {
     gatedEntities: undefined,
     stamp:         STAMP,
     ownerJobId:    'J4',
-    run:           (runFolder, stopSignal) => new Promise<MergedTreeGate>((resolve, reject) => {
+    run:           (runFolder, stopSignal) => new Promise<MergedTreeGateRunEnd>((resolve, reject) => {
       fakeRun.started += 1;
       fakeRun.runFolder = runFolder;
       fakeRun.stopSignal = stopSignal;
@@ -256,11 +257,11 @@ describe('settling', () => {
     const staleGreenRunSignal = subject.fakeRun.stopSignal;
     subject.runs.gateOf(subject.requestOf({ worktreePath: '/example/live-job-worktree', ownerJobId: 'J9' }));
     const liveJobRunSignal = subject.fakeRun.stopSignal;
-    let endedJobRunEnds: (gate: MergedTreeGate) => void = () => undefined;
+    let endedJobRunEnds: (gate: MergedTreeGateRunEnd) => void = () => undefined;
     subject.runs.gateOf(subject.requestOf({
       run: (_runFolder, stopSignal) => {
         subject.fakeRun.stopSignal = stopSignal;
-        return new Promise<MergedTreeGate>((resolve) => {
+        return new Promise<MergedTreeGateRunEnd>((resolve) => {
           endedJobRunEnds = resolve;
         });
       },

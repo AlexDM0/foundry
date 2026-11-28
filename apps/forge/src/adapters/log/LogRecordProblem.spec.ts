@@ -12,14 +12,21 @@ import {
   test
 } from 'bun:test';
 
-import type { LogRecord, LogRecordKind }                  from '../../lib/tracker-model/@types/LogRecord.ts';
-import { DECISION_KINDS, INCIDENT_KINDS, INCIDENT_MOVES } from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
-import { START_KINDS }                                    from '../../lib/tracker-model/constants/JobStates.ts';
-import { LOG_RECORD_SCHEMA, LOG_RECORD_SUBJECT_IDS }      from '../../lib/tracker-model/constants/LogRecordSchema.ts';
+import type { LogRecord, LogRecordKind }                  from '../../domain/tracker-model/@types/LogRecord.ts';
+import { DECISION_KINDS, INCIDENT_KINDS, INCIDENT_MOVES } from '../../domain/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
+import { START_KINDS }                                    from '../../domain/tracker-model/constants/JobStates.ts';
+import { LOG_RECORD_SCHEMA, LOG_RECORD_SUBJECT_IDS }      from '../../domain/tracker-model/constants/LogRecordSchema.ts';
 import { everyRecordKindTheBoardLogs }                    from '../../testing/EveryBoardLogRecord.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { LogFileIngestion }                               from './LogFileIngestion.ts';
-import { logRecordProblemOf }                             from './LogRecordProblem.ts';
+import { LogFileProblemWording }                          from './LogFileProblemWording.ts';
+import { logRecordProblemOf as recordProblemOf }          from './LogRecordProblem.ts';
+
+/** A line's problem worded as the log's reader sees it after the file and line, so each case reads as that sentence. */
+function logRecordProblemOf(value: unknown): string | null {
+  const problem = recordProblemOf(value);
+  return problem === null ? null : LogFileProblemWording.recordSentenceOf(problem);
+}
 
 const RECORDED_AT = '2026-09-18T21:30:54+02:00';
 

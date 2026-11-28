@@ -17,7 +17,7 @@ import {
   expect,
   test
 }                                                 from 'bun:test';
-import type { ReviewStatisticsGroup, ReviewStatisticsReport } from '../../../src/lib/tracker-model/ReviewStatistics.ts';
+import type { ReviewStatisticsGroup, ReviewStatisticsReport } from '../../../src/domain/tracker-model/ReviewStatistics.ts';
 import { PRODUCT_NAMES }                                      from '../../../src/shared/constants/ProductNames.ts';
 import { useRecordedGit }                                     from '../../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                             from '../../../src/testing/ScratchWorkspace.ts';

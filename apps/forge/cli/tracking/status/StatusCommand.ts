@@ -1,6 +1,7 @@
+import { HoldJournalProblemWording }                    from '../../../src/adapters/hold-journal/HoldJournalProblemWording.ts';
 import { LogUtil }                                      from '../../../src/adapters/utils/LogUtil.ts';
+import { readingBoardOf }                               from '../../../src/domain/tracker-model/ReadingBoard.ts';
 import { LocalTimeUtil }                                from '../../../src/lib/local-time/LocalTimeUtil.ts';
-import { readingBoardOf }                               from '../../../src/lib/tracker-model/ReadingBoard.ts';
 import type { WordedLogEntry }                          from '../../../src/shared/@types/WordedLogEntry.ts';
 import { PRODUCT_NAMES }                                from '../../../src/shared/constants/ProductNames.ts';
 import { boardStoreOf }                                 from '../../BoardStoreOf.ts';
@@ -37,7 +38,7 @@ export const statusCommand: CommandHandler = async (commandArguments, context) =
   const { workspace, store } = boardStoreOf(context);
   const unfinishedWrite = store.reads.readUnfinishedWrite();
   if (unfinishedWrite.verdict === 'malformed') {
-    context.standardError(`Hold journal unreadable: ${unfinishedWrite.location}: ${unfinishedWrite.reason}. `
+    context.standardError(`Hold journal unreadable: ${unfinishedWrite.location}: ${HoldJournalProblemWording.sentenceOf(unfinishedWrite.problem)}. `
       + 'Every write refuses until it is repaired or removed.');
   }
   const {

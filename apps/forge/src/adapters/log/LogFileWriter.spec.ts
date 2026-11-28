@@ -6,7 +6,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join }                      from 'node:path';
 import { afterAll, expect, test }    from 'bun:test';
 
-import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { LogRecord }                                 from '../../domain/tracker-model/@types/LogRecord.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { LogFileIngestion }                               from './LogFileIngestion.ts';
 import { createLogFileWriter }                            from './LogFileWriter.ts';

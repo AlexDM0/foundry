@@ -5,11 +5,11 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { JobKind, JobRole }                      from '../../lib/tracker-model/@types/Job.ts';
-import type { Pipeline, PipelineAgentRole }           from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { AgentEffort, AgentModel }               from '../../lib/tracker-model/@types/Ticket.ts';
-import { AGENT_EFFORTS, AGENT_MODELS }                from '../../lib/tracker-model/constants/AgentSettings.ts';
-import { PipelineUtil }                               from '../../lib/tracker-model/utils/PipelineUtil.ts';
+import type { JobKind, JobRole }                      from '../../domain/tracker-model/@types/Job.ts';
+import type { Pipeline, PipelineAgentRole }           from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { AgentEffort, AgentModel }               from '../../domain/tracker-model/@types/Ticket.ts';
+import { AGENT_EFFORTS, AGENT_MODELS }                from '../../domain/tracker-model/constants/AgentSettings.ts';
+import { PipelineUtil }                               from '../../domain/tracker-model/utils/PipelineUtil.ts';
 import { LaunchSettings, type SessionLaunchSettings } from './LaunchSettings.ts';
 
 const LAST_WORKER_SETTINGS: SessionLaunchSettings = { model: 'haiku', effort: 'low' };

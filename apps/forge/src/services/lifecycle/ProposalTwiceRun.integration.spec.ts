@@ -6,11 +6,11 @@
 import { existsSync, writeFileSync } from 'node:fs';
 import { join }                      from 'node:path';
 
-import { afterEach, beforeEach, expect }          from 'bun:test';
-import type { PipelineGate }                      from '../../lib/tracker-model/@types/Pipeline.ts';
-import { environmentCopy }                        from '../../shared/Environment.ts';
-import { FAKE_MISSING_TOOLS_REASON, runsAsGiven } from '../../testing/FakeGateConfinement.ts';
-import { nativePlatformPorts }                    from '../../testing/NativePlatformPorts.ts';
+import { afterEach, beforeEach, expect }  from 'bun:test';
+import type { PipelineGate }              from '../../domain/tracker-model/@types/Pipeline.ts';
+import { environmentCopy }                from '../../shared/Environment.ts';
+import { FAKE_LINE_REFUSAL, runsAsGiven } from '../../testing/FakeGateConfinement.ts';
+import { nativePlatformPorts }            from '../../testing/NativePlatformPorts.ts';
 import {
   GIT_CALL_SHAPES,
   type RecordedGitStage,
@@ -41,7 +41,7 @@ function treeUnchangedAfterBothRunsOf(gateCount: number): RecordedGitStage {
 
 async function recordOf(stage: RecordedGitStage, request: ProposalRunRequest): Promise<ProposalRunRecord> {
   const run = await recordedGit.playStage(stage, () => ProposalTwiceRun.runProposalTwice(request));
-  if ('verdict' in run) throw new Error(`the proposal was refused: ${run.reason}`);
+  if ('verdict' in run) throw new Error(`the proposal was refused: ${run.refusal.code}`);
   return run;
 }
 
@@ -127,10 +127,10 @@ testWhenGitIsRecorded('a refused line stops the run: no prepare step, gate or se
     ...requestOf([gate('green', `touch '${marker}'`)], [{ name: 'install', run: `touch '${marker}'` }]),
     confinedLineOf: () => {
       lines += 1;
-      return { verdict: 'refused', reason: FAKE_MISSING_TOOLS_REASON };
+      return { verdict: 'refused', refusal: FAKE_LINE_REFUSAL };
     },
   }));
-  expect(outcome).toEqual({ verdict: 'sandbox-unavailable', reason: FAKE_MISSING_TOOLS_REASON });
+  expect(outcome).toEqual({ verdict: 'sandbox-unavailable', refusal: FAKE_LINE_REFUSAL });
   expect(lines).toBe(1);
   expect(existsSync(marker)).toBe(false);
 });

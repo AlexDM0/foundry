@@ -12,6 +12,7 @@ import {
   test,
 } from 'bun:test';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import type { WaiverProposalsProblem }                    from './@types/WaiverProposalsProblem.ts';
 import { WaiverProposalsIngestion }                       from './WaiverProposalsIngestion.ts';
 import { createWaiverProposalsWriter }                    from './WaiverProposalsWriter.ts';
 
@@ -43,20 +44,24 @@ test('what the writer stores reads back as the same proposals', () => {
   expect(reading()).toEqual({ verdict: 'readable', proposals });
 });
 
-test.each([
-  ['cut short', '{"version":1,"proposals":[{"item": "A2", "rea', 'it is not valid JSON'],
-  ['a bare list, with no version', '[{"item":"A2","reason":"The export was retired"}]', 'it is not a JSON object'],
-  ['no version', '{"proposals":[{"item":"A2","reason":"The export was retired"}]}', 'its version is not 1'],
-  ['another version', '{"version":2,"proposals":[{"item":"A2","reason":"The export was retired"}]}', 'its version is not 1'],
-  ['no proposals', '{"version":1}', '"proposals" is not a list'],
-  ['an empty list', '{"version":1,"proposals":[]}', '"proposals" is not a list'],
-  ['a proposal with no reason', '{"version":1,"proposals":[{"item":"A2"}]}', 'proposals[0] holds no text'],
-  ['a proposal whose item is no text', '{"version":1,"proposals":[{"item":"A2","reason":"x"},{"item":2,"reason":"x"}]}', 'proposals[1] holds no text'],
-])('%s is unreadable, never a throw', (_case, storedText, reason) => {
+test.each<[string, string, Partial<WaiverProposalsProblem>]>([
+  ['cut short', '{"version":1,"proposals":[{"item": "A2", "rea', { code: 'not-json' }],
+  ['a bare list, with no version', '[{"item":"A2","reason":"The export was retired"}]', { code: 'not-a-json-object' }],
+  ['no version', '{"proposals":[{"item":"A2","reason":"The export was retired"}]}', { code: 'version-differs', field: 'version', expectedVersion: 1 }],
+  ['another version', '{"version":2,"proposals":[{"item":"A2","reason":"The export was retired"}]}', { code: 'version-differs', field: 'version', expectedVersion: 1 }],
+  ['no proposals', '{"version":1}', { code: 'not-a-list-of-proposals', field: 'proposals' }],
+  ['an empty list', '{"version":1,"proposals":[]}', { code: 'not-a-list-of-proposals', field: 'proposals' }],
+  ['a proposal with no reason', '{"version":1,"proposals":[{"item":"A2"}]}', { code: 'proposal-without-text-item-and-reason', field: 'proposals[0]' }],
+  [
+    'a proposal whose item is no text',
+    '{"version":1,"proposals":[{"item":"A2","reason":"x"},{"item":2,"reason":"x"}]}',
+    { code: 'proposal-without-text-item-and-reason', field: 'proposals[1]' },
+  ],
+])('%s is unreadable, never a throw', (_case, storedText, problem) => {
   writeFileSync(proposalsFilePath, storedText);
 
   const proposalsReading = reading();
 
   expect(proposalsReading.verdict).toBe('unreadable');
-  expect(proposalsReading.verdict === 'unreadable' ? proposalsReading.reason : '').toContain(reason);
+  expect(proposalsReading.verdict === 'unreadable' ? proposalsReading.problem : null).toMatchObject(problem);
 });

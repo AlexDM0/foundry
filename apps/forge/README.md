@@ -160,6 +160,6 @@ The program is TypeScript on Bun, with no runtime dependency outside this worksp
 | Concept | Path | Symbol | Held by |
 | --- | --- | --- | --- |
 | The names on this build | `src/shared/constants/ProductNames.ts` | `PRODUCT_NAMES` | `architecture/ProductNames.spec.ts` |
-| A new board starts paused | `src/lib/tracker-model/constants/HephaestusStates.ts` | `DEFAULT_HEPHAESTUS_STATE` | `cli/hephaestus/UnpauseCommand.spec.ts` |
+| A new board starts paused | `src/domain/tracker-model/constants/HephaestusStates.ts` | `DEFAULT_HEPHAESTUS_STATE` | `cli/hephaestus/UnpauseCommand.spec.ts` |
 | The machine setup | `setup.ts`, `cli/setup/Setup.ts`; bootstraps `setup.sh`, `setup.ps1` | `runSetup` | `cli/setup/Setup.spec.ts`, `cli/SetupScript.integration.spec.ts`, `cli/setup/BootstrapScripts.spec.ts` |
 | The images on this page | `.readme-graphics/render-diagrams.py` | `DIAGRAMS` | read by hand |

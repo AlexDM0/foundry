@@ -1,8 +1,8 @@
-import type { Decision }                                from '../../lib/tracker-model/@types/Decision.ts';
-import type { Incident }                                from '../../lib/tracker-model/@types/Incident.ts';
-import type { Job }                                     from '../../lib/tracker-model/@types/Job.ts';
-import type { TaskStatus }                              from '../../lib/tracker-model/@types/Task.ts';
-import type { AgentEffort, AgentModel, TicketPriority } from '../../lib/tracker-model/@types/Ticket.ts';
+import type { Decision }                                from '../../domain/tracker-model/@types/Decision.ts';
+import type { Incident }                                from '../../domain/tracker-model/@types/Incident.ts';
+import type { Job }                                     from '../../domain/tracker-model/@types/Job.ts';
+import type { TaskStatus }                              from '../../domain/tracker-model/@types/Task.ts';
+import type { AgentEffort, AgentModel, TicketPriority } from '../../domain/tracker-model/@types/Ticket.ts';
 
 export interface InProgressIds {
   inProgressTicketIds:   string[];

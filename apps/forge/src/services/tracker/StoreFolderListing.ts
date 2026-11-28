@@ -5,24 +5,27 @@
 import { readdirSync, type Dirent } from 'node:fs';
 import { join }                     from 'node:path';
 
-import type { RecordKind, UnreadableRecord } from './@types/BoardRecords.ts';
+import type { FileNameNamesAnotherKeyProblem } from '../../adapters/@types/UnreadableRecordProblem.ts';
+import type { UnreadableRecordPlace }          from './@types/BoardRecords.ts';
 
-export type KeyedFileReading<Item> =
+export type KeyedFileReading<Item, Problem> =
   | { verdict: 'read'; item: Item; key: string }
-  | { verdict: 'malformed'; reason: string; line: number };
+  | { verdict: 'malformed'; problem: Problem; line: number };
 
-export interface StoreFolderListing<Item> {
+/** A stored file the folder holds and cannot read, with what is wrong with it. */
+export type UnreadableStoredFile<Problem> = UnreadableRecordPlace & { problem: Problem | FileNameNamesAnotherKeyProblem };
+
+export interface StoreFolderListing<Item, Problem> {
   items:      Item[];
-  unreadable: UnreadableRecord[];
+  unreadable: UnreadableStoredFile<Problem>[];
 }
 
-export interface KeyedStoreFolder<Item> {
-  record:    Exclude<RecordKind, 'ticket'>;
+export interface KeyedStoreFolder<Item, Problem> {
   directory: string;
   extension: string;
-  /** The stored field that must equal the file name, as the malformed reason names it. */
+  /** The stored field that must equal the file name, as the malformed problem names it. */
   keyField:  string;
-  readingOf: (filePath: string) => KeyedFileReading<Item>;
+  readingOf: (filePath: string) => KeyedFileReading<Item, Problem>;
 }
 
 /** A folder or other entry that is no file is not a stored item: `clear --all` could never remove it, and no reading could read it. */
@@ -40,21 +43,25 @@ export function storeFolderFileNamesIn(directory: string, extension: string): st
  * An item is its file name: a file whose key says otherwise is listed as unreadable, since which of the two is the item cannot be judged.
  * An unreadable file is keyed by its name.
  */
-export function listStoreFolder<Item>(folder: KeyedStoreFolder<Item>): StoreFolderListing<Item> {
-  const items: Item[]                  = [];
-  const unreadable: UnreadableRecord[] = [];
+export function listStoreFolder<Item, Problem>(folder: KeyedStoreFolder<Item, Problem>): StoreFolderListing<Item, Problem> {
+  const items: Item[]                                = [];
+  const unreadable: UnreadableStoredFile<Problem>[] = [];
 
   for (const fileName of storeFolderFileNamesIn(folder.directory, folder.extension)) {
     const filePath  = join(folder.directory, fileName);
     const reading   = folder.readingOf(filePath);
     const keyInName = fileName.slice(0, -folder.extension.length);
 
-    const unreadableEntry = (reason: string, line: number): UnreadableRecord => ({
-      record: folder.record, key: keyInName, location: filePath, reason, line
+    const unreadableEntry = (problem: Problem | FileNameNamesAnotherKeyProblem, line: number): UnreadableStoredFile<Problem> => ({
+      key: keyInName, location: filePath, problem, line
     });
 
-    if (reading.verdict === 'malformed') unreadable.push(unreadableEntry(reading.reason, reading.line));
-    else if (reading.key !== keyInName) unreadable.push(unreadableEntry(`the file name says ${keyInName} but its \`${folder.keyField}\` is ${reading.key}`, 0));
+    if (reading.verdict === 'malformed') unreadable.push(unreadableEntry(reading.problem, reading.line));
+    else if (reading.key !== keyInName) {
+      unreadable.push(unreadableEntry({
+        code: 'file-name-names-another-key', field: folder.keyField, keyInFileName: keyInName, storedKey: reading.key
+      }, 0));
+    }
     else items.push(reading.item);
   }
   return { items, unreadable };

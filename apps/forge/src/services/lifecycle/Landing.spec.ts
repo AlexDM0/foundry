@@ -19,8 +19,8 @@ import {
 } from 'bun:test';
 
 
+import { RepositoryLandings }                                 from '../../adapters/repository-landings/RepositoryLandings.ts';
 import { HELD_CHECKOUT_RETRY_TRIES }                          from '../../lib/git/HeldCheckout.ts';
-import { RepositoryLandings }                                 from '../../lib/git/RepositoryLandings.ts';
 import { PRODUCT_NAMES }                                      from '../../shared/constants/ProductNames.ts';
 import { ticketFixture }                                      from '../../testing/BoardFixtures.ts';
 import { heldFileGit, type CountingCheckoutWritePrimitives }  from '../../testing/HeldFileGit.ts';
@@ -284,7 +284,7 @@ describeWhenGitIsRecorded('the landing a tracker shares with its siblings', () =
     ];
 
     expect(await landedIn(alreadyLandedRerun, mainLanding({ sharedRepository }))).toMatchObject({ verdict: 'already-landed' });
-    expect(takenOver).toEqual([{ recordPath, reason: { kind: 'unreadable', reason: expect.any(String) as unknown as string } }]);
+    expect(takenOver).toEqual([{ recordPath, reason: { kind: 'unreadable', problem: expect.any(Object) as unknown as { code: 'not-a-json-object' } } }]);
   });
 
   test('an already-landed rerun appends the journal line a stop cut off once, with the slot\'s tip as the previous tip, and a second rerun none', async () => {

@@ -22,11 +22,11 @@ import type {
 import type { BoardTicketFactsDocument, BoardTicketOffersDocument }                   from 'forge-contracts/BoardReadingDocuments';
 import type { BoardConcurrencyDocument, BoardHephaestusDocument, BoardUsageDocument } from 'forge-contracts/ForgeBoardDocument';
 
-import type { DraftQuestion, DraftSummary } from '../../../lib/tracker-model/@types/Draft.ts';
-import type { DraftProgress }               from '../../../lib/tracker-model/@types/DraftProgress.ts';
-import type { EpicRollup }                  from '../../../lib/tracker-model/@types/Epic.ts';
-import type { Task }                        from '../../../lib/tracker-model/@types/Task.ts';
-import type { ReadyTicket }                 from '../../../lib/tracker-model/@types/Ticket.ts';
+import type { DraftQuestion, DraftSummary } from '../../../domain/tracker-model/@types/Draft.ts';
+import type { DraftProgress }               from '../../../domain/tracker-model/@types/DraftProgress.ts';
+import type { EpicRollup }                  from '../../../domain/tracker-model/@types/Epic.ts';
+import type { Task }                        from '../../../domain/tracker-model/@types/Task.ts';
+import type { ReadyTicket }                 from '../../../domain/tracker-model/@types/Ticket.ts';
 import type {
   PageBoardFacts,
   PageConcurrency,

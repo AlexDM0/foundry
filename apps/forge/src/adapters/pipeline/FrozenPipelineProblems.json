@@ -1,0 +1,477 @@
+[
+  {
+    "case": "a directory in the file's place, which cannot be read (built as a directory; the OS message is {systemError})",
+    "stored": null,
+    "sentence": "it could not be read ({systemError})"
+  },
+  {
+    "case": "the bytes are not UTF-8 (built as the byte 0xFF)",
+    "stored": null,
+    "sentence": "it is not UTF-8 text"
+  },
+  {
+    "case": "the text is not JSON",
+    "stored": "{",
+    "sentence": "it is not valid JSON (JSON Parse error: Expected '}')"
+  },
+  {
+    "case": "the document is a list, not an object",
+    "stored": "[]",
+    "sentence": "the document is not a JSON object"
+  },
+  {
+    "case": "version is not a whole number",
+    "stored": "{\"version\":\"five\",\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]}}",
+    "sentence": "version is not a whole number"
+  },
+  {
+    "case": "version is newer than this build reads",
+    "stored": "{\"version\":6,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]}}",
+    "sentence": "version is 6, a newer format than version 5, which this build reads (newer-format)"
+  },
+  {
+    "case": "a top-level key this build does not know",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"colour\":\"red\"}",
+    "sentence": "\"colour\" is not a pipeline key; the keys are version, prepare, gates, phases, review, airlock, constitution, agents, approvals, billing, reach, entities, assistant, agent, tools, ticketWriting"
+  },
+  {
+    "case": "a required top-level key is missing",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}]}",
+    "sentence": "phases is missing"
+  },
+  {
+    "case": "prepare is not empty beside entities",
+    "stored": "{\"version\":5,\"prepare\":[{\"name\":\"install\",\"run\":\"x\"}],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]},\"entities\":{\"web\":{\"kind\":\"app\",\"home\":[\"/apps/web\"],\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]}}}}",
+    "sentence": "prepare is not empty beside entities; each entity holds its own"
+  },
+  {
+    "case": "prepare is not a list",
+    "stored": "{\"version\":5,\"prepare\":{},\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]}}",
+    "sentence": "prepare is not a list"
+  },
+  {
+    "case": "a prepare step is not an object",
+    "stored": "{\"version\":5,\"prepare\":[1],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]}}",
+    "sentence": "prepare[0] is not an object"
+  },
+  {
+    "case": "a prepare step has a key it does not know",
+    "stored": "{\"version\":5,\"prepare\":[{\"name\":\"install\",\"run\":\"x\",\"fix\":\"y\"}],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]}}",
+    "sentence": "prepare[0].\"fix\" is not a pipeline key; the keys are name, run, in"
+  },
+  {
+    "case": "a prepare step has no name",
+    "stored": "{\"version\":5,\"prepare\":[{\"run\":\"x\"}],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]}}",
+    "sentence": "prepare[0] has no name"
+  },
+  {
+    "case": "a prepare step has no run line",
+    "stored": "{\"version\":5,\"prepare\":[{\"name\":\"install\",\"run\":\" \"}],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]}}",
+    "sentence": "prepare[0] has no run line"
+  },
+  {
+    "case": "a prepare step folder is blank",
+    "stored": "{\"version\":5,\"prepare\":[{\"name\":\"install\",\"run\":\"x\",\"in\":\"\"}],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]}}",
+    "sentence": "prepare[0].in is present and is not a non-blank text"
+  },
+  {
+    "case": "a prepare step folder leaves the repository",
+    "stored": "{\"version\":5,\"prepare\":[{\"name\":\"install\",\"run\":\"x\",\"in\":\"../out\"}],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]}}",
+    "sentence": "prepare[0].in is not a folder inside the repository"
+  },
+  {
+    "case": "prepare names a step twice",
+    "stored": "{\"version\":5,\"prepare\":[{\"name\":\"install\",\"run\":\"x\"},{\"name\":\"install\",\"run\":\"y\"}],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]}}",
+    "sentence": "prepare names \"install\" twice"
+  },
+  {
+    "case": "a gate is not an object",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[\"build\"],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]}}",
+    "sentence": "gates[0] is not an object"
+  },
+  {
+    "case": "a gate has no run line",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]}}",
+    "sentence": "gates[0] has no run line"
+  },
+  {
+    "case": "a gate forgeOnly is present and not true",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\",\"forgeOnly\":false}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]}}",
+    "sentence": "gates[0].forgeOnly is present and is not true"
+  },
+  {
+    "case": "a gate fix is blank",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\",\"fix\":\"\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]}}",
+    "sentence": "gates[0].fix is present and is not a non-blank text"
+  },
+  {
+    "case": "a gate folder leaves the repository",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\",\"in\":\"C:\\\\x\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]}}",
+    "sentence": "gates[0].in is not a folder inside the repository"
+  },
+  {
+    "case": "a gate definedBy is not a list of non-blank texts",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\",\"definedBy\":[\"\"]}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]}}",
+    "sentence": "gates[0].definedBy is not a list of non-blank texts"
+  },
+  {
+    "case": "a gate writes a relative folder",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\",\"writes\":[\"cache\"]}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]}}",
+    "sentence": "gates[0].writes holds a folder that is not absolute or ~/"
+  },
+  {
+    "case": "gates names a gate twice",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"},{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]}}",
+    "sentence": "gates names \"build\" twice"
+  },
+  {
+    "case": "a step and a gate share a name",
+    "stored": "{\"version\":5,\"prepare\":[{\"name\":\"build\",\"run\":\"x\"}],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]}}",
+    "sentence": "\"build\" names both a prepare step and a gate"
+  },
+  {
+    "case": "phases is not an object",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":[]}",
+    "sentence": "phases is not an object"
+  },
+  {
+    "case": "phases has a key it does not know",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[],\"deploy\":[]}}",
+    "sentence": "phases.\"deploy\" is not a pipeline key; the keys are build, review, merge"
+  },
+  {
+    "case": "a phase is missing",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[]}}",
+    "sentence": "phases.merge is missing"
+  },
+  {
+    "case": "a phase is not a list of gate names",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[1],\"merge\":[]}}",
+    "sentence": "phases.review is not a list of gate names"
+  },
+  {
+    "case": "a phase names a gate that does not exist",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[\"lint\"],\"merge\":[]}}",
+    "sentence": "phases.review names \"lint\", which is not a gate"
+  },
+  {
+    "case": "a phase names a gate twice",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\",\"build\"],\"review\":[],\"merge\":[]}}",
+    "sentence": "phases.build names \"build\" twice"
+  },
+  {
+    "case": "a gate runs in no phase",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]}}",
+    "sentence": "the gate \"build\" runs in no phase"
+  },
+  {
+    "case": "an entity gate runs in no phase",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]},\"entities\":{\"web\":{\"kind\":\"app\",\"home\":[\"/apps/web\"],\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]}}}}",
+    "sentence": "the gate \"build\" of entities.web.gates runs in no phase"
+  },
+  {
+    "case": "review has no name",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"review\":{}}",
+    "sentence": "review has no name"
+  },
+  {
+    "case": "review re-review is not an object",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"review\":{\"name\":\"review\",\"reReview\":1}}",
+    "sentence": "review.reReview is not an object"
+  },
+  {
+    "case": "review re-review threshold is too low",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"review\":{\"name\":\"review\",\"reReview\":{\"thresholdLines\":10}}}",
+    "sentence": "review.reReview.thresholdLines is not a whole number of at least 50"
+  },
+  {
+    "case": "airlock has a key it does not know",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"airlock\":{\"colour\":\"red\"}}",
+    "sentence": "airlock.\"colour\" is not a pipeline key; the keys are reReview"
+  },
+  {
+    "case": "airlock re-review threshold is not a whole number",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"airlock\":{\"reReview\":{\"thresholdLines\":50.5}}}",
+    "sentence": "airlock.reReview.thresholdLines is not a whole number of at least 50"
+  },
+  {
+    "case": "constitution path is not a non-blank text",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"constitution\":{\"path\":\"\"}}",
+    "sentence": "constitution.path is not a non-blank text"
+  },
+  {
+    "case": "constitution path leaves the repository",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"constitution\":{\"path\":\"/etc/rules.md\"}}",
+    "sentence": "constitution.path is not a path inside the repository"
+  },
+  {
+    "case": "agents names a role it does not know",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"agents\":{\"tester\":{}}}",
+    "sentence": "agents.\"tester\" is not a pipeline key; the keys are productOwner, specAgent, planAgent, builder, reviewer, reReviewer, conflictReReviewer, pipelineAgent, assistant"
+  },
+  {
+    "case": "an agent model is not known",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"agents\":{\"builder\":{\"model\":\"gpt\"}}}",
+    "sentence": "agents.builder.model is not a known model"
+  },
+  {
+    "case": "an agent effort is not known",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"agents\":{\"builder\":{\"effort\":\"extreme\"}}}",
+    "sentence": "agents.builder.effort is not a known effort"
+  },
+  {
+    "case": "an agent settings has a documents key outside the builder and reviewer",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"agents\":{\"productOwner\":{\"documents\":{}}}}",
+    "sentence": "agents.productOwner.\"documents\" is not a pipeline key; the keys are model, effort, instructions"
+  },
+  {
+    "case": "an instruction entry is not an object",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"agents\":{\"builder\":{\"instructions\":[\"x\"]}}}",
+    "sentence": "agents.builder.instructions[0] is not an object"
+  },
+  {
+    "case": "an instruction entry kind is not known",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"agents\":{\"builder\":{\"instructions\":[{\"kind\":\"note\"}]}}}",
+    "sentence": "agents.builder.instructions[0].kind is not one of constitution, default-brief, file"
+  },
+  {
+    "case": "an instruction entry has a key its kind does not have",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"agents\":{\"builder\":{\"instructions\":[{\"kind\":\"constitution\",\"path\":\"x\"}]}}}",
+    "sentence": "agents.builder.instructions[0].\"path\" is not a pipeline key; the keys are kind"
+  },
+  {
+    "case": "a default-brief instruction names an unknown role",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"agents\":{\"builder\":{\"instructions\":[{\"kind\":\"default-brief\",\"role\":\"tester\"}]}}}",
+    "sentence": "agents.builder.instructions[0].role is not one of productOwner, specAgent, planAgent, builder, reviewer, reReviewer, conflictReReviewer, pipelineAgent, assistant"
+  },
+  {
+    "case": "a file instruction path leaves the repository",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"agents\":{\"builder\":{\"instructions\":[{\"kind\":\"file\",\"path\":\"../x.md\"}]}}}",
+    "sentence": "agents.builder.instructions[0].path is not a path inside the repository"
+  },
+  {
+    "case": "instructions lists an entry twice",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"agents\":{\"builder\":{\"instructions\":[{\"kind\":\"constitution\"},{\"kind\":\"constitution\"}]}}}",
+    "sentence": "agents.builder.instructions lists {\"kind\":\"constitution\"} twice"
+  },
+  {
+    "case": "a documents rule is not known",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"agents\":{\"builder\":{\"documents\":{\"spec\":\"sometimes\"}}}}",
+    "sentence": "agents.builder.documents.spec is not one of always, if-person-approved, never"
+  },
+  {
+    "case": "the reviewer is set not to always read the spec",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"agents\":{\"reviewer\":{\"documents\":{\"spec\":\"never\"}}}}",
+    "sentence": "agents.reviewer.documents.spec is never; the reviewer always reads the spec"
+  },
+  {
+    "case": "approvals names an approval it does not know",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"approvals\":{\"deploy\":true}}",
+    "sentence": "approvals.\"deploy\" is not a pipeline key; the keys are tickets, merge, spec, plan"
+  },
+  {
+    "case": "an approval is not true or false",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"approvals\":{\"merge\":\"yes\"}}",
+    "sentence": "approvals.merge is not true or false"
+  },
+  {
+    "case": "billing has a key it does not know",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"billing\":{\"mode\":\"api\",\"key\":\"x\"}}",
+    "sentence": "billing.\"key\" is not a pipeline key; the keys are mode, maxBudgetUsd"
+  },
+  {
+    "case": "billing has a budget with mode subscription",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"billing\":{\"mode\":\"subscription\",\"maxBudgetUsd\":5}}",
+    "sentence": "billing.maxBudgetUsd is present with mode subscription"
+  },
+  {
+    "case": "billing mode is neither subscription nor api",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"billing\":{\"mode\":\"free\"}}",
+    "sentence": "billing.mode is neither subscription nor api"
+  },
+  {
+    "case": "billing budget is not positive",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"billing\":{\"mode\":\"api\",\"maxBudgetUsd\":0}}",
+    "sentence": "billing.maxBudgetUsd is not a positive number"
+  },
+  {
+    "case": "reach is not a list of non-blank texts",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"reach\":\"x\"}",
+    "sentence": "reach is not a list of non-blank texts"
+  },
+  {
+    "case": "reach names a path not leading with /",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"reach\":[\"bun.lock\"]}",
+    "sentence": "reach names \"bun.lock\", which is not a repository path leading with /"
+  },
+  {
+    "case": "reach names a path twice",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"reach\":[\"/bun.lock\",\"/bun.lock\"]}",
+    "sentence": "reach names \"/bun.lock\" twice"
+  },
+  {
+    "case": "entities is not an object",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]},\"entities\":[]}",
+    "sentence": "entities is not an object"
+  },
+  {
+    "case": "entities holds a blank key",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]},\"entities\":{\" \":{\"kind\":\"app\",\"home\":[\"/apps/web\"],\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]}}}}",
+    "sentence": "entities holds a blank key"
+  },
+  {
+    "case": "an entity is not an object",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]},\"entities\":{\"web\":[]}}",
+    "sentence": "entities.web is not an object"
+  },
+  {
+    "case": "an entity has a key it does not know",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]},\"entities\":{\"web\":{\"kind\":\"app\",\"home\":[\"/apps/web\"],\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]},\"colour\":\"red\"}}}",
+    "sentence": "entities.web.\"colour\" is not a pipeline key; the keys are kind, home, summary, constitution, prepare, gates, phases, review, agents, whitelist, reach, dependsOn, concurrency"
+  },
+  {
+    "case": "an entity lacks a required key",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]},\"entities\":{\"web\":{\"kind\":\"app\",\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]}}}}",
+    "sentence": "entities.web.home is missing"
+  },
+  {
+    "case": "an entity kind is not known",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]},\"entities\":{\"web\":{\"kind\":\"library\",\"home\":[\"/apps/web\"],\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]}}}}",
+    "sentence": "entities.web.kind is not one of app, package, root"
+  },
+  {
+    "case": "an entity home names no folder",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]},\"entities\":{\"web\":{\"kind\":\"app\",\"home\":[],\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]}}}}",
+    "sentence": "entities.web.home names no folder"
+  },
+  {
+    "case": "a non-root entity home is the repository root",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]},\"entities\":{\"web\":{\"kind\":\"app\",\"home\":[\"/\"],\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]}}}}",
+    "sentence": "entities.web.home names \"/\", which is not a repository path leading with /"
+  },
+  {
+    "case": "an entity summary is blank",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]},\"entities\":{\"web\":{\"kind\":\"app\",\"home\":[\"/apps/web\"],\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]},\"summary\":\"\"}}}",
+    "sentence": "entities.web.summary is present and is not a non-blank text"
+  },
+  {
+    "case": "an entity whitelist is not a list of non-blank texts",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]},\"entities\":{\"web\":{\"kind\":\"app\",\"home\":[\"/apps/web\"],\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]},\"whitelist\":\"x\"}}}",
+    "sentence": "entities.web.whitelist is not a list of non-blank texts"
+  },
+  {
+    "case": "an entity concurrency is not a positive whole number",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]},\"entities\":{\"web\":{\"kind\":\"app\",\"home\":[\"/apps/web\"],\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]},\"concurrency\":0}}}",
+    "sentence": "entities.web.concurrency is not a positive whole number"
+  },
+  {
+    "case": "entities hold more than one root",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]},\"entities\":{\"one\":{\"kind\":\"root\",\"home\":[\"/\"],\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]}},\"two\":{\"kind\":\"root\",\"home\":[\"/\"],\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]}}}}",
+    "sentence": "the entities one, two are each of kind root, and one at most is"
+  },
+  {
+    "case": "two entities share a home",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]},\"entities\":{\"web\":{\"kind\":\"app\",\"home\":[\"/apps/web\"],\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]}},\"shop\":{\"kind\":\"app\",\"home\":[\"/apps/web\"],\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]}}}}",
+    "sentence": "the entities web, shop share the home \"/apps/web\""
+  },
+  {
+    "case": "an entity reach reaches into another entity home",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]},\"entities\":{\"web\":{\"kind\":\"app\",\"home\":[\"/apps/web\"],\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]},\"reach\":[\"/packages/kit/x\"]},\"kit\":{\"kind\":\"package\",\"home\":[\"/packages/kit\"],\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]}}}}",
+    "sentence": "entities.web.reach names \"/packages/kit/x\", which reaches into the home of the entity kit; reach names only paths the root entity owns"
+  },
+  {
+    "case": "an entity whitelist names an unknown entity",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]},\"entities\":{\"web\":{\"kind\":\"app\",\"home\":[\"/apps/web\"],\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]},\"whitelist\":[\"kit\"]}}}",
+    "sentence": "entities.web.whitelist names \"kit\", which is not an entity"
+  },
+  {
+    "case": "an entity dependsOn names an unknown entity",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]},\"entities\":{\"web\":{\"kind\":\"app\",\"home\":[\"/apps/web\"],\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]},\"dependsOn\":[\"kit\"]}}}",
+    "sentence": "entities.web.dependsOn names \"kit\", which is not an entity"
+  },
+  {
+    "case": "an entity whitelist names an entity that is not a package",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]},\"entities\":{\"web\":{\"kind\":\"app\",\"home\":[\"/apps/web\"],\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]},\"whitelist\":[\"shop\"]},\"shop\":{\"kind\":\"app\",\"home\":[\"/apps/shop\"],\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]}}}}",
+    "sentence": "entities.web.whitelist names \"shop\", which is not a package"
+  },
+  {
+    "case": "an entity whitelist names a package without a review",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]},\"entities\":{\"web\":{\"kind\":\"app\",\"home\":[\"/apps/web\"],\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]},\"whitelist\":[\"kit\"]},\"kit\":{\"kind\":\"package\",\"home\":[\"/packages/kit\"],\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]}}}}",
+    "sentence": "entities.web.whitelist names \"kit\", a package without a review"
+  },
+  {
+    "case": "entities depend on each other in a circle",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]},\"entities\":{\"web\":{\"kind\":\"app\",\"home\":[\"/apps/web\"],\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]},\"dependsOn\":[\"shop\"]},\"shop\":{\"kind\":\"app\",\"home\":[\"/apps/shop\"],\"prepare\":[],\"gates\":[],\"phases\":{\"build\":[],\"review\":[],\"merge\":[]},\"dependsOn\":[\"web\"]}}}",
+    "sentence": "the entities web -> shop -> web depend on each other in a circle"
+  },
+  {
+    "case": "assistant is present and not true",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"assistant\":false}",
+    "sentence": "assistant is present and is not true"
+  },
+  {
+    "case": "agent has a key it does not know",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"agent\":{\"vendor\":\"claude\",\"program\":{\"follows\":\"machine\"},\"model\":\"x\"}}",
+    "sentence": "agent.\"model\" is not a pipeline key; the keys are vendor, program"
+  },
+  {
+    "case": "agent vendor is not a name",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"agent\":{\"vendor\":\" \",\"program\":{\"follows\":\"machine\"}}}",
+    "sentence": "agent.vendor is not a name"
+  },
+  {
+    "case": "agent program is not an object",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"agent\":{\"vendor\":\"claude\",\"program\":\"x\"}}",
+    "sentence": "agent.program is not an object"
+  },
+  {
+    "case": "agent program follows something other than machine",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"agent\":{\"vendor\":\"claude\",\"program\":{\"follows\":\"user\"}}}",
+    "sentence": "agent.program.follows is not machine"
+  },
+  {
+    "case": "agent program names both follows and pinned",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"agent\":{\"vendor\":\"claude\",\"program\":{\"follows\":\"machine\",\"pinned\":\"/bin/claude\"}}}",
+    "sentence": "agent.program names neither follows nor pinned alone"
+  },
+  {
+    "case": "agent program pinned is not an absolute path",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"agent\":{\"vendor\":\"claude\",\"program\":{\"pinned\":\"claude\"}}}",
+    "sentence": "agent.program.pinned is not an absolute path"
+  },
+  {
+    "case": "tools is not a list",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"tools\":{}}",
+    "sentence": "tools is not a list"
+  },
+  {
+    "case": "a tool is not an object",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"tools\":[\"git\"]}",
+    "sentence": "tools[0] is not an object"
+  },
+  {
+    "case": "a tool name is not a name",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"tools\":[{\"name\":\"\",\"path\":\"/usr/bin/git\"}]}",
+    "sentence": "tools[0].name is not a name"
+  },
+  {
+    "case": "tools names a tool twice",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"tools\":[{\"name\":\"git\",\"path\":\"/usr/bin/git\"},{\"name\":\"git\",\"path\":\"/usr/bin/git\"}]}",
+    "sentence": "tools names \"git\" twice"
+  },
+  {
+    "case": "a tool path is not an absolute path",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"tools\":[{\"name\":\"git\",\"path\":\"git\"}]}",
+    "sentence": "tools[0].path is not an absolute path"
+  },
+  {
+    "case": "ticketWriting is not a known route",
+    "stored": "{\"version\":5,\"prepare\":[],\"gates\":[{\"name\":\"build\",\"run\":\"bun run build\"}],\"phases\":{\"build\":[\"build\"],\"review\":[],\"merge\":[]},\"ticketWriting\":\"fax\"}",
+    "sentence": "ticketWriting is not one of one-ticket, spec-then-plan"
+  },
+  {
+    "case": "a pipeline with entities in a tracker in a folder (built with entitiesInAFolderReadingOf(\"apps/web\"), not from stored text)",
+    "stored": null,
+    "sentence": "it holds entities, and only a tracker at the repository's root may hold them, not one in the folder apps/web (entities-in-a-folder)"
+  }
+]

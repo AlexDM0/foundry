@@ -3,10 +3,10 @@
  * settles the incident, after which the Airlock gates the merged tree again or the policy launches the ticket's next attempt.
  */
 import { join }                          from 'node:path';
-import type { Logged }                   from '../../lib/tracker-model/@types/BoardChanges.ts';
-import type { Incident }                 from '../../lib/tracker-model/@types/Incident.ts';
-import { BoardRefusal }                  from '../../lib/tracker-model/BoardRefusal.ts';
+import type { Logged }                   from '../../domain/tracker-model/@types/BoardChanges.ts';
+import type { Incident }                 from '../../domain/tracker-model/@types/Incident.ts';
 import type { ControlCommandOf }         from '../../shared/@types/ControlCommand.ts';
+import { OperationRefusal }              from '../../shared/OperationRefusal.ts';
 import { WorktreesFolder }               from '../../shared/WorktreesFolder.ts';
 import type { BoardTransaction }         from '../tracker/BoardTransaction.ts';
 import { projectLocationOf }             from '../tracker/ProjectLocation.ts';
@@ -27,20 +27,16 @@ function jobIdForPatchOf(change: BoardTransaction, ticketId: string, incident: R
 function repairWorktree(command: ControlCommandOf<'worktree-repair'>, change: BoardTransaction): Logged {
   const ticketId = ticketIdOfReference(change, command.ticketReference);
   const incident = incidentForMove(change, command, { name: `#${ticketId}`, concerns: (open) => open.ticketIds.includes(ticketId) }, false);
-  if (STEPS_NEEDING_AN_IDLE_WORKTREE.some((step) => step === command.step)) {
-    // Any job still on the board for the ticket may hold its agent group or a line child in the worktree.
-    const jobIds = change.board.jobs().filter((job) => job.ticketIds.includes(ticketId)).map((job) => job.id);
-    if (jobIds.length > 0) throw new BoardRefusal({ reason: 'worktree-in-use', ticketId, jobIds });
-  }
+  if (STEPS_NEEDING_AN_IDLE_WORKTREE.some((step) => step === command.step)) change.board.refuseARepairOfAWorktreeInUse(ticketId);
   const { rootDirectory, trackerDirectory } = change.workspace;
   const worktreePath = WorktreesFolder.ticketWorktreeOf(rootDirectory, ticketId);
   const jobId = jobIdForPatchOf(change, ticketId, incident);
   const repaired = WorktreeRepair.repair({
     repositoryRoot: projectLocationOf(rootDirectory).repositoryRoot, worktreePath, step: command.step, jobFolder: jobId === null ? null : join(trackerDirectory, 'jobs', jobId),
   });
-  if (repaired.verdict === 'uncommitted-work-not-saved') throw new BoardRefusal({ reason: 'worktree-has-uncommitted-work', ticketId, worktreePath });
-  if (repaired.verdict === 'git-failed') throw new BoardRefusal({
-    reason: 'worktree-repair-failed', ticketId, step: command.step, gitReason: repaired.reason
+  if (repaired.verdict === 'uncommitted-work-not-saved') throw new OperationRefusal('refused', { kind: 'worktree-has-uncommitted-work', ticketId, worktreePath });
+  if (repaired.verdict === 'git-failed') throw new OperationRefusal('refused', {
+    kind: 'worktree-repair-failed', ticketId, step: command.step, problem: repaired.problem
   });
   const recorded = change.board.recordWorktreeRepaired(ticketId, { step: command.step, patchPath: repaired.patchPath }, change.at);
   return handledUnder(change, incident?.id, 'worktree-repair', recorded);

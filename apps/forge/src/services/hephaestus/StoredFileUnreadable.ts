@@ -2,8 +2,9 @@
  * A job file its ingestion found unreadable, carried as a reading's verdict until a hold opens the `system-file-unreadable` incident on the
  * job that needed it, so no step is taken on what could not be read.
  */
-import type { LogRecord }                                    from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Board }                                        from '../../lib/tracker-model/Board.ts';
+import type { UnreadableFileProblem }                        from '../../adapters/@types/UnreadableFileProblem.ts';
+import type { LogRecord }                                    from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { Board }                                        from '../../domain/tracker-model/Board.ts';
 import { dataFolderPathOf }                                  from './HephaestusFiles.ts';
 import { UnreadableJobFileIncident, type UnreadableJobFile } from './UnreadableJobFileIncident.ts';
 
@@ -11,11 +12,11 @@ import { UnreadableJobFileIncident, type UnreadableJobFile } from './UnreadableJ
 export interface StoredFileUnreadable {
   readonly verdict: 'unreadable-file';
   readonly file:    string;
-  readonly reason:  string;
+  readonly problem: UnreadableFileProblem;
 }
 
-function unreadableFileOf(trackerDirectory: string, filePath: string, reason: string): StoredFileUnreadable {
-  return { verdict: 'unreadable-file', file: dataFolderPathOf(trackerDirectory, filePath), reason };
+function unreadableFileOf(trackerDirectory: string, filePath: string, problem: UnreadableFileProblem): StoredFileUnreadable {
+  return { verdict: 'unreadable-file', file: dataFolderPathOf(trackerDirectory, filePath), problem };
 }
 
 function isUnreadableFile(value: unknown): value is StoredFileUnreadable {
@@ -24,7 +25,7 @@ function isUnreadableFile(value: unknown): value is StoredFileUnreadable {
 
 /** The file as the incident on `readingJobId` names it: the job whose step needed the file, which may be another job's. */
 function unreadableJobFileOn(readingJobId: string, unreadable: StoredFileUnreadable): UnreadableJobFile {
-  return { jobId: readingJobId, file: unreadable.file, reason: unreadable.reason };
+  return { jobId: readingJobId, file: unreadable.file, problem: unreadable.problem };
 }
 
 /** In a hold: the incident on `readingJobId`. */

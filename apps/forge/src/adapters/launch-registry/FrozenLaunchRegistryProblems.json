@@ -1,0 +1,42 @@
+[
+  {
+    "case": "a directory stands at its path",
+    "stored": null,
+    "sentence": "it could not be read ({systemError})"
+  },
+  {
+    "case": "its bytes are not UTF-8",
+    "stored": null,
+    "sentence": "it is not UTF-8 text"
+  },
+  {
+    "case": "a whole line is not JSON",
+    "stored": "not json\n",
+    "sentence": "it is not valid JSON (JSON Parse error: Unexpected identifier \"not\")"
+  },
+  {
+    "case": "a line is not a JSON object",
+    "stored": "[]\n",
+    "sentence": "it is not a JSON object"
+  },
+  {
+    "case": "a line's childId is not a string",
+    "stored": "{\"childId\":3,\"childFolder\":\"children/child-1\",\"instance\":1,\"kind\":\"agent\"}\n",
+    "sentence": "childId is not a string"
+  },
+  {
+    "case": "a line's childFolder is not a string",
+    "stored": "{\"childId\":\"child-1\",\"childFolder\":null,\"instance\":1,\"kind\":\"agent\"}\n",
+    "sentence": "childFolder is not a string"
+  },
+  {
+    "case": "a line's instance is not a whole number",
+    "stored": "{\"childId\":\"child-1\",\"childFolder\":\"children/child-1\",\"instance\":1.5,\"kind\":\"agent\"}\n",
+    "sentence": "instance is not a whole number"
+  },
+  {
+    "case": "a line's kind is neither agent nor line",
+    "stored": "{\"childId\":\"child-1\",\"childFolder\":\"children/child-1\",\"instance\":1,\"kind\":\"gate\"}\n",
+    "sentence": "kind is neither agent nor line"
+  }
+]

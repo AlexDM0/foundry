@@ -6,8 +6,8 @@
 import { describe, expect, test } from 'bun:test';
 
 import { HatchFormatUtil }                                      from '../../adapters/hatch/utils/HatchFormatUtil.ts';
-import type { BoardRefusalDetail }                              from '../../lib/tracker-model/BoardRefusal.ts';
-import { PipelineUtil }                                         from '../../lib/tracker-model/utils/PipelineUtil.ts';
+import type { BoardRefusalDetail }                              from '../../domain/tracker-model/BoardRefusal.ts';
+import { PipelineUtil }                                         from '../../domain/tracker-model/utils/PipelineUtil.ts';
 import type { ControlCommand }                                  from '../../shared/@types/ControlCommand.ts';
 import { boardFixture, ticketFixture, type BoardFixture }       from '../../testing/BoardFixtures.ts';
 import { ECHOED_CONTROL_CONTEXT }                               from '../../testing/EchoedControlContext.ts';

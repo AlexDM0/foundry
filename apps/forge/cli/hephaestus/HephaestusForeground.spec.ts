@@ -1,10 +1,22 @@
 /**
- * A Hephaestus run in this process, so its monitor registry can register the scratch tracker, which a spawned binary sees as a temp folder. Its
- * confinement is planted and its identity the recorded process table's, since a gate's sandbox refuses a nested sandbox and a setuid program.
- * Start failures register no URL, a Talos of another protocol or none refuses the start, and a successor after a crash is refused before a lock.
+ * A Hephaestus run in this process, so its monitor registry can be one that registers the scratch tracker: a spawned binary sees the scratch
+ * root as a temp folder and registers nothing. A Hephaestus whose data folder watch fails to start registers no URL with the monitor: a move of
+ * the registry write before the watch start makes it fail. The page stub and the output of that start are held by
+ * `cli/hephaestus/StartCommand.integration.spec.ts`. Its confinement is a planted answer and its own identity the recorded process
+ * table's, so the start reads the same under a gate's sandbox, which refuses a nested sandbox and a setuid program. A Talos started from the
+ * program on disk that answers another protocol version refuses the start `talos-protocol-differs`, naming both versions, and one that never
+ * served refuses it `talos-unavailable`; `cli/hephaestus/StartCommand.integration.spec.ts` holds that a started Hephaestus's Talos serves
+ * under a lease it renewed. The start hold logs `start-classified` right after `hephaestus-started`, and a successor's start after a crash is
+ * refused by the start gate before it takes a Hephaestus lock or binds a port, telling the registry the forge crashed. A successor, whose
+ * standard error is `hephaestus.log`, writes each record there once, as a JSON line.
  */
-import { readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { join }                                from 'node:path';
+import {
+  appendFileSync,
+  readFileSync,
+  rmSync,
+  writeFileSync
+} from 'node:fs';
+import { join } from 'node:path';
 import {
   afterEach,
   beforeEach,
@@ -14,9 +26,10 @@ import {
   test
 } from 'bun:test';
 
-import type { DoneFrame } from '../../src/lib/talos/@types/TalosFrame.ts';
+import { HephaestusLogIngestion } from '../../src/adapters/hephaestus-log/HephaestusLogIngestion.ts';
+import type { DoneFrame }         from '../../src/domain/talos/@types/TalosFrame.ts';
 
-import { TALOS_PROTOCOL_VERSION }                                from '../../src/lib/talos/constants/TalosProtocol.ts';
+import { TALOS_PROTOCOL_VERSION }                                from '../../src/domain/talos/constants/TalosProtocol.ts';
 import { CrashLog }                                              from '../../src/services/hephaestus/CrashLog.ts';
 import { hephaestusFilesIn }                                     from '../../src/services/hephaestus/HephaestusFiles.ts';
 import { HephaestusLock }                                        from '../../src/services/hephaestus/HephaestusLock.ts';
@@ -143,6 +156,38 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the start of
     const [entry] = registryEntriesIn(platformPorts.dataFolders.monitorFolderOf(homeDirectory));
     expect(Object.keys(entry ?? {})).not.toContain('hephaestus');
     expect(entry?.['presence']).toMatchObject({ state: 'crashed', generation: crashedGeneration, crash: { crashLogPath: CrashLog.pathOf(files, 1) } });
+  });
+
+  test('a successor, whose standard error is hephaestus.log, writes each record once, as a JSON line the log reader reads', async () => {
+    const files = hephaestusFilesIn(requireWorkspace(repositoryDirectory).trackerDirectory);
+    const crashedGeneration = 2;
+    Presence.writeStartedPresence(files, {
+      generation:          crashedGeneration,
+      process:             { processId: 4242, startStamp: '1700000000', bootIdentity: 'example-boot' },
+      codeVersion:         'code-example',
+      startOrigin:         'user',
+      startedAt:           '2026-09-18T20:00:00+00:00',
+      startClassification: null,
+    });
+    Presence.writeEnding(files, crashedGeneration, { kind: 'crashed', component: 'hephaestus', crashLogNumber: null }, '2026-09-18T20:05:00+00:00');
+    recordedGit.answerFrom([...idleHephaestusAnswersIn(repositoryDirectory), ORIGIN_ASKED_WITH_NONE_SET]);
+    processTable.callerProcess();
+    const platformPorts = { ...processTable.ports, gateConfinement: fakeGateConfinement('confined') };
+    const capturedContext = createCapturedCommandContext({
+      currentDirectory: repositoryDirectory, homeDirectory: join(repositoryDirectory, 'hephaestus-home'), temporaryDirectories: [], platformPorts, now: SPEC_CLOCK
+    });
+    // As `spawnSuccessor` starts it: standard error appended to the log.
+    const context = { ...capturedContext, standardError: (text: string) => appendFileSync(files.logFilePath, `${text}\n`) };
+
+    expect(await runCommandLine(['start', '--successor-of', String(crashedGeneration), '--port', '0'], context)).toBe(1);
+
+    const reading = new HephaestusLogIngestion(files.logFilePath).read();
+    const lines = reading.verdict === 'readable' ? reading.lines : [];
+    const notRecords = lines.filter((line) => line.verdict === 'not-a-record');
+    expect(lines.filter((line) => line.verdict === 'record').length).toBeGreaterThan(0);
+    // Only the refusal the command prints as it ends is no record.
+    expect(notRecords).toHaveLength(1);
+    expect(notRecords[0]?.storedText).toContain(`is off after a crash of Hephaestus lock ${crashedGeneration}`);
   });
 });
 

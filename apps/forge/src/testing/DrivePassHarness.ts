@@ -3,22 +3,28 @@
  * over the connection the spec hands, and the example wording. A default spec hands `src/testing/RecordedTalosStages.ts`'s connection and runs
  * on `src/testing/RecordedGitFlow.ts`'s stages; a real-system spec starts a scratch Talos with `startScratchBoardTalos`.
  */
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { dirname, join }            from 'node:path';
+import { mkdirSync, writeFileSync }         from 'node:fs';
+import { dirname, join }                    from 'node:path';
+import type { HephaestusLog }               from '../adapters/@types/HephaestusLogRecord.ts';
+import { ConstitutionCommitProblemWording } from '../adapters/ConstitutionCommitProblemWording.ts';
+import { MergeDecisionWording }             from '../adapters/MergeDecisionWording.ts';
+import { PipelineCheckProblemWording }      from '../adapters/pipeline/PipelineCheckProblemWording.ts';
+import { TurboConfigurationProblemWording } from '../adapters/turbo-configuration/TurboConfigurationProblemWording.ts';
 
-import type { AgentAdapter }                                      from '../lib/agent-launch/AgentAdapter.ts';
-import { createDarwinSeatbelt }                                   from '../lib/gate-confinement/DarwinSeatbelt.ts';
-import type { GateConfinement }                                   from '../lib/gate-confinement/GateConfinement.ts';
-import type { PlatformPorts }                                     from '../lib/platform-ports/PlatformPortsFor.ts';
-import type { ProcessIdentity }                                   from '../lib/process-identity/ProcessIdentity.ts';
-import type { ChildLaunch }                                       from '../lib/talos/ChildLaunch.ts';
-import { TALOS_PROTOCOL_VERSION }                                 from '../lib/talos/constants/TalosProtocol.ts';
-import { createDrivePass, type DrivePass, type DrivePassRequest } from '../services/hephaestus/DrivePass.ts';
-import { hephaestusFilesIn }                                      from '../services/hephaestus/HephaestusFiles.ts';
-import { HephaestusLock }                                         from '../services/hephaestus/HephaestusLock.ts';
-import { createTalosChildren }                                    from '../services/hephaestus/TalosChildren.ts';
-import { type TalosConnection, connectToTalos }                   from '../services/hephaestus/TalosConnection.ts';
-import { createLineRunner }                                       from '../services/hephaestus/TalosLines.ts';
+import type { ChildLaunch }                     from '../domain/talos/ChildLaunch.ts';
+import { TALOS_PROTOCOL_VERSION }               from '../domain/talos/constants/TalosProtocol.ts';
+import type { AgentAdapter }                    from '../lib/agent-launch/AgentAdapter.ts';
+import { createDarwinSeatbelt }                 from '../lib/gate-confinement/DarwinSeatbelt.ts';
+import type { GateConfinement }                 from '../lib/gate-confinement/GateConfinement.ts';
+import type { PlatformPorts }                   from '../lib/platform-ports/PlatformPortsFor.ts';
+import type { ProcessIdentity }                 from '../lib/process-identity/ProcessIdentity.ts';
+import type { DrivePassRequest }                from '../services/hephaestus/@types/DrivePassRequest.ts';
+import { createDrivePass, type DrivePass }      from '../services/hephaestus/DrivePass.ts';
+import { hephaestusFilesIn }                    from '../services/hephaestus/HephaestusFiles.ts';
+import { HephaestusLock }                       from '../services/hephaestus/HephaestusLock.ts';
+import { createTalosChildren }                  from '../services/hephaestus/TalosChildren.ts';
+import { type TalosConnection, connectToTalos } from '../services/hephaestus/TalosConnection.ts';
+import { createLineRunner }                     from '../services/hephaestus/TalosLines.ts';
 import {
   createTalosStartHold,
   ensureTalos,
@@ -46,7 +52,7 @@ interface ScratchDrivePassRequired {
   mainLine:                  string;
   /** The connection to the board's Talos, read at each act: the recorded stages' in a default spec, a scratch Talos's in a real-system one. */
   talosConnection:           () => TalosConnection | null;
-  log:                       (line: string) => void;
+  log:                       HephaestusLog;
   /** The start stamp the Hephaestus lock names, one no process had: `1` when absent. Starts a spec crashes at one generation differ by it. */
   hephaestusLockStartStamp?: string;
 }
@@ -91,6 +97,10 @@ export function createScratchDrivePass(request: ScratchDrivePassRequest): DriveP
     installVersionChanged:        () => false,
     agentVariableIsSet:           () => false,
     decisionWordingOf:            () => ({ questions: [], context: '' }),
+    mergeDecisionSentenceOf:      MergeDecisionWording.sentenceOf,
+    applyRefusalSentenceOf:       ConstitutionCommitProblemWording.sentenceOf,
+    checkReasonSentenceOf:        PipelineCheckProblemWording.sentenceOf,
+    findingSentenceOf:            TurboConfigurationProblemWording.sentenceOf,
     packageNeedWordingOf:         () => ({ title: 'Example need', body: '' }),
     dependentFixWordingOf:        () => ({ title: 'Example fix', body: '' }),
     launchTextOf:                 () => ({ firstMessage: 'Example first message', roleBrief: 'Example role' }),
@@ -104,9 +114,9 @@ export function createScratchDrivePass(request: ScratchDrivePassRequest): DriveP
     branchNames:                  branchNamesOf(null),
     unreadableBoardFiles:         createUnreadableBoardFiles(request.log),
     onStaleLockTakenOver:         () => {},
-    onHephaestusLockTakenOver:    () => request.log('taken over'),
+    onHephaestusLockTakenOver:    () => request.log({ kind: 'taken-over-stopping' }),
     onPassCrashed:                () => {
-      request.log('crashed');
+      request.log({ kind: 'crashed-staying-off' });
       return Promise.resolve();
     },
   };
@@ -130,7 +140,7 @@ export interface ScratchBoardTalosRequest {
   workspace:     Workspace;
   platformPorts: PlatformPorts;
   monitorFolder: string;
-  log:           (line: string) => void;
+  log:           HephaestusLog;
   /** The lease and tick bounds the Talos is started with; absent, Hephaestus's own. A row that waits out a lease shortens it. */
   bounds?:       TalosStartBounds;
 }

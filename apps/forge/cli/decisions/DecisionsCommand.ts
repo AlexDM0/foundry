@@ -1,5 +1,5 @@
 /** The open decisions for User, in opening order, each question with its options lettered as `decide` takes them. Read-only, no lock. */
-import type { Decision }       from '../../src/lib/tracker-model/@types/Decision.ts';
+import type { Decision }       from '../../src/domain/tracker-model/@types/Decision.ts';
 import { PRODUCT_NAMES }       from '../../src/shared/constants/ProductNames.ts';
 import { boardReadsOf }        from '../BoardStoreOf.ts';
 import type { CommandHandler } from '../CommandHandler.ts';

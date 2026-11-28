@@ -18,26 +18,28 @@ import {
   test
 } from 'bun:test';
 
+import type { HephaestusLog, HephaestusLogRecord }                                      from '../../adapters/@types/HephaestusLogRecord.ts';
 import { HatchFormatUtil }                                                              from '../../adapters/hatch/utils/HatchFormatUtil.ts';
 import { createSnapshotStartWriter }                                                    from '../../adapters/snapshot-start/SnapshotStartWriter.ts';
+import type { ChildInput }                                                              from '../../domain/talos/@types/TalosFrame.ts';
+import type { Job }                                                                     from '../../domain/tracker-model/@types/Job.ts';
+import type { TicketStatus }                                                            from '../../domain/tracker-model/@types/Ticket.ts';
+import type { LoadedTicketDocumentRecord }                                              from '../../domain/tracker-model/@types/TicketDocument.ts';
+import type { BoardRefusalDetail }                                                      from '../../domain/tracker-model/BoardRefusal.ts';
 import type { WorkerProfile }                                                           from '../../lib/agent-launch/WorkerProfile.ts';
 import { REAL_WORKTREE_REMOVAL_PRIMITIVES, type WorktreeRemovalPrimitives }             from '../../lib/git/GitWorktrees.ts';
-import type { ChildInput }                                                              from '../../lib/talos/@types/TalosFrame.ts';
-import type { Job }                                                                     from '../../lib/tracker-model/@types/Job.ts';
-import type { TicketStatus }                                                            from '../../lib/tracker-model/@types/Ticket.ts';
-import type { LoadedTicketDocumentRecord }                                              from '../../lib/tracker-model/@types/TicketDocument.ts';
-import type { BoardRefusalDetail }                                                      from '../../lib/tracker-model/BoardRefusal.ts';
 import { boardFixture, ticketFixture, type BoardFixture }                               from '../../testing/BoardFixtures.ts';
 import { ECHOED_CONTROL_CONTEXT }                                                       from '../../testing/EchoedControlContext.ts';
 import { fakeAgentAdapter }                                                             from '../../testing/FakeAgentAdapter.ts';
 import { createFixtureRecordAllocation, NO_UNREADABLE_RECORDS }                         from '../../testing/FixtureRecordAllocation.ts';
+import { detailsLoggerOf }                                                              from '../../testing/LoggedDetails.ts';
 import { useRecordedGit }                                                               from '../../testing/RecordedGit.ts';
 import { DOCUMENT_AGENT_SNAPSHOT_FOLDER_NAME }                                          from '../../testing/RecordedGitScenarioCalls.ts';
 import { GIT_SCENARIOS }                                                                from '../../testing/RecordedGitScenarios.ts';
 import { createScratchDirectory, removeScratchDirectory }                               from '../../testing/ScratchWorkspace.ts';
 import { documentAgentJobFixture, documentMessageFixture, ticketDocumentRecordFixture } from '../../testing/TicketDocumentFixtures.ts';
 import { testWhenGitIsRecorded }                                                        from '../../testing/ToolGuard.ts';
-import { launchSnapshotOf }                                                             from '../lifecycle/Customs.ts';
+import { launchSnapshotOf }                                                             from '../lifecycle/CustomsLaunchSnapshot.ts';
 import type { BoardTransaction }                                                        from '../tracker/BoardTransaction.ts';
 import { workspacePathsFor }                                                            from '../tracker/Workspace.ts';
 import type { BoardChildren }                                                           from './BoardChildren.ts';
@@ -68,8 +70,8 @@ interface SessionFixture extends BoardFixture {
   trackerDirectory: string;
   children:         BoardChildren;
   sentLines:        () => string[];
-  loggedLines:      string[];
-  log:              (line: string) => void;
+  loggedRecords:    HephaestusLogRecord[];
+  log:              HephaestusLog;
 }
 
 function sessionFixture(record: LoadedTicketDocumentRecord, jobs: Job[], status: TicketStatus = 'draft'): SessionFixture {
@@ -90,9 +92,9 @@ function sessionFixture(record: LoadedTicketDocumentRecord, jobs: Job[], status:
     },
   } as unknown as BoardChildren;
   const sentLines = (): string[] => inputs.flatMap((input) => (input.act === 'write-line' ? [input.line] : []));
-  const loggedLines: string[] = [];
+  const loggedRecords: HephaestusLogRecord[] = [];
   return {
-    ...fixture, rootDirectory, trackerDirectory, children, sentLines, loggedLines, log: (line) => loggedLines.push(line)
+    ...fixture, rootDirectory, trackerDirectory, children, sentLines, loggedRecords, log: (record) => loggedRecords.push(record)
   };
 }
 
@@ -260,7 +262,9 @@ describe('the messages', () => {
     await DocumentAgentSessions.sendDeliveries(fixture.children, fixture.trackerDirectory, fixture.board, CHAT_ADAPTER, fixture.log);
 
     expect(fixture.board.incidents().map((incident) => [incident.kind, incident.ticketIds, incident.jobId, incident.facts])).toEqual([[
-      'system-file-unreadable', ['004'], 'J9', { file: 'jobs/J9/document-agent-launch.json', reason: 'its version is not 1' },
+      'system-file-unreadable', ['004'], 'J9', {
+        file: 'jobs/J9/document-agent-launch.json', problem: 'version-differs', field: 'version', expectedVersion: '1'
+      },
     ]]);
     expect(fixture.board.ticketDocuments().nextQueuedMessageOf('004', 'spec')?.messageId).toBe('M2');
     expect(fixture.board.jobById('J9')?.state).toBe('stopping');
@@ -293,8 +297,7 @@ describe('the messages', () => {
 
     await DocumentAgentSessions.sendDeliveries(fixture.children, fixture.trackerDirectory, fixture.board, CHAT_ADAPTER, fixture.log);
 
-    expect(fixture.loggedLines).toHaveLength(1);
-    expect(fixture.loggedLines[0]).toContain('is unreadable, so its next line carries the head again');
+    expect(fixture.loggedRecords).toEqual([{ kind: 'seen-head-unreadable', seenHeadFilePath, problem: { code: 'not-json', parserError: expect.any(String) } }]);
     expect(fixture.sentLines()).toHaveLength(1);
     expect(fixture.sentLines()[0]).toContain('The spec at version 1:');
     expect(readFileSync(seenHeadFilePath, 'utf8')).toBe(seenHeadAtLaunch);
@@ -453,7 +456,7 @@ describe('a document\'s snapshot', () => {
     const removed: string[] = [];
     const logged: string[] = [];
     const tried = new Set<string>();
-    const removeUnheld = (): void => DocumentAgentSessions.removeUnheldSnapshots(fixture.board, context, tried, (line) => logged.push(line), removalThatSucceeds(removed));
+    const removeUnheld = (): void => DocumentAgentSessions.removeUnheldSnapshots(fixture.board, context, tried, detailsLoggerOf(logged), removalThatSucceeds(removed));
     mkdirSync(snapshot, { recursive: true });
 
     removeUnheld();

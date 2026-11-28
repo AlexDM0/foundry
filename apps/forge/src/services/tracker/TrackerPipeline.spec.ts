@@ -21,7 +21,7 @@ import {
   expect,
   test,
 } from 'bun:test';
-import { TicketBodyHashUtil }                                 from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
+import { TicketBodyHashUtil }                                 from '../../domain/tracker-model/utils/TicketBodyHashUtil.ts';
 import { OperationRefusal, refusalIsOperationRefusal }        from '../../shared/OperationRefusal.ts';
 import { EVERY_BILLING_MODE_OFFERED, EXAMPLE_PIPELINE_AGENT } from '../../testing/ExamplePipelineAgent.ts';
 import { LIVE_HOLDERS_LOCK_TAKER }                            from '../../testing/LockTakers.ts';
@@ -348,7 +348,7 @@ describe('writeTracker', () => {
       },
     }));
 
-    expect(String(failure)).toContain('#009');
+    expect(failure).toMatchObject({ detail: { kind: 'ticket-file-not-allocated', ticketId: '009' } });
     expect(storedFileContentsOf(workspace)).toEqual(storedBefore);
   });
 
@@ -593,7 +593,7 @@ describe('the setup record a hold reads and writes', () => {
     }));
 
     expect(readFileSync(localStoreLayoutOf(workspace).progressRecordPath, 'utf8')).toContain('Example rendered row');
-    const boardRefusal = { reason: 'pipeline-setup-unreadable', problem: 'setupId is missing' } as const;
+    const boardRefusal = { reason: 'pipeline-setup-unreadable', problem: { code: 'missing', field: 'setupId' } } as const;
     expect(refusalIsOperationRefusal(refusal) && refusal.detail).toEqual({ kind: 'board-refusal', boardRefusal });
     expect(readFileSync(localStoreLayoutOf(workspace).pipelineSetupRecordPath, 'utf8')).toBe('{ "formatVersion": 4 }\n');
   });
@@ -650,7 +650,7 @@ describe('the gate profile runs a hold reads and writes', () => {
     }));
 
     expect(readFileSync(localStoreLayoutOf(workspace).progressRecordPath, 'utf8')).toContain('Example rendered row');
-    const boardRefusal = { reason: 'gate-profiles-unreadable', problem: 'nextRunNumber is missing' } as const;
+    const boardRefusal = { reason: 'gate-profiles-unreadable', problem: { code: 'missing', field: 'nextRunNumber' } } as const;
     expect(refusalIsOperationRefusal(refusal) && refusal.detail).toEqual({ kind: 'board-refusal', boardRefusal });
     expect(readFileSync(localStoreLayoutOf(workspace).gateProfilesRecordPath, 'utf8')).toBe('{ "formatVersion": 1 }\n');
   });

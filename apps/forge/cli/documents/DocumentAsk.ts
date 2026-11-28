@@ -3,7 +3,7 @@
  * The lines are those of the version that the question changes, the context why it asks, and each option is `{label, description?,
  * touches?, tradeOff?, acceptanceEffect?, recommended?}`; Hephaestus checks the fields.
  */
-import type { LineRange }                        from '../../src/lib/tracker-model/@types/TicketDocument.ts';
+import type { LineRange }                        from '../../src/domain/tracker-model/@types/TicketDocument.ts';
 import type { DocumentQuestionOptionSubmission } from '../../src/shared/@types/ControlCommand.ts';
 import type { CommandContext }                   from '../CommandContext.ts';
 import { refuseUsage }                           from '../RecordedIncidentMove.ts';

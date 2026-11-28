@@ -10,6 +10,7 @@ import { BoardDocumentMapUtil }                                       from '../.
 import type { ForgeStreamEvent, ForgeStreamFollow, HephaestusAccess } from '../../../lib/forge-client/@types/ForgeClientAnswer.ts';
 import { forgeEndpointPathOf }                                        from '../../../lib/forge-client/ForgeClient.ts';
 import { JsonValueUtil }                                              from '../../../lib/json-value/JsonValueUtil.ts';
+import { SUPPORTED_FORGE_VERSION }                                    from '../../../shared/constants/SupportedForgeVersions.ts';
 import { BoardRelayAnswers }                                          from '../BoardRelayAnswers.ts';
 import type { BoardStreams, RelayedEventMapping }                     from '../BoardStreams.ts';
 import { forgeAccessVerdictFor, type ForgeAccessSources }             from '../ForgeAccess.ts';
@@ -93,7 +94,7 @@ async function relayedStreamAnswerFor(request: Request, trackerId: string, sourc
 export function boardEventsAnswerFor(request: Request, trackerId: string, sources: BoardStreamRouteSources): Promise<Response> {
   const { forgeClient } = sources.forgeAccess;
   return relayedStreamAnswerFor(request, trackerId, sources, {
-    forgeStreamPath: forgeEndpointPathOf('events'),
+    forgeStreamPath: forgeEndpointPathOf('events', SUPPORTED_FORGE_VERSION),
     follow:          (access, _after, lastEventId, onEvent) => forgeClient.followEvents(access, lastEventId, onEvent),
     mapEvent:        boardEventMappingOf,
   });
@@ -102,7 +103,7 @@ export function boardEventsAnswerFor(request: Request, trackerId: string, source
 export function jobStreamAnswerFor(request: Request, trackerId: string, jobId: string, sources: BoardStreamRouteSources): Promise<Response> {
   const { forgeClient } = sources.forgeAccess;
   return relayedStreamAnswerFor(request, trackerId, sources, {
-    forgeStreamPath: forgeEndpointPathOf('jobStream', { jobId }),
+    forgeStreamPath: forgeEndpointPathOf('jobStream', SUPPORTED_FORGE_VERSION, { jobId }),
     follow:          (access, after, lastEventId, onEvent) => forgeClient.followJobStream(access, jobId, after, lastEventId, onEvent),
     mapEvent:        jobStreamEventMappingOf,
   });
@@ -111,7 +112,7 @@ export function jobStreamAnswerFor(request: Request, trackerId: string, jobId: s
 export function profileStreamAnswerFor(request: Request, trackerId: string, profileRunId: string, sources: BoardStreamRouteSources): Promise<Response> {
   const { forgeClient } = sources.forgeAccess;
   return relayedStreamAnswerFor(request, trackerId, sources, {
-    forgeStreamPath: forgeEndpointPathOf('profileStream', { profileRunId }),
+    forgeStreamPath: forgeEndpointPathOf('profileStream', SUPPORTED_FORGE_VERSION, { profileRunId }),
     follow:          (access, after, lastEventId, onEvent) => forgeClient.followProfileStream(access, profileRunId, after, lastEventId, onEvent),
     mapEvent:        profileStreamEventMappingOf,
   });

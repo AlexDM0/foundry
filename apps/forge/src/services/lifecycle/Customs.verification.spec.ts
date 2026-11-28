@@ -10,21 +10,17 @@ import {
 }                                                         from 'bun:test';
 
 import type { LaunchSnapshot }                            from '../../adapters/@types/LaunchSnapshot.ts';
-import type { PipelineGate }                              from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { PipelineGate }                              from '../../domain/tracker-model/@types/Pipeline.ts';
 import { PRODUCT_NAMES }                                  from '../../shared/constants/ProductNames.ts';
 import { fakeAgentAdapter }                               from '../../testing/FakeAgentAdapter.ts';
 import { useRecordedGit }                                 from '../../testing/RecordedGit.ts';
 import { GIT_SCENARIOS }                                  from '../../testing/RecordedGitScenarios.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }                      from '../../testing/ToolGuard.ts';
-import {
-  CHECKS_OF_ROLE,
-  launchSnapshotOf,
-  CUSTOMS_CHECKS,
-  clearCustoms,
-  type CustomsSubject,
-  type VerificationCheck
-} from './Customs.ts';
+import type { CustomsSubject }                            from './@types/CustomsSubject.ts';
+import type { VerificationCheck }                         from './@types/CustomsVerdict.ts';
+import { CHECKS_OF_ROLE, clearCustoms, CUSTOMS_CHECKS }   from './Customs.ts';
+import { launchSnapshotOf }                               from './CustomsLaunchSnapshot.ts';
 
 const TICKET_BODY = '## Report\nExample report.\n\n## Acceptance\nA1. The example page loads.\n';
 

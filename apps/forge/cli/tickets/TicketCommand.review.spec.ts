@@ -9,7 +9,7 @@ import {
   expect,
   test
 }                                                                             from 'bun:test';
-import type { Task }                              from '../../src/lib/tracker-model/@types/Task.ts';
+import type { Task }                              from '../../src/domain/tracker-model/@types/Task.ts';
 import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }              from '../../src/testing/ToolGuard.ts';

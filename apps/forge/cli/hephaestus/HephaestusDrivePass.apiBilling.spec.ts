@@ -11,16 +11,17 @@ import {
   test
 } from 'bun:test';
 
-import type { AgentAdapter }                from '../../src/lib/agent-launch/AgentAdapter.ts';
-import type { AgentLaunchPlan }             from '../../src/lib/agent-launch/AgentLaunchPlan.ts';
-import type { ChildLaunch }                 from '../../src/lib/talos/ChildLaunch.ts';
-import type { PipelineBilling }             from '../../src/lib/tracker-model/@types/Pipeline.ts';
-import type { DrivePass, DrivePassRequest } from '../../src/services/hephaestus/DrivePass.ts';
-import { jobFolderIn }                      from '../../src/services/hephaestus/HephaestusFiles.ts';
-import { localStoreLayoutOf }               from '../../src/services/tracker/LocalStoreLayout.ts';
-import { requireWorkspace }                 from '../../src/services/tracker/Workspace.ts';
-import { API_RATE_LIMIT_BACKOFF_SECONDS }   from '../../src/shared/constants/HephaestusLimits.ts';
-import { createScratchDrivePass }           from '../../src/testing/DrivePassHarness.ts';
+import type { ChildLaunch }               from '../../src/domain/talos/ChildLaunch.ts';
+import type { PipelineBilling }           from '../../src/domain/tracker-model/@types/Pipeline.ts';
+import type { AgentAdapter }              from '../../src/lib/agent-launch/AgentAdapter.ts';
+import type { AgentLaunchPlan }           from '../../src/lib/agent-launch/AgentLaunchPlan.ts';
+import type { DrivePassRequest }          from '../../src/services/hephaestus/@types/DrivePassRequest.ts';
+import type { DrivePass }                 from '../../src/services/hephaestus/DrivePass.ts';
+import { jobFolderIn }                    from '../../src/services/hephaestus/HephaestusFiles.ts';
+import { localStoreLayoutOf }             from '../../src/services/tracker/LocalStoreLayout.ts';
+import { requireWorkspace }               from '../../src/services/tracker/Workspace.ts';
+import { API_RATE_LIMIT_BACKOFF_SECONDS } from '../../src/shared/constants/HephaestusLimits.ts';
+import { createScratchDrivePass }         from '../../src/testing/DrivePassHarness.ts';
 import {
   DEFAULT_FAKE_AGENT_STEPS,
   fakeAgentAdapter,
@@ -29,6 +30,7 @@ import {
   fakeStartedLine
 } from '../../src/testing/FakeAgentAdapter.ts';
 import { fakeGateConfinement }                               from '../../src/testing/FakeGateConfinement.ts';
+import { detailsLoggerOf }                                   from '../../src/testing/LoggedDetails.ts';
 import { nativePlatformPorts }                               from '../../src/testing/NativePlatformPorts.ts';
 import { useRecordedGit }                                    from '../../src/testing/RecordedGit.ts';
 import { RECORDED_FLOW_MAIN_LINE }                           from '../../src/testing/RecordedGitFlow.ts';
@@ -124,7 +126,7 @@ function drivePassWith(apiBillingKeyIsSet: boolean, requestOverrides: Partial<Dr
     inheritedEnvironment: HEPHAESTUS_ENVIRONMENT,
     agentVariableIsSet:   () => apiBillingKeyIsSet,
     decisionWordingOf:    (draft) => HephaestusWording.decisionWordingOf(draft, agentAdapter),
-    log:                  (line) => hephaestusLog.push(line),
+    log:                  detailsLoggerOf(hephaestusLog),
     ...requestOverrides,
   });
   drivePassesOfThisTest.push(drivePass);

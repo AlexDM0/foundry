@@ -11,8 +11,8 @@ import {
 } from 'bun:test';
 
 import { PipelineSetupFile }                                         from '../../src/adapters/pipeline/PipelineSetupFile.ts';
-import type { Pipeline }                                             from '../../src/lib/tracker-model/@types/Pipeline.ts';
-import type { PipelineSetup }                                        from '../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import type { Pipeline }                                             from '../../src/domain/tracker-model/@types/Pipeline.ts';
+import type { PipelineSetup }                                        from '../../src/domain/tracker-model/@types/PipelineSetup.ts';
 import { ControlService }                                            from '../../src/services/control/ControlService.ts';
 import type { DrivePass }                                            from '../../src/services/hephaestus/DrivePass.ts';
 import { HatchInbox }                                                from '../../src/services/hephaestus/HatchInbox.ts';
@@ -28,6 +28,7 @@ import { ECHOED_CONTROL_CONTEXT }                                    from '../..
 import { fakeAgentAdapter, fakeStartedLine }                         from '../../src/testing/FakeAgentAdapter.ts';
 import { fakeGateConfinement }                                       from '../../src/testing/FakeGateConfinement.ts';
 import { LIVE_HOLDERS_LOCK_TAKER }                                   from '../../src/testing/LockTakers.ts';
+import { detailsLoggerOf }                                           from '../../src/testing/LoggedDetails.ts';
 import { nativePlatformPorts }                                       from '../../src/testing/NativePlatformPorts.ts';
 import { useRecordedGit }                                            from '../../src/testing/RecordedGit.ts';
 import { RECORDED_FLOW_MAIN_LINE }                                   from '../../src/testing/RecordedGitFlow.ts';
@@ -133,7 +134,7 @@ beforeEach(async () => {
     agentAdapter:      LISTENING_SESSION,
     monitorFolder,
     mainLine:          RECORDED_FLOW_MAIN_LINE,
-    log:               (line) => hephaestusLog.push(line),
+    log:               detailsLoggerOf(hephaestusLog),
     decisionWordingOf: (draft) => HephaestusWording.decisionWordingOf(draft, LISTENING_SESSION),
     launchTextOf:      (job, facts) => HephaestusWording.launchTextOf(job, facts, LISTENING_SESSION.promptFills),
   });

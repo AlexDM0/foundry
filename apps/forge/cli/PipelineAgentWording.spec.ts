@@ -103,7 +103,7 @@ test('a draft edit that leaves the entities refused names each refusal that stan
     editIds:                ['E8'],
     fields:                 ['entity:admin'],
     changes:                [{ field: 'entity:admin', value: { kind: 'app', home: ['/apps/web'] } }],
-    standingEntityRefusals: ['the entities web, admin share the home "/apps/web"'],
+    standingEntityRefusals: [{ reason: 'equal-homes', home: '/apps/web', entityKeys: ['web', 'admin'] }],
   }, PROMPT_FILLS);
   expect(wording.endsWith([
     'The draft\'s entities still hold these refusals, so Continue and Apply wait until User resolves them:',

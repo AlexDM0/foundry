@@ -275,7 +275,7 @@ describe('a hold under the real lock', () => {
     expect(refusalIsOperationRefusal(failure) ? failure.detail : null).toEqual({
       kind:            'malformed-hold-journal',
       journalFilePath: localStoreLayoutOf(workspace).holdJournalPath,
-      reason:          'its "files" is not a list',
+      problem:         { code: 'files-not-a-list', field: 'files' },
     });
     expect(actionRan).toBe(false);
     expect(readFileSync(localStoreLayoutOf(workspace).logRecordPath, 'utf8')).toBe(HAND_EDITED_LOG_TEXT);
@@ -333,7 +333,7 @@ describe('replayHoldJournal', () => {
     expect(refusalIsOperationRefusal(refusal)).toBe(true);
     expect(refusal).toEqual(expect.objectContaining({
       status: 'unrepaired',
-      detail: { kind: 'hold-journal-unremovable', journalFilePath: localStoreLayoutOf(workspace).holdJournalPath, reason: 'Error: held' },
+      detail: { kind: 'hold-journal-unremovable', journalFilePath: localStoreLayoutOf(workspace).holdJournalPath, systemError: 'Error: held' },
     }));
     expect(existsSync(localStoreLayoutOf(workspace).holdJournalPath)).toBe(true);
   });

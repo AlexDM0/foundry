@@ -1,0 +1,37 @@
+[
+  {
+    "case": "it may not be read (no read permission)",
+    "stored": null,
+    "sentence": "it could not be read ({systemError})"
+  },
+  {
+    "case": "its bytes are not UTF-8",
+    "stored": null,
+    "sentence": "it is not UTF-8 text"
+  },
+  {
+    "case": "it is not JSON",
+    "stored": "not json",
+    "sentence": "it is not valid JSON (JSON Parse error: Unexpected identifier \"not\")"
+  },
+  {
+    "case": "it is not a JSON object",
+    "stored": "[]",
+    "sentence": "it is not a JSON object"
+  },
+  {
+    "case": "its installVersion is missing",
+    "stored": "{}",
+    "sentence": "installVersion is missing, and it has to be a whole number of at least 1"
+  },
+  {
+    "case": "its installVersion is below 1",
+    "stored": "{\"installVersion\":0}",
+    "sentence": "installVersion is 0, and it has to be a whole number of at least 1"
+  },
+  {
+    "case": "its installVersion is text",
+    "stored": "{\"installVersion\":\"11\"}",
+    "sentence": "installVersion is \"11\", and it has to be a whole number of at least 1"
+  }
+]

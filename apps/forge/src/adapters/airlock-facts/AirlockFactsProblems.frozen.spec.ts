@@ -1,0 +1,39 @@
+/** What User reads does not change: each reason `airlock-facts.json` gives stays the sentence its frozen table holds. */
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join }                                   from 'node:path';
+import { afterEach, expect, test }                from 'bun:test';
+
+import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { AirlockFactsIngestion }                          from './AirlockFactsIngestion.ts';
+import { AirlockFactsProblemWording }                     from './AirlockFactsProblemWording.ts';
+import frozenProblems                                     from './FrozenAirlockFactsProblems.json' with { type: 'json' };
+
+const NOT_UTF8_CASE = 'bytes that are not UTF-8';
+
+let scratchDirectory: string | null = null;
+
+afterEach(() => {
+  if (scratchDirectory !== null) removeScratchDirectory(scratchDirectory);
+  scratchDirectory = null;
+});
+
+function systemErrorOf(filePath: string): string {
+  try {
+    readFileSync(filePath);
+    return '';
+  } catch (error) {
+    return error instanceof Error ? error.message : '';
+  }
+}
+
+test.each(frozenProblems)('$case', ({ case: problemCase, stored, sentence }) => {
+  scratchDirectory = createScratchDirectory('frozen-airlock-facts-problems');
+  const filePath = join(scratchDirectory, 'airlock-facts.json');
+  if (stored !== null) writeFileSync(filePath, stored);
+  else if (problemCase === NOT_UTF8_CASE) writeFileSync(filePath, Uint8Array.of(0xff, 0xfe, 0xfd));
+  else mkdirSync(filePath);
+
+  const reading = new AirlockFactsIngestion(filePath).read();
+  expect(reading.verdict).toBe('unreadable');
+  expect(reading.verdict === 'unreadable' ? AirlockFactsProblemWording.sentenceOf(reading.problem) : '').toBe(sentence.replace('{systemError}', systemErrorOf(filePath)));
+});

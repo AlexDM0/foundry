@@ -11,10 +11,11 @@ import {
   test
 } from 'bun:test';
 
-import type { LaunchRegistryEntry }                       from '../../lib/talos/ChildLaunch.ts';
-import { launchRegistryEntryLineOf }                      from '../../lib/talos/LaunchRegistry.ts';
+import type { LaunchRegistryEntry }                       from '../../domain/talos/ChildLaunch.ts';
+import { launchRegistryEntryLineOf }                      from '../../domain/talos/LaunchRegistry.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { LaunchRegistryIngestion }                        from './LaunchRegistryIngestion.ts';
+import { LaunchRegistryProblemWording }                   from './LaunchRegistryProblemWording.ts';
 
 const AGENT: LaunchRegistryEntry = {
   childId: 'jobs/J-1#1', childFolder: 'jobs/J-1', instance: 1, kind: 'agent'
@@ -63,7 +64,7 @@ test('an unterminated last line that does not parse is passed over unnamed, and 
 
 test('an unterminated last line that parses but does not fit is whole, not cut short, so it is named', () => {
   writeFileSync(registryPath(), `${launchRegistryEntryLineOf(AGENT)}${JSON.stringify({ ...LINE, kind: 'example-kind' })}`);
-  expect(reading()).toEqual({ verdict: 'readable', entries: [AGENT], unreadableLines: [{ lineNumber: 2, reason: 'kind is neither agent nor line' }] });
+  expect(reading()).toEqual({ verdict: 'readable', entries: [AGENT], unreadableLines: [{ lineNumber: 2, problem: { code: 'registry-line-field-malformed', field: 'kind' } }] });
 });
 
 test.each([
@@ -79,5 +80,8 @@ test.each([
   const read = reading();
 
   expect(read).toMatchObject({ verdict: 'readable', entries: [AGENT, LINE] });
-  expect(read.verdict === 'readable' ? read.unreadableLines : []).toEqual([{ lineNumber: 2, reason: expect.stringContaining(reason) }]);
+  const wordedLines = read.verdict === 'readable'
+    ? read.unreadableLines.map(({ lineNumber, problem }) => ({ lineNumber, reason: LaunchRegistryProblemWording.lineSentenceOf(problem) }))
+    : [];
+  expect(wordedLines).toEqual([{ lineNumber: 2, reason: expect.stringContaining(reason) as unknown as string }]);
 });

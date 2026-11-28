@@ -6,9 +6,9 @@
 import { type Dirent, readdirSync } from 'node:fs';
 import { join }                     from 'node:path';
 
-import type { FrameRefusalReason }      from '../../lib/talos/@types/TalosFrame.ts';
-import type { ChildEnd }                from '../../lib/talos/ChildRecord.ts';
-import type { EventLogEntry }           from '../../lib/talos/EventLog.ts';
+import type { FrameRefusalReason }      from '../../domain/talos/@types/TalosFrame.ts';
+import type { ChildEnd }                from '../../domain/talos/ChildRecord.ts';
+import type { EventLogEntry }           from '../../domain/talos/EventLog.ts';
 import { TALOS_LINE_LOOK_MILLISECONDS } from '../../shared/constants/HephaestusLimits.ts';
 import type { LineRunEnd, LineRunner }  from '../lifecycle/GateRun.ts';
 import type { BoardChildren }           from './BoardChildren.ts';

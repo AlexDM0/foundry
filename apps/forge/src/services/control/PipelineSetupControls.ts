@@ -5,36 +5,35 @@
  */
 import { PipelineFile }                                                              from '../../adapters/pipeline/PipelineFile.ts';
 import { SetupPayloadSchemas }                                                       from '../../adapters/pipeline-setup/SetupPayloadSchemas.ts';
-import { OperationRefusalWordingUtil }                                               from '../../adapters/utils/OperationRefusalWordingUtil.ts';
-import { GitProcess }                                                                from '../../lib/git/GitProcess.ts';
-import { commitCountAheadOf }                                                        from '../../lib/git/MergeTree.ts';
-import { JsonRecordUtil }                                                            from '../../lib/json-record/JsonRecordUtil.ts';
-import type { PipelineApplyChanged, PipelineSetupChanged, PipelineSetupStartedOver } from '../../lib/tracker-model/@types/BoardChanges.ts';
+import type { PipelineApplyChanged, PipelineSetupChanged, PipelineSetupStartedOver } from '../../domain/tracker-model/@types/BoardChanges.ts';
 import type {
   EntityKey,
   Pipeline,
   PipelineAgent,
   PipelineBilling
-} from '../../lib/tracker-model/@types/Pipeline.ts';
+} from '../../domain/tracker-model/@types/Pipeline.ts';
 import type {
   ApplyMainReading,
   ConstitutionSources,
   EntityConstitutionsOnMain,
   MainConstitution,
+  MainConstitutionProblem,
   PipelineDraftEdit,
   PipelineDraftField,
   PipelineSetup,
   PipelineSetupOpening,
   PipelineSetupStep,
   SetupQuestionReply
-} from '../../lib/tracker-model/@types/PipelineSetup.ts';
-import type { Board }                                             from '../../lib/tracker-model/Board.ts';
-import { BoardRefusal }                                           from '../../lib/tracker-model/BoardRefusal.ts';
-import { PENDING_APPLY_REQUEST_STATES, PIPELINE_SETUP_STEPS }     from '../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
-import { EntityValidationUtil }                                   from '../../lib/tracker-model/utils/EntityValidationUtil.ts';
-import { PipelineChangeUtil }                                     from '../../lib/tracker-model/utils/PipelineChangeUtil.ts';
-import { PipelineDraftEditUtil }                                  from '../../lib/tracker-model/utils/PipelineDraftEditUtil.ts';
-import { PipelineUtil }                                           from '../../lib/tracker-model/utils/PipelineUtil.ts';
+} from '../../domain/tracker-model/@types/PipelineSetup.ts';
+import type { Board }                                             from '../../domain/tracker-model/Board.ts';
+import { PIPELINE_SETUP_STEPS }                                   from '../../domain/tracker-model/constants/PipelineSetupVocabulary.ts';
+import { type EntityRefusal, EntityValidationUtil }               from '../../domain/tracker-model/utils/EntityValidationUtil.ts';
+import { PipelineChangeUtil }                                     from '../../domain/tracker-model/utils/PipelineChangeUtil.ts';
+import { PipelineDraftEditUtil }                                  from '../../domain/tracker-model/utils/PipelineDraftEditUtil.ts';
+import { PipelineUtil }                                           from '../../domain/tracker-model/utils/PipelineUtil.ts';
+import { GitProcess }                                             from '../../lib/git/GitProcess.ts';
+import { commitCountAheadOf }                                     from '../../lib/git/MergeTree.ts';
+import { JsonRecordUtil }                                         from '../../lib/json-record/JsonRecordUtil.ts';
 import type { ControlCommandKind, ControlCommandOf as CommandOf } from '../../shared/@types/ControlCommand.ts';
 import type { ControlContext, DraftFieldValue, SetupMessage }     from '../../shared/@types/ControlContext.ts';
 import { OperationRefusal }                                       from '../../shared/OperationRefusal.ts';
@@ -139,13 +138,6 @@ function markdownFieldOf(command: SentCommand): string | undefined {
 /** The level a command names: an entity's key, or `undefined` for the forge when the command names none. */
 function entityFieldOf(command: SentCommand): EntityKey | undefined {
   return Object.hasOwn(command, 'entity') ? textFieldOf(command, 'entity') : undefined;
-}
-
-/** A level named by an entity must be one the pipeline holds; the forge always is. */
-function requireEntityLevel(pipeline: Readonly<Pipeline> | null, entityKey: EntityKey | undefined): void {
-  if (entityKey === undefined) return;
-  const entities = pipeline?.entities ?? {};
-  if (!Object.hasOwn(entities, entityKey)) throw new BoardRefusal({ reason: 'setup-entity-unknown', entity: entityKey, entityKeys: Object.keys(entities) });
 }
 
 function draftEditsFieldOf(command: SentCommand): PipelineDraftEdit[] {
@@ -261,7 +253,7 @@ function startedEntityAgentsOf(changed: PipelineSetupChanged, change: BoardTrans
 /** Main's `CONSTITUTION.md`, `null` when main holds none; a read git cannot answer refuses, since a guess would hide a change on main. */
 function mainConstitutionOf(change: BoardTransaction, context: ControlContext): MainConstitution | null {
   const reading = context.mainConstitutionOf(change.workspace.rootDirectory);
-  if (reading.verdict === 'unreadable') throw new OperationRefusal('unrepaired', { kind: 'main-constitution-unreadable', reason: reading.reason });
+  if (reading.verdict === 'unreadable') throw new OperationRefusal('unrepaired', { kind: 'main-constitution-unreadable', problem: reading.problem });
   return reading.verdict === 'read' ? reading.constitution : null;
 }
 
@@ -302,7 +294,7 @@ function startSetup(command: CommandOf<'pipeline-setup-start'>, change: BoardTra
  */
 function updateOpeningOf(mode: 'update' | 'advise', change: BoardTransaction, context: ControlContext, entityKey: EntityKey | undefined): PipelineSetupOpening {
   requireReadablePipeline(change);
-  requireEntityLevel(change.board.pipeline(), entityKey);
+  change.board.refuseASetupLevelThePipelineLacks(change.board.pipeline(), entityKey);
   const billing = change.board.pipeline()?.billing ?? null;
   const agent = change.board.pipeline()?.agent ?? null;
   const constitutionOpening = change.board.pipeline() === null ? { mainConstitution: null, storedAnnotations: [] } : openingConstitutionOf(change, context);
@@ -406,11 +398,7 @@ function mainLineMoveOf(repositoryRoot: string, snapshotCommit: string | null): 
  */
 function resumeSetup(command: CommandOf<'pipeline-setup-resume'>, change: BoardTransaction, context: ControlContext): PipelineSetupChanged {
   const setupId = textFieldOf(command, 'setupId');
-  const setup   = change.board.pipelineSetup();
-  if (setup?.setupId !== setupId) throw new BoardRefusal({ reason: 'no-setup-open', setupId });
-  if (setup.mode === 'setup' && setup.billing === null) throw new BoardRefusal({ reason: 'setup-resume-before-billing', setupId });
-  const pendingStates: readonly string[] = PENDING_APPLY_REQUEST_STATES;
-  if (setup.applyRequest !== null && pendingStates.includes(setup.applyRequest.state)) throw new BoardRefusal({ reason: 'pipeline-apply-pending', setupId });
+  const setup   = change.board.requireResumableSetup(setupId);
   const move    = mainLineMoveOf(change.workspace.rootDirectory, setup.snapshotCommit);
   const resumed = move === null ? { setup, logged: [] } : change.board.resumeSetup(setupId, move.mainTip, move.changedPaths, change.at);
   const message: SetupMessage = {
@@ -463,7 +451,7 @@ function editConstitution(command: CommandOf<'pipeline-constitution-edit'>, chan
   const draftedFrom = sourcesFieldOf(command);
   if (markdown === undefined && draftedFrom === undefined) refuseMalformedSetupCommand(command.kind, 'markdown');
   const entityKey = entityFieldOf(command);
-  if (change.board.pipelineSetup()?.setupId === setupId) requireEntityLevel(change.board.pipelineSetup()?.draft ?? null, entityKey);
+  if (change.board.pipelineSetup()?.setupId === setupId) change.board.refuseASetupLevelThePipelineLacks(change.board.pipelineSetup()?.draft ?? null, entityKey);
   const edit    = { revision, ...(markdown === undefined ? {} : { markdown }), ...(draftedFrom === undefined ? {} : { draftedFrom }) };
   const changed = change.board.editConstitution(setupId, edit, change.at, entityKey);
   const constitution = entityKey === undefined ? changed.setup.constitution : changed.setup.entities?.[entityKey]?.constitution ?? null;
@@ -484,8 +472,7 @@ function editConstitution(command: CommandOf<'pipeline-constitution-edit'>, chan
 export function requireStorableDraft(setupId: string, draft: Readonly<Pipeline>): void {
   const reading = PipelineFile.draftReadingOf(PipelineFile.storedDocumentOf(draft));
   if (reading.verdict === 'readable') return;
-  const reason = reading.verdict === 'malformed' ? reading.reason : reading.verdict;
-  throw new OperationRefusal('refused', { kind: 'pipeline-draft-invalid', setupId, reason });
+  throw new OperationRefusal('refused', { kind: 'pipeline-draft-invalid', setupId, problem: reading.verdict === 'malformed' ? reading.problem : null });
 }
 
 /** The draft a move works on: the record's own, else the base it starts from, the stored pipeline or the minimal one. */
@@ -503,9 +490,9 @@ function changeFieldsOf(changes: readonly DraftFieldValue[]): PipelineDraftField
   return changes.map((fieldChange) => fieldChange.field);
 }
 
-/** Every refusal of the draft's entities, worded as the reason a stored pipeline would be refused for, which the pipeline agent hears. */
-function standingEntityRefusalsOf(draft: Readonly<Pipeline> | null): string[] {
-  return EntityValidationUtil.refusalsOf(draft?.entities ?? {}).map(OperationRefusalWordingUtil.entityRefusalReasonOf);
+/** Every refusal of the draft's entities, which the pipeline agent hears as the reason a stored pipeline would be refused for. */
+function standingEntityRefusalsOf(draft: Readonly<Pipeline> | null): EntityRefusal[] {
+  return EntityValidationUtil.refusalsOf(draft?.entities ?? {});
 }
 
 /** The edits land together at the next revision, entities the validator refuses included. */
@@ -614,11 +601,11 @@ function revisionAndResumeOf(command: CommandOf<'pipeline-apply'>): { draftRevis
   return { draftRevision, resumesBoard };
 }
 
-type EntityConstitutionsReading = { verdict: 'read'; readings: EntityConstitutionsOnMain } | { verdict: 'unreadable'; reason: string };
+type EntityConstitutionsReading = { verdict: 'read'; readings: EntityConstitutionsOnMain } | { verdict: 'unreadable'; problem: MainConstitutionProblem };
 
 /**
  * Each entity's constitution file on main, at the path its draft entity names or in its first home, read only on a draft over entities;
- * unreadable, with git's reason, when git could not answer one of them.
+ * unreadable, with git's problem, when git could not answer one of them.
  */
 function entityConstitutionsOf(change: BoardTransaction, context: ControlContext): EntityConstitutionsReading {
   const entities = change.board.pipelineSetup()?.draft?.entities ?? {};
@@ -653,7 +640,7 @@ function applySetup(command: CommandOf<'pipeline-apply'>, change: BoardTransacti
   let entityConstitutions: EntityConstitutionsOnMain | undefined;
   if (change.board.pipelineSetup()?.setupId === setupId && draftHasEntities(change)) {
     const reading = entityConstitutionsOf(change, context);
-    if (reading.verdict === 'unreadable') throw new OperationRefusal('unrepaired', { kind: 'main-constitution-unreadable', reason: reading.reason });
+    if (reading.verdict === 'unreadable') throw new OperationRefusal('unrepaired', { kind: 'main-constitution-unreadable', problem: reading.problem });
     entityConstitutions = reading.readings;
   }
   return change.board.requestApply(setupId, { draftRevision, resumesBoard, ...applyMainReadingOf(mainConstitution, entityConstitutions) }, change.at);

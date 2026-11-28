@@ -9,7 +9,6 @@ import { join }                     from 'node:path';
 
 import { afterEach } from 'bun:test';
 
-import type { ConfinedLine } from '../lib/gate-confinement/ConfinedLine.ts';
 import type {
   GateProcessRun,
   LineRunEnd,
@@ -117,7 +116,7 @@ function confinementPrefix(): readonly string[] {
 const RECORDED_CONFINEMENT_FOLDER = join(tmpdir(), 'agent-progress-recorded-confinement');
 
 /** The confiner of a default spec: it wraps an argv as the recorded confinement does, so the mocked spawn reads it as confined. */
-export function recordedGateConfiner(argv: readonly string[]): ConfinedLine {
+export function recordedGateConfiner(argv: readonly string[]): { readonly verdict: 'runs'; readonly argv: readonly string[] } {
   const prefix = confinementPrefix().map((argument) => argument.replaceAll(RECORDED_GATE_PLACEHOLDERS.SCRATCH, RECORDED_CONFINEMENT_FOLDER));
   return { verdict: 'runs', argv: [...prefix, ...argv] };
 }

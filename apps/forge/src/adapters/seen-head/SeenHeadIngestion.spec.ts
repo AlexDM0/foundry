@@ -14,6 +14,7 @@ import {
 } from 'bun:test';
 
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import type { SeenHeadProblem }                           from './@types/SeenHeadProblem.ts';
 import { SeenHeadIngestion }                              from './SeenHeadIngestion.ts';
 import { createSeenHeadWriter }                           from './SeenHeadWriter.ts';
 
@@ -42,17 +43,14 @@ test.each(['a'.repeat(64), null])('a content hash of %p the writer stores reads 
   expect(JSON.parse(readFileSync(seenHeadFilePath(), 'utf8'))).toEqual({ version: 1, contentHash });
 });
 
-test.each([
-  ['not JSON', '{', 'it is not valid JSON'],
-  ['the file of before the version', '{"contentHash":null}', 'its version is not 1'],
-  ['another version', '{"version":2,"contentHash":null}', 'its version is not 1'],
-  ['no content hash', '{"version":1}', 'its contentHash is neither text nor null'],
-  ['a content hash that is no text', '{"version":1,"contentHash":5}', 'its contentHash is neither text nor null'],
-])('%s is unreadable, never a throw', (_case, storedText, reason) => {
+test.each<[string, string, SeenHeadProblem]>([
+  ['not JSON', '{', { code: 'not-json', parserError: expect.any(String) }],
+  ['the file of before the version', '{"contentHash":null}', { code: 'version-differs', field: 'version', expectedVersion: 1 }],
+  ['another version', '{"version":2,"contentHash":null}', { code: 'version-differs', field: 'version', expectedVersion: 1 }],
+  ['no content hash', '{"version":1}', { code: 'not-text-or-null', field: 'contentHash' }],
+  ['a content hash that is no text', '{"version":1,"contentHash":5}', { code: 'not-text-or-null', field: 'contentHash' }],
+])('%s is unreadable, never a throw', (_case, storedText, problem) => {
   writeFileSync(seenHeadFilePath(), storedText);
 
-  const seenHeadReading = reading();
-
-  expect(seenHeadReading.verdict).toBe('unreadable');
-  expect(seenHeadReading.verdict === 'unreadable' ? seenHeadReading.reason : '').toContain(reason);
+  expect(reading()).toEqual({ verdict: 'unreadable', problem });
 });

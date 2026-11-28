@@ -1,0 +1,67 @@
+[
+  {
+    "case": "a directory stands at its path",
+    "stored": null,
+    "sentence": "it could not be read ({systemError})"
+  },
+  {
+    "case": "its bytes are not UTF-8",
+    "stored": null,
+    "sentence": "it is not UTF-8 text"
+  },
+  {
+    "case": "it is not JSON",
+    "stored": "not json",
+    "sentence": "it is not valid JSON (JSON Parse error: Unexpected identifier \"not\")"
+  },
+  {
+    "case": "it is not a JSON object",
+    "stored": "[]",
+    "sentence": "it is not a JSON object"
+  },
+  {
+    "case": "its presenceVersion is not 2",
+    "stored": "{\"presenceVersion\":1,\"generation\":4,\"process\":{\"processId\":4242,\"startStamp\":\"1700000000\",\"bootIdentity\":\"example-boot\"},\"codeVersion\":\"example-code\",\"startOrigin\":\"user\",\"startedAt\":\"2026-11-19T09:00:00.000+01:00\",\"startClassification\":null,\"abandonedPasses\":{\"inARow\":0,\"last\":null},\"ending\":null}",
+    "sentence": "its presenceVersion is not 2"
+  },
+  {
+    "case": "its generation is below 1",
+    "stored": "{\"presenceVersion\":2,\"generation\":0,\"process\":{\"processId\":4242,\"startStamp\":\"1700000000\",\"bootIdentity\":\"example-boot\"},\"codeVersion\":\"example-code\",\"startOrigin\":\"user\",\"startedAt\":\"2026-11-19T09:00:00.000+01:00\",\"startClassification\":null,\"abandonedPasses\":{\"inARow\":0,\"last\":null},\"ending\":null}",
+    "sentence": "generation is not a whole number from 1"
+  },
+  {
+    "case": "its process is not a process identity",
+    "stored": "{\"presenceVersion\":2,\"generation\":4,\"process\":{\"processId\":1},\"codeVersion\":\"example-code\",\"startOrigin\":\"user\",\"startedAt\":\"2026-11-19T09:00:00.000+01:00\",\"startClassification\":null,\"abandonedPasses\":{\"inARow\":0,\"last\":null},\"ending\":null}",
+    "sentence": "process is not a process identity"
+  },
+  {
+    "case": "its codeVersion is not a string",
+    "stored": "{\"presenceVersion\":2,\"generation\":4,\"process\":{\"processId\":4242,\"startStamp\":\"1700000000\",\"bootIdentity\":\"example-boot\"},\"codeVersion\":null,\"startOrigin\":\"user\",\"startedAt\":\"2026-11-19T09:00:00.000+01:00\",\"startClassification\":null,\"abandonedPasses\":{\"inARow\":0,\"last\":null},\"ending\":null}",
+    "sentence": "codeVersion is not a string"
+  },
+  {
+    "case": "its startOrigin is not a start origin",
+    "stored": "{\"presenceVersion\":2,\"generation\":4,\"process\":{\"processId\":4242,\"startStamp\":\"1700000000\",\"bootIdentity\":\"example-boot\"},\"codeVersion\":\"example-code\",\"startOrigin\":\"nobody\",\"startedAt\":\"2026-11-19T09:00:00.000+01:00\",\"startClassification\":null,\"abandonedPasses\":{\"inARow\":0,\"last\":null},\"ending\":null}",
+    "sentence": "startOrigin is not a start origin"
+  },
+  {
+    "case": "its startedAt is not a string",
+    "stored": "{\"presenceVersion\":2,\"generation\":4,\"process\":{\"processId\":4242,\"startStamp\":\"1700000000\",\"bootIdentity\":\"example-boot\"},\"codeVersion\":\"example-code\",\"startOrigin\":\"user\",\"startedAt\":3,\"startClassification\":null,\"abandonedPasses\":{\"inARow\":0,\"last\":null},\"ending\":null}",
+    "sentence": "startedAt is not a string"
+  },
+  {
+    "case": "its startClassification is not a start classification",
+    "stored": "{\"presenceVersion\":2,\"generation\":4,\"process\":{\"processId\":4242,\"startStamp\":\"1700000000\",\"bootIdentity\":\"example-boot\"},\"codeVersion\":\"example-code\",\"startOrigin\":\"user\",\"startedAt\":\"2026-11-19T09:00:00.000+01:00\",\"startClassification\":{},\"abandonedPasses\":{\"inARow\":0,\"last\":null},\"ending\":null}",
+    "sentence": "startClassification is neither null nor a start classification"
+  },
+  {
+    "case": "its abandonedPasses is not a count with its last pass",
+    "stored": "{\"presenceVersion\":2,\"generation\":4,\"process\":{\"processId\":4242,\"startStamp\":\"1700000000\",\"bootIdentity\":\"example-boot\"},\"codeVersion\":\"example-code\",\"startOrigin\":\"user\",\"startedAt\":\"2026-11-19T09:00:00.000+01:00\",\"startClassification\":null,\"abandonedPasses\":{},\"ending\":null}",
+    "sentence": "abandonedPasses is not a count with its last abandoned pass"
+  },
+  {
+    "case": "its ending is not an ending",
+    "stored": "{\"presenceVersion\":2,\"generation\":4,\"process\":{\"processId\":4242,\"startStamp\":\"1700000000\",\"bootIdentity\":\"example-boot\"},\"codeVersion\":\"example-code\",\"startOrigin\":\"user\",\"startedAt\":\"2026-11-19T09:00:00.000+01:00\",\"startClassification\":null,\"abandonedPasses\":{\"inARow\":0,\"last\":null},\"ending\":{\"kind\":\"vanished\",\"at\":\"now\"}}",
+    "sentence": "ending is neither null nor an ending"
+  }
+]

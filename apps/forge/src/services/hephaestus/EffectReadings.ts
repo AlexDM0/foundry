@@ -6,11 +6,11 @@
 import { dirname }                      from 'node:path';
 import { EFFECT_READING_REPORT_SCHEMA } from '../../adapters/reports/ReportSchemas.ts';
 import { reportVerdictOf }              from '../../adapters/reports/ReportValidation.ts';
+import type { Job }                     from '../../domain/tracker-model/@types/Job.ts';
+import type { TicketDocumentKind }      from '../../domain/tracker-model/@types/TicketDocument.ts';
+import type { Board }                   from '../../domain/tracker-model/Board.ts';
 import type { WorkerProfile }           from '../../lib/agent-launch/WorkerProfile.ts';
 import { GitProcess }                   from '../../lib/git/GitProcess.ts';
-import type { Job }                     from '../../lib/tracker-model/@types/Job.ts';
-import type { TicketDocumentKind }      from '../../lib/tracker-model/@types/TicketDocument.ts';
-import type { Board }                   from '../../lib/tracker-model/Board.ts';
 import type {
   EffectEntry,
   EffectReading,

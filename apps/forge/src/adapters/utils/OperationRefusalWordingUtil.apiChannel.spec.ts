@@ -5,7 +5,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { BoardRefusalDetail }     from '../../lib/tracker-model/BoardRefusal.ts';
+import type { BoardRefusalDetail }     from '../../domain/tracker-model/BoardRefusal.ts';
 import { OperationRefusal }            from '../../shared/OperationRefusal.ts';
 import type { OperationRefusalDetail } from '../../shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }               from '../../shared/constants/ProductNames.ts';
@@ -105,15 +105,15 @@ const API_SENTENCE_FOR_DETAIL: readonly (readonly [OperationRefusalDetail, strin
     'Draft D2 was not claimed: Alex Example holds it. Nothing was written. Take it over, or wait until it is released.',
   ],
   [
-    boardRefusal({
-      reason: 'merge-accept-would-conflict', ticketId: '004', target: 'main', conflictedFiles: ['README.md']
-    }),
+    {
+      kind: 'merge-accept-would-conflict', ticketId: '004', target: 'main', conflictedFiles: ['README.md']
+    },
     'Ticket #004 was not accepted: its branch conflicts with main in README.md. Bring it up to date first. Nothing was written.',
   ],
   [
-    boardRefusal({
-      reason: 'several-open-incidents', subject: 'Job J3', move: 'job-fresh', incidentIds: ['I1', 'I2']
-    }),
+    {
+      kind: 'several-open-incidents', subject: 'Job J3', move: 'job-fresh', incidentIds: ['I1', 'I2']
+    },
     'Job J3 has several open incidents that allow job-fresh (I1, I2); name one. Nothing was written.',
   ],
   [

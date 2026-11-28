@@ -15,20 +15,21 @@ import {
 
 import { SnapshotStartIngestion }                                   from '../../adapters/snapshot-start/SnapshotStartIngestion.ts';
 import { createSnapshotStartWriter }                                from '../../adapters/snapshot-start/SnapshotStartWriter.ts';
+import type { Board }                                               from '../../domain/tracker-model/Board.ts';
 import { REAL_WORKTREE_REMOVAL_PRIMITIVES, WORKTREE_REMOVAL_TRIES } from '../../lib/git/GitWorktrees.ts';
-import type { Board }                                               from '../../lib/tracker-model/Board.ts';
 import { branchNamesOf }                                            from '../../shared/BranchNames.ts';
 import { PRODUCT_NAMES }                                            from '../../shared/constants/ProductNames.ts';
 import { boardFixture }                                             from '../../testing/BoardFixtures.ts';
 import { EVERY_BILLING_MODE_OFFERED, EXAMPLE_PIPELINE_AGENT }       from '../../testing/ExamplePipelineAgent.ts';
 import { fakeAgentAdapter }                                         from '../../testing/FakeAgentAdapter.ts';
+import { detailsLoggerOf }                                          from '../../testing/LoggedDetails.ts';
 import type { RecordedGitStep }                                     from '../../testing/RecordedGit.ts';
 import { GIT_CALL_SHAPES, RECORDED_PLACEHOLDERS, useRecordedGit }   from '../../testing/RecordedGit.ts';
 import { PIPELINE_AGENT_SNAPSHOT_FOLDER_NAME }                      from '../../testing/RecordedGitScenarioCalls.ts';
 import { GIT_SCENARIOS }                                            from '../../testing/RecordedGitScenarios.ts';
 import { createScratchDirectory, removeScratchDirectory }           from '../../testing/ScratchWorkspace.ts';
 import { testWhenGitIsRecorded }                                    from '../../testing/ToolGuard.ts';
-import { launchSnapshotOf }                                         from '../lifecycle/Customs.ts';
+import { launchSnapshotOf }                                         from '../lifecycle/CustomsLaunchSnapshot.ts';
 import type { BoardTransaction }                                    from '../tracker/BoardTransaction.ts';
 import type { Workspace }                                           from '../tracker/Workspace.ts';
 import { jobFolderIn }                                              from './HephaestusFiles.ts';
@@ -229,7 +230,9 @@ test('a turn end whose snapshot start cannot be read marks the snapshot touched,
   PipelineAgentSessions.verifyTurnEnds(changeOf(board), turnEndContext(), [jobId]);
 
   expect(board.incidents().map((incident) => [incident.kind, incident.jobId, incident.facts])).toEqual([
-    ['system-file-unreadable', jobId, { file: `jobs/${jobId}/${SNAPSHOT_START_FILE}`, reason: 'its version is not 1' }],
+    ['system-file-unreadable', jobId, {
+      file: `jobs/${jobId}/${SNAPSHOT_START_FILE}`, problem: 'version-differs', field: 'version', expectedVersion: '1'
+    }],
   ]);
   expect(board.setupSnapshotIsTouched(SETUP_ID)).toBe(true);
   expect(board.jobById(jobId)?.state).toBe('stopping');
@@ -402,11 +405,11 @@ testWhenGitIsRecorded('a snapshot no open record holds is removed once with no a
   const context = { workspace: workspace(), worktreesRoot: repositoryDirectory };
 
   const { job } = board.startPipelineAgent(AT);
-  await recordedGit.playStage([], async () => PipelineAgentSessions.removeUnheldSnapshots(board, context, tried, (line) => logged.push(line), noPause));
+  await recordedGit.playStage([], async () => PipelineAgentSessions.removeUnheldSnapshots(board, context, tried, detailsLoggerOf(logged), noPause));
   board.endJob(job.id, { outcome: 'closed' }, AT);
   const everyTryThenPrune = [...Array.from({ length: WORKTREE_REMOVAL_TRIES }, () => declinedRemoval), prune];
-  await recordedGit.playStage(everyTryThenPrune, async () => PipelineAgentSessions.removeUnheldSnapshots(board, context, tried, (line) => logged.push(line), noPause));
-  await recordedGit.playStage([], async () => PipelineAgentSessions.removeUnheldSnapshots(board, context, tried, (line) => logged.push(line), noPause));
+  await recordedGit.playStage(everyTryThenPrune, async () => PipelineAgentSessions.removeUnheldSnapshots(board, context, tried, detailsLoggerOf(logged), noPause));
+  await recordedGit.playStage([], async () => PipelineAgentSessions.removeUnheldSnapshots(board, context, tried, detailsLoggerOf(logged), noPause));
 
   expect(logged).toEqual([expect.stringContaining(`The pipeline agent snapshot ${discardedSnapshot} is a leftover: git worktree remove`)]);
   expect(existsSync(join(repositoryDirectory, PIPELINE_AGENT_SNAPSHOT_FOLDER_NAME))).toBe(true);

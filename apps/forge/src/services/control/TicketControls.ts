@@ -2,10 +2,8 @@
 import { readFileSync }         from 'node:fs';
 import { TicketAcceptanceUtil } from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
 
-import { BoardRefusal }                       from '../../lib/tracker-model/BoardRefusal.ts';
-import { TICKET_STATUSES_USER_READIES }       from '../../lib/tracker-model/constants/Statuses.ts';
-import { EntityOwnershipUtil }                from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
-import { NetworkDomainUtil }                  from '../../lib/tracker-model/utils/NetworkDomainUtil.ts';
+import { TICKET_STATUSES_USER_READIES }       from '../../domain/tracker-model/constants/Statuses.ts';
+import { EntityOwnershipUtil }                from '../../domain/tracker-model/utils/EntityOwnershipUtil.ts';
 import type { ControlCommandOf as CommandOf } from '../../shared/@types/ControlCommand.ts';
 import type { ControlContext }                from '../../shared/@types/ControlContext.ts';
 import { filledTemplateOf }                   from '../../shared/FilledTemplate.ts';
@@ -28,19 +26,8 @@ function finderGroupOf(command: CommandOf<'ticket-add'>, change: BoardTransactio
 }
 
 /**
- * The refusals `setTicketNetwork` gives a new ticket, judged before it is filed: the Board keeps no undo, so a relayed filing refused after
- * it would still store the ticket while its reply says refused.
- */
-function refuseANetworkTheFilingCannotSet(ticketId: string, domains: readonly string[]): void {
-  const requestedDomains = NetworkDomainUtil.normalisedDomainListOf(domains);
-  const nonPublicDomains = requestedDomains.filter((domain) => !NetworkDomainUtil.domainIsPublic(domain));
-  if (nonPublicDomains.length > 0) throw new BoardRefusal({ reason: 'network-domain-not-public', ticketId, domains: nonPublicDomains });
-  if (requestedDomains.length === 0) throw new BoardRefusal({ reason: 'network-unchanged', ticketId, domains: [] });
-}
-
-/**
- * On a forge with entities a worker's finding belongs to the entity that owns the paths its Brief names: their single owner, else
- * the finder job's entity. Paths of several owners are then judged as work outside that entity.
+ * On a forge with entities a worker's finding belongs to the entity that owns the paths its Brief names (E83, E53): their single owner, else
+ * the finder job's entity. Paths of several owners are then judged as work outside that entity (E85).
  */
 function findingEntityOf(command: CommandOf<'ticket-add'>, change: BoardTransaction, body: string): string | undefined {
   const entities = change.board.pipeline()?.entities;
@@ -53,7 +40,7 @@ function findingEntityOf(command: CommandOf<'ticket-add'>, change: BoardTransact
 
 /**
  * A worker's finding waits for its finders (`dependsOn`) in their group, and is submitted at once: so it builds only after the finders
- * land, against their code. It is filed for the entity that owns its work, and its Brief's work outside that entity, or a submit that
+ * land, against their code. It is filed for the entity that owns its work, and its Brief's work outside that entity (E85), or a submit that
  * would leave it without one, is refused before it is filed.
  */
 function addTicket(command: CommandOf<'ticket-add'>, change: BoardTransaction) {
@@ -76,7 +63,7 @@ function addTicket(command: CommandOf<'ticket-add'>, change: BoardTransaction) {
   if (command.model !== undefined) ticket.frontmatter.model = command.model;
   if (command.effort !== undefined) ticket.frontmatter.effort = command.effort;
   if (command.admission !== undefined) ticket.frontmatter.filedByJob = command.admission.filedByJob;
-  if (command.network.length > 0) refuseANetworkTheFilingCannotSet(ticket.frontmatter.id, command.network);
+  if (command.network.length > 0) change.board.refuseANetworkAFilingCannotSet(ticket.frontmatter.id, command.network);
   if (command.entity !== undefined) {
     change.board.refuseAnUnknownEntity(ticket.frontmatter.id, command.entity);
     ticket.frontmatter.entity = command.entity;

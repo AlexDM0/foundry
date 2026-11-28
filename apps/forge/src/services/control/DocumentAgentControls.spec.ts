@@ -5,10 +5,10 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { Job }                        from '../../lib/tracker-model/@types/Job.ts';
-import type { LoadedTicketDocumentRecord } from '../../lib/tracker-model/@types/TicketDocument.ts';
-import { PipelineUtil }                    from '../../lib/tracker-model/utils/PipelineUtil.ts';
-import { TicketDocumentVersionUtil }       from '../../lib/tracker-model/utils/TicketDocumentVersionUtil.ts';
+import type { Job }                        from '../../domain/tracker-model/@types/Job.ts';
+import type { LoadedTicketDocumentRecord } from '../../domain/tracker-model/@types/TicketDocument.ts';
+import { PipelineUtil }                    from '../../domain/tracker-model/utils/PipelineUtil.ts';
+import { TicketDocumentVersionUtil }       from '../../domain/tracker-model/utils/TicketDocumentVersionUtil.ts';
 import type { ControlCommand }             from '../../shared/@types/ControlCommand.ts';
 import type { EffectReadingRequest }       from '../../shared/@types/EffectReading.ts';
 import { OperationRefusal }                from '../../shared/OperationRefusal.ts';
@@ -117,7 +117,15 @@ describe('the live agent check', () => {
 
   test('a move without the stamped snapshot commit is refused', () => {
     const fixture = documentsBoard([documentAgentJobFixture('004', 'plan')]);
-    expect(refusalDetailOf(() => apply(fixture, { kind: 'ticket-document-agent-ready', jobId: 'J9' })).reason).toBe('document-agent-not-live');
+    let thrown: unknown = null;
+    try {
+      apply(fixture, { kind: 'ticket-document-agent-ready', jobId: 'J9' });
+    } catch (error) {
+      thrown = error;
+    }
+    expect(thrown instanceof OperationRefusal && thrown.detail).toEqual({
+      kind: 'document-agent-not-live', ticketId: '004', document: 'plan', jobId: 'J9'
+    });
   });
 });
 

@@ -39,7 +39,7 @@ export const REAL_FILE_REPLACE_PRIMITIVES: WindowsFileReplacePrimitives = Object
   wait:      (milliseconds: number) => Bun.sleepSync(milliseconds),
 });
 
-/** Every platform but Windows keeps the POSIX moves: all tracker writes rest on them. */
+/** Every platform but Windows keeps the POSIX moves: every caller's writes rest on them. */
 export function fileReplaceFor(platform: string): FileReplace {
   return platform === 'win32' ? createWindowsFileReplace(REAL_FILE_REPLACE_PRIMITIVES) : createPosixFileReplace(REAL_FILE_REPLACE_PRIMITIVES);
 }

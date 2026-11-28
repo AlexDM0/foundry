@@ -1,14 +1,17 @@
 /**
- * The incident an Airlock agent opens when its worktree's denied root cannot be made: one `sandbox-unavailable` incident per job however many passes
- * are refused, none for a job that left the board, and none under path rules, where nothing is made.
+ * The incident an Airlock agent opens when its worktree's denied root cannot be made. What matters: a refusing folder maker gives the
+ * root, which the incident keeps as a value and serves worded as before; the first pass opens one `sandbox-unavailable` incident for the
+ * agent's job, and the next pass, still refused, opens no second one while the first stands; a job that left the board opens nothing; a
+ * launch closes only its job's launch incident; and under path rules nothing is made, so nothing is refused.
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { Job }                    from '../../lib/tracker-model/@types/Job.ts';
-import type { Board }                  from '../../lib/tracker-model/Board.ts';
-import { boardFixture, ticketFixture } from '../../testing/BoardFixtures.ts';
-import { AirlockSandboxIncident }      from './AirlockSandboxIncident.ts';
-import type { FolderMaker }            from './WorkerProfiles.ts';
+import { UnreadableFileProblemWordingUtil } from '../../adapters/utils/UnreadableFileProblemWordingUtil.ts';
+import type { Job }                         from '../../domain/tracker-model/@types/Job.ts';
+import type { Board }                       from '../../domain/tracker-model/Board.ts';
+import { boardFixture, ticketFixture }      from '../../testing/BoardFixtures.ts';
+import { AirlockSandboxIncident }           from './AirlockSandboxIncident.ts';
+import type { FolderMaker }                 from './WorkerProfiles.ts';
 
 const AT = '2026-11-03T10:00:00+01:00';
 const NEXT_PASS_AT = '2026-11-03T10:00:30+01:00';
@@ -18,6 +21,8 @@ const MOUNT_POINT_FACTS = { worktree: WORKTREE, sandboxDenyShape: 'mount-points'
 const PATH_RULE_FACTS = { ...MOUNT_POINT_FACTS, sandboxDenyShape: 'path-rules' } as const;
 
 const REFUSING_FOLDER_MAKER: FolderMaker = { makeFolder: () => false };
+
+const EXAMPLE_REFUSAL = { code: 'denied-root-unmade', deniedRoot: '/example/root' } as const;
 
 function airlockAgentScene(): { board: Board; airlockAgent: Readonly<Job> } {
   const { board } = boardFixture({ tickets: [ticketFixture({ id: '001', status: 'in-review', task: 1 })] });
@@ -40,21 +45,24 @@ describe('the Airlock agent sandbox incident', () => {
       'sandbox-unavailable',
       airlockAgent.id,
       ['001'],
-      { step: 'airlock-agent', reason: `the denied folder ${WORKTREE}/.claude could not be made, so it would get no read-only mount` },
+      { step: 'airlock-agent', problem: 'denied-root-unmade', deniedRoot: `${WORKTREE}/.claude` },
       'gate-retry',
     ]]);
+    expect(board.incidents().map(UnreadableFileProblemWordingUtil.wordedIncidentFactsOf)).toEqual([
+      { step: 'airlock-agent', reason: `the denied folder ${WORKTREE}/.claude could not be made, so it would get no read-only mount` },
+    ]);
   });
 
   test('an Airlock agent that has left the board opens nothing', () => {
     const { board, airlockAgent } = airlockAgentScene();
     board.endJob(airlockAgent.id, { outcome: 'stopped', cause: 'merge-ended' }, AT);
-    expect(AirlockSandboxIncident.openOnce(board, { jobId: airlockAgent.id, reason: 'example reason' }, NEXT_PASS_AT)).toEqual([]);
+    expect(AirlockSandboxIncident.openOnce(board, { jobId: airlockAgent.id, refusal: EXAMPLE_REFUSAL }, NEXT_PASS_AT)).toEqual([]);
     expect(board.incidents()).toEqual([]);
   });
 
   test('a launch closes the open airlock-agent incident of its job with the default move, and no other incident', () => {
     const { board, airlockAgent } = airlockAgentScene();
-    AirlockSandboxIncident.openOnce(board, { jobId: airlockAgent.id, reason: 'example reason' }, AT);
+    AirlockSandboxIncident.openOnce(board, { jobId: airlockAgent.id, refusal: EXAMPLE_REFUSAL }, AT);
     board.openIncident({
       kind: 'sandbox-unavailable', ticketIds: ['001'], jobId: airlockAgent.id, facts: { step: 'worker', reason: 'example reason' }, defaultMove: 'gate-retry'
     }, AT);

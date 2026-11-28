@@ -1,10 +1,11 @@
 /** The open incidents for the Assistant, in opening order, each with the moves its kind allows. Read-only, no lock. */
-import type { Incident }                  from '../../src/lib/tracker-model/@types/Incident.ts';
-import { ALLOWED_MOVES_BY_INCIDENT_KIND } from '../../src/services/control/constants/AllowedMovesByIncidentKind.ts';
-import { PRODUCT_NAMES }                  from '../../src/shared/constants/ProductNames.ts';
-import { boardReadsOf }                   from '../BoardStoreOf.ts';
-import type { CommandHandler }            from '../CommandHandler.ts';
-import { OutputUtil }                     from '../utils/OutputUtil.ts';
+import { UnreadableFileProblemWordingUtil } from '../../src/adapters/utils/UnreadableFileProblemWordingUtil.ts';
+import type { Incident }                    from '../../src/domain/tracker-model/@types/Incident.ts';
+import { ALLOWED_MOVES_BY_INCIDENT_KIND }   from '../../src/services/control/constants/AllowedMovesByIncidentKind.ts';
+import { PRODUCT_NAMES }                    from '../../src/shared/constants/ProductNames.ts';
+import { boardReadsOf }                     from '../BoardStoreOf.ts';
+import type { CommandHandler }              from '../CommandHandler.ts';
+import { OutputUtil }                       from '../utils/OutputUtil.ts';
 
 const USAGE = `${PRODUCT_NAMES.PROGRAM} incidents [--json]`;
 
@@ -23,7 +24,8 @@ function incidentTextOf(incident: Readonly<Incident>): string {
 export const incidentsCommand: CommandHandler = (commandArguments, context) => {
   commandArguments.rejectUnknownOptions(['json'], USAGE);
   commandArguments.rejectExtraPositionals(0, USAGE);
-  const incidents = boardReadsOf(context).requireProgress().incidents ?? [];
+  const storedIncidents = boardReadsOf(context).requireProgress().incidents ?? [];
+  const incidents = storedIncidents.map((incident) => ({ ...incident, facts: UnreadableFileProblemWordingUtil.wordedIncidentFactsOf(incident) }));
   const text = incidents.length === 0 ? 'No incident is open.' : incidents.map(incidentTextOf).join('\n\n');
   OutputUtil.printEntity(commandArguments, context, { incidents }, text);
   return Promise.resolve();

@@ -11,9 +11,10 @@ import {
   expect,
   test,
 } from 'bun:test';
-import type { Pipeline }                                  from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { Pipeline }                                  from '../../domain/tracker-model/@types/Pipeline.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { PipelineFile }                                   from './PipelineFile.ts';
+import { PipelineProblemWording }                         from './PipelineProblemWording.ts';
 
 const NO_PHASES = { build: [], review: [], merge: [] };
 
@@ -63,7 +64,7 @@ function readingOf(document: unknown): ReturnType<typeof PipelineFile.read> {
 
 function reasonOf(document: unknown): string {
   const reading = readingOf(document);
-  return reading.verdict === 'malformed' ? reading.reason : `read as ${reading.verdict}`;
+  return reading.verdict === 'malformed' ? PipelineProblemWording.sentenceOf(reading.problem) : `read as ${reading.verdict}`;
 }
 
 /** The minimal pipeline with `fields` over it, so a case names only the part it breaks. */

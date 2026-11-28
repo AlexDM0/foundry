@@ -1,0 +1,37 @@
+[
+  {
+    "case": "a directory stands at its path",
+    "stored": null,
+    "sentence": "it could not be read ({systemError})"
+  },
+  {
+    "case": "its bytes are not UTF-8",
+    "stored": null,
+    "sentence": "it is not UTF-8 text"
+  },
+  {
+    "case": "it is empty",
+    "stored": "",
+    "sentence": "it names no holder"
+  },
+  {
+    "case": "its first line names no holder",
+    "stored": "\n{\"version\":1,\"process\":null}",
+    "sentence": "it names no holder"
+  },
+  {
+    "case": "its process document is not JSON",
+    "stored": "/example/holder\nnot json",
+    "sentence": "it is not valid JSON (JSON Parse error: Unexpected identifier \"not\")"
+  },
+  {
+    "case": "its process document is not a JSON object",
+    "stored": "/example/holder\n[]",
+    "sentence": "it is not a JSON object"
+  },
+  {
+    "case": "its process is not a process identity",
+    "stored": "/example/holder\n{\"version\":1,\"process\":{\"processId\":42}}",
+    "sentence": "its \"process\" is not a process identity"
+  }
+]

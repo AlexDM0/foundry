@@ -47,10 +47,10 @@ function refusalDetailOf(attempt: () => unknown): unknown {
 }
 
 function unreadableRecordsHolding(record: 'epic' | 'draft', key: string, location: string): UnreadableRecords {
-  const unreadable = [{
-    record, key, location, reason: 'example unreadable record', line: 0
-  }];
-  return { ...NO_UNREADABLE_RECORDS, ...(record === 'epic' ? { epics: unreadable } : { drafts: unreadable }) };
+  const place = {
+    key, location, problem: { code: 'file-not-utf8-text' }, line: 0
+  } as const;
+  return record === 'epic' ? { ...NO_UNREADABLE_RECORDS, epics: [{ record, ...place }] } : { ...NO_UNREADABLE_RECORDS, drafts: [{ record, ...place }] };
 }
 
 afterEach(() => {
@@ -78,7 +78,7 @@ test('a listed ticket answers the file it was read from, and an id never listed 
   const allocation      = createLocalRecordAllocation(listedWorkspace, boardFixture().board, NO_UNREADABLE_RECORDS, new Map([['007', listedLocation]]));
 
   expect(allocation.storedTicketLocationOf('007')).toBe(listedLocation);
-  expect(() => allocation.storedTicketLocationOf('008')).toThrow('#008');
+  expect(() => allocation.storedTicketLocationOf('008')).toThrow(expect.objectContaining({ detail: { kind: 'ticket-file-not-allocated', ticketId: '008' } }));
 });
 
 test('an epic key held by an unreadable file is refused unreadable-file-in-the-way, and a free key is let through', () => {

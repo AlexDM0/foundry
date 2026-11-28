@@ -17,20 +17,21 @@ import {
   expect,
   test
 }                                        from 'bun:test';
+import type { PipelineStepEnding, PipelineStepKind, PipelineStepRun } from '../../domain/tracker-model/@types/Job.ts';
+import type { PipelineGate }                                          from '../../domain/tracker-model/@types/Pipeline.ts';
 import { shellLineFor }                                               from '../../lib/shell-line/ShellLineFor.ts';
-import type { PipelineStepEnding, PipelineStepKind, PipelineStepRun } from '../../lib/tracker-model/@types/Job.ts';
-import type { PipelineGate }                                          from '../../lib/tracker-model/@types/Pipeline.ts';
 import {
   environmentCopy,
   GATE_REPORT_VARIABLE,
   HATCH_DIRECTORY_VARIABLE,
   JOB_ID_VARIABLE
 } from '../../shared/Environment.ts';
-import { FAKE_MISSING_TOOLS_REASON, runsAsGiven }                 from '../../testing/FakeGateConfinement.ts';
+import { FAKE_LINE_REFUSAL, runsAsGiven }                         from '../../testing/FakeGateConfinement.ts';
 import { nativePlatformPorts }                                    from '../../testing/NativePlatformPorts.ts';
 import { GIT_CALL_SHAPES, type RecordedGitStage, useRecordedGit } from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }         from '../../testing/ScratchWorkspace.ts';
 import { spawnedLineRunner }                                      from '../../testing/SpawnedLineRunner.ts';
+import { spawningShellRequestOf }                                 from '../../testing/SpawningShellRequest.ts';
 import { describeWhenGitIsRecorded }                              from '../../testing/ToolGuard.ts';
 import {
   type GateConfinement,
@@ -222,7 +223,7 @@ describeWhenGitIsRecorded('the pipeline', () => {
     expect(readFileSync(join(scratchDirectory, 'tests-folder.txt'), 'utf8').trim()).toEndWith('/service');
   });
 
-  test('a folder the shell line refuses, such as a network share under cmd.exe, is a worded refusal before any confinement or process', async () => {
+  test('a folder the shell line refuses, such as a network share under cmd.exe, is a refusal naming the folder before any confinement or process', async () => {
     const networkShareRefusingShellLine = { ...shellLine, runRefusalOf: () => 'network-share-folder' as const };
     const confinedArgvs: (readonly string[])[] = [];
 
@@ -240,7 +241,7 @@ describeWhenGitIsRecorded('the pipeline', () => {
     expect(verdict).toEqual({
       outcome:      'sandbox-unavailable',
       step:         'a',
-      output:       `cmd.exe runs no line in the network share folder ${scratchDirectory}; move the repository to a drive letter`,
+      refusal:      { code: 'shell-run-refused', refusal: 'network-share-folder', directory: scratchDirectory },
       gatesRun:     [],
       cacheReports: [],
       stepRuns:     [],
@@ -333,7 +334,7 @@ describeWhenGitIsRecorded('the pipeline', () => {
       prepare:         [],
       gates:           [gateOf('tests', `touch '${marker}'`)],
       directory:       repository,
-      confinedLineOf:  () => ({ verdict: 'refused', reason: FAKE_MISSING_TOOLS_REASON }),
+      confinedLineOf:  () => ({ verdict: 'refused', refusal: FAKE_LINE_REFUSAL }),
       acquireGateSlot: () => {
         slotEvents.push('acquired');
         return Promise.resolve(() => slotEvents.push('released'));
@@ -341,7 +342,7 @@ describeWhenGitIsRecorded('the pipeline', () => {
     });
 
     expect(verdict).toEqual({
-      outcome: 'sandbox-unavailable', step: 'tests', output: FAKE_MISSING_TOOLS_REASON, gatesRun: [], cacheReports: [], stepRuns: []
+      outcome: 'sandbox-unavailable', step: 'tests', refusal: FAKE_LINE_REFUSAL, gatesRun: [], cacheReports: [], stepRuns: []
     });
     expect(existsSync(marker)).toBe(false);
     expect(slotEvents).toEqual([]);
@@ -353,7 +354,7 @@ describeWhenGitIsRecorded('the pipeline', () => {
       prepare:        [{ name: 'install', run: 'true' }],
       gates:          [gateOf('tests', 'true')],
       directory:      gatedRepository(),
-      confinedLineOf: () => ({ verdict: 'refused', reason: FAKE_MISSING_TOOLS_REASON }),
+      confinedLineOf: () => ({ verdict: 'refused', refusal: FAKE_LINE_REFUSAL }),
     });
 
     expect(verdict).toMatchObject({ outcome: 'sandbox-unavailable', step: 'install' });
@@ -450,7 +451,7 @@ describeWhenGitIsRecorded('the gate process', () => {
   });
 
   test('a shell line is handed to the user\'s shell through sh, so it is one argument whatever it holds', () => {
-    const { argv } = shellLine.spawnRequestOf('bun test && echo "done"', '/example/line-status');
+    const { argv } = spawningShellRequestOf(shellLine, 'bun test && echo "done"', '/example/line-status');
 
     expect(argv.at(-1)).toBe('bun test && echo "done"');
     expect(argv[0]).toBe('/bin/sh');

@@ -1,6 +1,7 @@
-import type { GateRunStamp }                                      from '../../../lib/tracker-model/@types/GatePhase.ts';
-import type { GateOutcome, GateRunCacheReports, GateRunStepRuns } from '../../../lib/tracker-model/@types/Job.ts';
-import type { EntityKey }                                         from '../../../lib/tracker-model/@types/Pipeline.ts';
+import type { GateRunStamp }                                      from '../../../domain/tracker-model/@types/GatePhase.ts';
+import type { GateOutcome, GateRunCacheReports, GateRunStepRuns } from '../../../domain/tracker-model/@types/Job.ts';
+import type { EntityKey }                                         from '../../../domain/tracker-model/@types/Pipeline.ts';
+import type { LineRefusal }                                       from '../../../shared/@types/LineRefusal.ts';
 
 /** The merged tree's gate: its outcome and what the checks line printed, whose tail a merge-gate fixer is given. */
 export interface MergedTreeGate {
@@ -18,3 +19,8 @@ export interface MergedTreeGate {
   /** Each step line that ran, with its run time; absent when none ran. */
   stepRuns?:     GateRunStepRuns;
 }
+
+/** A run's gate as it ends, before its writer stores it: a refused line carries its refusal, which the writer words as the stored `output`. */
+export type MergedTreeGateRunEnd =
+  | MergedTreeGate & { outcome: Exclude<MergedTreeGate['outcome'], 'sandbox-unavailable'> }
+  | Omit<MergedTreeGate, 'outcome' | 'output'> & { outcome: 'sandbox-unavailable'; refusal: LineRefusal };

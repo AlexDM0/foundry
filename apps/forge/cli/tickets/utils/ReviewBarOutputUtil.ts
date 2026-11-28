@@ -1,9 +1,9 @@
 /** How a ticket move prints the review bars it opened and closed, as text and as the ticket's JSON document. */
 import { TicketJsonUtil }        from '../../../src/adapters/utils/TicketJsonUtil.ts';
-import type { ReviewBarStarted } from '../../../src/lib/tracker-model/@types/BoardChanges.ts';
-import type { LogRecord }        from '../../../src/lib/tracker-model/@types/LogRecord.ts';
-import type { Task }             from '../../../src/lib/tracker-model/@types/Task.ts';
-import type { Ticket }           from '../../../src/lib/tracker-model/@types/Ticket.ts';
+import type { ReviewBarStarted } from '../../../src/domain/tracker-model/@types/BoardChanges.ts';
+import type { LogRecord }        from '../../../src/domain/tracker-model/@types/LogRecord.ts';
+import type { Task }             from '../../../src/domain/tracker-model/@types/Task.ts';
+import type { Ticket }           from '../../../src/domain/tracker-model/@types/Ticket.ts';
 import { OutputUtil }            from '../../utils/OutputUtil.ts';
 
 /** A closed bar is printed by its id alone, not as the sentence the log holds for it. */

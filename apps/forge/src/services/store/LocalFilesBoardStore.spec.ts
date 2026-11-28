@@ -21,8 +21,8 @@ import {
 } from 'bun:test';
 
 import { GENERATION_RECORD_FORMAT_VERSION }                             from '../../adapters/generation-record/GenerationRecordIngestion.ts';
-import type { PipelineEntity }                                          from '../../lib/tracker-model/@types/Pipeline.ts';
-import { TicketBodyHashUtil }                                           from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
+import type { PipelineEntity }                                          from '../../domain/tracker-model/@types/Pipeline.ts';
+import { TicketBodyHashUtil }                                           from '../../domain/tracker-model/utils/TicketBodyHashUtil.ts';
 import type { ControlCommand }                                          from '../../shared/@types/ControlCommand.ts';
 import { refusalIsOperationRefusal }                                    from '../../shared/OperationRefusal.ts';
 import { ECHOED_CONTROL_CONTEXT }                                       from '../../testing/EchoedControlContext.ts';
@@ -41,6 +41,8 @@ import { createLocalFilesBoardStore, type LocalFilesBoardStoreOptions } from './
 const STARTED_AT = '2026-11-20T09:00:00+01:00';
 const CHANGED_AT = '2026-11-20T10:00:00+01:00';
 const LATER_AT   = '2026-11-20T11:00:00+01:00';
+
+const FILES_NOT_A_LIST = { code: 'files-not-a-list', field: 'files' } as const;
 
 const fixedNow = (): Date => new Date('2026-11-20T08:00:00Z');
 
@@ -129,9 +131,9 @@ describe('a write cut short and a malformed hold journal', () => {
     const { store }     = await initialisedStoreIn('');
     const journalPath   = store.reads.locationOf({ record: 'unfinished-write' });
     writeFileSync(journalPath, '{"version":1,"files":"not a list"}\n');
-    const expectedRefusal = { status: 'unrepaired', detail: { kind: 'malformed-hold-journal', journalFilePath: journalPath, reason: 'its "files" is not a list' } };
+    const expectedRefusal = { status: 'unrepaired', detail: { kind: 'malformed-hold-journal', journalFilePath: journalPath, problem: FILES_NOT_A_LIST } };
 
-    expect(store.reads.readUnfinishedWrite()).toEqual({ verdict: 'malformed', location: journalPath, reason: 'its "files" is not a list' });
+    expect(store.reads.readUnfinishedWrite()).toEqual({ verdict: 'malformed', location: journalPath, problem: FILES_NOT_A_LIST });
     expect(refusalDetailOf(await thrownFailureOf(() => applyCommand(store, { kind: 'concurrency-set', limit: 6 })))).toEqual(expectedRefusal);
     expect(refusalDetailOf(await thrownFailureOf(() => store.transactions.transact({ at: CHANGED_AT, mutate: () => 'Example' })))).toEqual(expectedRefusal);
   });
@@ -224,7 +226,7 @@ describe('the content kept at the commit', () => {
     expect(listing.tickets).toEqual([]);
     expect(listing.unreadable.map(({ record, key, location }) => ({ record, key, location })))
       .toEqual([{ record: 'ticket', key: ticketId, location: keptContentPathIn(workspace) }]);
-    expect(listing.unreadable[0]?.reason).toStartWith('committed-content-missing');
+    expect(listing.unreadable[0]?.problem.code).toBe('committed-content-missing');
   });
 
   test('a kept content whose title and body do not hash to its name is unreadable the same way', async () => {
@@ -232,7 +234,7 @@ describe('the content kept at the commit', () => {
     await store.transactions.transact({ at: CHANGED_AT, mutate: commitATicket });
     writeFileSync(keptContentPathIn(workspace), `${JSON.stringify({ title: KEPT_TITLE, body: 'Changed in the kept file.\n' })}\n`);
 
-    expect(store.reads.listTickets().unreadable[0]?.reason).toStartWith('committed-content-missing');
+    expect(store.reads.listTickets().unreadable[0]?.problem.code).toBe('committed-content-missing');
   });
 
   test('clearing every ticket removes the kept content too', async () => {

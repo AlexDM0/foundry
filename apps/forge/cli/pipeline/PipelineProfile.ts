@@ -2,7 +2,7 @@
  * `pipeline profile <gate> <phase> [<S>]`: User's press that profiles one gate in one phase, once, from the open setup's draft when it names
  * the setup and from the stored pipeline when it does not; a client's profile control sends the same command.
  */
-import { GATE_PHASES }                                      from '../../src/lib/tracker-model/@types/GatePhase.ts';
+import { GATE_PHASES }                                      from '../../src/domain/tracker-model/@types/GatePhase.ts';
 import type { CommandContext }                              from '../CommandContext.ts';
 import { refuseUsage }                                      from '../RecordedIncidentMove.ts';
 import type { ArgumentParser }                              from '../arguments/ArgumentParser.ts';

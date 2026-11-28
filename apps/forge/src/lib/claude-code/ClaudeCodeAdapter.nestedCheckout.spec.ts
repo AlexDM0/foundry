@@ -50,20 +50,20 @@ interface RenderedSettings {
 
 function settingsOf(profile: WorkerProfile, workingDirectory: string): RenderedSettings {
   const request: AgentLaunchRequest = {
-    programPath:       `${HOME}/.local/bin/claude`,
-    sessionId:         'session-example',
-    resume:            false,
+    programPath:          `${HOME}/.local/bin/claude`,
+    sessionId:            'session-example',
+    resume:               false,
     workingDirectory,
-    homeDirectory:     HOME,
-    firstMessage:      'Build.',
-    roleBrief:         'Builder.',
-    model:             'opus',
-    effort:            'medium',
-    environment:       {},
+    homeDirectory:        HOME,
+    firstMessage:         'Build.',
+    roleBrief:            'Builder.',
+    model:                'opus',
+    effort:               'medium',
+    environment:          {},
     profile,
-    confinement:       'confined',
-    jobFilesDirectory: JOB_FILES,
-    reportSchema:      null,
+    confinement:          'confined',
+    launchFilesDirectory: JOB_FILES,
+    reportSchema:         null,
   };
   const settings = claudeCodeAdapterFor('linux').planOf(request).files.find((file) => file.path === join(JOB_FILES, 'settings.json'));
   return JSON.parse(settings?.text ?? '{}') as RenderedSettings;

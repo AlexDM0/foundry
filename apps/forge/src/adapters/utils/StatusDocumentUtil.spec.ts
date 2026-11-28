@@ -4,7 +4,8 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { DecisionOpening }                     from '../../lib/tracker-model/@types/Decision.ts';
+import type { DecisionOpening }                     from '../../domain/tracker-model/@types/Decision.ts';
+import { StoredFileProblemFactsUtil }               from '../../shared/utils/StoredFileProblemFactsUtil.ts';
 import { boardFixture, taskFixture, ticketFixture } from '../../testing/BoardFixtures.ts';
 import { StatusDocumentUtil }                       from './StatusDocumentUtil.ts';
 
@@ -44,6 +45,22 @@ describe('the decisions and incidents', () => {
     const document = decisionsAndIncidentsOf(board);
     expect(document.decisions.map((decision) => decision.id)).toEqual(['E2']);
     expect(document.incidents.map((open) => open.id)).toEqual(['I1']);
+  });
+
+  test('carry an unreadable file\'s incident as its file and reason, stored as a problem or as a reason', () => {
+    const { board } = boardFixture({ tickets: [ticketFixture({ id: '001' })] });
+    const at        = '2026-09-18T20:11:03+02:00';
+    const opening   = {
+      kind: 'system-file-unreadable', ticketIds: ['001'], jobId: null, defaultMove: 'ticket-park'
+    } as const;
+    const problem   = { code: 'not-json', parserError: 'Unexpected EOF' } as const;
+    board.openIncident({ ...opening, facts: { file: 'jobs/J2/start.json', ...StoredFileProblemFactsUtil.factsOf(problem) } }, at);
+    board.openIncident({ ...opening, facts: { file: 'jobs/J3/start.json', reason: 'its version is not 1' } }, at);
+
+    expect(decisionsAndIncidentsOf(board).incidents.map((incident) => incident.facts)).toEqual([
+      { file: 'jobs/J2/start.json', reason: 'it is not valid JSON (Unexpected EOF)' },
+      { file: 'jobs/J3/start.json', reason: 'its version is not 1' },
+    ]);
   });
 });
 

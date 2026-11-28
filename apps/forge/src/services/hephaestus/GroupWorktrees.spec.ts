@@ -183,14 +183,13 @@ describeWhenGitIsRecorded('a group worktree', () => {
       writeFileSync(join(worktrees.refreshWorktree, 'base.ts'), 'export const base = 2;\n');
       return Promise.resolve(GroupWorktrees.prepareRefreshWorktree(worktrees.root, worktrees.worktreesRoot, GROUP_BRANCH, NEWER_GROUP_TIP));
     });
-    expect(dirty).toEqual({ verdict: 'git-failed', reason: expect.stringContaining(worktrees.refreshWorktree) });
+    expect(dirty).toEqual({ verdict: 'git-failed', problem: { code: 'refresh-changes-uncommitted', path: worktrees.refreshWorktree } });
 
     const mergingStage = [...readAsACheckout(worktrees.root, worktrees.refreshWorktree), resolvedTo('HEAD', GROUP_TIP), resolvedTo('MERGE_HEAD', MERGED_IN_TIP)];
     const merging = await recordedGit.playStage(mergingStage, () => Promise.resolve(
       GroupWorktrees.prepareRefreshWorktree(worktrees.root, worktrees.worktreesRoot, GROUP_BRANCH, NEWER_GROUP_TIP)
     ));
-    expect(merging).toEqual({ verdict: 'git-failed', reason: expect.stringContaining('merge in progress') });
-    expect(merging.verdict === 'git-failed' ? merging.reason : '').toContain(worktrees.refreshWorktree);
+    expect(merging).toEqual({ verdict: 'git-failed', problem: { code: 'refresh-merge-in-progress', path: worktrees.refreshWorktree } });
   });
 
   test('a group branch holding work main lacks is kept: branch -d refuses it and the reason comes back', async () => {
@@ -200,13 +199,13 @@ describeWhenGitIsRecorded('a group worktree', () => {
       removed(worktrees.groupWorktree),
       { gitArguments: ['branch', '-d', GROUP_BRANCH], answeredAs: GIT_CALL_SHAPES.BRANCH_DELETE_OF_AN_UNMERGED_BRANCH, filledIn: { [RECORDED_PLACEHOLDERS.BRANCH]: GROUP_BRANCH } },
     ];
-    const reason = await recordedGit.playStage(stage, () => {
+    const problem = await recordedGit.playStage(stage, () => {
       GroupWorktrees.prepareGroupWorktree(worktrees.root, worktrees.worktreesRoot, GROUP_BRANCH, 'main');
       mkdirSync(worktrees.groupWorktree, { recursive: true });
       return Promise.resolve(GroupWorktrees.removeGroup(worktrees.root, worktrees.worktreesRoot, GROUP_BRANCH));
     });
-    expect(reason).toContain('branch -d');
-    expect(reason).toContain(`'${GROUP_BRANCH}' is not fully merged`);
+    expect(problem).toMatchObject({ code: 'git-exited', gitArguments: ['branch', '-d', GROUP_BRANCH] });
+    expect(problem?.code === 'git-exited' ? problem.gitMessage : '').toContain(`'${GROUP_BRANCH}' is not fully merged`);
   });
 
   test('a leftover folder inside the checkout that is no worktree is refused, never reused, and git never runs in the checkout above it', async () => {
@@ -217,8 +216,10 @@ describeWhenGitIsRecorded('a group worktree', () => {
     const stage = [...readAsNoCheckout(root), ...readAsNoCheckout(root), unresolved(`refs/heads/${GROUP_BRANCH}`), ...readAsNoCheckout(root), ...readAsNoCheckout(root)];
 
     await recordedGit.playStage(stage, () => {
-      expect(GroupWorktrees.prepareRefreshWorktree(root, worktreesRoot, GROUP_BRANCH, GROUP_TIP)).toEqual({ verdict: 'git-failed', reason: expect.stringContaining('leftover') });
-      expect(GroupWorktrees.prepareGroupWorktree(root, worktreesRoot, GROUP_BRANCH, 'main')).toEqual({ verdict: 'git-failed', reason: expect.stringContaining('leftover') });
+      expect(GroupWorktrees.prepareRefreshWorktree(root, worktreesRoot, GROUP_BRANCH, GROUP_TIP))
+        .toEqual({ verdict: 'git-failed', problem: { code: 'leftover-not-a-checkout', path: join(worktreesRoot, `refresh-${GROUP_BRANCH}`) } });
+      expect(GroupWorktrees.prepareGroupWorktree(root, worktreesRoot, GROUP_BRANCH, 'main'))
+        .toEqual({ verdict: 'git-failed', problem: { code: 'leftover-not-a-checkout', path: join(worktreesRoot, GROUP_BRANCH) } });
       expect(GroupWorktrees.cleanupIsStillDeclined(root, worktreesRoot, GROUP_BRANCH, 'refresh')).toBe(true);
       return Promise.resolve();
     });
@@ -236,6 +237,6 @@ describeWhenGitIsRecorded('a group worktree', () => {
     const prepared = await recordedGit.playStage(stage, () => Promise.resolve(
       GroupWorktrees.prepareGroupWorktree(worktrees.root, worktrees.worktreesRoot, GROUP_BRANCH, 'main')
     ));
-    expect(prepared).toEqual({ verdict: 'git-failed', reason: expect.stringContaining('another branch than group-example') });
+    expect(prepared).toEqual({ verdict: 'git-failed', problem: { code: 'checkout-of-another-branch', path: worktrees.groupWorktree, expectedBranch: GROUP_BRANCH } });
   });
 });

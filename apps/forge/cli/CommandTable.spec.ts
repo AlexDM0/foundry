@@ -59,6 +59,7 @@ describe('the command table', () => {
       'epic',
       'gate',
       'help',
+      'hephaestus-log',
       'hook',
       'incident',
       'incidents',

@@ -9,11 +9,12 @@ import {
   readdirSync,
   writeFileSync
 } from 'node:fs';
-import { join }                    from 'node:path';
-import { GitProcess }              from '../../lib/git/GitProcess.ts';
-import { GitWorktrees }            from '../../lib/git/GitWorktrees.ts';
-import { removeStaleIndexLock }    from '../../lib/git/Worktrees.ts';
-import type { WorktreeRepairStep } from '../../shared/@types/ControlCommand.ts';
+import { join }                                             from 'node:path';
+import type { WorktreeRemovalProblem, WorktreeStepProblem } from '../../lib/git/@types/GitProblem.ts';
+import { GitProcess }                                       from '../../lib/git/GitProcess.ts';
+import { GitWorktrees }                                     from '../../lib/git/GitWorktrees.ts';
+import { removeStaleIndexLock }                             from '../../lib/git/Worktrees.ts';
+import type { WorktreeRepairStep }                          from '../../shared/@types/ControlCommand.ts';
 
 export interface WorktreeRepairRequest {
   repositoryRoot: string;
@@ -26,7 +27,7 @@ export interface WorktreeRepairRequest {
 export type WorktreeRepairVerdict =
   | { verdict: 'repaired'; patchPath: string | null }
   | { verdict: 'uncommitted-work-not-saved' }
-  | { verdict: 'git-failed'; reason: string };
+  | { verdict: 'git-failed'; problem: WorktreeStepProblem | WorktreeRemovalProblem };
 
 const RECREATE_PATCH = /^recreate-(\d+)\.patch$/;
 
@@ -34,7 +35,7 @@ const NO_INDEX_DIFF_DIFFERS_EXIT_CODE = 1;
 
 function failed(directory: string, gitArguments: readonly string[]): WorktreeRepairVerdict | null {
   const run = GitProcess.run(directory, gitArguments);
-  return GitProcess.succeeded(run) ? null : { verdict: 'git-failed', reason: GitProcess.failureReasonOf(run, gitArguments) };
+  return GitProcess.succeeded(run) ? null : { verdict: 'git-failed', problem: GitProcess.failureOf(run, gitArguments) };
 }
 
 /** `git diff HEAD` and every untracked file as an addition, or `null` when git cannot read the worktree. */
@@ -81,12 +82,12 @@ function recreate(request: WorktreeRepairRequest): WorktreeRepairVerdict {
   const saved = savedChangesOf(request.worktreePath, request.jobFolder);
   if (saved === null) return { verdict: 'uncommitted-work-not-saved' };
   const removal = GitWorktrees.removeWithRetry({ repositoryDirectory: request.repositoryRoot, worktreePath: request.worktreePath, force: 'force' });
-  return removal.verdict === 'removed' ? { verdict: 'repaired', patchPath: saved.patchPath } : { verdict: 'git-failed', reason: removal.reason };
+  return removal.verdict === 'removed' ? { verdict: 'repaired', patchPath: saved.patchPath } : { verdict: 'git-failed', problem: removal.problem };
 }
 
 function unlock(worktreePath: string): WorktreeRepairVerdict {
   const removal = removeStaleIndexLock(worktreePath);
-  return removal.verdict === 'refused' ? { verdict: 'git-failed', reason: removal.reason } : { verdict: 'repaired', patchPath: null };
+  return removal.verdict === 'refused' ? { verdict: 'git-failed', problem: removal.problem } : { verdict: 'repaired', patchPath: null };
 }
 
 function repair(request: WorktreeRepairRequest): WorktreeRepairVerdict {

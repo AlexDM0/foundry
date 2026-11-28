@@ -48,7 +48,9 @@ export function createPosixShellLine({ userShell }: PosixShellPrimitives): Shell
   return Object.freeze<ShellLine>({
     spawnRequestOf: (line) => {
       const argv = [FALLBACK_SHELL, '-c', OUTPUT_JOINING_SCRIPT, userShell() ?? FALLBACK_SHELL, line];
-      return { argv, workingDirectory: 'spawn-option', verbatimArguments: false };
+      return {
+        verdict: 'spawns', argv, workingDirectory: 'spawn-option', verbatimArguments: false
+      };
     },
     runRefusalOf:  () => null,
     exitMeaningOf: ({ exitCode }) => {

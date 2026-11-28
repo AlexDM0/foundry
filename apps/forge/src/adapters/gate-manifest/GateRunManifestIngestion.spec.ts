@@ -12,6 +12,7 @@ import {
 } from 'bun:test';
 
 import { createScratchDirectory, removeScratchDirectory }                                   from '../../testing/ScratchWorkspace.ts';
+import type { GateRunManifestProblem }                                                      from './@types/GateRunManifestProblem.ts';
 import { GATE_RUN_MANIFEST_FORMAT_VERSION, type GateRunManifest, GateRunManifestIngestion } from './GateRunManifestIngestion.ts';
 import { createGateRunManifestWriter }                                                      from './GateRunManifestWriter.ts';
 
@@ -70,27 +71,27 @@ test('a file that is not JSON is unreadable', () => {
 
 test('a manifest of another version, or of none, is unreadable', () => {
   storeDocument({ ...PACKAGE_BUILD_MANIFEST, version: GATE_RUN_MANIFEST_FORMAT_VERSION + 1 });
-  expect(reading()).toEqual({ verdict: 'unreadable', reason: `its version is not ${GATE_RUN_MANIFEST_FORMAT_VERSION}` });
+  expect(reading()).toEqual({ verdict: 'unreadable', problem: { code: 'version-differs', field: 'version', expectedVersion: GATE_RUN_MANIFEST_FORMAT_VERSION } });
   storeDocument({ ...PACKAGE_BUILD_MANIFEST });
-  expect(reading()).toEqual({ verdict: 'unreadable', reason: `its version is not ${GATE_RUN_MANIFEST_FORMAT_VERSION}` });
+  expect(reading()).toEqual({ verdict: 'unreadable', problem: { code: 'version-differs', field: 'version', expectedVersion: GATE_RUN_MANIFEST_FORMAT_VERSION } });
 });
 
 const [OWN_GATE] = PACKAGE_BUILD_MANIFEST.gates;
 
-test.each([
-  ['phase', { phase: 'review' }, 'its "phase" is not the phase "build"'],
-  ['phaseHash', { phaseHash: null }, 'its "phaseHash" is not text'],
-  ['entityPhaseHashes', { entityPhaseHashes: ['tool'] }, 'its "entityPhaseHashes" is not a record of phase hashes'],
-  ['prepare', { prepare: {} }, 'its "prepare" is not a list'],
-  ['prepare entry', { prepare: ['bun install'] }, 'its "prepare[0]" is not an object'],
-  ['prepare run', { prepare: [{ name: 'install' }] }, 'its "prepare[0].run" is not text'],
-  ['gates', { gates: null }, 'its "gates" is not a list'],
-  ['gate network', { gates: [{ ...OWN_GATE, network: 'example.com' }] }, 'its "gates[0].network" is not a list of text'],
-  ['gate forgeOnly', { gates: [{ ...OWN_GATE, forgeOnly: false }] }, 'its "gates[0].forgeOnly" is not true'],
-  ['gate entity', { gates: [OWN_GATE, { name: 'lint', run: 'bun run lint', entity: 3 }] }, 'its "gates[1].entity" is not text'],
-])('a wrong %s is unreadable', (_field, change, reason) => {
+test.each<[string, Record<string, unknown>, GateRunManifestProblem]>([
+  ['phase', { phase: 'review' }, { code: 'not-the-phase', field: 'phase', expectedPhase: 'build' }],
+  ['phaseHash', { phaseHash: null }, { code: 'field-is-not', field: 'phaseHash', expected: 'text' }],
+  ['entityPhaseHashes', { entityPhaseHashes: ['tool'] }, { code: 'field-is-not', field: 'entityPhaseHashes', expected: 'a-record-of-phase-hashes' }],
+  ['prepare', { prepare: {} }, { code: 'field-is-not', field: 'prepare', expected: 'a-list' }],
+  ['prepare entry', { prepare: ['bun install'] }, { code: 'field-is-not', field: 'prepare[0]', expected: 'an-object' }],
+  ['prepare run', { prepare: [{ name: 'install' }] }, { code: 'field-is-not', field: 'prepare[0].run', expected: 'text' }],
+  ['gates', { gates: null }, { code: 'field-is-not', field: 'gates', expected: 'a-list' }],
+  ['gate network', { gates: [{ ...OWN_GATE, network: 'example.com' }] }, { code: 'field-is-not', field: 'gates[0].network', expected: 'a-list-of-text' }],
+  ['gate forgeOnly', { gates: [{ ...OWN_GATE, forgeOnly: false }] }, { code: 'field-is-not', field: 'gates[0].forgeOnly', expected: 'true' }],
+  ['gate entity', { gates: [OWN_GATE, { name: 'lint', run: 'bun run lint', entity: 3 }] }, { code: 'field-is-not', field: 'gates[1].entity', expected: 'text' }],
+])('a wrong %s is unreadable', (_field, change, problem) => {
   storeDocument({ version: GATE_RUN_MANIFEST_FORMAT_VERSION, ...PACKAGE_BUILD_MANIFEST, ...change });
-  expect(reading()).toEqual({ verdict: 'unreadable', reason });
+  expect(reading()).toEqual({ verdict: 'unreadable', problem });
 });
 
 test('a folder where the file belongs is unreadable, not absent, and does not throw', () => {

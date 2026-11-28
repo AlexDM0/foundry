@@ -1,0 +1,6 @@
+[
+  {"case":"the verdict is not a settlement","stored":"{\"version\":1,\"verdict\":\"pending\"}","sentence":"its \"verdict\" is not a settlement"},
+  {"case":"a merged settlement has no merge commit","stored":"{\"version\":1,\"verdict\":\"merged\"}","sentence":"its \"mergeCommit\" is not a commit"},
+  {"case":"a conflicted settlement has no list of paths","stored":"{\"version\":1,\"verdict\":\"conflicted\",\"conflictedFiles\":[1]}","sentence":"its \"conflictedFiles\" is not a list of paths"},
+  {"case":"a failed settlement has no text reason","stored":"{\"version\":1,\"verdict\":\"failed\",\"reason\":5}","sentence":"its \"reason\" is not text"}
+]

@@ -15,14 +15,14 @@ import {
   test
 } from 'bun:test';
 
+import type { Decision, DecisionKind }                       from '../../domain/tracker-model/@types/Decision.ts';
+import type { Job }                                          from '../../domain/tracker-model/@types/Job.ts';
+import type { Pipeline }                                     from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { DecisionDraft, DecisionWording, PlaybookStep } from '../../domain/tracker-model/@types/PlaybookStep.ts';
+import type { TicketStage }                                  from '../../domain/tracker-model/@types/Task.ts';
+import type { Board }                                        from '../../domain/tracker-model/Board.ts';
+import { ENTITY_DECISION_ANSWERS }                           from '../../domain/tracker-model/constants/EntityDecisionAnswers.ts';
 import { type GitHookPolicy, GitProcess, type GitRun }       from '../../lib/git/GitProcess.ts';
-import type { Decision, DecisionKind }                       from '../../lib/tracker-model/@types/Decision.ts';
-import type { Job }                                          from '../../lib/tracker-model/@types/Job.ts';
-import type { Pipeline }                                     from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { DecisionDraft, DecisionWording, PlaybookStep } from '../../lib/tracker-model/@types/PlaybookStep.ts';
-import type { TicketStage }                                  from '../../lib/tracker-model/@types/Task.ts';
-import type { Board }                                        from '../../lib/tracker-model/Board.ts';
-import { ENTITY_DECISION_ANSWERS }                           from '../../lib/tracker-model/constants/EntityDecisionAnswers.ts';
 import { branchNamesOf }                                     from '../../shared/BranchNames.ts';
 import { LIFECYCLE_LIMITS }                                  from '../../shared/constants/LifecycleLimits.ts';
 import { PRODUCT_NAMES }                                     from '../../shared/constants/ProductNames.ts';
@@ -39,11 +39,13 @@ import { createScratchDirectory, removeScratchDirectory }                       
 import type { BoardTransaction }                                                          from '../tracker/BoardTransaction.ts';
 import { createLocalRecordAllocation }                                                    from '../tracker/LocalRecordAllocation.ts';
 import type { Workspace }                                                                 from '../tracker/Workspace.ts';
+import type { JobLaunchContext }                                                          from './@types/JobLaunchContext.ts';
 import { CrossingStages }                                                                 from './CrossingStages.ts';
 import { EntityDecisionAnswers, type EntityDecisionAnswerContext, type PackageNeedFacts } from './EntityDecisionAnswers.ts';
 import { jobFolderIn }                                                                    from './HephaestusFiles.ts';
-import { JobLaunch, type JobLaunchContext }                                               from './JobLaunch.ts';
+import { JobPreparation }                                                                 from './JobPreparation.ts';
 import { type NeedsSettledFacts, NeedTickets }                                            from './NeedTickets.ts';
+import { WorktreeJobs }                                                                   from './WorktreeJobs.ts';
 
 const AT = '2026-11-17T15:00:00+01:00';
 const { SHOP, ADMIN, UI_KIT } = ENTITY_FORGE_ENTITIES;
@@ -270,12 +272,12 @@ describe('work-in-other-entity, answered', () => {
     const context = {
       workspace, branchNames: BRANCH_NAMES, mainLine: ENTITY_FORGE_MAIN_LINE, log: () => undefined, platformPorts: { dataFolders: { pathModule: path, foldsCase: false } },
     } as unknown as JobLaunchContext;
-    const worktree = JobLaunch.worktreeOf(workspace, job);
+    const worktree = WorktreeJobs.worktreeOf(workspace, job);
     mkdirSync(worktree, { recursive: true });
     const jobFolder = jobFolderIn(workspace.trackerDirectory, job.id);
 
-    JobLaunch.startAfreshInTheNewEntity(context, forge.board, job, jobFolder);
-    JobLaunch.startAfreshInTheNewEntity(context, forge.board, job, jobFolder);
+    JobPreparation.startAfreshInTheNewEntity(context, forge.board, job, jobFolder);
+    JobPreparation.startAfreshInTheNewEntity(context, forge.board, job, jobFolder);
 
     expect(gitCalls).toEqual([['worktree', 'remove', '--force', worktree], ['rev-parse', `refs/heads/${SHOP_BRANCH}`], ['branch', '-D', SHOP_BRANCH]]);
   });
@@ -287,7 +289,7 @@ describe('work-in-other-entity, answered', () => {
     const job = shopJobOf(forge.board);
     const context = { workspace: forge.change.workspace, branchNames: BRANCH_NAMES } as unknown as JobLaunchContext;
 
-    JobLaunch.startAfreshInTheNewEntity(context, forge.board, job, jobFolderIn(forge.change.workspace.trackerDirectory, job.id));
+    JobPreparation.startAfreshInTheNewEntity(context, forge.board, job, jobFolderIn(forge.change.workspace.trackerDirectory, job.id));
 
     expect(gitCalls).toEqual([]);
   });

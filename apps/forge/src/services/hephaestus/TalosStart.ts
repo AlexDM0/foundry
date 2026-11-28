@@ -14,28 +14,31 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-import { TalosChildRecordCopy }                              from '../../adapters/crash-log/TalosChildRecordCopy.ts';
-import { LaunchRegistryIngestion }                           from '../../adapters/launch-registry/LaunchRegistryIngestion.ts';
-import { writeFileAtomically, writeOwnerOnlyFileAtomically } from '../../lib/atomic-file/AtomicFile.ts';
-import type { PlatformPorts }                                from '../../lib/platform-ports/PlatformPortsFor.ts';
-import { type ProcessIdentity, sameBoot }                    from '../../lib/process-identity/ProcessIdentity.ts';
-import type { LaunchRegistryEntry }                          from '../../lib/talos/ChildLaunch.ts';
-import { type ChildRecord, childRecordOf }                   from '../../lib/talos/ChildRecord.ts';
+import type { HephaestusLog }              from '../../adapters/@types/HephaestusLogRecord.ts';
+import { TalosChildRecordCopy }            from '../../adapters/crash-log/TalosChildRecordCopy.ts';
+import { LaunchRegistryIngestion }         from '../../adapters/launch-registry/LaunchRegistryIngestion.ts';
+import type { LaunchRegistryEntry }        from '../../domain/talos/ChildLaunch.ts';
+import { type ChildRecord, childRecordOf } from '../../domain/talos/ChildRecord.ts';
 import {
   childFilesOf,
+  endpointFolderOf,
   launchRegistryPathOf,
   startFilePathOf,
   talosFolderOf,
   talosLogPathOf,
   talosRecordPathOf,
   talosSecretPathOf
-} from '../../lib/talos/TalosFiles.ts';
-import { type TalosRecord, talosRecordOf }                             from '../../lib/talos/TalosRecord.ts';
-import { type TalosStartFile, talosStartFileOf, talosStartFileTextOf } from '../../lib/talos/TalosStartFile.ts';
-import { TALOS_START_FILE_FORMAT_VERSION }                             from '../../lib/talos/constants/TalosProtocol.ts';
-import type { InterruptionCause }                                      from '../../lib/tracker-model/@types/Job.ts';
-import { INTERRUPTION_CAUSES }                                         from '../../lib/tracker-model/constants/JobStates.ts';
+} from '../../domain/talos/TalosFiles.ts';
+import { type TalosRecord, talosRecordOf }                             from '../../domain/talos/TalosRecord.ts';
+import { type TalosStartFile, talosStartFileOf, talosStartFileTextOf } from '../../domain/talos/TalosStartFile.ts';
+import { TALOS_START_FILE_FORMAT_VERSION }                             from '../../domain/talos/constants/TalosProtocol.ts';
+import type { InterruptionCause }                                      from '../../domain/tracker-model/@types/Job.ts';
+import { INTERRUPTION_CAUSES }                                         from '../../domain/tracker-model/constants/JobStates.ts';
+import { writeFileAtomically, writeOwnerOnlyFileAtomically }           from '../../lib/atomic-file/AtomicFile.ts';
+import type { PlatformPorts }                                          from '../../lib/platform-ports/PlatformPortsFor.ts';
+import { type ProcessIdentity, sameBoot }                              from '../../lib/process-identity/ProcessIdentity.ts';
 import { outlivingProgramEnvironment }                                 from '../../shared/Environment.ts';
+import { refuseUnlessOwnerOnly }                                       from '../../shared/OwnerOnlyRestrictionRefusal.ts';
 import { ToolRuntimeUtil }                                             from '../../shared/ToolRuntimeUtil.ts';
 import {
   CLEAN_QUIT_TURN_END_WAIT_MILLISECONDS,
@@ -117,7 +120,7 @@ export interface TalosStartContext {
   connect:              (request: TalosConnectionRequest) => Promise<TalosConnectionOutcome>;
   startTalos:           TalosSpawn;
   hold:                 TalosStartHold;
-  log:                  (sentence: string) => void;
+  log:                  HephaestusLog;
   /** The board files Hephaestus could not read, which the board header warns of until it restarts. */
   unreadableBoardFiles: UnreadableBoardFiles;
 }
@@ -136,7 +139,7 @@ export function spawnTalos({ processSupervision }: PlatformPorts, request: Talos
   try {
     const talosArguments = [...ToolRuntimeUtil.isolatingArgumentsOfThisCheckout(), TALOS_ENTRY_PATH, request.boardFolder, String(request.startNumber)];
     const talos = spawn(process.execPath, talosArguments, {
-      ...processSupervision.spawnOptionsFor('talos'),
+      ...processSupervision.spawnOptionsFor('detached-program'),
       cwd:   request.repositoryRoot,
       env:   outlivingProgramEnvironment(),
       stdio: ['ignore', logDescriptor, logDescriptor],
@@ -217,11 +220,13 @@ function registeredChildrenOf(boardFolder: string, startNumber: number, unreadab
   const file = dataFolderPathOf(boardFolder, registryPath);
   if (reading.verdict === 'absent') return [];
   if (reading.verdict === 'unreadable') {
-    unreadableBoardFiles.report({ file, reason: reading.reason });
+    unreadableBoardFiles.report({ file, problem: reading.problem });
     return [];
   }
   const [firstUnreadableLine] = reading.unreadableLines;
-  if (firstUnreadableLine !== undefined) unreadableBoardFiles.report({ file, reason: `line ${firstUnreadableLine.lineNumber}: ${firstUnreadableLine.reason}` });
+  if (firstUnreadableLine !== undefined) {
+    unreadableBoardFiles.report({ file, problem: { ...firstUnreadableLine.problem, lineNumber: firstUnreadableLine.lineNumber } });
+  }
   return reading.entries;
 }
 
@@ -246,7 +251,7 @@ export interface LostChildRequest {
   /** A refused forced stop is tried again only when this says so. */
   retryRefusedStop:     boolean;
   unreadableBoardFiles: UnreadableBoardFiles;
-  log:                  (line: string) => void;
+  log:                  HephaestusLog;
 }
 
 function interruptionCauseOf(text: string): InterruptionCause | null {
@@ -264,7 +269,7 @@ export function settleLostChild({ processSupervision }: PlatformPorts, request: 
   const storedText = textOf(lostCausePath)?.trim() ?? '';
   const storedCause = interruptionCauseOf(storedText);
   if (storedCause !== null) return storedCause;
-  if (storedText !== '') request.log(`The lost cause ${lostCausePath} names no interruption cause ("${storedText}"); it is settled again.`);
+  if (storedText !== '') request.log({ kind: 'lost-cause-unreadable', lostCausePath, storedText });
   const refusedStops = RefusedForcedStops.storedOf(request.boardFolder, childFolderPath, request.instance, request.unreadableBoardFiles);
   if (refusedStops.refusals > 0 && !request.retryRefusedStop) return null;
   const record = childRecordAt(request.boardFolder, request.childFolder, request.instance);
@@ -300,7 +305,11 @@ function sweepOrphansOf(context: TalosStartContext, startNumber: number, talos: 
       unreadableBoardFiles: context.unreadableBoardFiles,
       log:                  context.log,
     });
-    if (cause === null) context.log(`The forced stop of ${childFolder}#${instance}, a child of the lost Talos ${startNumber}, was refused.`);
+    if (cause === null) {
+      context.log({
+        kind: 'lost-child-stop-refused', childFolder, instance, talosStartNumber: startNumber
+      });
+    }
     else swept += 1;
   }
   return swept;
@@ -329,14 +338,14 @@ async function waitOutQuittingTalos(context: TalosStartContext, startNumber: num
   const record = await waitedRecordOf(context, startNumber, context.waits.quitTries, quitOrGone);
   if (quitOrGone(record)) return 0;
   stopTalosProcess(context, talos);
-  context.log(`Talos ${startNumber} did not quit within its wait and was stopped.`);
+  context.log({ kind: 'talos-stopped-after-quit-wait', talosStartNumber: startNumber });
   return sweepOrphansOf(context, startNumber, talos);
 }
 
 function treatAsLost(context: TalosStartContext, startNumber: number, talos: ProcessIdentity | null): number {
   stopTalosProcess(context, talos);
   const sweptOrphans = sweepOrphansOf(context, startNumber, talos);
-  context.log(`Talos ${startNumber} was lost; ${sweptOrphans} of its children were swept.`);
+  context.log({ kind: 'talos-lost', talosStartNumber: startNumber, sweptOrphans });
   return sweptOrphans;
 }
 
@@ -374,9 +383,9 @@ async function settlePreviousTalos(context: TalosStartContext, startNumber: numb
 function writeTalosSecret({ ownerOnlyFiles }: PlatformPorts, secretFilePath: string): string {
   const secret = randomBytes(TALOS_SECRET_BYTES).toString('hex');
   mkdirSync(dirname(secretFilePath), { recursive: true });
-  ownerOnlyFiles.restrictFolder(dirname(secretFilePath));
+  refuseUnlessOwnerOnly(ownerOnlyFiles.restrictFolder(dirname(secretFilePath)));
   writeOwnerOnlyFileAtomically(secretFilePath, secret);
-  ownerOnlyFiles.restrictFile(secretFilePath);
+  refuseUnlessOwnerOnly(ownerOnlyFiles.restrictFile(secretFilePath));
   return secret;
 }
 
@@ -385,10 +394,10 @@ async function startNextTalos(context: TalosStartContext, startNumber: number, p
     boardFolder, monitorFolder, trackerId, ports
   } = context;
   const endpoint = ports.localEndpoint.endpointOf({
-    monitorFolder, trackerId, name: 'talos', instance: startNumber
+    socketFolder: endpointFolderOf(monitorFolder), scope: trackerId, name: 'talos', instance: startNumber
   });
   if (!ports.localEndpoint.endpointFits(endpoint)) {
-    context.log(`Talos ${startNumber} cannot start: its endpoint ${endpoint} does not fit this platform.`);
+    context.log({ kind: 'talos-endpoint-does-not-fit', talosStartNumber: startNumber, endpoint });
     return { verdict: 'unavailable', reason: 'endpoint-does-not-fit', startNumber };
   }
   const secretFilePath = talosSecretPathOf(monitorFolder, trackerId, startNumber);
@@ -409,7 +418,7 @@ async function startNextTalos(context: TalosStartContext, startNumber: number, p
   const record = await waitedRecordOf(context, startNumber, context.waits.startTries, (waited) => waited?.state === 'serving' || waited?.state === 'quit');
   if (record?.state !== 'serving') {
     if (record?.state !== 'quit') stopTalosProcess(context, record?.talos ?? null);
-    context.log(`Talos ${startNumber} did not serve: ${record === null ? 'it never claimed its record' : `its record reads ${record.state}`}.`);
+    context.log({ kind: 'talos-did-not-serve', talosStartNumber: startNumber, recordState: record?.state ?? null });
     return { verdict: 'unavailable', reason: record?.state === 'quit' ? 'start-refused' : 'not-serving', startNumber };
   }
   const outcome = await connectionOutcomeOf(context, startNumber);
@@ -420,10 +429,10 @@ async function startNextTalos(context: TalosStartContext, startNumber: number, p
   }
   if (outcome.verdict === 'version-mismatch') {
     context.hold.answeredProtocolVersion = outcome.protocolVersion;
-    context.log(`Talos ${startNumber}, started from the program on disk, answers protocol version ${outcome.protocolVersion}: no Talos starts again.`);
+    context.log({ kind: 'talos-protocol-differs', talosStartNumber: startNumber, protocolVersion: outcome.protocolVersion });
     return { verdict: 'held', reason: 'talos-protocol-differs', answeredProtocolVersion: outcome.protocolVersion };
   }
-  context.log(`Talos ${startNumber} serves but did not welcome Hephaestus: ${outcome.verdict}.`);
+  context.log({ kind: 'talos-did-not-welcome', talosStartNumber: startNumber, answer: outcome.verdict });
   return { verdict: 'unavailable', reason: 'not-serving', startNumber };
 }
 

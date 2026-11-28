@@ -12,7 +12,7 @@ import {
 } from 'bun:test';
 import type { ForgeBoardCommand, ForgeTicketDocumentCommand } from 'forge-contracts/BoardCommand';
 
-import type { PipelineSetup }                                                  from '../../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import type { PipelineSetup }                                                  from '../../../src/domain/tracker-model/@types/PipelineSetup.ts';
 import { localStoreLayoutOf }                                                  from '../../../src/services/tracker/LocalStoreLayout.ts';
 import { listTicketDocuments }                                                 from '../../../src/services/tracker/TicketDocumentStore.ts';
 import { requireWorkspace }                                                    from '../../../src/services/tracker/Workspace.ts';

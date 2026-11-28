@@ -33,6 +33,7 @@ import {
 } from './RecordedGateLines.ts';
 import { createCanonicalScratchDirectory, removeScratchDirectory } from './ScratchWorkspace.ts';
 import { spawnedLineRunner }                                       from './SpawnedLineRunner.ts';
+import { spawningShellRequestOf }                                  from './SpawningShellRequest.ts';
 import { testWhenSandboxExecApplies }                              from './ToolGuard.ts';
 
 const { shellLine } = nativePlatformPorts();
@@ -67,9 +68,9 @@ function planOf(): ConfinementPlan {
 
 async function gateEndOf(line: string, confinement: GateLineConfinementKind): Promise<GateProcessRun> {
   const statusFile = join(tmpdir(), `example-line-status-${crypto.randomUUID()}`);
-  const { argv } = shellLine.spawnRequestOf(line, statusFile);
+  const { argv } = spawningShellRequestOf(shellLine, line, statusFile);
   const confined = confinement === 'confined' ? confinedLineOf(gateConfinementFor(process.platform), planOf, argv) : { verdict: 'runs' as const, argv };
-  if (confined.verdict === 'refused') throw new Error(confined.reason);
+  if (confined.verdict === 'refused') throw new Error(`confinement unavailable: ${confined.unavailability.cause}`);
   return GateRun.runGate({
     argv:        confined.argv,
     statusFile,

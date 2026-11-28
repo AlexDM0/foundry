@@ -14,6 +14,7 @@ import {
   useRecordedGateLines,
   writesOutsideLineOf
 } from './RecordedGateLines.ts';
+import { spawningShellRequestOf } from './SpawningShellRequest.ts';
 
 const { shellLine } = nativePlatformPorts();
 const recordedLines = useRecordedGateLines();
@@ -29,12 +30,11 @@ function runOf(argv: readonly string[]): Promise<GateProcessRun> {
 }
 
 function shellArgvOf(line: string): readonly string[] {
-  return shellLine.spawnRequestOf(line, STATUS_FILE).argv;
+  return spawningShellRequestOf(shellLine, line, STATUS_FILE).argv;
 }
 
 function confinedArgvOf(line: string): readonly string[] {
   const confined = recordedGateConfiner(shellArgvOf(line));
-  if (confined.verdict === 'refused') throw new Error(confined.reason);
   return confined.argv;
 }
 

@@ -19,20 +19,20 @@ import {
 } from 'bun:test';
 import type { CrashedComponent, CrashLogError }    from '../../adapters/crash-log/@types/CrashLogRecord.ts';
 import { writeHatchRequest }                       from '../../adapters/hatch/HatchFolder.ts';
+import type { ChildRecord }                        from '../../domain/talos/ChildRecord.ts';
+import { childRecordTextOf }                       from '../../domain/talos/ChildRecord.ts';
+import type { EventLogEntry }                      from '../../domain/talos/EventLog.ts';
+import { talosRecordPathOf }                       from '../../domain/talos/TalosFiles.ts';
+import { talosRecordTextOf }                       from '../../domain/talos/TalosRecord.ts';
+import type { Decision }                           from '../../domain/tracker-model/@types/Decision.ts';
+import type { Incident }                           from '../../domain/tracker-model/@types/Incident.ts';
+import type { Job }                                from '../../domain/tracker-model/@types/Job.ts';
+import type { Board }                              from '../../domain/tracker-model/Board.ts';
 import type { AgentAdapter }                       from '../../lib/agent-launch/AgentAdapter.ts';
 import type { AgentLaunchRequest }                 from '../../lib/agent-launch/AgentLaunchRequest.ts';
 import type { AgentQuestion }                      from '../../lib/agent-launch/AgentSessionEvent.ts';
 import { LocalTimeUtil }                           from '../../lib/local-time/LocalTimeUtil.ts';
 import { sameProcess, type ProcessIdentity }       from '../../lib/process-identity/ProcessIdentity.ts';
-import type { ChildRecord }                        from '../../lib/talos/ChildRecord.ts';
-import { childRecordTextOf }                       from '../../lib/talos/ChildRecord.ts';
-import type { EventLogEntry }                      from '../../lib/talos/EventLog.ts';
-import { talosRecordPathOf }                       from '../../lib/talos/TalosFiles.ts';
-import { talosRecordTextOf }                       from '../../lib/talos/TalosRecord.ts';
-import type { Decision }                           from '../../lib/tracker-model/@types/Decision.ts';
-import type { Incident }                           from '../../lib/tracker-model/@types/Incident.ts';
-import type { Job }                                from '../../lib/tracker-model/@types/Job.ts';
-import type { Board }                              from '../../lib/tracker-model/Board.ts';
 import type { ControlCommand }                     from '../../shared/@types/ControlCommand.ts';
 import { LIFECYCLE_LIMITS }                        from '../../shared/constants/LifecycleLimits.ts';
 import { PRODUCT_NAMES }                           from '../../shared/constants/ProductNames.ts';
@@ -55,6 +55,7 @@ import {
   NETWORK_OUTAGE_FAKE_AGENT_STEPS
 } from '../../testing/FakeAgentAdapter.ts';
 import { LIVE_HOLDERS_LOCK_TAKER }                                  from '../../testing/LockTakers.ts';
+import { detailsLoggerOf }                                          from '../../testing/LoggedDetails.ts';
 import { nativePlatformPorts }                                      from '../../testing/NativePlatformPorts.ts';
 import { PlantedChild }                                             from '../../testing/PlantedChild.ts';
 import { stopProcessesReachingInto }                                from '../../testing/ProcessesInFolder.ts';
@@ -76,11 +77,12 @@ import { writeTracker }                                             from '../tra
 import { requireProgressFile }                                      from '../tracker/TrackerReader.ts';
 import { workspacePathsFor, type Workspace }                        from '../tracker/Workspace.ts';
 import { MONITOR_REGISTRY_FILES }                                   from '../tracker/constants/MonitorRegistryFiles.ts';
+import type { JobLaunchFacts }                                      from './@types/JobLaunchFacts.ts';
 import type { StartGateVerdict }                                    from './@types/StartClassification.ts';
 import type { BoardChildren }                                       from './BoardChildren.ts';
 import { CrashLog }                                                 from './CrashLog.ts';
 import { CrashPath, type CrashPathContext }                         from './CrashPath.ts';
-import { type DrivePass, type JobLaunchFacts }                      from './DrivePass.ts';
+import type { DrivePass }                                           from './DrivePass.ts';
 import { HatchInbox }                                               from './HatchInbox.ts';
 import { hephaestusFilesIn, type HephaestusFiles }                  from './HephaestusFiles.ts';
 import { jobFolderIn }                                              from './HephaestusFiles.ts';
@@ -156,7 +158,7 @@ let talosBounds: TalosStartBounds = TALOS_START_BOUNDS;
 /** The board's Talos, which outlives every Hephaestus of the case as it outlives a real one; a lost one is followed by the next. */
 async function boardTalosOfTheCase(): Promise<ScratchBoardTalos> {
   boardTalos ??= await startScratchBoardTalos({
-    workspace: sessionWorkspace, platformPorts: ports, monitorFolder, log: (line) => hephaestusLog.push(line), bounds: talosBounds,
+    workspace: sessionWorkspace, platformPorts: ports, monitorFolder, log: detailsLoggerOf(hephaestusLog), bounds: talosBounds,
   });
   return boardTalos;
 }
@@ -189,7 +191,7 @@ function recordingAdapter(scenario: SessionScenario): AgentAdapter {
       const isWorker = request.reportSchema !== null;
       if (isWorker) {
         launches.push({
-          jobId:            basename(request.jobFilesDirectory),
+          jobId:            basename(request.launchFilesDirectory),
           resume:           request.resume,
           firstMessage:     request.firstMessage,
           workingDirectory: request.workingDirectory,
@@ -248,7 +250,7 @@ async function startedHephaestus(
     resumeMessage:       RESUME_MESSAGE,
     redHandoffMessageOf: (facts) => `Red handoff: ${facts.name}, resume ${facts.resume}`,
     answerMessageOf:     (answer) => `${ANSWER_MESSAGE_PREFIX} ${JSON.stringify(answer)}`,
-    log:                 (line) => hephaestusLog.push(line),
+    log:                 detailsLoggerOf(hephaestusLog),
     ...(afterHoldPhase === undefined ? {} : { afterHoldPhase }),
     ...startFields,
   });
@@ -473,7 +475,7 @@ function renewalOf(serving: Pick<ForgeServing, 'generation' | 'holder'>): LeaseR
     // Always idle, so only a stop, a kill or a held main thread lets the lease run out, never a slow pass of the case.
     passProgress:         { passInFlight: () => null },
     wallNowMilliseconds:  () => Date.now(),
-    log:                  (line) => hephaestusLog.push(line),
+    log:                  detailsLoggerOf(hephaestusLog),
     onRenewed:            () => {
       Presence.writeHeartbeat(forgeFiles(), serving.generation, LocalTimeUtil.formatLocalIso(new Date()), () => undefined);
     },
@@ -492,7 +494,7 @@ function crashPathContextOf(serving: ForgeServing): CrashPathContext {
     stopLeaseRenewal:     () => serving.renewal?.stop(),
     writeRegistryCrash:   (report) => registerTheForge(report),
     stampNow:             () => SESSION_STAMP,
-    log:                  (line) => hephaestusLog.push(line),
+    log:                  detailsLoggerOf(hephaestusLog),
   };
 }
 
@@ -1177,7 +1179,7 @@ describe('the session, Talos, Hephaestus and reboot rows', () => {
     const fresh = requireAssistant();
     expect(openIncidents().map((incident) => incident.deliveredInTurn)).toEqual([{ jobId: fresh.id, chatSequence: 1 }]);
     expect(launchFacts.find((launched) => launched.jobId === fresh.id)?.facts.assistant?.incidents.map((incident) => incident.kind)).toEqual(['blocked']);
-    const freshLaunch = assistantLaunches.find((request) => basename(request.jobFilesDirectory) === fresh.id);
+    const freshLaunch = assistantLaunches.find((request) => basename(request.launchFilesDirectory) === fresh.id);
     expect(freshLaunch).toMatchObject({
       resume: false, model: 'sonnet', effort: 'medium', reportSchema: null
     });
@@ -1248,7 +1250,7 @@ describe('the session, Talos, Hephaestus and reboot rows', () => {
       planOf(request) {
         if (request.profile.skills) {
           productOwnerLaunches.push({
-            jobId:            basename(request.jobFilesDirectory),
+            jobId:            basename(request.launchFilesDirectory),
             resume:           request.resume,
             firstMessage:     request.firstMessage,
             workingDirectory: request.workingDirectory,
@@ -1526,12 +1528,13 @@ describe('the session, Talos, Hephaestus and reboot rows', () => {
       // The crash path's listeners in a process of their own, as the foreground installs them, serving this generation.
       const hephaestusCode = [
         `import { CrashPath } from ${moduleOf('CrashPath.ts')};`,
+        `import { CrashLog } from ${moduleOf('CrashLog.ts')};`,
         `import { hephaestusFilesIn } from ${moduleOf('HephaestusFiles.ts')};`,
         `const files = hephaestusFilesIn(${JSON.stringify(sessionWorkspace.trackerDirectory)});`,
         'CrashPath.listenForProcessCrashes(() => ({',
         `  files, generation: ${serving.generation}, activeJobs: () => [], talosChildren: () => null, stopLeaseRenewal: () => undefined,`,
         `  writeRegistryCrash: () => Promise.resolve(), stampNow: () => ${JSON.stringify(SESSION_STAMP)}, log: () => undefined,`,
-        '}));',
+        '}), CrashLog.errorOf);',
         'process.nextTick(() => { throw new RangeError(\'Example uncaught error\'); });',
       ].join('\n');
 

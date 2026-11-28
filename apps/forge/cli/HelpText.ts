@@ -662,6 +662,14 @@ never carries it.
                               then the log tail. Reads files only, with Hephaestus up or down.
                               Refused no-crash-log at exit 1 when there is none.
 
+  hephaestus-log [--follow] [--json]
+                              Print hephaestus.log, each record as its time and its sentence;
+                              a line that is no record is skipped and named on standard error.
+                              --follow keeps printing what is appended until stopped; --json
+                              prints {logFilePath, records}, one {lineNumber, at, kind, details}
+                              per record, or with --follow one such JSON line per record.
+                              Reads files only, with Hephaestus up or down.
+
   version [--json]            Print the code version on disk and the install version:
                               {answerVersion, codeVersion, installVersion, contracts,
                               talosProtocolVersion, monitorFolder}, \`contracts\` Hephaestus

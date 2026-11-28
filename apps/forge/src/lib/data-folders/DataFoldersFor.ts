@@ -1,4 +1,7 @@
-/** The one selector of the `DataFolders` port; a platform with no adapter keeps the machine's own scratch root and refuses a folder. */
+/**
+ * The one selector of the `DataFolders` port. A platform with no adapter keeps the machine's own scratch root and the monitor folder under the
+ * home folder, which no platform rule decides, so a process starts; it refuses the system folder.
+ */
 import { tmpdir } from 'node:os';
 import path       from 'node:path';
 
@@ -12,14 +15,11 @@ export function dataFoldersFor(platform: string, monitorFolderName: string, syst
     return createPosixDataFolders({ temporaryDirectory: tmpdir, monitorFolderName, foldsCase: platform === 'darwin' });
   }
   if (platform === 'win32') return createWindowsDataFolders({ temporaryDirectory: tmpdir, monitorFolderName, systemRoot });
-  const refuse = (): never => {
-    throw new Error(`no data folders exist for the platform ${platform}`);
-  };
   return Object.freeze<DataFolders>({
     temporaryRoots:           () => [tmpdir()],
     temporaryFolderOf:        () => null,
-    monitorFolderOf:          refuse,
-    systemFolder:             refuse,
+    monitorFolderOf:          (home) => path.join(home, monitorFolderName),
+    systemFolder:             () => ({ verdict: 'refused', cause: 'no-adapter' }),
     pathModule:               path,
     foldsCase:                false,
     executableFolderNames:    ['bin'],

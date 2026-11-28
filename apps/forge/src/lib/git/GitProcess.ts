@@ -1,12 +1,13 @@
 /**
- * The git building block: `GitProcess.run` is the one place git is spawned, paths unquoted and hooks off unless asked for. It depends on
- * `src/lib/atomic-file`, `src/lib/executable-resolver` (this one static spawn has no context to take a port from), `src/lib/json-record`
- * and `src/lib/versioned-registry`.
+ * The git building block: `GitProcess.run` is the one place git is spawned, with paths printed unquoted and hooks off unless asked for,
+ * and the modules beside it answer repository questions on it as verdicts. It depends on `src/lib/atomic-file`, through GitIgnore and Worktrees,
+ * and on `src/lib/executable-resolver`, whose host resolver finds git, since this one static spawn has no context to take a port from.
  */
 import { existsSync, statSync } from 'node:fs';
 import { join }                 from 'node:path';
 
 import { hostExecutableResolver }   from '../executable-resolver/ExecutableResolverFor.ts';
+import type { GitRunFailure }       from './@types/GitProblem.ts';
 import { repositoryRootWithoutGit } from './RepositoryRootWithoutGit.ts';
 import { PORTABLE_GIT_SETTINGS }    from './constants/GitConventions.ts';
 import { GitArgumentsUtil }         from './utils/GitArgumentsUtil.ts';
@@ -99,10 +100,12 @@ function directoryExists(path: string): boolean {
   }
 }
 
-function failureReasonOf(finishedRun: GitRun | null, gitArguments: readonly string[]): string {
-  const command = `git ${gitArguments.join(' ')}`;
-  if (finishedRun === null) return `${command} could not be started.`;
-  return `${command} exited with ${finishedRun.exitCode}: ${finishedRun.standardError}`;
+/** A run `succeeded` rejected, as its arguments and git's own message; `null` is a git that never started. */
+function failureOf(finishedRun: GitRun | null, gitArguments: readonly string[]): GitRunFailure {
+  if (finishedRun === null) return { code: 'git-not-started', gitArguments };
+  return {
+    code: 'git-exited', gitArguments, exitCode: finishedRun.exitCode, gitMessage: finishedRun.standardError
+  };
 }
 
 /** `--end-of-options`, so a revision written as `--output=x` is looked up rather than obeyed. */
@@ -115,7 +118,7 @@ function resolvedCommitOf(directory: string, revision: string, ceilingDirectory?
 export const GitProcess = {
   commandOf,
   directoryExists,
-  failureReasonOf,
+  failureOf,
   resolvedCommitOf,
   run,
   succeeded,

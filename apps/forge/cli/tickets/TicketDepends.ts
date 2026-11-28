@@ -1,7 +1,7 @@
 /** `ticket depends`: replaces, adds to or removes from the list of tickets one waits on, and says which open dependency it dropped. */
 import { TicketJsonUtil }                     from '../../src/adapters/utils/TicketJsonUtil.ts';
 import { TicketPhraseUtil }                   from '../../src/adapters/utils/TicketPhraseUtil.ts';
-import type { TicketDependenciesChanged }     from '../../src/lib/tracker-model/@types/BoardChanges.ts';
+import type { TicketDependenciesChanged }     from '../../src/domain/tracker-model/@types/BoardChanges.ts';
 import type { ControlCommandOf, ListEdit }    from '../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }                   from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                      from '../../src/shared/constants/ProductNames.ts';

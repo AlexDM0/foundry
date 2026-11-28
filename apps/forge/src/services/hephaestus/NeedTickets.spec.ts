@@ -10,13 +10,13 @@ import {
   test
 } from 'bun:test';
 
-import type { JobLaunch }                     from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }                     from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Pipeline }                      from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { DecisionWording, PlaybookStep } from '../../lib/tracker-model/@types/PlaybookStep.ts';
-import type { TicketStage }                   from '../../lib/tracker-model/@types/Task.ts';
-import type { TrackerProgress }               from '../../lib/tracker-model/@types/TrackerProgress.ts';
-import type { Board }                         from '../../lib/tracker-model/Board.ts';
+import type { JobLaunch }                     from '../../domain/tracker-model/@types/Job.ts';
+import type { LogRecord }                     from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { Pipeline }                      from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { DecisionWording, PlaybookStep } from '../../domain/tracker-model/@types/PlaybookStep.ts';
+import type { TicketStage }                   from '../../domain/tracker-model/@types/Task.ts';
+import type { TrackerProgress }               from '../../domain/tracker-model/@types/TrackerProgress.ts';
+import type { Board }                         from '../../domain/tracker-model/Board.ts';
 import { LIFECYCLE_LIMITS }                   from '../../shared/constants/LifecycleLimits.ts';
 import {
   boardFixture,

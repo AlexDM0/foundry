@@ -15,9 +15,9 @@ import {
 } from 'bun:test';
 
 import { PipelineFile }           from '../adapters/pipeline/PipelineFile.ts';
+import { EntityOwnershipUtil }    from '../domain/tracker-model/utils/EntityOwnershipUtil.ts';
+import { EntityValidationUtil }   from '../domain/tracker-model/utils/EntityValidationUtil.ts';
 import { discoverRepositoryRoot } from '../lib/git/RepositoryRoot.ts';
-import { EntityOwnershipUtil }    from '../lib/tracker-model/utils/EntityOwnershipUtil.ts';
-import { EntityValidationUtil }   from '../lib/tracker-model/utils/EntityValidationUtil.ts';
 import type { BoundaryRecording } from './BoundaryRecordings.ts';
 import { recordingPathOf }        from './BoundaryRecordings.ts';
 import {

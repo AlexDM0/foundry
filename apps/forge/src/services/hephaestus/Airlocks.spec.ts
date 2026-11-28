@@ -184,8 +184,10 @@ describe('a group\'s slot in its own worktree', () => {
     await harness.slots.sweep();
 
     expect(kindsLogged(harness, 'merge-landed').map((record) => (record['fields'] as { kind: string }).kind)).toEqual(['landed']);
-    expect(harness.declinedCleanups).toEqual([{ cleanup: 'release', groupBranch: GROUP, reason: expect.stringContaining('branch -d') }]);
-    expect(harness.declinedCleanups[0]?.reason).toContain('not fully merged');
+    const releaseBranchDeletion = expect.objectContaining({ code: 'git-exited', gitArguments: ['branch', '-d', GROUP] });
+    expect(harness.declinedCleanups).toEqual([{ cleanup: 'release', groupBranch: GROUP, problem: releaseBranchDeletion }]);
+    const declinedProblem = harness.declinedCleanups[0]?.problem;
+    expect(declinedProblem?.code === 'git-exited' ? declinedProblem.gitMessage : '').toContain('not fully merged');
   });
 
   test('a release whose branch lacks the group\'s tip is refused before its merge-in, so main and the bundle stay put, and its gates stop', async () => {

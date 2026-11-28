@@ -5,12 +5,12 @@
  */
 import type { JobLiveFactsWithSilence } from '../../../adapters/@types/BoardStateParts.ts';
 import type { FullStatusDocument }      from '../../../adapters/@types/StatusDocument.ts';
-import type { Decision }                from '../../../lib/tracker-model/@types/Decision.ts';
-import type { Draft }                   from '../../../lib/tracker-model/@types/Draft.ts';
-import type { Incident }                from '../../../lib/tracker-model/@types/Incident.ts';
-import type { LogRecord }               from '../../../lib/tracker-model/@types/LogRecord.ts';
-import type { Pipeline }                from '../../../lib/tracker-model/@types/Pipeline.ts';
-import type { PipelineSetup }           from '../../../lib/tracker-model/@types/PipelineSetup.ts';
+import type { Decision }                from '../../../domain/tracker-model/@types/Decision.ts';
+import type { Draft }                   from '../../../domain/tracker-model/@types/Draft.ts';
+import type { Incident }                from '../../../domain/tracker-model/@types/Incident.ts';
+import type { LogRecord }               from '../../../domain/tracker-model/@types/LogRecord.ts';
+import type { Pipeline }                from '../../../domain/tracker-model/@types/Pipeline.ts';
+import type { PipelineSetup }           from '../../../domain/tracker-model/@types/PipelineSetup.ts';
 import {
   boardFixture,
   epicFixture,

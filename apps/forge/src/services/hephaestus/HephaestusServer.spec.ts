@@ -629,3 +629,48 @@ describe('the content security policy', () => {
     }
   });
 });
+
+describe('the one status map', () => {
+  test('maps each answer to the HTTP status every route answers it with', () => {
+    expect(HephaestusServer.HTTP_STATUS_OF_ANSWER).toEqual({
+      'answered':         200,
+      'malformed-body':   400,
+      'unauthorized':     401,
+      'forbidden':        403,
+      'not-found':        404,
+      'refused':          409,
+      'body-too-large':   413,
+      'type-unsupported': 415,
+      'launches-held':    423,
+      'read-failed':      500,
+      'starting':         503,
+    });
+    expect(HephaestusServer.routeAnswerOf('launches-held', { refusal: 'example' })).toEqual({ status: 423, body: { refusal: 'example' } });
+  });
+
+  test('an empty picture upload answers 400 malformed-body, an absent picture and an unserved job file 404, and the nudge 200 done with no token', async () => {
+    const nudges: string[] = [];
+    const handler = HephaestusServer.requestHandlerOf({
+      portChoice: { kind: 'given', port: PORT },
+      identity:   {
+        trackerId: 'tracker-example', project: 'Example Agency', codeVersion: 'code-example', installVersion: 17, processId: 4242
+      },
+      routes:                { ...versionedRoutesOf(() => true), onNudge: () => nudges.push('nudged') },
+      heartbeatMilliseconds: QUIET_HEARTBEAT_MILLISECONDS,
+    });
+    openHandlers.push(handler);
+    const answers = [
+      await handler.answer(new Request(`${EXAMPLE_API_ORIGIN}/api/pictures`, { method: 'POST', headers: TOKEN_HEADERS }), PORT),
+      await handler.answer(requestTo(`/api/pictures/${'b'.repeat(64)}`), PORT),
+      await handler.answer(requestTo('/api/jobs/J1/files/not-served.txt'), PORT),
+      await handler.answer(requestTo('/api/nudge', { method: 'POST', headers: HOST_HEADERS }), PORT),
+    ];
+    expect(await Promise.all(answers.map(async (answer) => [answer.status, await answer.json()]))).toEqual([
+      [400, { refusal: 'malformed-body' }],
+      [404, { refusal: 'not-found' }],
+      [404, { refusal: 'not-found' }],
+      [200, { outcome: 'done' }],
+    ]);
+    expect(nudges).toEqual(['nudged']);
+  });
+});

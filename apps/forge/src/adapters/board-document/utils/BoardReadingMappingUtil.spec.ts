@@ -4,14 +4,14 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { CONCURRENCY_LIMIT_CEILING_AGENTS, DEFAULT_CONCURRENCY_LIMIT_AGENTS } from '../../../lib/tracker-model/constants/ConcurrencyLimits.ts';
+import { CONCURRENCY_LIMIT_CEILING_AGENTS, DEFAULT_CONCURRENCY_LIMIT_AGENTS } from '../../../domain/tracker-model/constants/ConcurrencyLimits.ts';
 import {
   DEFAULT_APPROVALS,
   DEFAULT_DOCUMENTS_OF_ROLE,
   DEFAULT_INSTRUCTIONS_OF_ROLE,
   DEFAULT_TICKET_WRITING_ROUTE,
   RE_REVIEW_THRESHOLD_STEP_LINES
-} from '../../../lib/tracker-model/constants/PipelineDefaults.ts';
+} from '../../../domain/tracker-model/constants/PipelineDefaults.ts';
 import type { PageTicket, PageTicketFacts } from '../../../shared/@types/PagePayload.ts';
 import { DISPATCH_PROTOCOL }                from '../../../shared/constants/DispatchProtocol.ts';
 import {
@@ -101,12 +101,12 @@ describe('BoardReadingMappingUtil.noticesOf', () => {
 });
 
 describe('BoardReadingMappingUtil.warningsOf', () => {
-  test('serves the monitor\'s warnings with the facts each sentence names', () => {
+  test('serves the monitor\'s warnings with the facts each sentence names, an unreadable file\'s problem worded as its reason', () => {
     const restartWarning = { successorCodeVersion: 'code-next', step: 'handover', error: 'Example failure.' };
     const notices = [{
       kind: 'incident-defaulted', incidentId: 'I4', move: 'ticket-park', cause: 'no-assistant'
     }];
-    const unreadableFiles = [{ file: 'crash-logs/crash-2.json', reason: 'its crashLogVersion is not 2' }];
+    const unreadableFiles = [{ file: 'crash-logs/crash-2.json', problem: { code: 'version-differs', field: 'crashLogVersion', expectedVersion: 2 } }];
     expect(BoardReadingMappingUtil.warningsOf(notices, { restartWarning, unreadableFiles })).toEqual([
       { kind: 'restart-failed', facts: restartWarning, sentence: 'the restart to code code-next failed at handover: Example failure.' },
       { kind: 'assistant-down', facts: {}, sentence: 'no Assistant can come up: open incidents take their defaults' },

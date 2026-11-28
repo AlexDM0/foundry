@@ -4,9 +4,9 @@
  * named with its path is refused when it is no program to keep, such as one inside a repository a job could write.
  */
 import { MachineConfigFile }                            from '../../adapters/machine-config/MachineConfigFile.ts';
+import type { PipelineAgent, PipelineTool }             from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { PipelineDraftEdit }                       from '../../domain/tracker-model/@types/PipelineSetup.ts';
 import type { ToolSearch }                              from '../../lib/program-folders/utils/ProgramSearchUtil.ts';
-import type { PipelineAgent, PipelineTool }             from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { PipelineDraftEdit }                       from '../../lib/tracker-model/@types/PipelineSetup.ts';
 import type { AgentProgramCheck }                       from '../../shared/@types/AgentProgramCheck.ts';
 import type { ControlCommand }                          from '../../shared/@types/ControlCommand.ts';
 import { OperationRefusal }                             from '../../shared/OperationRefusal.ts';
@@ -48,7 +48,7 @@ function foundToolsOf(tools: readonly PipelineTool[], context: AgentCommandPrepa
   return tools.map((tool) => {
     if (tool.path !== '') {
       const program = context.check.resolver.programAt(tool.path, context.toolForbiddenRoots);
-      if (program.verdict === 'refused') throw new OperationRefusal('refused', { kind: 'tool-refused', name: tool.name, reason: program.reason });
+      if (program.verdict === 'refused') throw new OperationRefusal('refused', { kind: 'tool-refused', name: tool.name, refusal: program });
       return tool;
     }
     const path = AgentTools.foundPathOf(tool.name, context.toolSearch, context.check.resolver, context.toolForbiddenRoots);

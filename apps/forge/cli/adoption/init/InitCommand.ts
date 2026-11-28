@@ -16,6 +16,7 @@ import { requireGitAtTheFloor }                           from '../../GitVersion
 import { requireInstallManifestThisVersionCanReplace }    from '../../InstallVersionCheck.ts';
 import { registerWrittenTracker }                         from '../../RegisterWrittenTracker.ts';
 import { loggingLockTakerOf }                             from '../../StaleLockWording.ts';
+import { TrackerListWording }                             from '../../TrackerListWording.ts';
 import { OutputUtil }                                     from '../../utils/OutputUtil.ts';
 import { ProgramAnswerUtil }                              from '../../utils/ProgramAnswerUtil.ts';
 import { installedFileTextsFor, installedSkillFileTexts } from '../InstalledFileGeneration.ts';
@@ -144,7 +145,8 @@ export const initCommand: CommandHandler = async (commandArguments, context) => 
     if (listing.verdict === 'not-listed') {
       throw new OperationRefusal(
         'refused',
-        `The repository's tracker list ${placement.listToWrite.files.trackerListFilePath} was not written (${listing.reason}). Nothing else was written.`,
+        `The repository's tracker list ${placement.listToWrite.files.trackerListFilePath} was not written `
+          + `(${TrackerListWording.failureTextOf(listing.cause)}). Nothing else was written.`,
       );
     }
   }

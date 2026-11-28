@@ -1,0 +1,57 @@
+[
+  {
+    "case": "a directory in the file's place, which cannot be read",
+    "stored": null,
+    "sentence": "it could not be read ({systemError})"
+  },
+  {
+    "case": "bytes that are not UTF-8",
+    "stored": null,
+    "sentence": "it is not UTF-8 text"
+  },
+  {
+    "case": "text that is not JSON",
+    "stored": "{\"version\": ",
+    "sentence": "it is not valid JSON (JSON Parse error: Unexpected EOF)"
+  },
+  {
+    "case": "JSON that is a list, not an object",
+    "stored": "[]",
+    "sentence": "it is not a JSON object"
+  },
+  {
+    "case": "no version",
+    "stored": "{}",
+    "sentence": "its version is not 1"
+  },
+  {
+    "case": "another version",
+    "stored": "{\"version\":2}",
+    "sentence": "its version is not 1"
+  },
+  {
+    "case": "chats as an object",
+    "stored": "{\"version\":1,\"chats\":{}}",
+    "sentence": "its chats is not a list"
+  },
+  {
+    "case": "a chat that is a number",
+    "stored": "{\"version\":1,\"chats\":[{\"sequence\":1,\"incidentIds\":[\"I1\"],\"messageNumber\":null},2]}",
+    "sentence": "its chats[1] is not an object"
+  },
+  {
+    "case": "a chat whose sequence is 0",
+    "stored": "{\"version\":1,\"chats\":[{\"sequence\":1,\"incidentIds\":[\"I1\"],\"messageNumber\":null},{\"sequence\":0,\"incidentIds\":[\"I1\"],\"messageNumber\":null}]}",
+    "sentence": "its chats[1].sequence is not a whole number of at least 1"
+  },
+  {
+    "case": "a chat whose incidentIds holds a number",
+    "stored": "{\"version\":1,\"chats\":[{\"sequence\":1,\"incidentIds\":[\"I1\"],\"messageNumber\":null},{\"sequence\":1,\"incidentIds\":[1],\"messageNumber\":null}]}",
+    "sentence": "its chats[1].incidentIds is not a list of incident ids"
+  },
+  {
+    "case": "a chat whose messageNumber is 0",
+    "stored": "{\"version\":1,\"chats\":[{\"sequence\":1,\"incidentIds\":[\"I1\"],\"messageNumber\":null},{\"sequence\":1,\"incidentIds\":[\"I1\"],\"messageNumber\":0}]}",
+    "sentence": "its chats[1].messageNumber is neither a whole number of at least 1 nor null"
+  }
+]

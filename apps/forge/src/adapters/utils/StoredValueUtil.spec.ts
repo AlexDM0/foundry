@@ -1,6 +1,6 @@
 /**
- * The checks every stored format's validation shares. The cases that matter: an unparseable text's problem is worded as an ingestion reports
- * it, and a whole number means a safe integer, so a fraction or a number past the safe range fails.
+ * The checks every stored format's validation shares. The cases that matter: an unparseable text's problem carries the parser's own message,
+ * and a whole number means a safe integer, so a fraction or a number past the safe range fails.
  */
 import { expect, test } from 'bun:test';
 
@@ -14,10 +14,10 @@ test('a JSON text after a leading byte order mark parses to its value', () => {
   expect(StoredValueUtil.parsedJsonOf('\uFEFF{ "installVersion": 3 }')).toEqual({ verdict: 'parsed', value: { installVersion: 3 } });
 });
 
-test('a text that is not JSON is unparseable, the problem naming the parser message', () => {
+test('a text that is not JSON is unparseable, the problem carrying the parser\'s message', () => {
   const parsedJson = StoredValueUtil.parsedJsonOf('{ not json');
   expect(parsedJson.verdict).toBe('unparseable');
-  expect(parsedJson.verdict === 'unparseable' ? parsedJson.problem : '').toStartWith('it is not valid JSON (');
+  expect(parsedJson.verdict === 'unparseable' ? parsedJson.problem : null).toEqual({ code: 'not-json', parserError: expect.any(String) });
 });
 
 test('a whole number is a safe integer, negative ones included', () => {

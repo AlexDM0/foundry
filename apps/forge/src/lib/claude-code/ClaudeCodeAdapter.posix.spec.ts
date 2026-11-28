@@ -54,20 +54,20 @@ function profileOf(guarded: boolean): WorkerProfile {
 
 function requestOf(guarded: boolean): AgentLaunchRequest {
   return {
-    programPath:       '/home/alex-example/.local/bin/claude',
-    sessionId:         'session-example',
-    resume:            false,
-    workingDirectory:  WORKTREE,
-    homeDirectory:     '/home/alex-example',
-    firstMessage:      'Build.',
-    roleBrief:         'Builder.',
-    model:             'opus',
-    effort:            'medium',
-    environment:       {},
-    profile:           profileOf(guarded),
-    confinement:       'confined',
-    jobFilesDirectory: JOB_FILES,
-    reportSchema:      null,
+    programPath:          '/home/alex-example/.local/bin/claude',
+    sessionId:            'session-example',
+    resume:               false,
+    workingDirectory:     WORKTREE,
+    homeDirectory:        '/home/alex-example',
+    firstMessage:         'Build.',
+    roleBrief:            'Builder.',
+    model:                'opus',
+    effort:               'medium',
+    environment:          {},
+    profile:              profileOf(guarded),
+    confinement:          'confined',
+    launchFilesDirectory: JOB_FILES,
+    reportSchema:         null,
   };
 }
 

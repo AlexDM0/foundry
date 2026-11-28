@@ -3,9 +3,9 @@
  * the program it names now, whether that program ran since Hephaestus started, and the tools of the pipeline and of the open setup record.
  */
 import { MachineConfigFile }         from '../../adapters/machine-config/MachineConfigFile.ts';
+import type { Board }                from '../../domain/tracker-model/Board.ts';
 import type { AgentAdapter }         from '../../lib/agent-launch/AgentAdapter.ts';
 import type { PlatformPorts }        from '../../lib/platform-ports/PlatformPortsFor.ts';
-import type { Board }                from '../../lib/tracker-model/Board.ts';
 import type { AgentFacts }           from '../../shared/@types/AgentFacts.ts';
 import type { AgentProgramCheck }    from '../../shared/@types/AgentProgramCheck.ts';
 import { AgentPrograms }             from '../control/AgentPrograms.ts';

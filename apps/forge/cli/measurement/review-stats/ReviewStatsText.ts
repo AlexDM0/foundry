@@ -4,9 +4,9 @@ import type {
   EscapedBugCounts,
   ReviewStatisticsGroup,
   ReviewStatisticsReport
-}                                                                         from '../../../src/lib/tracker-model/ReviewStatistics.ts';
-import { CHANGE_SIZE_BUCKET_MAXIMUM_CHANGED_LINES, LARGE_CHANGE_MAXIMUM_CHANGED_LINES } from '../../../src/lib/tracker-model/constants/ChangeSizeBuckets.ts';
-import { REVIEW_FINDING_CLASSES, REVIEW_FINDING_SEVERITIES, REVIEW_VERDICTS }           from '../../../src/lib/tracker-model/constants/ReviewRecordVocabulary.ts';
+}                                                                         from '../../../src/domain/tracker-model/ReviewStatistics.ts';
+import { CHANGE_SIZE_BUCKET_MAXIMUM_CHANGED_LINES, LARGE_CHANGE_MAXIMUM_CHANGED_LINES } from '../../../src/domain/tracker-model/constants/ChangeSizeBuckets.ts';
+import { REVIEW_FINDING_CLASSES, REVIEW_FINDING_SEVERITIES, REVIEW_VERDICTS }           from '../../../src/domain/tracker-model/constants/ReviewRecordVocabulary.ts';
 import { OutputUtil }                                                                   from '../../utils/OutputUtil.ts';
 
 const FIGURE_COLUMN_WIDTH_CHARACTERS = 40;

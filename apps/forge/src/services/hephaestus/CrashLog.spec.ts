@@ -20,7 +20,8 @@ import {
 import { CRASH_LOG_FORMAT_VERSION }                              from '../../adapters/crash-log/constants/CrashLogFileVersions.ts';
 import type { HeartbeatRecord }                                  from '../../adapters/heartbeat/@types/HeartbeatRecord.ts';
 import type { PresenceRecord }                                   from '../../adapters/presence/@types/PresenceRecord.ts';
-import type { Job }                                              from '../../lib/tracker-model/@types/Job.ts';
+import { HephaestusLogWordingUtil }                              from '../../adapters/utils/HephaestusLogWordingUtil.ts';
+import type { Job }                                              from '../../domain/tracker-model/@types/Job.ts';
 import { createScratchDirectory, removeScratchDirectory }        from '../../testing/ScratchWorkspace.ts';
 import type { CrashLogInputs }                                   from './@types/CrashLogRecord.ts';
 import { CrashLog }                                              from './CrashLog.ts';
@@ -207,7 +208,8 @@ describe('writing a crash log once', () => {
     writeFileSync(CrashLog.pathOf(files, 1), 'not json');
 
     expect(CrashLog.writeOnce(files, CrashLog.assemble(inputsOf()), unreadableBoardFiles)).toEqual({ verdict: 'written', crashLogNumber: 2 });
-    expect(unreadableBoardFiles.files()).toEqual([{ file: 'hephaestus/crash-logs/crash-1.json', reason: expect.stringContaining('not valid JSON') }]);
+    const notJson = { code: 'not-json', parserError: expect.any(String) as unknown as string } as const;
+    expect(unreadableBoardFiles.files()).toEqual([{ file: 'hephaestus/crash-logs/crash-1.json', problem: notJson }]);
   });
 });
 
@@ -237,6 +239,12 @@ describe('the tail of the Hephaestus log', () => {
     const cutLine = 'x'.repeat(CRASH_LOG_TAIL_READ_BOUND_BYTES);
     writeFileSync(files.logFilePath, `first line\n${cutLine}\nline 2\nline 3\n`);
     expect(CrashLog.logTailOf(files.logFilePath, 5)).toEqual(['line 2', 'line 3']);
+  });
+
+  test('keeps each stored record as the stamped sentence standard error showed, and any other line as it is', () => {
+    const storedLine = HephaestusLogWordingUtil.storedLineOf({ kind: 'talos-attached', talosStartNumber: 2 }, '2026-11-27T10:00:00+01:00');
+    writeFileSync(files.logFilePath, `${storedLine}\nrefused: printed before the logger\n`);
+    expect(CrashLog.logTailOf(files.logFilePath, 5)).toEqual(['2026-11-27T10:00:00+01:00 Attached to Talos 2.', 'refused: printed before the logger']);
   });
 
   test('a log that cannot be read gives no tail rather than a throw', () => {

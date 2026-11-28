@@ -10,10 +10,10 @@ import {
   test
 } from 'bun:test';
 
+import { createEventLogWriter }                           from '../../domain/talos/EventLog.ts';
+import type { Job, JobLaunch }                            from '../../domain/tracker-model/@types/Job.ts';
 import type { AgentAdapter }                              from '../../lib/agent-launch/AgentAdapter.ts';
 import type { AgentSessionEvent }                         from '../../lib/agent-launch/AgentSessionEvent.ts';
-import { createEventLogWriter }                           from '../../lib/talos/EventLog.ts';
-import type { Job, JobLaunch }                            from '../../lib/tracker-model/@types/Job.ts';
 import { boardFixture, taskFixture, ticketFixture }       from '../../testing/BoardFixtures.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';

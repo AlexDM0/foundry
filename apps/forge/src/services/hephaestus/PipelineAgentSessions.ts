@@ -9,46 +9,43 @@ import {
   readdirSync,
   readFileSync
 } from 'node:fs';
-import { join } from 'node:path';
+import { join }               from 'node:path';
+import type { HephaestusLog } from '../../adapters/@types/HephaestusLogRecord.ts';
 
-import { SnapshotStartIngestion, type SnapshotStart }                                     from '../../adapters/snapshot-start/SnapshotStartIngestion.ts';
-import { createSnapshotStartWriter }                                                      from '../../adapters/snapshot-start/SnapshotStartWriter.ts';
+import { SnapshotStartIngestion, type SnapshotStart } from '../../adapters/snapshot-start/SnapshotStartIngestion.ts';
+import { createSnapshotStartWriter }                  from '../../adapters/snapshot-start/SnapshotStartWriter.ts';
+import type { Job }                                   from '../../domain/tracker-model/@types/Job.ts';
+import type {
+  EntityKey,
+  Pipeline,
+  PipelineAgent,
+  PipelineBilling
+} from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { PipelineSetup, PipelineSetupMode }                                          from '../../domain/tracker-model/@types/PipelineSetup.ts';
+import type { Board }                                                                     from '../../domain/tracker-model/Board.ts';
 import type { AgentAdapter }                                                              from '../../lib/agent-launch/AgentAdapter.ts';
 import type { WorkerProfile }                                                             from '../../lib/agent-launch/WorkerProfile.ts';
 import { type GitPathStyle }                                                              from '../../lib/git/GitPaths.ts';
 import { GitProcess }                                                                     from '../../lib/git/GitProcess.ts';
 import { GitWorktrees, REAL_WORKTREE_REMOVAL_PRIMITIVES, type WorktreeRemovalPrimitives } from '../../lib/git/GitWorktrees.ts';
 import type { ShellLineGrammar }                                                          from '../../lib/shell-line/ShellLine.ts';
-import type { Job }                                                                       from '../../lib/tracker-model/@types/Job.ts';
-import type {
-  EntityKey,
-  Pipeline,
-  PipelineAgent,
-  PipelineBilling
-} from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { PipelineSetup, PipelineSetupMode } from '../../lib/tracker-model/@types/PipelineSetup.ts';
-import type { Board }                            from '../../lib/tracker-model/Board.ts';
-import type { BranchNames }                      from '../../shared/BranchNames.ts';
-import { PRODUCT_NAMES }                         from '../../shared/constants/ProductNames.ts';
-import {
-  clearCustoms,
-  launchSnapshotOf,
-  refMovesAllowedOf,
-  sharedRepositoryRefsOf,
-  watchedRefsOf,
-  type AgentNaming,
-  type CustomsVerdict,
-  type RefMovesAllowed
-} from '../lifecycle/Customs.ts';
-import type { SharedRepositoryLanding }       from '../lifecycle/Landing.ts';
-import type { BoardTransaction }              from '../tracker/BoardTransaction.ts';
-import { projectLocationOf }                  from '../tracker/ProjectLocation.ts';
-import type { Workspace }                     from '../tracker/Workspace.ts';
-import { ConstitutionCommits }                from './ConstitutionCommits.ts';
-import { GroupWorktrees }                     from './GroupWorktrees.ts';
-import { jobFileInDataFolderOf, jobFolderIn } from './HephaestusFiles.ts';
-import { CONSTITUTION_DEFAULT_PATH }          from './InstructionFiles.ts';
-import { UnreadableJobFileIncident }          from './UnreadableJobFileIncident.ts';
+import type { BranchNames }                                                               from '../../shared/BranchNames.ts';
+import { PRODUCT_NAMES }                                                                  from '../../shared/constants/ProductNames.ts';
+import type { AgentNaming }                                                               from '../lifecycle/@types/CustomsSubject.ts';
+import type { CustomsVerdict }                                                            from '../lifecycle/@types/CustomsVerdict.ts';
+import type { RefMovesAllowed }                                                           from '../lifecycle/@types/RefMoves.ts';
+import { clearCustoms }                                                                   from '../lifecycle/Customs.ts';
+import { launchSnapshotOf }                                                               from '../lifecycle/CustomsLaunchSnapshot.ts';
+import { CustomsRefMovesCheck }                                                           from '../lifecycle/CustomsRefMovesCheck.ts';
+import type { SharedRepositoryLanding }                                                   from '../lifecycle/Landing.ts';
+import type { BoardTransaction }                                                          from '../tracker/BoardTransaction.ts';
+import { projectLocationOf }                                                              from '../tracker/ProjectLocation.ts';
+import type { Workspace }                                                                 from '../tracker/Workspace.ts';
+import { ConstitutionCommits }                                                            from './ConstitutionCommits.ts';
+import { GroupWorktrees }                                                                 from './GroupWorktrees.ts';
+import { jobFileInDataFolderOf, jobFolderIn }                                             from './HephaestusFiles.ts';
+import { CONSTITUTION_DEFAULT_PATH }                                                      from './InstructionFiles.ts';
+import { UnreadableJobFileIncident }                                                      from './UnreadableJobFileIncident.ts';
 
 const PIPELINE_AGENT_KIND = 'pipeline-agent';
 
@@ -259,7 +256,7 @@ function pipelineAgentProfileOf(sessionProfile: WorkerProfile, hatchDirectory: s
 function turnEndRefMovesAllowedOf(context: TurnEndContext, board: Board, job: Readonly<Job>): RefMovesAllowed {
   const tickets = board.tickets();
   const { ticketBranchOf } = context.branchNames;
-  return refMovesAllowedOf(board.logRecordsSoFar(), {
+  return CustomsRefMovesCheck.refMovesAllowedOf(board.logRecordsSoFar(), {
     ownJobId:              job.id,
     ownBranch:             '',
     otherJobBranches:      board.jobs().flatMap((other) => (other.id === job.id || other.ticketIds[0] === undefined ? [] : [ticketBranchOf(other.ticketIds[0])])),
@@ -271,7 +268,9 @@ function turnEndRefMovesAllowedOf(context: TurnEndContext, board: Board, job: Re
     refreshWorktreeOf:            (groupBranch) => GroupWorktrees.refreshWorktreeOf(context.worktreesRoot, groupBranch),
     constitutionCommitWorktreeOf: (jobId) => ConstitutionCommits.commitWorktreeOf(context.worktreesRoot, jobId),
     snapshotFolders:              readerSnapshotFoldersOf(context.worktreesRoot),
-  }, sharedRepositoryRefsOf(context.sharedRepository?.files ?? null, watchedRefsOf(context.branchNames, context.mainLine, context.worktreesRoot)));
+  }, CustomsRefMovesCheck.sharedRepositoryRefsOf(
+    context.sharedRepository?.files ?? null, CustomsRefMovesCheck.watchedRefsOf(context.branchNames, context.mainLine, context.worktreesRoot),
+  ));
 }
 
 /** With no snapshot start, the launch could not take one, so the check fails closed. */
@@ -312,7 +311,8 @@ function verifyTurnEnds(change: BoardTransaction, context: TurnEndContext, jobId
       if (servedSetup !== null && !board.setupSnapshotIsTouched(servedSetup.setupId)) {
         board.recordSetupSnapshotTouched(servedSetup.setupId, { check: 'V16', reason: 'git-failed' }, at);
       }
-      UnreadableJobFileIncident.openAndRetire(board, { jobId: job.id, file: jobFileInDataFolderOf(job.id, SNAPSHOT_START_FILE), reason: snapshotStart.reason }, at);
+      const file = jobFileInDataFolderOf(job.id, SNAPSHOT_START_FILE);
+      UnreadableJobFileIncident.openAndRetire(board, { jobId: job.id, file, problem: snapshotStart.problem }, at);
       continue;
     }
     const verdict = turnEndVerdictOf(context, board, job, snapshotStart.verdict === 'readable' ? snapshotStart.snapshotStart : null);
@@ -342,7 +342,7 @@ function removeUnheldSnapshots(
   board: Board,
   context: Pick<SnapshotContext, 'workspace' | 'worktreesRoot'>,
   triedSnapshots: Set<string>,
-  log: (line: string) => void,
+  log: HephaestusLog,
   removalPrimitives: WorktreeRemovalPrimitives = REAL_WORKTREE_REMOVAL_PRIMITIVES,
 ): void {
   const snapshotsFolder = join(context.worktreesRoot, PIPELINE_AGENT_SNAPSHOT_FOLDER);
@@ -354,7 +354,7 @@ function removeUnheldSnapshots(
     if (name === openSetupId || triedSnapshots.has(snapshot)) continue;
     triedSnapshots.add(snapshot);
     const removal = GitWorktrees.removeWithRetry({ repositoryDirectory: repositoryRoot, worktreePath: snapshot, force: 'force' }, removalPrimitives);
-    if (removal.verdict === 'left') log(`The pipeline agent snapshot ${snapshot} is a leftover: ${removal.reason}`);
+    if (removal.verdict === 'left') log({ kind: 'pipeline-agent-snapshot-left-over', snapshotPath: snapshot, problem: removal.problem });
   }
 }
 

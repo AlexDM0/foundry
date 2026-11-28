@@ -4,7 +4,7 @@
  */
 import { expect, test } from 'bun:test';
 
-import type { BoardRefusalDetail }               from '../../lib/tracker-model/BoardRefusal.ts';
+import type { BoardRefusalDetail }               from '../../domain/tracker-model/BoardRefusal.ts';
 import { OperationRefusal }                      from '../../shared/OperationRefusal.ts';
 import { ORIGINAL_PRODUCT_NAMES, PRODUCT_NAMES } from '../../shared/constants/ProductNames.ts';
 import { COMMAND_LINE_FORM }                     from '../../testing/CommandLineForm.ts';
@@ -589,7 +589,7 @@ test.each<[BoardRefusalDetail, string]>([
   [{ reason: 'setup-in-progress', setupId: 'S1' }, 'Pipeline setup S1 is open, and only one setup is open at a time. Nothing was written. Resume it, or start it over.'],
   [{ reason: 'no-setup-open', setupId: 'S2' }, 'Pipeline setup S2 is not open. Nothing was written.'],
   [
-    { reason: 'pipeline-setup-unreadable', problem: 'setupId is missing' },
+    { reason: 'pipeline-setup-unreadable', problem: { code: 'missing', field: 'setupId' } },
     'The pipeline setup record cannot be read: setupId is missing. Nothing was written. Start the setup over, which removes the record, '
       + 'or repair pipeline-setup.json in the data folder.',
   ],

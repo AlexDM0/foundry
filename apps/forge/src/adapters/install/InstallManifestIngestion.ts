@@ -4,9 +4,10 @@
  */
 import { lstatSync } from 'node:fs';
 
-import { JsonRecordUtil }   from '../../lib/json-record/JsonRecordUtil.ts';
-import { storedFileTextOf } from '../StoredFileText.ts';
-import { StoredValueUtil }  from '../utils/StoredValueUtil.ts';
+import { JsonRecordUtil }              from '../../lib/json-record/JsonRecordUtil.ts';
+import type { InstallManifestProblem } from '../../shared/@types/InstallManifestProblem.ts';
+import { storedFileTextOf }            from '../StoredFileText.ts';
+import { StoredValueUtil }             from '../utils/StoredValueUtil.ts';
 
 const LOWEST_INSTALL_VERSION = 1;
 
@@ -15,11 +16,15 @@ export type InstallManifestReading =
   | { verdict: 'readable'; installVersion: number; agentHost: string | null }
   | { verdict: 'absent' }
   | { verdict: 'directory' }
-  | { verdict: 'unreadable'; reason: string };
+  | { verdict: 'unreadable'; problem: InstallManifestProblem };
 
-function installVersionProblemOf(installVersion: unknown): string {
-  const valueAsWritten = installVersion === undefined ? 'missing' : JSON.stringify(installVersion);
-  return `installVersion is ${valueAsWritten}, and it has to be a whole number of at least ${LOWEST_INSTALL_VERSION}`;
+function installVersionProblemOf(installVersion: unknown): InstallManifestProblem {
+  return {
+    code:                 'install-version-not-a-whole-number',
+    field:                'installVersion',
+    storedValue:          installVersion === undefined ? null : JSON.stringify(installVersion),
+    lowestInstallVersion: LOWEST_INSTALL_VERSION,
+  };
 }
 
 /** Rename replaces any file or link at the manifest's path but fails on a directory, which `update` therefore cannot repair. */
@@ -35,7 +40,7 @@ export class InstallManifestIngestion {
   constructor(private readonly manifestFilePath: string) {}
 
   /**
-   * Never throws: an unreadable manifest comes back as a verdict whose reason names the offending field. A file that exists but cannot be
+   * Never throws: an unreadable manifest comes back as a verdict whose problem names the offending field. A file that exists but cannot be
    * read is `unreadable`, and a directory at its path is `directory`, never `absent`, because `absent` is the answer a tracker from before
    * the manifest gives.
    */
@@ -45,12 +50,12 @@ export class InstallManifestIngestion {
     if (storedText.verdict !== 'readable') return storedText;
 
     const parsedJson = StoredValueUtil.parsedJsonOf(storedText.text);
-    if (parsedJson.verdict === 'unparseable') return { verdict: 'unreadable', reason: parsedJson.problem };
+    if (parsedJson.verdict === 'unparseable') return { verdict: 'unreadable', problem: parsedJson.problem };
     const parsed = parsedJson.value;
-    if (!JsonRecordUtil.valueIsAPlainObject(parsed)) return { verdict: 'unreadable', reason: 'it is not a JSON object' };
+    if (!JsonRecordUtil.valueIsAPlainObject(parsed)) return { verdict: 'unreadable', problem: { code: 'not-a-json-object' } };
 
     const installVersion = Object.hasOwn(parsed, 'installVersion') ? parsed['installVersion'] : undefined;
-    if (!StoredValueUtil.wholeNumberIsAtLeast(installVersion, LOWEST_INSTALL_VERSION)) return { verdict: 'unreadable', reason: installVersionProblemOf(installVersion) };
+    if (!StoredValueUtil.wholeNumberIsAtLeast(installVersion, LOWEST_INSTALL_VERSION)) return { verdict: 'unreadable', problem: installVersionProblemOf(installVersion) };
     const agentHost = Object.hasOwn(parsed, 'agentHost') ? parsed['agentHost'] : null;
     return { verdict: 'readable', installVersion, agentHost: typeof agentHost === 'string' ? agentHost : null };
   }

@@ -5,10 +5,10 @@ import type { HephaestusFacts, UsageFacts } from '../../../src/adapters/@types/B
 import { UsageMarkerFile }                  from '../../../src/adapters/usage-marker/UsageMarkerFile.ts';
 import { UsageWindowsFile }                 from '../../../src/adapters/usage-marker/UsageWindowsFile.ts';
 import { LogUtil }                          from '../../../src/adapters/utils/LogUtil.ts';
+import type { LogRecord }                   from '../../../src/domain/tracker-model/@types/LogRecord.ts';
+import type { Board }                       from '../../../src/domain/tracker-model/Board.ts';
 import { GitProcess }                       from '../../../src/lib/git/GitProcess.ts';
 import { predictMerges }                    from '../../../src/lib/git/MergeTree.ts';
-import type { LogRecord }                   from '../../../src/lib/tracker-model/@types/LogRecord.ts';
-import type { Board }                       from '../../../src/lib/tracker-model/Board.ts';
 import { AgentFactsReading }                from '../../../src/services/hephaestus/AgentFactsReading.ts';
 import type { AgentProgramChecks }          from '../../../src/services/hephaestus/AgentProgramChecks.ts';
 import type { BoardChildren }               from '../../../src/services/hephaestus/BoardChildren.ts';

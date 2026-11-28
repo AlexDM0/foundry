@@ -5,7 +5,7 @@
  */
 import { afterEach, expect, test } from 'bun:test';
 
-import { INTERRUPTED_MERGE_HOLD } from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
+import { INTERRUPTED_MERGE_HOLD } from '../../domain/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
 import {
   ancestryAsked,
   commitResolved,

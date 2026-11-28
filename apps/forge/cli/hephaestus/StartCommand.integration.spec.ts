@@ -23,9 +23,9 @@ import {
 } from 'bun:test';
 
 import { HEPHAESTUS_LOCK_FORMAT_VERSION }                 from '../../src/adapters/hephaestus-lock/HephaestusLockIngestion.ts';
+import { childFilesOf, talosRecordPathOf }                from '../../src/domain/talos/TalosFiles.ts';
+import { type TalosRecord, talosRecordOf }                from '../../src/domain/talos/TalosRecord.ts';
 import { processIsGone }                                  from '../../src/lib/process-identity/ProcessIdentity.ts';
-import { childFilesOf, talosRecordPathOf }                from '../../src/lib/talos/TalosFiles.ts';
-import { type TalosRecord, talosRecordOf }                from '../../src/lib/talos/TalosRecord.ts';
 import { CodeVersion }                                    from '../../src/services/hephaestus/CodeVersion.ts';
 import { workspacePathsFor }                              from '../../src/services/tracker/Workspace.ts';
 import { fakeAgentVariableOf }                            from '../../src/shared/Environment.ts';

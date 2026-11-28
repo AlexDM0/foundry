@@ -2,24 +2,22 @@
  * The checks every stored format's validation shares: a stored text parsed as JSON, whether a parsed value is a whole number, and whether it
  * is a list of the pictures User sent.
  */
-import { JsonRecordUtil }     from '../../lib/json-record/JsonRecordUtil.ts';
-import { PICTURE_ID_PATTERN } from '../../lib/tracker-model/constants/PictureIdPattern.ts';
+import { PICTURE_ID_PATTERN }     from '../../domain/tracker-model/constants/PictureIdPattern.ts';
+import { JsonRecordUtil }         from '../../lib/json-record/JsonRecordUtil.ts';
+import type { StoredFileProblem } from '../../shared/@types/StoredFileProblem.ts';
 
 export type ParsedJson =
   | { verdict: 'parsed'; value: unknown }
-  | { verdict: 'unparseable'; problem: string };
+  | { verdict: 'unparseable'; problem: StoredFileProblem<'not-json'> & { readonly parserError: string } };
 
 const BYTE_ORDER_MARK = '\uFEFF';
 
-/**
- * The problem is worded as the reason an ingestion reports, so a caller that names a file or a line only prefixes it. A leading byte order
- * mark is skipped, since `JSON.parse` refuses it.
- */
+/** The problem carries the parser's own message. A leading byte order mark is skipped, since `JSON.parse` refuses it. */
 function parsedJsonOf(text: string): ParsedJson {
   try {
     return { verdict: 'parsed', value: JSON.parse(text.startsWith(BYTE_ORDER_MARK) ? text.slice(BYTE_ORDER_MARK.length) : text) };
   } catch (error) {
-    return { verdict: 'unparseable', problem: `it is not valid JSON (${error instanceof Error ? error.message : 'unparseable'})` };
+    return { verdict: 'unparseable', problem: { code: 'not-json', parserError: error instanceof Error ? error.message : 'unparseable' } };
   }
 }
 

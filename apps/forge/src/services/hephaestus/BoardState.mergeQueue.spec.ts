@@ -4,7 +4,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { MergeTargetOf }                        from '../../lib/tracker-model/AirlockClaims.ts';
+import type { MergeTargetOf }                        from '../../domain/tracker-model/AirlockClaims.ts';
 import { boardFixture, ticketFixture }               from '../../testing/BoardFixtures.ts';
 import { EXAMPLE_GREEN_TREE, queueOnCurrentGreen }   from '../../testing/GreenQueue.ts';
 import { BoardStateAssembly, type MergeForecasting } from './BoardState.ts';

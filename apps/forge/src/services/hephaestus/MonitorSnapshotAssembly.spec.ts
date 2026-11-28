@@ -8,10 +8,10 @@ import { join }                   from 'node:path';
 import { describe, expect, test } from 'bun:test';
 
 import type { JobLiveFactsWithSilence, JobWithLiveFacts }                                   from '../../adapters/@types/BoardStateParts.ts';
-import type { LogRecord }                                                                   from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Pipeline }                                                                    from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { TicketStage }                                                                 from '../../lib/tracker-model/@types/Task.ts';
-import type { Ticket }                                                                      from '../../lib/tracker-model/@types/Ticket.ts';
+import type { LogRecord }                                                                   from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { Pipeline }                                                                    from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { TicketStage }                                                                 from '../../domain/tracker-model/@types/Task.ts';
+import type { Ticket }                                                                      from '../../domain/tracker-model/@types/Ticket.ts';
 import type { MonitorSnapshot }                                                             from '../../shared/monitor/@types/MonitorSnapshot.ts';
 import type { BoardState }                                                                  from './BoardState.ts';
 import { MonitorSnapshotAssembly, type MonitorHephaestusFacts, type MonitorSnapshotSource } from './MonitorSnapshotAssembly.ts';

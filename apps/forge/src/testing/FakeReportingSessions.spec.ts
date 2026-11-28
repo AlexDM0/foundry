@@ -44,20 +44,20 @@ const STAGE_FOLDERS_OF_A_WIDE_WHITELIST = [`${WORKTREE}/apps/shop`, `${WORKTREE}
 
 function requestOf(reportSchema: JsonSchema | null, overrides: Partial<AgentLaunchRequest> = {}): AgentLaunchRequest {
   return {
-    programPath:       '/usr/local/bin/bun',
-    sessionId:         'fake-tracker-J3',
-    resume:            false,
-    workingDirectory:  WORKTREE,
-    homeDirectory:     '/scratch/home',
-    firstMessage:      TICKET_MESSAGE,
-    roleBrief:         '',
-    model:             'opus',
-    effort:            'medium',
-    environment:       { [JOB_ID_VARIABLE]: 'J3' },
-    jobFilesDirectory: '/scratch/example-agency/.forge/jobs/J3',
+    programPath:          '/usr/local/bin/bun',
+    sessionId:            'fake-tracker-J3',
+    resume:               false,
+    workingDirectory:     WORKTREE,
+    homeDirectory:        '/scratch/home',
+    firstMessage:         TICKET_MESSAGE,
+    roleBrief:            '',
+    model:                'opus',
+    effort:               'medium',
+    environment:          { [JOB_ID_VARIABLE]: 'J3' },
+    launchFilesDirectory: '/scratch/example-agency/.forge/jobs/J3',
     reportSchema,
-    confinement:       'confined',
-    profile:           {
+    confinement:          'confined',
+    profile:              {
       writableRoots:          [],
       deniedWritableRoots:    [],
       deniedReadableRoots:    [],

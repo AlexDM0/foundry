@@ -2,7 +2,7 @@
  * The tracker as the current progress.json format stores it, for the progress.json adapter specs. Test-only: nothing that ships may import
  * `src/adapters/progress/testing/`.
  */
-import type { TrackerProgress }    from '../../../lib/tracker-model/@types/TrackerProgress.ts';
+import type { TrackerProgress }    from '../../../domain/tracker-model/@types/TrackerProgress.ts';
 import { emptyProgress }           from '../../../testing/ProgressFixtures.ts';
 import type { StoredProgressFile } from '../@types/StoredProgressFile.ts';
 

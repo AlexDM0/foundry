@@ -4,10 +4,10 @@
  */
 import { describe, expect, test } from 'bun:test';
 
+import type { Pipeline }               from '../../domain/tracker-model/@types/Pipeline.ts';
 import type { ExecutableResolver }     from '../../lib/executable-resolver/ExecutableResolver.ts';
 import type { ToolSearch }             from '../../lib/program-folders/utils/ProgramSearchUtil.ts';
 import { createPosixShellLine }        from '../../lib/shell-line/PosixShellLine.ts';
-import type { Pipeline }               from '../../lib/tracker-model/@types/Pipeline.ts';
 import { AgentTools, type ToolPlaces } from './AgentTools.ts';
 
 const SHELL_LINE = createPosixShellLine({ userShell: () => '/bin/sh' });
@@ -21,8 +21,8 @@ const FOLDERS = searchIn(['/home/example/.bun/bin', '/usr/bin']);
 const PROGRAMS: ReadonlySet<string> = new Set(['/home/example/.bun/bin/bun', '/usr/bin/git', '/usr/bin/make', '/opt/example/bin/gh']);
 
 const RESOLVER: ExecutableResolver = {
-  absolutePathOf: () => ({ verdict: 'refused', cause: 'not-on-search-path', reason: 'example' }),
-  programAt:      (path) => (PROGRAMS.has(path) ? { verdict: 'found', path } : { verdict: 'refused', cause: 'not-there', reason: 'example' }),
+  absolutePathOf: () => ({ verdict: 'refused', cause: 'not-on-search-path', name: 'example' }),
+  programAt:      (path) => (PROGRAMS.has(path) ? { verdict: 'found', path } : { verdict: 'refused', cause: 'not-there', path }),
 };
 
 const PLACES: ToolPlaces = {
@@ -111,14 +111,16 @@ describe('launchToolsOf', () => {
     const resolver: ExecutableResolver = {
       ...RESOLVER,
       programAt: (path, forbiddenRoots) => (forbiddenRoots.some((root) => path.startsWith(`${root}/`))
-        ? { verdict: 'refused', cause: 'inside-forbidden-root', reason: `${path} sits inside ${FORBIDDEN_ROOT}` }
+        ? {
+          verdict: 'refused', cause: 'inside-forbidden-root', path, forbiddenRoot: FORBIDDEN_ROOT
+        }
         : path === plantedPath ? { verdict: 'found', path } : RESOLVER.programAt(path, [])),
     };
     const places: ToolPlaces = { ...PLACES, resolver, forbiddenRoots: [FORBIDDEN_ROOT] };
     const planted: Pipeline = { ...PIPELINE, tools: [{ name: 'git', path: '/usr/bin/git' }, { name: 'bun', path: plantedPath }] };
     expect(AgentTools.launchToolsOf(planted, places)).toEqual({
       tools:        [{ name: 'git', path: '/usr/bin/git' }],
-      refusedTools: [{ name: 'bun', path: plantedPath, reason: `${plantedPath} sits inside ${FORBIDDEN_ROOT}` }],
+      refusedTools: [{ name: 'bun', path: plantedPath, forbiddenRoot: FORBIDDEN_ROOT }],
     });
     expect(AgentTools.foundPathOf('bun', searchIn([`${FORBIDDEN_ROOT}/bin`]), resolver, [FORBIDDEN_ROOT])).toBeNull();
   });

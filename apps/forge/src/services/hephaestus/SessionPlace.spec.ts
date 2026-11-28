@@ -13,7 +13,7 @@ import {
   test
 } from 'bun:test';
 
-import type { PipelineGate }                              from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { PipelineGate }                              from '../../domain/tracker-model/@types/Pipeline.ts';
 import { WorktreesFolder }                                from '../../shared/WorktreesFolder.ts';
 import { PlantedChild }                                   from '../../testing/PlantedChild.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';

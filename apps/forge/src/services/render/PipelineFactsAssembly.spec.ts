@@ -6,27 +6,27 @@
 import { describe, expect, test } from 'bun:test';
 
 import type { PipelineReading }                     from '../../adapters/pipeline/PipelineFile.ts';
-import type { Draft }                               from '../../lib/tracker-model/@types/Draft.ts';
-import type { GatePhase }                           from '../../lib/tracker-model/@types/GatePhase.ts';
-import type { GateProfileRun, GateProfilesReading } from '../../lib/tracker-model/@types/GateProfile.ts';
+import type { Draft }                               from '../../domain/tracker-model/@types/Draft.ts';
+import type { GatePhase }                           from '../../domain/tracker-model/@types/GatePhase.ts';
+import type { GateProfileRun, GateProfilesReading } from '../../domain/tracker-model/@types/GateProfile.ts';
 import type {
   Airlock,
   GateCacheReport,
   GateRunCacheReports,
   Job
-} from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord, LogRecordFieldsOf }               from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { InstructionEntry, Pipeline, PipelineEntity } from '../../lib/tracker-model/@types/Pipeline.ts';
+} from '../../domain/tracker-model/@types/Job.ts';
+import type { LogRecord, LogRecordFieldsOf }               from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { InstructionEntry, Pipeline, PipelineEntity } from '../../domain/tracker-model/@types/Pipeline.ts';
 import type {
   MainConstitutionReading,
   PipelineSetup,
   PipelineSetupReading,
   SetupQuestion
-} from '../../lib/tracker-model/@types/PipelineSetup.ts';
-import type { Task }                  from '../../lib/tracker-model/@types/Task.ts';
-import type { Ticket }                from '../../lib/tracker-model/@types/Ticket.ts';
-import { Board }                      from '../../lib/tracker-model/Board.ts';
-import { createLogger }               from '../../lib/tracker-model/Logger.ts';
+} from '../../domain/tracker-model/@types/PipelineSetup.ts';
+import type { Task }                  from '../../domain/tracker-model/@types/Task.ts';
+import type { Ticket }                from '../../domain/tracker-model/@types/Ticket.ts';
+import { Board }                      from '../../domain/tracker-model/Board.ts';
+import { createLogger }               from '../../domain/tracker-model/Logger.ts';
 import { taskFixture, ticketFixture } from '../../testing/BoardFixtures.ts';
 import {
   INSTRUCTION_PREVIEW_LIMIT_CHARACTERS,
@@ -206,8 +206,8 @@ describe('the stored pipeline', () => {
     expect(pipelineFactsOf(inputOf()).pipeline).toMatchObject({ readingVerdict: 'readable', application: null });
     const unreadable = (pipelineReading: PipelineReading) => pipelineFactsOf(inputOf({ pipelineReading }));
     expect(unreadable({ verdict: 'older' }).pipeline).toEqual({ readingVerdict: 'older', fileText: '{"version": 2}\n' });
-    const malformed = unreadable({ verdict: 'malformed', reason: 'Example reason' });
-    expect(malformed.pipeline).toEqual({ readingVerdict: 'malformed', reason: 'Example reason', fileText: '{"version": 2}\n' });
+    const malformed = unreadable({ verdict: 'malformed', problem: { code: 'not-a-list', field: 'gates' } });
+    expect(malformed.pipeline).toEqual({ readingVerdict: 'malformed', problem: { code: 'not-a-list', field: 'gates' }, fileText: '{"version": 2}\n' });
     expect(unreadable({ verdict: 'absent' }).pipeline).toEqual({ readingVerdict: 'absent' });
     expect(unreadable({ verdict: 'absent' }).pipelineFlow).toBeNull();
   });
@@ -578,7 +578,7 @@ describe('the choices, profile runs and history', () => {
     expect(pipelineFactsOf(inputOf({ gateProfilesReading })).profileRuns).toEqual([{
       profileRunId: 'P1', gateName: 'test', phase: 'build', state: 'passed', elapsedMilliseconds: 1200, cacheReport: null
     }]);
-    expect(pipelineFactsOf(inputOf({ gateProfilesReading: { verdict: 'malformed', reason: 'Example' } })).profileRuns).toEqual([]);
+    expect(pipelineFactsOf(inputOf({ gateProfilesReading: { verdict: 'malformed', problem: { code: 'missing', field: 'runs' } } })).profileRuns).toEqual([]);
   });
 
   describe('the gates\' cache marks', () => {

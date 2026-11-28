@@ -31,7 +31,7 @@ import { GitProcess }               from './GitProcess.ts';
 
 const {
   directoryExists,
-  failureReasonOf,
+  failureOf,
   resolvedCommitOf,
   run,
   succeeded,
@@ -197,14 +197,16 @@ describeWhenGitIsPresent('a git run', () => {
   });
 });
 
-describe('the reason a failed run gives', () => {
+describe('the failure a failed run gives', () => {
   test('a run that could not be started names the command and says so', () => {
-    expect(failureReasonOf(null, ['merge', '--ff-only', 'abc'])).toBe('git merge --ff-only abc could not be started.');
+    expect(failureOf(null, ['merge', '--ff-only', 'abc'])).toEqual({ code: 'git-not-started', gitArguments: ['merge', '--ff-only', 'abc'] });
   });
 
   test('a run that failed names the command, its exit code and its standard error', () => {
     const finishedRun = { exitCode: 128, standardOutput: '', standardError: 'fatal: Needed a single revision' };
-    expect(failureReasonOf(finishedRun, ['rev-parse', 'HEAD'])).toBe('git rev-parse HEAD exited with 128: fatal: Needed a single revision');
+    expect(failureOf(finishedRun, ['rev-parse', 'HEAD'])).toEqual({
+      code: 'git-exited', gitArguments: ['rev-parse', 'HEAD'], exitCode: 128, gitMessage: 'fatal: Needed a single revision'
+    });
   });
 });
 

@@ -11,7 +11,7 @@ import {
   expect,
   test
 }                                       from 'bun:test';
-import type { TrackerProgress }                   from '../../../src/lib/tracker-model/@types/TrackerProgress.ts';
+import type { TrackerProgress }                   from '../../../src/domain/tracker-model/@types/TrackerProgress.ts';
 import { PRODUCT_NAMES }                          from '../../../src/shared/constants/ProductNames.ts';
 import { useRecordedGit }                         from '../../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../../../src/testing/ScratchWorkspace.ts';

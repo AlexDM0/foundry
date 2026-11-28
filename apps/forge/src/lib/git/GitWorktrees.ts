@@ -6,7 +6,8 @@
 import { existsSync, realpathSync, rmSync } from 'node:fs';
 import { dirname, join, resolve }           from 'node:path';
 
-import { GitProcess } from './GitProcess.ts';
+import type { GitRunFailure, WorktreeRemovalProblem } from './@types/GitProblem.ts';
+import { GitProcess }                                 from './GitProcess.ts';
 
 export const WORKTREE_REMOVAL_TRIES = 5;
 
@@ -21,7 +22,7 @@ export interface WorktreeRemovalRequest {
   force:               WorktreeRemovalForce;
 }
 
-export type WorktreeRemovalVerdict = { verdict: 'removed' } | { verdict: 'left'; reason: string };
+export type WorktreeRemovalVerdict = { verdict: 'removed' } | { verdict: 'left'; problem: WorktreeRemovalProblem };
 
 /** `checkout` is a worktree of the repository; `leftover` is a folder on disk that is not one, and is never reused. */
 export type WorktreeState = 'checkout' | 'leftover' | 'absent';
@@ -85,18 +86,19 @@ function worktreeIsCheckoutOf(repositoryDirectory: string, worktreePath: string)
  * git declined every try, so the stale records are pruned, and only a folder that git reads as no repository at all is deleted by hand. A
  * worktree git declined for files it would lose still has its `.git`, so it stays.
  */
-function deleteWhatGitNoLongerKnows(request: WorktreeRemovalRequest, primitives: WorktreeRemovalPrimitives, reason: string): WorktreeRemovalVerdict {
+function deleteWhatGitNoLongerKnows(request: WorktreeRemovalRequest, primitives: WorktreeRemovalPrimitives, gitFailure: GitRunFailure): WorktreeRemovalVerdict {
   const prune = primitives.runGit(request.repositoryDirectory, ['worktree', 'prune']);
   if (!existsSync(request.worktreePath)) return { verdict: 'removed' };
   // A git that did not run, or a `.git` git cannot read, proves nothing gone: the folder may still hold work.
-  if (!GitProcess.succeeded(prune) || existsSync(join(request.worktreePath, '.git'))) return { verdict: 'left', reason };
-  if (repositoryReadingOf(request.worktreePath, primitives.runGit) !== null) return { verdict: 'left', reason };
+  if (!GitProcess.succeeded(prune) || existsSync(join(request.worktreePath, '.git'))) return { verdict: 'left', problem: gitFailure };
+  if (repositoryReadingOf(request.worktreePath, primitives.runGit) !== null) return { verdict: 'left', problem: gitFailure };
   try {
     primitives.deleteFolder(request.worktreePath);
   } catch {
     // Judged below: the folder that is still there is the leftover.
   }
-  return existsSync(request.worktreePath) ? { verdict: 'left', reason: `${reason} The folder ${request.worktreePath} could not be deleted.` } : { verdict: 'removed' };
+  if (!existsSync(request.worktreePath)) return { verdict: 'removed' };
+  return { verdict: 'left', problem: { code: 'worktree-folder-not-deleted', worktreePath: request.worktreePath, gitFailure } };
 }
 
 function removeWithRetry(request: WorktreeRemovalRequest, primitives: WorktreeRemovalPrimitives = REAL_WORKTREE_REMOVAL_PRIMITIVES): WorktreeRemovalVerdict {
@@ -105,15 +107,15 @@ function removeWithRetry(request: WorktreeRemovalRequest, primitives: WorktreeRe
     return { verdict: 'removed' };
   }
   const removalArguments = ['worktree', 'remove', ...(request.force === 'force' ? ['--force'] : []), request.worktreePath];
-  let reason = '';
+  let gitFailure: GitRunFailure = GitProcess.failureOf(null, removalArguments);
   for (let attempt = 1; attempt <= WORKTREE_REMOVAL_TRIES; attempt += 1) {
     if (attempt > 1) primitives.pause(WORKTREE_REMOVAL_STEP_MILLISECONDS);
     const run = primitives.runGit(request.repositoryDirectory, removalArguments);
     if (GitProcess.succeeded(run) && !existsSync(request.worktreePath)) return { verdict: 'removed' };
-    reason = GitProcess.failureReasonOf(run, removalArguments);
+    gitFailure = GitProcess.failureOf(run, removalArguments);
     if (!existsSync(request.worktreePath)) break;
   }
-  return deleteWhatGitNoLongerKnows(request, primitives, reason);
+  return deleteWhatGitNoLongerKnows(request, primitives, gitFailure);
 }
 
 export const GitWorktrees = Object.freeze({

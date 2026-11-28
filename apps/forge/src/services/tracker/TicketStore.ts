@@ -3,19 +3,20 @@
  * file is a listing entry and a `null`, so one broken file cannot take down `status` or `render`.
  */
 
-import { basename, join }                                          from 'node:path';
-import { ProgressFileIngestion }                                   from '../../adapters/progress/ProgressFileIngestion.ts';
-import { CommittedContentFile }                                    from '../../adapters/tickets/CommittedContentFile.ts';
-import { TicketFileIngestion }                                     from '../../adapters/tickets/TicketFileIngestion.ts';
-import type { LogRecord }                                          from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Ticket, TicketFrontmatter }                          from '../../lib/tracker-model/@types/Ticket.ts';
-import { FIRST_TICKET_NUMBER }                                     from '../../lib/tracker-model/constants/TicketFields.ts';
-import { TicketIdUtil }                                            from '../../lib/tracker-model/utils/TicketIdUtil.ts';
-import type { CreateTicketInput, TicketListing, UnreadableRecord } from './@types/BoardRecords.ts';
-import { localStoreLayoutOf }                                      from './LocalStoreLayout.ts';
-import { slugFromTitle }                                           from './SlugFromTitle.ts';
-import { storeFolderFileNamesIn }                                  from './StoreFolderListing.ts';
-import type { Workspace }                                          from './Workspace.ts';
+import { basename, join }                                                from 'node:path';
+import { ProgressFileIngestion }                                         from '../../adapters/progress/ProgressFileIngestion.ts';
+import { CommittedContentFile }                                          from '../../adapters/tickets/CommittedContentFile.ts';
+import { TicketFileIngestion }                                           from '../../adapters/tickets/TicketFileIngestion.ts';
+import type { LogRecord }                                                from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { Ticket, TicketFrontmatter }                                from '../../domain/tracker-model/@types/Ticket.ts';
+import { FIRST_TICKET_NUMBER }                                           from '../../domain/tracker-model/constants/TicketFields.ts';
+import { TicketIdUtil }                                                  from '../../domain/tracker-model/utils/TicketIdUtil.ts';
+import type { UnreadableTicketProblem }                                  from '../../shared/@types/UnreadableTicketProblem.ts';
+import type { CreateTicketInput, TicketListing, UnreadableTicketRecord } from './@types/BoardRecords.ts';
+import { localStoreLayoutOf }                                            from './LocalStoreLayout.ts';
+import { slugFromTitle }                                                 from './SlugFromTitle.ts';
+import { storeFolderFileNamesIn }                                        from './StoreFolderListing.ts';
+import type { Workspace }                                                from './Workspace.ts';
 
 /**
  * What a hold has spent beyond the disk: the Board's tickets, a filed one not yet written among them, and every ticket its log names as
@@ -43,12 +44,12 @@ const FILE_NAME_IDENTIFIER_MATCH = /^(\d+)(?:-|\.md$)/;
 
 /**
  * A ticket is known by its frontmatter `id`. A file whose name carries another number, and every file holding an id another
- * also holds, is listed as unreadable with its reason, since which of them is the ticket cannot be judged. A ticket holding a content
+ * also holds, is listed as unreadable with its problem, since which of them is the ticket cannot be judged. A ticket holding a content
  * hash reads with the title and body kept under it. Ordered by id numerically.
  */
 export function listTickets(workspace: Workspace): LocalTicketListing {
   const parsedFiles: ParsedTicketFile[] = [];
-  const unreadable: UnreadableRecord[]  = [];
+  const unreadable: UnreadableTicketRecord[] = [];
 
   for (const fileName of ticketFileNamesIn(workspace)) {
     const filePath = join(localStoreLayoutOf(workspace).ticketRecordsFolder, fileName);
@@ -60,7 +61,7 @@ export function listTickets(workspace: Workspace): LocalTicketListing {
       });
     } else {
       unreadable.push({
-        record: 'ticket', key: identifierInFileName(fileName), location: filePath, reason: reading.reason, line: reading.line
+        record: 'ticket', key: identifierInFileName(fileName), location: filePath, problem: reading.problem, line: reading.line
       });
     }
   }
@@ -71,7 +72,9 @@ export function listTickets(workspace: Workspace): LocalTicketListing {
     const { id }           = parsedFile.ticket.frontmatter;
 
     if (identifierInName !== null && identifierInName !== id) {
-      unreadable.push(unreadableEntryOf(parsedFile, `the file name says #${identifierInName} but its \`id\` is ${id}`));
+      unreadable.push(unreadableEntryOf(parsedFile, {
+        code: 'file-name-names-another-id', field: 'id', idInFileName: identifierInName, storedId: id
+      }));
     } else {
       namedConsistently.push(parsedFile);
     }
@@ -82,8 +85,10 @@ export function listTickets(workspace: Workspace): LocalTicketListing {
     const otherHolders = namedConsistently.filter((other) => other !== parsedFile && other.ticket.frontmatter.id === parsedFile.ticket.frontmatter.id);
 
     if (otherHolders.length > 0) {
-      const otherFileNames = otherHolders.map((other) => other.fileName).join(', ');
-      unreadable.push(unreadableEntryOf(parsedFile, `ticket #${parsedFile.ticket.frontmatter.id} is also held by ${otherFileNames}`));
+      const otherFileNames = otherHolders.map((other) => other.fileName);
+      unreadable.push(unreadableEntryOf(parsedFile, {
+        code: 'id-held-twice', field: 'id', storedId: parsedFile.ticket.frontmatter.id, otherFileNames
+      }));
     } else {
       listedFiles.push(parsedFile);
     }
@@ -120,7 +125,7 @@ export function everyCommittedContentFilePathIn(workspace: Workspace): string[] 
 
 interface KeptContentReading {
   readableFiles:   ParsedTicketFile[];
-  unreadable:      UnreadableRecord[];
+  unreadable:      UnreadableTicketRecord[];
   contentRestored: string[];
 }
 
@@ -140,7 +145,7 @@ function withKeptContent(workspace: Workspace, listedFiles: readonly ParsedTicke
     const keptLocation = committedContentLocationOf(workspace, contentHash);
     const kept         = CommittedContentFile.read(keptLocation, contentHash);
     if (kept.verdict === 'unreadable') {
-      reading.unreadable.push({ ...unreadableEntryOf(listedFile, kept.reason), location: keptLocation, line: 0 });
+      reading.unreadable.push({ ...unreadableEntryOf(listedFile, { code: 'committed-content-missing', contentProblem: kept.problem }), location: keptLocation, line: 0 });
       continue;
     }
     if (ticket.frontmatter.title !== kept.content.title || ticket.body !== kept.content.body) {
@@ -235,12 +240,12 @@ interface ParsedTicketFile {
 }
 
 /** Keyed as a reference finds it: by the file name's number, or by the `id` it holds when the name carries none. */
-function unreadableEntryOf(parsedFile: ParsedTicketFile, reason: string): UnreadableRecord {
+function unreadableEntryOf(parsedFile: ParsedTicketFile, problem: UnreadableTicketProblem): UnreadableTicketRecord {
   return {
     record:   'ticket',
     key:      identifierInFileName(parsedFile.fileName) ?? parsedFile.ticket.frontmatter.id,
     location: parsedFile.location,
-    reason,
+    problem,
     line:     parsedFile.identifierLine,
   };
 }

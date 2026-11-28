@@ -6,6 +6,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import type { HeartbeatRecord }                             from '../../adapters/heartbeat/@types/HeartbeatRecord.ts';
+import type { PresenceProblem }                             from '../../adapters/presence/@types/PresenceProblem.ts';
 import type { PresenceEnding, PresenceRecord }              from '../../adapters/presence/@types/PresenceRecord.ts';
 import { LocalTimeUtil }                                    from '../../lib/local-time/LocalTimeUtil.ts';
 import { UNREADABLE_BOOT_IDENTITY }                         from '../../lib/process-identity/ProcessIdentity.ts';
@@ -39,7 +40,7 @@ function presenceRecordOf(ending: PresenceEnding | null, bootIdentity = CURRENT_
   };
 }
 
-function presenceReadOf(ending: PresenceEnding | null, bootIdentity = CURRENT_BOOT): PresenceFileReading<PresenceRecord> {
+function presenceReadOf(ending: PresenceEnding | null, bootIdentity = CURRENT_BOOT): PresenceFileReading<PresenceRecord, PresenceProblem> {
   return { verdict: 'read', record: presenceRecordOf(ending, bootIdentity) };
 }
 
@@ -220,7 +221,7 @@ describe('StartClassification.classify', () => {
   });
 
   test('an unreadable presence record reads as a crash', () => {
-    const verdict = StartClassification.classify(evidenceWith({ presence: { verdict: 'unreadable', reason: 'example damage' }, newestLock: { verdict: 'none' } }));
+    const verdict = StartClassification.classify(evidenceWith({ presence: { verdict: 'unreadable', problem: { code: 'not-a-json-object' } }, newestLock: { verdict: 'none' } }));
     expect(verdict.kind).toBe('crashed');
     expect(verdict.crashedComponent).toBe('hephaestus');
     expect(verdict.evidence.presence).toBe('unreadable');

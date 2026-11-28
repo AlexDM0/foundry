@@ -1,21 +1,20 @@
 import { existsSync, readFileSync } from 'node:fs';
 
-import { utf8TextOf } from './Utf8Text.ts';
+import type { BaseStoredFileProblem } from '../shared/@types/StoredFileProblem.ts';
+import { utf8TextOf }                 from './Utf8Text.ts';
 
 export type StoredFileText =
   | { verdict: 'readable'; text: string }
   | { verdict: 'absent' }
-  | { verdict: 'unreadable'; reason: string };
+  | { verdict: 'unreadable'; problem: BaseStoredFileProblem };
 
 const BYTE_ORDER_MARK = '\uFEFF';
 
-/** The reason of a file whose bytes are not UTF-8, which never heals, unlike a file that cannot be read now. */
-export const NOT_UTF8_TEXT_REASON = 'it is not UTF-8 text';
-
 /**
- * Never throws. A file that exists but cannot be read, or is not UTF-8, is `unreadable`, never `absent`, which would invite the caller to
- * treat a good file as missing; its reason is worded as an ingestion reports it. A leading byte order mark, which Windows editors write, is
- * not part of the text, unless `keepsByteOrderMark` says the file holds a text byte for byte, as a file named by the hash of its text does.
+ * Never throws. A file that exists but cannot be read is `unreadable`, never `absent`, because `absent` invites the caller to treat a good
+ * file as missing, and so is one that is not UTF-8, which never heals, unlike a file that cannot be read now. A leading byte order mark,
+ * which Windows editors write, is not part of the text, unless `keepsByteOrderMark` says the file holds a text byte for byte, as a file
+ * named by the hash of its text does.
  */
 export function storedFileTextOf(filePath: string, keepsByteOrderMark = false): StoredFileText {
   let bytes: Uint8Array;
@@ -23,9 +22,9 @@ export function storedFileTextOf(filePath: string, keepsByteOrderMark = false): 
     bytes = readFileSync(filePath);
   } catch (error) {
     if (!existsSync(filePath)) return { verdict: 'absent' };
-    return { verdict: 'unreadable', reason: `it could not be read (${error instanceof Error ? error.message : 'unknown error'})` };
+    return { verdict: 'unreadable', problem: { code: 'bytes-unreadable', systemError: error instanceof Error ? error.message : 'unknown error' } };
   }
   const text = utf8TextOf(bytes);
-  if (text === null) return { verdict: 'unreadable', reason: NOT_UTF8_TEXT_REASON };
+  if (text === null) return { verdict: 'unreadable', problem: { code: 'not-utf8-text' } };
   return { verdict: 'readable', text: !keepsByteOrderMark && text.startsWith(BYTE_ORDER_MARK) ? text.slice(BYTE_ORDER_MARK.length) : text };
 }

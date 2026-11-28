@@ -1,12 +1,13 @@
-/** One ticket file read into the model: a file that cannot be read or parsed is a `malformed` verdict with its reason and line, never a throw. */
-import { readFileSync }       from 'node:fs';
-import type { Ticket }        from '../../lib/tracker-model/@types/Ticket.ts';
-import { utf8TextOf }         from '../Utf8Text.ts';
-import { TicketDocumentUtil } from './utils/TicketDocumentUtil.ts';
+/** One ticket file read into the model: a file that cannot be read or parsed is a `malformed` verdict with its problem and line, never a throw. */
+import { readFileSync }           from 'node:fs';
+import type { Ticket }            from '../../domain/tracker-model/@types/Ticket.ts';
+import type { TicketFileProblem } from '../../shared/@types/TicketFileProblem.ts';
+import { utf8TextOf }             from '../Utf8Text.ts';
+import { TicketDocumentUtil }     from './utils/TicketDocumentUtil.ts';
 
 export type TicketFileReading =
   | { verdict: 'parsed'; ticket: Ticket; identifierLine: number }
-  | { verdict: 'malformed'; reason: string; line: number };
+  | { verdict: 'malformed'; problem: TicketFileProblem; line: number };
 
 const IDENTIFIER_LINE_MATCH = /^id:/;
 
@@ -18,10 +19,10 @@ export class TicketFileIngestion {
     try {
       bytes = readFileSync(this.ticketFilePath);
     } catch (problem) {
-      return { verdict: 'malformed', reason: `the file could not be read: ${String(problem)}`, line: 0 };
+      return { verdict: 'malformed', problem: { code: 'file-unreadable', systemError: String(problem) }, line: 0 };
     }
     const text = utf8TextOf(bytes);
-    if (text === null) return { verdict: 'malformed', reason: 'the file is not UTF-8 text', line: 0 };
+    if (text === null) return { verdict: 'malformed', problem: { code: 'file-not-utf8-text' }, line: 0 };
 
     const parsed = TicketDocumentUtil.parsedTicketDocumentOf(text);
     if (parsed.verdict === 'malformed') {

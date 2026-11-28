@@ -4,7 +4,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { Job, JobKind, JobRole }  from '../../lib/tracker-model/@types/Job.ts';
+import type { Job, JobKind, JobRole }  from '../../domain/tracker-model/@types/Job.ts';
 import { ASSISTANT_HISTORY_RECORDS }   from '../../shared/constants/HephaestusLimits.ts';
 import { boardFixture, ticketFixture } from '../../testing/BoardFixtures.ts';
 import { AssistantBoot }               from './AssistantBoot.ts';

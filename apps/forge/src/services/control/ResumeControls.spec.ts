@@ -5,10 +5,10 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { InterruptionCause }                       from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }                               from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Pipeline }                                from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { Board }                                   from '../../lib/tracker-model/Board.ts';
+import type { InterruptionCause }                       from '../../domain/tracker-model/@types/Job.ts';
+import type { LogRecord }                               from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { Pipeline }                                from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { Board }                                   from '../../domain/tracker-model/Board.ts';
 import type { ResumeTarget }                            from '../../shared/@types/ControlCommand.ts';
 import { OperationRefusal }                             from '../../shared/OperationRefusal.ts';
 import { boardFixture, refusalDetailOf, ticketFixture } from '../../testing/BoardFixtures.ts';

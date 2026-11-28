@@ -4,6 +4,7 @@
  */
 import { existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { join }                               from 'node:path';
+import type { HephaestusLog }                 from '../../adapters/@types/HephaestusLogRecord.ts';
 
 import { DeliveryBaseIngestion }                                                          from '../../adapters/delivery-base/DeliveryBaseIngestion.ts';
 import { createDeliveryBaseWriter }                                                       from '../../adapters/delivery-base/DeliveryBaseWriter.ts';
@@ -11,18 +12,20 @@ import { SeenHeadIngestion }                                                    
 import { createSeenHeadWriter }                                                           from '../../adapters/seen-head/SeenHeadWriter.ts';
 import { SnapshotStartIngestion, type SnapshotStart }                                     from '../../adapters/snapshot-start/SnapshotStartIngestion.ts';
 import { createSnapshotStartWriter }                                                      from '../../adapters/snapshot-start/SnapshotStartWriter.ts';
+import type { Job }                                                                       from '../../domain/tracker-model/@types/Job.ts';
+import type { DocumentMessage, TicketDocument, TicketDocumentKind }                       from '../../domain/tracker-model/@types/TicketDocument.ts';
+import type { Board }                                                                     from '../../domain/tracker-model/Board.ts';
+import { TICKET_STATUSES_NO_AGENT_HAS_PICKED_UP }                                         from '../../domain/tracker-model/constants/Statuses.ts';
+import { DocumentAgentJobUtil }                                                           from '../../domain/tracker-model/utils/DocumentAgentJobUtil.ts';
+import { TicketDocumentVersionUtil }                                                      from '../../domain/tracker-model/utils/TicketDocumentVersionUtil.ts';
 import type { AgentAdapter }                                                              from '../../lib/agent-launch/AgentAdapter.ts';
 import type { WorkerProfile }                                                             from '../../lib/agent-launch/WorkerProfile.ts';
 import { GitProcess }                                                                     from '../../lib/git/GitProcess.ts';
 import { GitWorktrees, REAL_WORKTREE_REMOVAL_PRIMITIVES, type WorktreeRemovalPrimitives } from '../../lib/git/GitWorktrees.ts';
-import type { Job }                                                                       from '../../lib/tracker-model/@types/Job.ts';
-import type { DocumentMessage, TicketDocument, TicketDocumentKind }                       from '../../lib/tracker-model/@types/TicketDocument.ts';
-import type { Board }                                                                     from '../../lib/tracker-model/Board.ts';
-import { TICKET_STATUSES_NO_AGENT_HAS_PICKED_UP }                                         from '../../lib/tracker-model/constants/Statuses.ts';
-import { DocumentAgentJobUtil }                                                           from '../../lib/tracker-model/utils/DocumentAgentJobUtil.ts';
-import { TicketDocumentVersionUtil }                                                      from '../../lib/tracker-model/utils/TicketDocumentVersionUtil.ts';
 import type { ControlContext }                                                            from '../../shared/@types/ControlContext.ts';
-import { clearCustoms, launchSnapshotOf, type CustomsVerdict }                            from '../lifecycle/Customs.ts';
+import type { CustomsVerdict }                                                            from '../lifecycle/@types/CustomsVerdict.ts';
+import { clearCustoms }                                                                   from '../lifecycle/Customs.ts';
+import { launchSnapshotOf }                                                               from '../lifecycle/CustomsLaunchSnapshot.ts';
 import type { BoardTransaction }                                                          from '../tracker/BoardTransaction.ts';
 import { projectLocationOf }                                                              from '../tracker/ProjectLocation.ts';
 import type { BoardChildren }                                                             from './BoardChildren.ts';
@@ -285,7 +288,7 @@ function deliverNextMessage(trackerDirectory: string, board: Board, job: Readonl
 function unreadableFileHoldsDeliveryOf(board: Board, jobFolder: string, job: Readonly<Job>, at: string): boolean {
   const launch = new DeliveryBaseIngestion(join(jobFolder, LAUNCH_FILE)).read();
   if (launch.verdict === 'unreadable') {
-    UnreadableJobFileIncident.openAndRetire(board, { jobId: job.id, file: jobFileInDataFolderOf(job.id, LAUNCH_FILE), reason: launch.reason }, at);
+    UnreadableJobFileIncident.openAndRetire(board, { jobId: job.id, file: jobFileInDataFolderOf(job.id, LAUNCH_FILE), problem: launch.problem }, at);
   }
   return launch.verdict === 'unreadable' || UnreadableJobFileIncident.standsOpenFor(board, job.id);
 }
@@ -336,10 +339,10 @@ function settleEndedSessions(board: Board, trackerDirectory: string, jobIds: rea
 }
 
 /** The head's content hash the agent saw last; one that cannot be read is logged and taken as none, so the line carries the head again. */
-function seenHeadHashOf(jobFolder: string, log: (line: string) => void): string | null {
+function seenHeadHashOf(jobFolder: string, log: HephaestusLog): string | null {
   const seenHeadFilePath = join(jobFolder, SEEN_HEAD_FILE);
   const seenHead = new SeenHeadIngestion(seenHeadFilePath).read();
-  if (seenHead.verdict === 'unreadable') log(`The document agent's seen head ${seenHeadFilePath} is unreadable, so its next line carries the head again: ${seenHead.reason}`);
+  if (seenHead.verdict === 'unreadable') log({ kind: 'seen-head-unreadable', seenHeadFilePath, problem: seenHead.problem });
   return seenHead.verdict === 'readable' ? seenHead.contentHash : null;
 }
 
@@ -348,7 +351,7 @@ function seenHeadHashOf(jobFolder: string, log: (line: string) => void): string 
  * Each line rewrites the seen head, which heals one that could not be read.
  */
 async function sendDeliveries(
-  children: BoardChildren, trackerDirectory: string, board: Board, adapter: Pick<AgentAdapter, 'chatLineOf'>, log: (line: string) => void,
+  children: BoardChildren, trackerDirectory: string, board: Board, adapter: Pick<AgentAdapter, 'chatLineOf'>, log: HephaestusLog,
 ): Promise<void> {
   for (const job of board.jobs().filter((candidate) => isDocumentAgentJob(candidate) && candidate.state === 'running')) {
     const jobFolder = children.jobFolderOf(job.id);
@@ -410,7 +413,8 @@ function verifyTurnEnds(
     if (job === undefined || !isDocumentAgentJob(job)) continue;
     const snapshotStart = new SnapshotStartIngestion(join(jobFolderIn(context.workspace.trackerDirectory, job.id), SNAPSHOT_START_FILE)).read();
     if (snapshotStart.verdict === 'unreadable') {
-      UnreadableJobFileIncident.openOnce(board, { jobId: job.id, file: jobFileInDataFolderOf(job.id, SNAPSHOT_START_FILE), reason: snapshotStart.reason }, at);
+      const file = jobFileInDataFolderOf(job.id, SNAPSHOT_START_FILE);
+      UnreadableJobFileIncident.openOnce(board, { jobId: job.id, file, problem: snapshotStart.problem }, at);
       continue;
     }
     const start    = snapshotStart.verdict === 'readable' ? snapshotStart.snapshotStart : null;
@@ -451,7 +455,7 @@ function removeUnheldSnapshots(
   board: Board,
   context: Pick<SnapshotContext, 'workspace' | 'worktreesRoot'>,
   triedSnapshots: Set<string>,
-  log: (line: string) => void,
+  log: HephaestusLog,
   removalPrimitives: WorktreeRemovalPrimitives = REAL_WORKTREE_REMOVAL_PRIMITIVES,
 ): void {
   const snapshotsFolder = join(context.worktreesRoot, DOCUMENT_AGENT_SNAPSHOT_FOLDER);
@@ -467,7 +471,7 @@ function removeUnheldSnapshots(
     if (triedSnapshots.has(snapshot)) continue;
     triedSnapshots.add(snapshot);
     const removal = GitWorktrees.removeWithRetry({ repositoryDirectory: repositoryRoot, worktreePath: snapshot, force: 'force' }, removalPrimitives);
-    if (removal.verdict === 'left') log(`The document agent snapshot ${snapshot} is a leftover: ${removal.reason}`);
+    if (removal.verdict === 'left') log({ kind: 'document-agent-snapshot-left-over', snapshotPath: snapshot, problem: removal.problem });
   }
 }
 

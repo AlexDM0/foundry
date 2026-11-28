@@ -17,8 +17,8 @@ import {
   test
 } from 'bun:test';
 
-import { RepositoryLandings }      from '../../../src/lib/git/RepositoryLandings.ts';
-import type { Job }                from '../../../src/lib/tracker-model/@types/Job.ts';
+import { RepositoryLandings }      from '../../../src/adapters/repository-landings/RepositoryLandings.ts';
+import type { Job }                from '../../../src/domain/tracker-model/@types/Job.ts';
 import { localStoreLayoutOf }      from '../../../src/services/tracker/LocalStoreLayout.ts';
 import { repositoryTrackerListOf } from '../../../src/services/tracker/RepositoryTrackerList.ts';
 import { workspacePathsFor }       from '../../../src/services/tracker/Workspace.ts';

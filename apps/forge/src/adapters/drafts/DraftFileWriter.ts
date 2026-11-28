@@ -1,7 +1,7 @@
 import { mkdirSync, rmSync }   from 'node:fs';
 import { dirname }             from 'node:path';
+import type { Draft }          from '../../domain/tracker-model/@types/Draft.ts';
 import { writeFileAtomically } from '../../lib/atomic-file/AtomicFile.ts';
-import type { Draft }          from '../../lib/tracker-model/@types/Draft.ts';
 import { DraftDocumentUtil }   from './utils/DraftDocumentUtil.ts';
 
 /** Writes through `src/lib/atomic-file/AtomicFile.ts`; the filing cabinet folder is made at the first write, so a tracker without drafts has none. */

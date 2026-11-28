@@ -7,18 +7,18 @@ import { createHash }   from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';
 
-import { readCurrentBranch } from '../../lib/git/BranchIntegration.ts';
-import { GitProcess }        from '../../lib/git/GitProcess.ts';
-import type { Job }          from '../../lib/tracker-model/@types/Job.ts';
+import type { Job }        from '../../domain/tracker-model/@types/Job.ts';
 import {
   PIPELINE_AGENT_ROLES,
   type EntityKey,
   type InstructionEntry,
   type Pipeline,
   type PipelineAgentRole
-} from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { MainConstitutionReading, PipelineSetup } from '../../lib/tracker-model/@types/PipelineSetup.ts';
-import { PipelineUtil }                                from '../../lib/tracker-model/utils/PipelineUtil.ts';
+} from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { MainConstitutionReading, PipelineSetup } from '../../domain/tracker-model/@types/PipelineSetup.ts';
+import { PipelineUtil }                                from '../../domain/tracker-model/utils/PipelineUtil.ts';
+import { readCurrentBranch }                           from '../../lib/git/BranchIntegration.ts';
+import { GitProcess }                                  from '../../lib/git/GitProcess.ts';
 import { resourceFilePathOf }                          from '../../shared/ResourceFilePath.ts';
 import { PRODUCT_NAMES }                               from '../../shared/constants/ProductNames.ts';
 import { PathNestingUtil }                             from '../../shared/utils/PathNestingUtil.ts';
@@ -228,7 +228,7 @@ function mainConstitutionOf(projectDirectory: string, mainLine: string, constitu
   if (mainTip !== null) return mainConstitutionAt(projectDirectory, mainTip, constitutionPath);
   const currentBranch = readCurrentBranch(repositoryRoot);
   if (currentBranch.verdict === 'on-branch' && currentBranch.branch === mainLine) return { verdict: 'absent' };
-  return { verdict: 'unreadable', reason: `the main line ${mainLine} does not resolve to a commit` };
+  return { verdict: 'unreadable', problem: { code: 'main-line-unresolved', mainLine } };
 }
 
 /** A constitution at one resolved commit of the main line, the project's `CONSTITUTION.md` unless given, named by its project path. */
@@ -236,11 +236,11 @@ function mainConstitutionAt(projectDirectory: string, mainTip: string, constitut
   const constitution = projectFileOf(projectDirectory, constitutionPath);
   const blobArguments = ['rev-parse', '--verify', '--quiet', '--end-of-options', `${mainTip}:${constitution.repositoryPath}`];
   const blobRun = GitProcess.run(constitution.repositoryRoot, blobArguments);
-  if (blobRun === null) return { verdict: 'unreadable', reason: GitProcess.failureReasonOf(blobRun, blobArguments) };
+  if (blobRun === null) return { verdict: 'unreadable', problem: GitProcess.failureOf(blobRun, blobArguments) };
   if (!GitProcess.succeeded(blobRun)) return { verdict: 'absent' };
   const showArguments = ['show', `${mainTip}:${constitution.repositoryPath}`];
   const shown = GitProcess.run(constitution.repositoryRoot, showArguments);
-  if (!GitProcess.succeeded(shown)) return { verdict: 'unreadable', reason: GitProcess.failureReasonOf(shown, showArguments) };
+  if (!GitProcess.succeeded(shown)) return { verdict: 'unreadable', problem: GitProcess.failureOf(shown, showArguments) };
   return { verdict: 'read', constitution: { path: constitutionPath, markdown: shown.standardOutput, blob: blobRun.standardOutput.trim() } };
 }
 

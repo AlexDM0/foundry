@@ -2,7 +2,8 @@
  * `<data>/hephaestus/lock-<generation>.json`, the record of the Hephaestus that holds a board: read, validate, map. It is a holding judged by
  * its process, so a record of today's fields reads whatever its version, as the lock of a Hephaestus of older code does.
  */
-import { StoredJsonDocumentUtil } from '../utils/StoredJsonDocumentUtil.ts';
+import { StoredJsonDocumentUtil }     from '../utils/StoredJsonDocumentUtil.ts';
+import type { HephaestusLockProblem } from './@types/HephaestusLockProblem.ts';
 
 export interface HephaestusLockFileRecord {
   processId:            number;
@@ -19,7 +20,7 @@ export interface HephaestusLockFileRecord {
 export type HephaestusLockFileReading =
   | { verdict: 'readable'; record: HephaestusLockFileRecord }
   | { verdict: 'absent' }
-  | { verdict: 'unreadable'; reason: string };
+  | { verdict: 'unreadable'; problem: HephaestusLockProblem };
 
 export const HEPHAESTUS_LOCK_FORMAT_VERSION = 1;
 
@@ -35,9 +36,9 @@ export class HephaestusLockIngestion {
     if (stored.verdict !== 'readable') return stored;
     const { document } = stored;
     const wrongNumber = NUMBER_FIELDS.find((field) => typeof document[field] !== 'number');
-    if (wrongNumber !== undefined) return { verdict: 'unreadable', reason: `its "${wrongNumber}" is not a number` };
+    if (wrongNumber !== undefined) return { verdict: 'unreadable', problem: { code: 'field-not-a-number', field: wrongNumber } };
     const wrongText = TEXT_FIELDS.find((field) => typeof document[field] !== 'string');
-    if (wrongText !== undefined) return { verdict: 'unreadable', reason: `its "${wrongText}" is not a string` };
+    if (wrongText !== undefined) return { verdict: 'unreadable', problem: { code: 'field-not-a-string', field: wrongText } };
     return {
       verdict: 'readable',
       record:  {

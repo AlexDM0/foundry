@@ -51,8 +51,6 @@ function hasRefusedSuffix(path: string, { refusedTargetSuffixes }: ResolutionRul
   return refusedTargetSuffixes.some((suffix) => foldedPath.endsWith(suffix));
 }
 
-const BATCH_TARGET_REASON = 'is a batch file, which takes no quoted or multi-line argument';
-
 /**
  * Refused when the name is a path or nowhere, when the answer is relative, when the found path or what it links to sits in a forbidden root or what
  * it links from does, and when the found path has a refused suffix. An absolute answer is spawned as PATH spells it: normalising `link/..` would
@@ -65,13 +63,15 @@ export function resolutionOf(
   rules: ResolutionRules,
 ): ExecutableResolution {
   const { paths } = rules;
-  if (paths.basename(name) !== name) return { verdict: 'refused', cause: 'not-a-program-name', reason: `${name} is a path, not a program name` };
+  if (paths.basename(name) !== name) return { verdict: 'refused', cause: 'not-a-program-name', name };
   const foundPath = lookUp(name);
-  if (foundPath === null) return { verdict: 'refused', cause: 'not-on-search-path', reason: `${name} is not on the search path` };
-  if (!paths.isAbsolute(foundPath)) return { verdict: 'refused', cause: 'relative-search-folder', reason: `${name} was found relative to the working directory` };
+  if (foundPath === null) return { verdict: 'refused', cause: 'not-on-search-path', name };
+  if (!paths.isAbsolute(foundPath)) return { verdict: 'refused', cause: 'relative-search-folder', name };
   const forbiddenRoot = forbiddenRootHolding(foundPath, rules, realPathOf, forbiddenRoots);
-  if (forbiddenRoot !== undefined) return { verdict: 'refused', cause: 'inside-forbidden-root', reason: `${foundPath} sits inside ${forbiddenRoot}` };
-  if (hasRefusedSuffix(foundPath, rules)) return { verdict: 'refused', cause: 'batch-target', reason: `${foundPath} ${BATCH_TARGET_REASON}` };
+  if (forbiddenRoot !== undefined) return {
+    verdict: 'refused', cause: 'inside-forbidden-root', path: foundPath, forbiddenRoot
+  };
+  if (hasRefusedSuffix(foundPath, rules)) return { verdict: 'refused', cause: 'batch-target', path: foundPath };
   return { verdict: 'found', path: foundPath };
 }
 
@@ -82,12 +82,14 @@ export function programAtOf(
   forbiddenRoots: readonly string[],
   rules: ResolutionRules,
 ): ExecutableResolution {
-  if (!rules.paths.isAbsolute(path)) return { verdict: 'refused', cause: 'relative-path', reason: `${path} is not an absolute path` };
+  if (!rules.paths.isAbsolute(path)) return { verdict: 'refused', cause: 'relative-path', path };
   const forbiddenRoot = forbiddenRootHolding(path, rules, realPathOf, forbiddenRoots);
-  if (forbiddenRoot !== undefined) return { verdict: 'refused', cause: 'inside-forbidden-root', reason: `${path} sits inside ${forbiddenRoot}` };
-  if (hasRefusedSuffix(path, rules)) return { verdict: 'refused', cause: 'batch-target', reason: `${path} ${BATCH_TARGET_REASON}` };
+  if (forbiddenRoot !== undefined) return {
+    verdict: 'refused', cause: 'inside-forbidden-root', path, forbiddenRoot
+  };
+  if (hasRefusedSuffix(path, rules)) return { verdict: 'refused', cause: 'batch-target', path };
   const kind = programKindOf(path);
-  if (kind === 'missing') return { verdict: 'refused', cause: 'not-there', reason: `${path} is not there` };
-  if (kind === 'not-executable') return { verdict: 'refused', cause: 'not-executable', reason: `${path} is not a program this user may run` };
+  if (kind === 'missing') return { verdict: 'refused', cause: 'not-there', path };
+  if (kind === 'not-executable') return { verdict: 'refused', cause: 'not-executable', path };
   return { verdict: 'found', path };
 }

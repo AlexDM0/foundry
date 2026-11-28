@@ -5,10 +5,11 @@
 import { mkdirSync } from 'node:fs';
 import { join }      from 'node:path';
 
-import { writeFileAtomically } from '../../lib/atomic-file/AtomicFile.ts';
-import { JsonRecordUtil }      from '../../lib/json-record/JsonRecordUtil.ts';
-import { storedFileTextOf }    from '../StoredFileText.ts';
-import { StoredValueUtil }     from '../utils/StoredValueUtil.ts';
+import { writeFileAtomically }      from '../../lib/atomic-file/AtomicFile.ts';
+import { JsonRecordUtil }           from '../../lib/json-record/JsonRecordUtil.ts';
+import { storedFileTextOf }         from '../StoredFileText.ts';
+import { StoredValueUtil }          from '../utils/StoredValueUtil.ts';
+import type { UsageWindowsProblem } from './@types/UsageWindowsProblem.ts';
 
 export interface UsageWindowObservation {
   /** The window's name as the agent reported it, an opaque value. */
@@ -24,7 +25,7 @@ export interface UsageWindowObservation {
 export type UsageWindowsReading =
   | { verdict: 'absent' }
   | { verdict: 'read'; windows: UsageWindowObservation[]; storedText: string; document: Record<string, unknown> }
-  | { verdict: 'malformed'; reason: string };
+  | { verdict: 'malformed'; problem: UsageWindowsProblem };
 
 const USAGE_WINDOWS_FILE_NAME = 'usage-windows.json';
 const JSON_INDENT_SPACES = 2;
@@ -33,28 +34,28 @@ function pathIn(monitorFolder: string): string {
   return join(monitorFolder, USAGE_WINDOWS_FILE_NAME);
 }
 
-function observationOf(window: string, entry: unknown): UsageWindowObservation | string {
+function observationOf(window: string, entry: unknown): UsageWindowObservation | UsageWindowsProblem {
   const fields = JsonRecordUtil.recordOf(entry);
-  if (fields === undefined) return `its window "${window}" is not an object`;
+  if (fields === undefined) return { code: 'window-not-an-object', window };
   const { lengthHours, utilization, resetsAt } = fields;
   if (lengthHours !== null && (typeof lengthHours !== 'number' || !Number.isFinite(lengthHours))) {
-    return `its window "${window}" has no number or null "lengthHours"`;
+    return { code: 'window-length-hours-not-a-number-or-null', window };
   }
-  if (typeof utilization !== 'number' || !Number.isFinite(utilization)) return `its window "${window}" has no number "utilization"`;
-  if (typeof resetsAt !== 'string' || Number.isNaN(Date.parse(resetsAt))) return `its window "${window}" has no stamp "resetsAt"`;
+  if (typeof utilization !== 'number' || !Number.isFinite(utilization)) return { code: 'window-utilization-not-a-number', window };
+  if (typeof resetsAt !== 'string' || Number.isNaN(Date.parse(resetsAt))) return { code: 'window-resets-at-not-a-stamp', window };
   return {
     window, lengthHours, utilization, resetsAt
   };
 }
 
-function observationsOf(document: Record<string, unknown>): UsageWindowObservation[] | string {
+function observationsOf(document: Record<string, unknown>): UsageWindowObservation[] | UsageWindowsProblem {
   const windows = JsonRecordUtil.recordOf(document['windows']);
-  if (windows === undefined) return 'its "windows" is not an object';
+  if (windows === undefined) return { code: 'windows-not-an-object', field: 'windows' };
   const observations: UsageWindowObservation[] = [];
   for (const [window, entry] of Object.entries(windows)) {
-    if (window.length === 0) return 'it names a window with no name';
+    if (window.length === 0) return { code: 'window-with-no-name' };
     const observation = observationOf(window, entry);
-    if (typeof observation === 'string') return observation;
+    if ('code' in observation) return observation;
     observations.push(observation);
   }
   return observations;
@@ -64,14 +65,14 @@ function observationsOf(document: Record<string, unknown>): UsageWindowObservati
 function read(monitorFolder: string): UsageWindowsReading {
   const storedText = storedFileTextOf(pathIn(monitorFolder));
   if (storedText.verdict === 'absent') return storedText;
-  if (storedText.verdict === 'unreadable') return { verdict: 'malformed', reason: storedText.reason };
+  if (storedText.verdict === 'unreadable') return { verdict: 'malformed', problem: storedText.problem };
   const parsedJson = StoredValueUtil.parsedJsonOf(storedText.text);
-  if (parsedJson.verdict === 'unparseable') return { verdict: 'malformed', reason: parsedJson.problem };
+  if (parsedJson.verdict === 'unparseable') return { verdict: 'malformed', problem: parsedJson.problem };
   const document = JsonRecordUtil.recordOf(parsedJson.value);
-  if (document === undefined) return { verdict: 'malformed', reason: 'it is not a JSON object' };
+  if (document === undefined) return { verdict: 'malformed', problem: { code: 'not-a-json-object' } };
   const windows = observationsOf(document);
-  return typeof windows === 'string'
-    ? { verdict: 'malformed', reason: windows }
+  return !Array.isArray(windows)
+    ? { verdict: 'malformed', problem: windows }
     : {
       verdict: 'read', windows, storedText: storedText.text, document
     };

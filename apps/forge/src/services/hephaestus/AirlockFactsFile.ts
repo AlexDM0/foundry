@@ -7,8 +7,8 @@ import { join }      from 'node:path';
 
 import { AirlockFactsIngestion, type KeptAirlockFacts } from '../../adapters/airlock-facts/AirlockFactsIngestion.ts';
 import { createAirlockFactsWriter }                     from '../../adapters/airlock-facts/AirlockFactsWriter.ts';
+import type { AirlockPhase }                            from '../../domain/tracker-model/@types/Job.ts';
 import { unmergedPathsIn }                              from '../../lib/git/BranchMerge.ts';
-import type { AirlockPhase }                            from '../../lib/tracker-model/@types/Job.ts';
 import { jobFileInDataFolderOf }                        from './HephaestusFiles.ts';
 import type { UnreadableJobFile }                       from './UnreadableJobFileIncident.ts';
 
@@ -34,7 +34,8 @@ function keptFactsOf(mergeJobFolder: string, mergeJobId: string): KeptAirlockFac
   const reading = new AirlockFactsIngestion(join(mergeJobFolder, AIRLOCK_FACTS_FILE)).read();
   if (reading.verdict === 'readable') return { verdict: 'kept', facts: reading.facts };
   if (reading.verdict === 'absent') return reading;
-  return { verdict: 'unreadable', unreadableFile: { jobId: mergeJobId, file: jobFileInDataFolderOf(mergeJobId, AIRLOCK_FACTS_FILE), reason: reading.reason } };
+  const file = jobFileInDataFolderOf(mergeJobId, AIRLOCK_FACTS_FILE);
+  return { verdict: 'unreadable', unreadableFile: { jobId: mergeJobId, file, problem: reading.problem } };
 }
 
 /**

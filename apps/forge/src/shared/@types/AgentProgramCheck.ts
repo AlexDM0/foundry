@@ -1,4 +1,4 @@
-import type { JobNotLaunchedCause } from '../../lib/tracker-model/@types/Job.ts';
+import type { JobNotLaunchedCause } from '../../domain/tracker-model/@types/Job.ts';
 
 /**
  * Why a chosen program is not kept: a launch's own refusals, or how its run with the version arguments ended: it did not start, it

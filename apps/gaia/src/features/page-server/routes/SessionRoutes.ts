@@ -2,13 +2,12 @@
  * The page's session, bought as the Bridge buys its own: a holder of Gaia's token asks `POST /api/session-codes` for a one-time code, and
  * the page spends it at `POST /api/session` for the session cookie. The code travels only in a JSON body, never in an address.
  */
-import { JsonValueUtil }     from '../../../lib/json-value/JsonValueUtil.ts';
-import { BoundedBody }       from '../../../lib/local-http-guards/BoundedBody.ts';
-import type { SessionCodes } from '../../../lib/local-http-guards/SessionCodes.ts';
-import { PRODUCT_NAMES }     from '../../../shared/constants/ProductNames.ts';
-import { refusalAnswerOf }   from '../RefusalAnswer.ts';
-
-const HTTP_NO_CONTENT = 204;
+import { JsonValueUtil }         from '../../../lib/json-value/JsonValueUtil.ts';
+import { BoundedBody }           from '../../../lib/local-http-guards/BoundedBody.ts';
+import type { SessionCodes }     from '../../../lib/local-http-guards/SessionCodes.ts';
+import { PRODUCT_NAMES }         from '../../../shared/constants/ProductNames.ts';
+import { HTTP_STATUS_OF_ANSWER } from '../HttpStatusOfAnswer.ts';
+import { refusalAnswerOf }       from '../RefusalAnswer.ts';
 
 const CODE_KEY = 'code';
 
@@ -35,5 +34,5 @@ export async function sessionExchangeAnswerFor(request: Request, sessionCodes: S
   if (code === null) return refusalAnswerOf('body-not-understood');
   const exchange = sessionCodes.exchangeCode(code);
   if (exchange.verdict === 'refused') return refusalAnswerOf('code-refused');
-  return new Response(null, { status: HTTP_NO_CONTENT, headers: { 'set-cookie': exchange.setCookieHeader, 'cache-control': 'no-store' } });
+  return new Response(null, { status: HTTP_STATUS_OF_ANSWER['answered-without-content'], headers: { 'set-cookie': exchange.setCookieHeader, 'cache-control': 'no-store' } });
 }

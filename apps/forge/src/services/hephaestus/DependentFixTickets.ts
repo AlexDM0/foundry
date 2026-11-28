@@ -4,11 +4,11 @@
  * crossing ticket leaves out the gates of the dependents whose fix tickets are in its group.
  */
 import { TicketAcceptanceUtil }    from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
-import type { LogRecord }          from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { EntityKey }          from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { Board }              from '../../lib/tracker-model/Board.ts';
-import { SETTLED_TICKET_STATUSES } from '../../lib/tracker-model/constants/Statuses.ts';
-import { TicketDependencyUtil }    from '../../lib/tracker-model/utils/TicketDependencyUtil.ts';
+import type { LogRecord }          from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { EntityKey }          from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { Board }              from '../../domain/tracker-model/Board.ts';
+import { SETTLED_TICKET_STATUSES } from '../../domain/tracker-model/constants/Statuses.ts';
+import { TicketDependencyUtil }    from '../../domain/tracker-model/utils/TicketDependencyUtil.ts';
 import type { BoardTransaction }   from '../tracker/BoardTransaction.ts';
 
 /** What the fix ticket of a dependent is worded from. */

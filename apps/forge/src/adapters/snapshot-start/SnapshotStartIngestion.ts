@@ -1,7 +1,8 @@
 /** A snapshot agent's start, `pipeline-agent-start.json` or `document-agent-start.json` in its job folder: read, validate, map. */
-import type { LaunchSnapshot }    from '../@types/LaunchSnapshot.ts';
-import { JobFileShapeUtil }       from '../utils/JobFileShapeUtil.ts';
-import { StoredJsonDocumentUtil } from '../utils/StoredJsonDocumentUtil.ts';
+import type { LaunchSnapshot }       from '../@types/LaunchSnapshot.ts';
+import { JobFileShapeUtil }          from '../utils/JobFileShapeUtil.ts';
+import { StoredJsonDocumentUtil }    from '../utils/StoredJsonDocumentUtil.ts';
+import type { SnapshotStartProblem } from './@types/SnapshotStartProblem.ts';
 
 export const SNAPSHOT_START_FORMAT_VERSION = 1;
 
@@ -14,7 +15,7 @@ export interface SnapshotStart {
 export type SnapshotStartReading =
   | { verdict: 'readable'; snapshotStart: SnapshotStart }
   | { verdict: 'absent' }
-  | { verdict: 'unreadable'; reason: string };
+  | { verdict: 'unreadable'; problem: SnapshotStartProblem };
 
 export class SnapshotStartIngestion {
   constructor(private readonly snapshotStartFilePath: string) {}
@@ -24,9 +25,9 @@ export class SnapshotStartIngestion {
     const stored = StoredJsonDocumentUtil.documentAt(this.snapshotStartFilePath, SNAPSHOT_START_FORMAT_VERSION);
     if (stored.verdict !== 'readable') return stored;
     const { startCommit, launchSnapshot } = stored.document;
-    if (typeof startCommit !== 'string' || startCommit === '') return { verdict: 'unreadable', reason: 'its startCommit is not a commit' };
-    const launchSnapshotProblem = JobFileShapeUtil.launchSnapshotProblemOf(launchSnapshot);
-    if (launchSnapshotProblem !== null) return { verdict: 'unreadable', reason: launchSnapshotProblem };
+    if (typeof startCommit !== 'string' || startCommit === '') return { verdict: 'unreadable', problem: { code: 'start-commit-not-a-commit', field: 'startCommit' } };
+    const launchSnapshotProblem = JobFileShapeUtil.launchSnapshotMistypedFieldOf(launchSnapshot);
+    if (launchSnapshotProblem !== null) return { verdict: 'unreadable', problem: launchSnapshotProblem };
     const { refs, hooksFolderDigest } = launchSnapshot as LaunchSnapshot;
     return { verdict: 'readable', snapshotStart: { startCommit, launchSnapshot: { refs: { ...refs }, hooksFolderDigest } } };
   }

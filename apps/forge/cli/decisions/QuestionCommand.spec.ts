@@ -11,7 +11,7 @@ import {
   test
 } from 'bun:test';
 
-import type { Job }                               from '../../src/lib/tracker-model/@types/Job.ts';
+import type { Job }                               from '../../src/domain/tracker-model/@types/Job.ts';
 import { localStoreLayoutOf }                     from '../../src/services/tracker/LocalStoreLayout.ts';
 import { workspacePathsFor }                      from '../../src/services/tracker/Workspace.ts';
 import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';

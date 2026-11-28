@@ -11,7 +11,7 @@ import {
 import type { ProcessSupervision } from './ProcessSupervision.ts';
 
 export function createUnsupportedProcessSupervision(platform: string): ProcessSupervision {
-  const refusal = { verdict: 'refused', reason: `no process supervision exists for the platform ${platform}` } as const;
+  const refusal = { verdict: 'refused', refusal: { cause: 'no-adapter', platformName: platform } } as const;
   return Object.freeze({
     identityOf:                () => null,
     identitySourcesOf:         () => [],

@@ -1,0 +1,6 @@
+[
+  {"case":"the start commit is empty","stored":"{\"version\":1,\"startCommit\":\"\",\"launchSnapshot\":{\"refs\":{\"refs/heads/main\":\"a1b2c3d\"},\"hooksFolderDigest\":null}}","sentence":"its startCommit is not a commit"},
+  {"case":"the launch snapshot is not an object","stored":"{\"version\":1,\"startCommit\":\"a1b2c3d\",\"launchSnapshot\":[]}","sentence":"its \"launchSnapshot\" is not an object"},
+  {"case":"the launch snapshot refs are not a record of commits","stored":"{\"version\":1,\"startCommit\":\"a1b2c3d\",\"launchSnapshot\":{\"refs\":{\"main\":5},\"hooksFolderDigest\":null}}","sentence":"its \"launchSnapshot.refs\" is not a record of commits"},
+  {"case":"the hooks folder digest is neither text nor null","stored":"{\"version\":1,\"startCommit\":\"a1b2c3d\",\"launchSnapshot\":{\"refs\":{\"refs/heads/main\":\"a1b2c3d\"},\"hooksFolderDigest\":5}}","sentence":"its \"launchSnapshot.hooksFolderDigest\" is not text or null"}
+]

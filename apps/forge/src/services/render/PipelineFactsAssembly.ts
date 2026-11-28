@@ -4,10 +4,10 @@
  * file: the main line's texts arrive as a parameter, read by Hephaestus, since the render service cannot reach the hephaestus service.
  */
 import type { PipelineReading }      from '../../adapters/pipeline/PipelineFile.ts';
-import type { GatePhase }            from '../../lib/tracker-model/@types/GatePhase.ts';
-import type { GateProfilesReading }  from '../../lib/tracker-model/@types/GateProfile.ts';
-import type { GateCacheReport, Job } from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }            from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { GatePhase }            from '../../domain/tracker-model/@types/GatePhase.ts';
+import type { GateProfilesReading }  from '../../domain/tracker-model/@types/GateProfile.ts';
+import type { GateCacheReport, Job } from '../../domain/tracker-model/@types/Job.ts';
+import type { LogRecord }            from '../../domain/tracker-model/@types/LogRecord.ts';
 import {
   PIPELINE_AGENT_ROLES,
   type EntityAgentRole,
@@ -15,7 +15,7 @@ import {
   type InstructionEntry,
   type Pipeline,
   type PipelineAgentRole
-} from '../../lib/tracker-model/@types/Pipeline.ts';
+} from '../../domain/tracker-model/@types/Pipeline.ts';
 import type {
   AppliedPipelineFacts,
   ApplyRefusalFacts,
@@ -37,7 +37,7 @@ import type {
   PipelineStepRunTimeFacts,
   ResolvedInstructionEntry,
   ResolvedSourceAnnotation
-} from '../../lib/tracker-model/@types/PipelineFacts.ts';
+} from '../../domain/tracker-model/@types/PipelineFacts.ts';
 import type {
   ConstitutionDraft,
   MainConstitution,
@@ -48,12 +48,12 @@ import type {
   ResearchFinding,
   SetupQuestion,
   SourceAnnotation
-} from '../../lib/tracker-model/@types/PipelineSetup.ts';
-import type { AgentPair }                                                  from '../../lib/tracker-model/@types/Ticket.ts';
-import type { Board }                                                      from '../../lib/tracker-model/Board.ts';
-import { AGENT_EFFORTS, AGENT_MODELS }                                     from '../../lib/tracker-model/constants/AgentSettings.ts';
-import { PipelineChangeUtil }                                              from '../../lib/tracker-model/utils/PipelineChangeUtil.ts';
-import { PipelineUtil }                                                    from '../../lib/tracker-model/utils/PipelineUtil.ts';
+} from '../../domain/tracker-model/@types/PipelineSetup.ts';
+import type { AgentPair }                                                  from '../../domain/tracker-model/@types/Ticket.ts';
+import type { Board }                                                      from '../../domain/tracker-model/Board.ts';
+import { AGENT_EFFORTS, AGENT_MODELS }                                     from '../../domain/tracker-model/constants/AgentSettings.ts';
+import { PipelineChangeUtil }                                              from '../../domain/tracker-model/utils/PipelineChangeUtil.ts';
+import { PipelineUtil }                                                    from '../../domain/tracker-model/utils/PipelineUtil.ts';
 import { EntityFoldersUtil }                                               from '../../shared/utils/EntityFoldersUtil.ts';
 import { PIPELINE_FLOW_NODE_IDS, entityFlowGraphsOf, pipelineFlowGraphOf } from './PipelineFlowGraph.ts';
 
@@ -143,7 +143,7 @@ function appliedPipelineOf(input: PipelineFactsInput): AppliedPipelineFacts {
     case 'older':
       return { readingVerdict: 'older', fileText };
     case 'malformed':
-      return { readingVerdict: 'malformed', reason: reading.reason, fileText };
+      return { readingVerdict: 'malformed', problem: reading.problem, fileText };
     default: {
       const applications = input.logRecords.filter((record) => record.kind === 'pipeline-applied');
       const newest = applications.at(-1);
@@ -287,12 +287,12 @@ function setupEntityFactsOf(input: PipelineFactsInput, setup: Readonly<PipelineS
  */
 function applyRefusalOf(input: PipelineFactsInput, setup: Readonly<PipelineSetup>): ApplyRefusalFacts | null {
   const forgeConstitution = input.mainLineTexts.mainConstitution();
-  if (forgeConstitution.verdict === 'unreadable') return { kind: 'main-constitution-unreadable', reason: forgeConstitution.reason };
+  if (forgeConstitution.verdict === 'unreadable') return { kind: 'main-constitution-unreadable', problem: forgeConstitution.problem };
   const draftEntities = setup.draft?.entities;
   const entityConstitutions: Record<EntityKey, MainConstitution | null> = {};
   for (const [entityKey, entity] of Object.entries(draftEntities ?? {})) {
     const reading = input.mainLineTexts.mainConstitution(EntityFoldersUtil.constitutionPathOf(entity));
-    if (reading.verdict === 'unreadable') return { kind: 'main-constitution-unreadable', reason: reading.reason };
+    if (reading.verdict === 'unreadable') return { kind: 'main-constitution-unreadable', problem: reading.problem };
     entityConstitutions[entityKey] = reading.verdict === 'read' ? reading.constitution : null;
   }
   const refusal = input.board.applyRefusalOf(setup.setupId, {

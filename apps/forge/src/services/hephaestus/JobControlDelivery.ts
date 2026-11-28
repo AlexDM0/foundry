@@ -6,10 +6,10 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join }                        from 'node:path';
 
+import type { ChildInput }                 from '../../domain/talos/@types/TalosFrame.ts';
+import type { Job, JobKind }               from '../../domain/tracker-model/@types/Job.ts';
+import type { Board }                      from '../../domain/tracker-model/Board.ts';
 import type { AgentAdapter }               from '../../lib/agent-launch/AgentAdapter.ts';
-import type { ChildInput }                 from '../../lib/talos/@types/TalosFrame.ts';
-import type { Job, JobKind }               from '../../lib/tracker-model/@types/Job.ts';
-import type { Board }                      from '../../lib/tracker-model/Board.ts';
 import { SESSION_STOP_GRACE_MILLISECONDS } from '../../shared/constants/HephaestusLimits.ts';
 import { PictureStore }                    from '../tracker/PictureStore.ts';
 import { AssistantSession }                from './AssistantSession.ts';

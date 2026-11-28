@@ -5,8 +5,8 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { InterruptionCause }                       from '../../lib/tracker-model/@types/Job.ts';
-import type { AgentUsage, LogRecord, LogRecordContent } from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { InterruptionCause }                       from '../../domain/tracker-model/@types/Job.ts';
+import type { AgentUsage, LogRecord, LogRecordContent } from '../../domain/tracker-model/@types/LogRecord.ts';
 import { LogUtil }                                      from './LogUtil.ts';
 
 const {

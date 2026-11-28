@@ -4,12 +4,12 @@ import type {
   TicketPriority,
   TicketSize,
   TicketType
-} from '../../../src/lib/tracker-model/@types/Ticket.ts';
-import { AGENT_EFFORTS, AGENT_MODELS }                   from '../../../src/lib/tracker-model/constants/AgentSettings.ts';
-import { TICKET_STATUSES }                               from '../../../src/lib/tracker-model/constants/Statuses.ts';
-import { TICKET_PRIORITIES, TICKET_SIZES, TICKET_TYPES } from '../../../src/lib/tracker-model/constants/TicketFields.ts';
-import { TicketIdUtil }                                  from '../../../src/lib/tracker-model/utils/TicketIdUtil.ts';
-import { VocabularyUtil }                                from '../../../src/lib/tracker-model/utils/VocabularyUtil.ts';
+} from '../../../src/domain/tracker-model/@types/Ticket.ts';
+import { AGENT_EFFORTS, AGENT_MODELS }                   from '../../../src/domain/tracker-model/constants/AgentSettings.ts';
+import { TICKET_STATUSES }                               from '../../../src/domain/tracker-model/constants/Statuses.ts';
+import { TICKET_PRIORITIES, TICKET_SIZES, TICKET_TYPES } from '../../../src/domain/tracker-model/constants/TicketFields.ts';
+import { TicketIdUtil }                                  from '../../../src/domain/tracker-model/utils/TicketIdUtil.ts';
+import { VocabularyUtil }                                from '../../../src/domain/tracker-model/utils/VocabularyUtil.ts';
 import { OperationRefusal }                              from '../../../src/shared/OperationRefusal.ts';
 
 const LIST_SEPARATOR_PATTERN = /[\s,]+/;

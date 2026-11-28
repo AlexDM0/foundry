@@ -1,5 +1,6 @@
 /** `document-agent-seen-head.json` in a document agent's job folder, the content hash of the head it saw last: read, validate, map. */
 import { StoredJsonDocumentUtil } from '../utils/StoredJsonDocumentUtil.ts';
+import type { SeenHeadProblem }   from './@types/SeenHeadProblem.ts';
 
 export const SEEN_HEAD_FORMAT_VERSION = 1;
 
@@ -7,7 +8,7 @@ export const SEEN_HEAD_FORMAT_VERSION = 1;
 export type SeenHeadReading =
   | { verdict: 'readable'; contentHash: string | null }
   | { verdict: 'absent' }
-  | { verdict: 'unreadable'; reason: string };
+  | { verdict: 'unreadable'; problem: SeenHeadProblem };
 
 export class SeenHeadIngestion {
   constructor(private readonly seenHeadFilePath: string) {}
@@ -17,7 +18,7 @@ export class SeenHeadIngestion {
     const stored = StoredJsonDocumentUtil.documentAt(this.seenHeadFilePath, SEEN_HEAD_FORMAT_VERSION);
     if (stored.verdict !== 'readable') return stored;
     const { contentHash } = stored.document;
-    if (contentHash !== null && typeof contentHash !== 'string') return { verdict: 'unreadable', reason: 'its contentHash is neither text nor null' };
+    if (contentHash !== null && typeof contentHash !== 'string') return { verdict: 'unreadable', problem: { code: 'not-text-or-null', field: 'contentHash' } };
     return { verdict: 'readable', contentHash };
   }
 }

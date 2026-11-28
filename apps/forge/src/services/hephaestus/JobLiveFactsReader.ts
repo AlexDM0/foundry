@@ -13,18 +13,18 @@ import type {
   SubagentState,
   UsageWindowReport
 } from '../../adapters/@types/BoardStateParts.ts';
+import type { EventLogEntry }     from '../../domain/talos/EventLog.ts';
+import { clientEntryOf }          from '../../domain/talos/TalosFrames.ts';
+import type { Job, JobKind }      from '../../domain/tracker-model/@types/Job.ts';
+import type { Board }             from '../../domain/tracker-model/Board.ts';
 import type { AgentAdapter }      from '../../lib/agent-launch/AgentAdapter.ts';
 import type { AgentSessionEvent } from '../../lib/agent-launch/AgentSessionEvent.ts';
-import type { EventLogEntry }     from '../../lib/talos/EventLog.ts';
-import { clientEntryOf }          from '../../lib/talos/TalosFrames.ts';
-import type { Job, JobKind }      from '../../lib/tracker-model/@types/Job.ts';
-import type { Board }             from '../../lib/tracker-model/Board.ts';
 import type { TranscriptEntry }   from '../../shared/@types/TranscriptEntry.ts';
 import { AssistantBoot }          from './AssistantBoot.ts';
 import { AssistantSession }       from './AssistantSession.ts';
 import type { BoardChildren }     from './BoardChildren.ts';
+import { BuildJobSessions }       from './BuildJobSessions.ts';
 import { JobControlDelivery }     from './JobControlDelivery.ts';
-import { JobLaunch }              from './JobLaunch.ts';
 import { JobTranscript }          from './JobTranscript.ts';
 
 /** What every job's live facts are read through: its Talos event logs, the adapter that reads their lines, and the board's log and incidents. */
@@ -237,7 +237,7 @@ function liveFactsOf(source: JobLiveFactsSource, job: Readonly<Job>, session: Jo
   const tally = eventLogTallyOf(stampedEvents);
   return {
     jobId:           job.id,
-    callBudget:      BUDGETED_JOB_KINDS.includes(job.kind) ? JobLaunch.callBudgetOf(job) : null,
+    callBudget:      BUDGETED_JOB_KINDS.includes(job.kind) ? BuildJobSessions.callBudgetOf(job) : null,
     ...withTranscriptSubagents(tally.counts, lostSubagentsOf(source, session, tally)),
     turn:            turnOf(source, job, entriesByInstance.at(-1) ?? []),
     messagesWaiting: JobControlDelivery.unsentMessageCountOf(source.board, source.trackerDirectory, job),

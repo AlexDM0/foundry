@@ -1,0 +1,32 @@
+import type { PageServerAnswer } from './@types/PageServerAnswer.ts';
+
+/** The page server's one map from an answer to its HTTP status: every route and relay answer takes its status here. */
+export const HTTP_STATUS_OF_ANSWER: Readonly<Record<PageServerAnswer, number>> = Object.freeze({
+  'answered':                  200,
+  'answered-without-content':  204,
+  'body-not-understood':       400,
+  'malformed-body':            400,
+  'unknown-kind':              400,
+  'not-holder-of-token':       401,
+  'no-session':                401,
+  'code-refused':              401,
+  'foreign-host':              403,
+  'foreign-origin':            403,
+  'opaque-origin':             403,
+  'preflight':                 403,
+  'not-found':                 404,
+  'forge-not-registered':      404,
+  'method-not-allowed':        405,
+  'refused-by-forge':          409,
+  'body-too-large':            413,
+  'too-large':                 413,
+  'install-held':              423,
+  'page-unbuildable':          500,
+  'answer-failed':             500,
+  'command-not-supported':     501,
+  'forge-version-unsupported': 501,
+  'forge-unreachable':         502,
+  'forge-document-unreadable': 502,
+  'token-unreadable':          502,
+  'token-rejected':            502,
+});

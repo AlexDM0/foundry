@@ -1,6 +1,6 @@
 import { win32 } from 'node:path';
 
-import type { DataFolders } from './DataFolders.ts';
+import type { DataFolders, SystemFolderAnswer } from './DataFolders.ts';
 
 export interface WindowsDataFolderPrimitives {
   /** `node:os`'s `tmpdir()`, which reads `TEMP` and `TMP`. */
@@ -18,11 +18,9 @@ const EXECUTABLE_FOLDER_NAMES = ['bin', 'Scripts'] as const;
 const EXECUTABLE_FILE_EXTENSIONS = ['.exe', '.cmd', '.bat', '.ps1'] as const;
 
 /** Under `SystemRoot`, so a Windows installed off `C:` is found; with none that is drive-absolute, no program is run by a guessed path. */
-function systemFolderUnder(systemRoot: string | undefined): string {
-  if (systemRoot === undefined || !DRIVE_ABSOLUTE_PATH.test(systemRoot)) {
-    throw new Error(`no system folder exists, since SystemRoot names no drive-absolute folder: ${systemRoot ?? 'unset'}`);
-  }
-  return win32.join(systemRoot, SYSTEM_FOLDER_NAME);
+function systemFolderUnder(systemRoot: string | undefined): SystemFolderAnswer {
+  if (systemRoot === undefined || !DRIVE_ABSOLUTE_PATH.test(systemRoot)) return { verdict: 'refused', cause: 'no-drive-absolute-system-root' };
+  return { verdict: 'found', folder: win32.join(systemRoot, SYSTEM_FOLDER_NAME) };
 }
 
 export function createWindowsDataFolders({ temporaryDirectory, monitorFolderName, systemRoot }: WindowsDataFolderPrimitives): DataFolders {

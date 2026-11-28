@@ -4,17 +4,17 @@
  * half-applied. The subset it accepts is stated in `docs/cli.md`.
  */
 
-import type { LineEnding, RetiredTicketType, TicketFrontmatter } from '../../../lib/tracker-model/@types/Ticket.ts';
-import { EpicUtil }                                              from '../../../lib/tracker-model/utils/EpicUtil.ts';
-import { NetworkDomainUtil }                                     from '../../../lib/tracker-model/utils/NetworkDomainUtil.ts';
-import { TicketIdUtil }                                          from '../../../lib/tracker-model/utils/TicketIdUtil.ts';
-import { VocabularyUtil }                                        from '../../../lib/tracker-model/utils/VocabularyUtil.ts';
-import { OLDER_FORMAT_ADVICE }                                   from '../../constants/OlderFormatAdvice.ts';
+import type { LineEnding, RetiredTicketType, TicketFrontmatter } from '../../../domain/tracker-model/@types/Ticket.ts';
+import { EpicUtil }                                              from '../../../domain/tracker-model/utils/EpicUtil.ts';
+import { NetworkDomainUtil }                                     from '../../../domain/tracker-model/utils/NetworkDomainUtil.ts';
+import { TicketIdUtil }                                          from '../../../domain/tracker-model/utils/TicketIdUtil.ts';
+import { VocabularyUtil }                                        from '../../../domain/tracker-model/utils/VocabularyUtil.ts';
+import type { TicketFileProblem }                                from '../../../shared/@types/TicketFileProblem.ts';
 
 /** `storedType` is present only when the file holds a retired type, which the frontmatter reads as `ticket`. */
 export type ParsedTicketDocument =
   | { verdict: 'parsed'; frontmatter: TicketFrontmatter; body: string; lineEnding: LineEnding; storedType?: RetiredTicketType }
-  | { verdict: 'malformed'; reason: string; line: number };
+  | { verdict: 'malformed'; problem: TicketFileProblem; line: number };
 
 type FrontmatterValue = string | number | null;
 
@@ -95,12 +95,14 @@ const FRONTMATTER_LIST_SEPARATOR_PATTERN = /[\s,]+/;
 const FRONTMATTER_LIST_JOINER       = ', ';
 
 class FrontmatterProblem extends Error {
-  readonly line: number;
+  readonly problem: TicketFileProblem;
+  readonly line:    number;
 
-  constructor(reason: string, line: number) {
-    super(reason);
-    this.name = 'FrontmatterProblem';
-    this.line = line;
+  constructor(problem: TicketFileProblem, line: number) {
+    super(problem.code);
+    this.name    = 'FrontmatterProblem';
+    this.problem = problem;
+    this.line    = line;
   }
 }
 
@@ -124,24 +126,17 @@ function parsedTicketDocumentOf(text: string): ParsedTicketDocument {
       }
       // Checked before the indentation refusal, so an indented heading still names the deleted fence.
       if (MARKDOWN_HEADING_PATTERN.test(line.trimStart())) {
-        throw new FrontmatterProblem(
-          `line ${lineNumber} is the markdown heading \`${line}\`, and a frontmatter holds no heading (a comment has one \`#\`); `
-          + `if the closing \`---\` fence was deleted, restore it above line ${lineNumber}`,
-          lineNumber,
-        );
+        throw new FrontmatterProblem({ code: 'heading-in-frontmatter', lineNumber, lineText: line }, lineNumber);
       }
       const proseLineIndex = proseLineIndexAfterSingleHashLine(lines, index, closingFenceIndex);
       if (proseLineIndex !== null) {
         const proseLineNumber = proseLineIndex + 1;
-        throw new FrontmatterProblem(
-          `line ${lineNumber} \`${line}\` is followed after blank lines by line ${proseLineNumber}, which is not a \`key: value\` line: `
-          + `if line ${lineNumber} is a markdown heading, the closing \`---\` fence was deleted and belongs above it; `
-          + `if it is a comment, line ${proseLineNumber} does not belong in the frontmatter`,
-          lineNumber,
-        );
+        throw new FrontmatterProblem({
+          code: 'one-hash-line-before-prose', lineNumber, lineText: line, proseLineNumber
+        }, lineNumber);
       }
       if (LEADING_WHITESPACE_PATTERN.test(line)) {
-        throw new FrontmatterProblem(`\`${line}\` is indented, and this frontmatter has no nested structure`, lineNumber);
+        throw new FrontmatterProblem({ code: 'line-indented', lineText: line }, lineNumber);
       }
       if (line.startsWith(COMMENT_KEY)) {
         extra.push([COMMENT_KEY, line.slice(COMMENT_KEY.length).trim()]);
@@ -168,7 +163,7 @@ function parsedTicketDocumentOf(text: string): ParsedTicketDocument {
     };
   } catch (problem) {
     if (problem instanceof FrontmatterProblem) {
-      return { verdict: 'malformed', reason: problem.message, line: problem.line };
+      return { verdict: 'malformed', problem: problem.problem, line: problem.line };
     }
     throw problem;
   }
@@ -262,7 +257,7 @@ function frontmatterTextWithTextValueOf(frontmatterText: string, key: 'title' | 
   const lines = frontmatterText.split('\n');
   const keyLineIndex = lines.findLastIndex((line) => {
     const reading = keyValueReadingOf(withoutCarriageReturn(line));
-    return typeof reading !== 'string' && reading[0] === key;
+    return Array.isArray(reading) && reading[0] === key;
   });
   if (keyLineIndex === -1) return frontmatterText;
   const carriageReturn = (lines[keyLineIndex] ?? '').endsWith(CARRIAGE_RETURN) ? CARRIAGE_RETURN : '';
@@ -272,7 +267,7 @@ function frontmatterTextWithTextValueOf(frontmatterText: string, key: 'title' | 
 
 function closingFenceIndexOf(lines: readonly string[]): number {
   if (withoutCarriageReturn(lines[0] ?? '') !== FRONTMATTER_FENCE) {
-    throw new FrontmatterProblem('the first line must be the frontmatter fence `---`', 1);
+    throw new FrontmatterProblem({ code: 'first-line-not-a-fence' }, 1);
   }
   for (let index = 1; index < lines.length; index++) {
     if (withoutCarriageReturn(lines[index] ?? '') === FRONTMATTER_FENCE) {
@@ -280,7 +275,7 @@ function closingFenceIndexOf(lines: readonly string[]): number {
     }
   }
   const lastWrittenLine = lines[lines.length - 1] === '' ? lines.length - 1 : lines.length;
-  throw new FrontmatterProblem('the frontmatter has no closing `---` fence', Math.max(lastWrittenLine, 1));
+  throw new FrontmatterProblem({ code: 'no-closing-fence' }, Math.max(lastWrittenLine, 1));
 }
 
 /** The body is returned byte for byte from the character after the closing fence's newline. */
@@ -308,30 +303,30 @@ function proseLineIndexAfterSingleHashLine(lines: readonly string[], index: numb
     return null;
   }
   const followingLine = withoutCarriageReturn(lines[followingIndex] ?? '');
-  const followingLineIsProse = !followingLine.trim().startsWith(COMMENT_KEY) && typeof keyValueReadingOf(followingLine) === 'string';
+  const followingLineIsProse = !followingLine.trim().startsWith(COMMENT_KEY) && !Array.isArray(keyValueReadingOf(followingLine));
   return followingLineIsProse ? followingIndex : null;
 }
 
 /** Splits at the first `': '`, so `title: Fix: the thing` keeps its second colon; anything that is not a `key: value` line is refused. */
 function keyAndRawValueOf(line: string, lineNumber: number): [key: string, rawValue: string] {
   const reading = keyValueReadingOf(line);
-  if (typeof reading === 'string') {
+  if (!Array.isArray(reading)) {
     throw new FrontmatterProblem(reading, lineNumber);
   }
   return reading;
 }
 
-/** The key and raw value of a `key: value` line, or the reason it is not one. */
-function keyValueReadingOf(line: string): [key: string, rawValue: string] | string {
+/** The key and raw value of a `key: value` line, or the problem that it is not one. */
+function keyValueReadingOf(line: string): [key: string, rawValue: string] | TicketFileProblem {
   const separatorIndex = line.indexOf(KEY_VALUE_SEPARATOR);
   const key            = separatorIndex > 0 ? line.slice(0, separatorIndex) : line.slice(0, -1);
   const rawValue       = separatorIndex > 0 ? line.slice(separatorIndex + KEY_VALUE_SEPARATOR.length) : '';
 
   if (separatorIndex <= 0 && !line.endsWith(':')) {
-    return `\`${line}\` is not a \`key: value\` line`;
+    return { code: 'not-a-key-value-line', lineText: line };
   }
   if (!KEY_PATTERN.test(key)) {
-    return `\`${key}\` is not a usable frontmatter key`;
+    return { code: 'key-unusable', field: key };
   }
   return [key, rawValue];
 }
@@ -342,12 +337,12 @@ function scalarOf(rawValue: string, key: string, lineNumber: number): Frontmatte
   }
   if (key === INTEGER_KEY && INTEGER_PATTERN.test(rawValue)) {
     if (!Number.isSafeInteger(Number(rawValue))) {
-      throw new FrontmatterProblem(`\`${key}\` is not a safe whole number: ${rawValue}`, lineNumber);
+      throw new FrontmatterProblem({ code: 'task-not-a-safe-whole-number', field: key, storedValue: rawValue }, lineNumber);
     }
     return Number(rawValue);
   }
   if (key === INTEGER_KEY && rawValue.startsWith('"')) {
-    throw new FrontmatterProblem(`\`${key}\` is quoted, but a task is a whole number written without quotes: ${rawValue}`, lineNumber);
+    throw new FrontmatterProblem({ code: 'task-quoted', field: key, storedValue: rawValue }, lineNumber);
   }
   if (rawValue.startsWith('"')) {
     return jsonStringOf(rawValue, key, lineNumber);
@@ -360,10 +355,10 @@ function jsonStringOf(rawValue: string, key: string, lineNumber: number): string
   try {
     parsed = JSON.parse(rawValue);
   } catch {
-    throw new FrontmatterProblem(`\`${key}\` opens a quoted value that does not close: ${rawValue}`, lineNumber);
+    throw new FrontmatterProblem({ code: 'quoted-value-unclosed', field: key, storedValue: rawValue }, lineNumber);
   }
   if (typeof parsed !== 'string') {
-    throw new FrontmatterProblem(`\`${key}\` is quoted but does not hold text`, lineNumber);
+    throw new FrontmatterProblem({ code: 'quoted-value-not-text', field: key }, lineNumber);
   }
   return parsed;
 }
@@ -378,13 +373,12 @@ function frontmatterFrom(
 
   const typeIsRetired = VocabularyUtil.retiredTicketTypeIsKnown(typeText);
   if (!typeIsRetired && !VocabularyUtil.ticketTypeIsKnown(typeText)) {
-    throw new FrontmatterProblem(`\`type\` is not a known ticket type: ${typeText}`, lineOf(knownValues, 'type', closingFenceLine));
+    throw new FrontmatterProblem({
+      code: 'value-unknown', field: 'type', storedValue: typeText, vocabulary: 'ticket-type'
+    }, lineOf(knownValues, 'type', closingFenceLine));
   }
   if (!VocabularyUtil.ticketStatusIsKnown(statusText)) {
-    throw new FrontmatterProblem(
-      `\`status\` is not a known ticket status: ${statusText}; ${OLDER_FORMAT_ADVICE}`,
-      lineOf(knownValues, 'status', closingFenceLine),
-    );
+    throw new FrontmatterProblem({ code: 'status-unknown', field: 'status', storedValue: statusText }, lineOf(knownValues, 'status', closingFenceLine));
   }
 
   const frontmatter: TicketFrontmatter = {
@@ -423,7 +417,7 @@ function identifierFrom(knownValues: Map<string, KnownValue>, closingFenceLine: 
   // Digits only first: the reference parser also takes `#3`, which is a way to name a ticket, not to write its id.
   const identifier = DIGITS_PATTERN.test(text) ? TicketIdUtil.parseTicketReference(text) : null;
   if (identifier === null) {
-    throw new FrontmatterProblem(`\`id\` is not a ticket number: ${text}`, lineOf(knownValues, 'id', closingFenceLine));
+    throw new FrontmatterProblem({ code: 'id-not-a-ticket-number', field: 'id', storedValue: text }, lineOf(knownValues, 'id', closingFenceLine));
   }
   return identifier;
 }
@@ -449,7 +443,9 @@ function priorityField(knownValues: Map<string, KnownValue>): Pick<TicketFrontma
   }
   const priorityText = textOf(found, 'priority');
   if (!VocabularyUtil.ticketPriorityIsKnown(priorityText)) {
-    throw new FrontmatterProblem(`\`priority\` is not a known ticket priority: ${priorityText}`, found.line);
+    throw new FrontmatterProblem({
+      code: 'value-unknown', field: 'priority', storedValue: priorityText, vocabulary: 'ticket-priority'
+    }, found.line);
   }
   return { priority: priorityText };
 }
@@ -462,7 +458,9 @@ function sizeField(knownValues: Map<string, KnownValue>): Pick<TicketFrontmatter
   }
   const sizeText = textOf(found, 'size');
   if (!VocabularyUtil.ticketSizeIsKnown(sizeText)) {
-    throw new FrontmatterProblem(`\`size\` is not a known ticket size: ${sizeText}`, found.line);
+    throw new FrontmatterProblem({
+      code: 'value-unknown', field: 'size', storedValue: sizeText, vocabulary: 'ticket-size'
+    }, found.line);
   }
   return { size: sizeText };
 }
@@ -475,12 +473,20 @@ function agentFields(knownValues: Map<string, KnownValue>): Pick<TicketFrontmatt
 
   if (model !== undefined && model.value !== null) {
     const modelText = textOf(model, 'model');
-    if (!VocabularyUtil.agentModelIsKnown(modelText)) throw new FrontmatterProblem(`\`model\` is not a known agent model: ${modelText}`, model.line);
+    if (!VocabularyUtil.agentModelIsKnown(modelText)) {
+      throw new FrontmatterProblem({
+        code: 'value-unknown', field: 'model', storedValue: modelText, vocabulary: 'agent-model'
+      }, model.line);
+    }
     fields.model = modelText;
   }
   if (effort !== undefined && effort.value !== null) {
     const effortText = textOf(effort, 'effort');
-    if (!VocabularyUtil.agentEffortIsKnown(effortText)) throw new FrontmatterProblem(`\`effort\` is not a known agent effort: ${effortText}`, effort.line);
+    if (!VocabularyUtil.agentEffortIsKnown(effortText)) {
+      throw new FrontmatterProblem({
+        code: 'value-unknown', field: 'effort', storedValue: effortText, vocabulary: 'agent-effort'
+      }, effort.line);
+    }
     fields.effort = effortText;
   }
   return fields;
@@ -493,7 +499,7 @@ function releasesGroupField(knownValues: Map<string, KnownValue>): Pick<TicketFr
     return {};
   }
   if (found.value !== RELEASES_GROUP_VALUE) {
-    throw new FrontmatterProblem(`\`${RELEASES_GROUP_KEY}\` is neither true nor null: ${found.value}`, found.line);
+    throw new FrontmatterProblem({ code: 'releases-group-not-true-or-null', field: RELEASES_GROUP_KEY, storedValue: String(found.value) }, found.line);
   }
   return { releasesGroup: true };
 }
@@ -517,7 +523,7 @@ function dependencyField(knownValues: Map<string, KnownValue>): Pick<TicketFront
   for (const reference of String(found.value).split(FRONTMATTER_LIST_SEPARATOR_PATTERN).filter((part) => part !== '')) {
     const identifier = TicketIdUtil.parseTicketReference(reference);
     if (identifier === null) {
-      throw new FrontmatterProblem(`\`dependsOn\` names something that is not a ticket number: ${reference}`, found.line);
+      throw new FrontmatterProblem({ code: 'names-a-non-ticket-number', field: 'dependsOn', storedValue: reference }, found.line);
     }
     if (!dependsOn.includes(identifier)) {
       dependsOn.push(identifier);
@@ -534,7 +540,7 @@ function ticketLinkFields(knownValues: Map<string, KnownValue>): Pick<TicketFron
     if (found === undefined || found.value === null) continue;
     const identifier = TicketIdUtil.parseTicketReference(String(found.value));
     if (identifier === null) {
-      throw new FrontmatterProblem(`\`${key}\` names something that is not a ticket number: ${found.value}`, found.line);
+      throw new FrontmatterProblem({ code: 'names-a-non-ticket-number', field: key, storedValue: String(found.value) }, found.line);
     }
     fields[key] = identifier;
   }
@@ -550,7 +556,7 @@ function epicsField(knownValues: Map<string, KnownValue>): Pick<TicketFrontmatte
   const epics: string[] = [];
   for (const epicKey of String(found.value).split(FRONTMATTER_LIST_SEPARATOR_PATTERN).filter((part) => part !== '')) {
     if (!EpicUtil.epicKeyIsWellFormed(epicKey)) {
-      throw new FrontmatterProblem(`\`epics\` names something that is not an epic key: ${epicKey}`, found.line);
+      throw new FrontmatterProblem({ code: 'names-a-non-epic-key', field: 'epics', storedValue: epicKey }, found.line);
     }
     if (!epics.includes(epicKey)) {
       epics.push(epicKey);
@@ -571,7 +577,7 @@ function networkField(knownValues: Map<string, KnownValue>): Pick<TicketFrontmat
   const network = NetworkDomainUtil.normalisedDomainListOf(String(found.value).split(FRONTMATTER_LIST_SEPARATOR_PATTERN));
   const nonPublicDomain = network.find((domain) => !NetworkDomainUtil.domainIsPublic(domain));
   if (nonPublicDomain !== undefined) {
-    throw new FrontmatterProblem(`\`network\` names something that is not a public domain: ${nonPublicDomain}`, found.line);
+    throw new FrontmatterProblem({ code: 'names-a-non-public-domain', field: 'network', storedValue: nonPublicDomain }, found.line);
   }
   return network.length === 0 ? {} : { network };
 }
@@ -587,7 +593,7 @@ function entityFields(knownValues: Map<string, KnownValue>): Pick<TicketFrontmat
 
   if (entity !== undefined && entity.value !== null) {
     const entityKey = textOf(entity, ENTITY_KEY);
-    if (entityKey.trim() === '') throw new FrontmatterProblem(`\`${ENTITY_KEY}\` is blank, and it has to name an entity`, entity.line);
+    if (entityKey.trim() === '') throw new FrontmatterProblem({ code: 'entity-blank', field: ENTITY_KEY }, entity.line);
     fields.entity = entityKey;
   }
   if (crosses !== undefined && crosses.value !== null) {
@@ -613,14 +619,16 @@ function contentHashField(knownValues: Map<string, KnownValue>): Pick<TicketFron
     return {};
   }
   const contentHash = textOf(found, CONTENT_HASH_KEY);
-  if (!CONTENT_HASH_PATTERN.test(contentHash)) throw new FrontmatterProblem(`\`${CONTENT_HASH_KEY}\` is not a content hash of sixteen hex digits: ${contentHash}`, found.line);
+  if (!CONTENT_HASH_PATTERN.test(contentHash)) {
+    throw new FrontmatterProblem({ code: 'content-hash-malformed', field: CONTENT_HASH_KEY, storedValue: contentHash }, found.line);
+  }
   return { contentHash };
 }
 
 function requiredText(knownValues: Map<string, KnownValue>, key: string, closingFenceLine: number): string {
   const found = knownValues.get(key);
   if (found === undefined) {
-    throw new FrontmatterProblem(`the frontmatter has no \`${key}\` key`, closingFenceLine);
+    throw new FrontmatterProblem({ code: 'key-missing', field: key }, closingFenceLine);
   }
   return textOf(found, key);
 }
@@ -639,14 +647,14 @@ function nullableInteger(knownValues: Map<string, KnownValue>, key: string): num
     return null;
   }
   if (typeof found.value !== 'number') {
-    throw new FrontmatterProblem(`\`${key}\` is not a whole number: ${found.value}`, found.line);
+    throw new FrontmatterProblem({ code: 'not-a-whole-number', field: key, storedValue: String(found.value) }, found.line);
   }
   return found.value;
 }
 
 function textOf(found: KnownValue, key: string): string {
   if (found.value === null) {
-    throw new FrontmatterProblem(`\`${key}\` may not be null`, found.line);
+    throw new FrontmatterProblem({ code: 'value-null', field: key }, found.line);
   }
   return String(found.value);
 }

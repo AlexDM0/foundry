@@ -3,18 +3,20 @@
  * goes to the Assistant, whose default parks the ticket for User. A session job neither a fresh agent nor a park can heal is retired instead,
  * so a fresh one launches by the board's own rules.
  */
-import type { Incident }      from '../../lib/tracker-model/@types/Incident.ts';
-import type { LogRecord }     from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Board }         from '../../lib/tracker-model/Board.ts';
-import { PARKED_HOLD_PREFIX } from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
+import type { UnreadableFileProblem } from '../../adapters/@types/UnreadableFileProblem.ts';
+import type { Incident }              from '../../domain/tracker-model/@types/Incident.ts';
+import type { LogRecord }             from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { Board }                 from '../../domain/tracker-model/Board.ts';
+import { PARKED_HOLD_PREFIX }         from '../../domain/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
+import { StoredFileProblemFactsUtil } from '../../shared/utils/StoredFileProblemFactsUtil.ts';
 
 const UNREADABLE_FILE_INCIDENT_KIND = 'system-file-unreadable';
 
 /** The job the file belongs to, the file's path inside the board's data folder, and why its ingestion could not read it. */
 export interface UnreadableJobFile {
-  readonly jobId:  string;
-  readonly file:   string;
-  readonly reason: string;
+  readonly jobId:   string;
+  readonly file:    string;
+  readonly problem: UnreadableFileProblem;
 }
 
 function openIncidentsOf(board: Board, jobId: string): readonly Readonly<Incident>[] {
@@ -35,7 +37,7 @@ function openOnce(board: Board, unreadable: UnreadableJobFile, at: string): read
     kind:        UNREADABLE_FILE_INCIDENT_KIND,
     ticketIds:   job.ticketIds,
     jobId:       job.id,
-    facts:       { file: unreadable.file, reason: unreadable.reason },
+    facts:       { file: unreadable.file, ...StoredFileProblemFactsUtil.factsOf(unreadable.problem) },
     defaultMove: 'ticket-park',
   }, at).logged;
 }

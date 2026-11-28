@@ -13,6 +13,7 @@ import {
 } from 'bun:test';
 
 import { createScratchDirectory, removeScratchDirectory }                        from '../../testing/ScratchWorkspace.ts';
+import type { RedHandoffProblem }                                                from './@types/RedHandoffProblem.ts';
 import { RED_HANDOFF_FORMAT_VERSION, type RedHandoffFacts, RedHandoffIngestion } from './RedHandoffIngestion.ts';
 import { createRedHandoffWriter }                                                from './RedHandoffWriter.ts';
 
@@ -66,25 +67,25 @@ test('a file that is not JSON is unreadable', () => {
 
 test('facts of another version, or of none, are unreadable', () => {
   writeFileSync(factsFilePath(), `${JSON.stringify({ ...GATE_FACTS, version: RED_HANDOFF_FORMAT_VERSION + 1 })}\n`);
-  expect(reading()).toEqual({ verdict: 'unreadable', reason: `its version is not ${RED_HANDOFF_FORMAT_VERSION}` });
+  expect(reading()).toEqual({ verdict: 'unreadable', problem: { code: 'version-differs', field: 'version', expectedVersion: RED_HANDOFF_FORMAT_VERSION } });
   writeFileSync(factsFilePath(), `${JSON.stringify(GATE_FACTS)}\n`);
-  expect(reading()).toEqual({ verdict: 'unreadable', reason: `its version is not ${RED_HANDOFF_FORMAT_VERSION}` });
+  expect(reading()).toEqual({ verdict: 'unreadable', problem: { code: 'version-differs', field: 'version', expectedVersion: RED_HANDOFF_FORMAT_VERSION } });
 });
 
-test.each([
-  ['kind', { kind: 'lint' }, 'its "kind" is not a red handoff kind'],
-  ['name', { name: null }, 'its "name" is not text'],
-  ['command', { command: 1 }, 'its "command" is not text or null'],
-  ['commit', { commit: null }, 'its "commit" is not a commit'],
-  ['exitCode', { exitCode: '1' }, 'its "exitCode" is not an exit code or null'],
-  ['gateFailureNotePath', { gateFailureNotePath: undefined }, 'its "gateFailureNotePath" is not a path'],
-  ['resume', { resume: -1 }, 'its "resume" is not a count'],
-  ['interruptedInstance', { interruptedInstance: 1.5 }, 'its "interruptedInstance" is not a child instance'],
-  ['mergedTip', { mergedTip: 3 }, 'its "mergedTip" is not a commit'],
-  ['scopeResumed', { scopeResumed: false }, 'its "scopeResumed" is not true'],
-])('a wrong %s is unreadable', (_field, change, reason) => {
+test.each<[string, Record<string, unknown>, RedHandoffProblem]>([
+  ['kind', { kind: 'lint' }, { code: 'field-is-not', field: 'kind', expected: 'a-red-handoff-kind' }],
+  ['name', { name: null }, { code: 'field-is-not', field: 'name', expected: 'text' }],
+  ['command', { command: 1 }, { code: 'field-is-not', field: 'command', expected: 'text-or-null' }],
+  ['commit', { commit: null }, { code: 'field-is-not', field: 'commit', expected: 'a-commit' }],
+  ['exitCode', { exitCode: '1' }, { code: 'field-is-not', field: 'exitCode', expected: 'an-exit-code-or-null' }],
+  ['gateFailureNotePath', { gateFailureNotePath: undefined }, { code: 'field-is-not', field: 'gateFailureNotePath', expected: 'a-path' }],
+  ['resume', { resume: -1 }, { code: 'field-is-not', field: 'resume', expected: 'a-count' }],
+  ['interruptedInstance', { interruptedInstance: 1.5 }, { code: 'field-is-not', field: 'interruptedInstance', expected: 'a-child-instance' }],
+  ['mergedTip', { mergedTip: 3 }, { code: 'field-is-not', field: 'mergedTip', expected: 'a-commit' }],
+  ['scopeResumed', { scopeResumed: false }, { code: 'field-is-not', field: 'scopeResumed', expected: 'true' }],
+])('a wrong %s is unreadable', (_field, change, problem) => {
   writeFileSync(factsFilePath(), `${JSON.stringify({ version: RED_HANDOFF_FORMAT_VERSION, ...GATE_FACTS, ...change })}\n`);
-  expect(reading()).toEqual({ verdict: 'unreadable', reason });
+  expect(reading()).toEqual({ verdict: 'unreadable', problem });
 });
 
 test('a folder where the file belongs is unreadable, not absent, and does not throw', () => {

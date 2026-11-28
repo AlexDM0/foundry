@@ -51,7 +51,7 @@ its Deviations from them, each with why.
    `forge-contracts/ForgeCompatibilityRegistry`; Gaia's own, toward its page and launcher, is
    `apps/gaia/src/shared/constants/GaiaCompatibilityRegistry.ts`, beside `GAIA_SYSTEM_VERSION` and the routes' versions
    in `apps/gaia/src/shared/constants/GaiaSystemVersions.ts`. **Gaia supports exactly one forge version**,
-   `SUPPORTED_FORGE_VERSION` (`apps/gaia/src/lib/forge-client/constants/SupportedForgeVersions.ts`), and keeps no
+   `SUPPORTED_FORGE_VERSION` (`apps/gaia/src/shared/constants/SupportedForgeVersions.ts`), and keeps no
    backward compatibility for any other: no migration of an older forge document, no unversioned forge path, no
    recording of an older forge read. The forge endpoint versions it calls are derived from forge's registry at that
    version, never listed by Gaia; verify warns while it is behind forge's current version in `forge-contracts`. Gaia

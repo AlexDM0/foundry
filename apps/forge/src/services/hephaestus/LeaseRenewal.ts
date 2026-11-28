@@ -3,8 +3,9 @@
  * renewal is only worth what the main loop proves. A heartbeat measures real time, so the timer reads the wall clock; progress is a pass
  * number, never an elapsed time: the same pass in flight at two ticks in a row withholds the renewal.
  */
-import type { LeaseRenewer }    from '../../lib/talos/TalosRecord.ts';
-import type { TalosConnection } from './TalosConnection.ts';
+import type { HephaestusLog, HephaestusLogRecord } from '../../adapters/@types/HephaestusLogRecord.ts';
+import type { LeaseRenewer }                       from '../../domain/talos/TalosRecord.ts';
+import type { TalosConnection }                    from './TalosConnection.ts';
 
 export interface PassProgress {
   /** The number of the pass running now, counted from 1 over Hephaestus's life; `null` between passes. */
@@ -19,7 +20,7 @@ export interface LeaseRenewalRequest {
   tickGapMilliseconds:  number;
   passProgress:         PassProgress;
   wallNowMilliseconds:  () => number;
-  log:                  (sentence: string) => void;
+  log:                  HephaestusLog;
   /** After each renewal Talos answered `done`; stage 3 writes the heartbeat here. */
   onRenewed?:           (renewedAtWallMilliseconds: number) => void;
 }
@@ -38,21 +39,21 @@ function quietly(action: () => void): void {
 }
 
 export function startLeaseRenewal(request: LeaseRenewalRequest): LeaseRenewal {
-  const log = (sentence: string): void => quietly(() => request.log(sentence));
+  const log = (record: HephaestusLogRecord): void => quietly(() => request.log(record));
 
   const renew = async (renewedAtWallMilliseconds: number): Promise<void> => {
     const connection = request.connection();
     if (connection === null) {
-      log('The lease renewal found no connection to Talos.');
+      log({ kind: 'lease-renewal-without-connection' });
       return;
     }
     const answer = await connection.send({ kind: 'lease-renewal', renewer: request.renewer }).catch(() => 'no-answer' as const);
     if (answer === 'no-answer') {
-      log('Talos did not answer a lease renewal.');
+      log({ kind: 'lease-renewal-unanswered' });
       return;
     }
     if (answer.verdict === 'refused') {
-      log(`Talos refused a lease renewal: ${answer.reason}.`);
+      log({ kind: 'lease-renewal-refused', reason: answer.reason });
       return;
     }
     const { onRenewed } = request;
@@ -75,7 +76,7 @@ export function startLeaseRenewal(request: LeaseRenewalRequest): LeaseRenewal {
     const samePassStillInFlight = !isGap && passInFlight !== null && passInFlight === passSeenAtThePreviousTick;
     passSeenAtThePreviousTick = passInFlight;
     if (samePassStillInFlight) {
-      if (!withheldStreakLogged) log(`The lease renewal is withheld: pass ${passInFlight} has run for more than one renewal interval.`);
+      if (!withheldStreakLogged) log({ kind: 'lease-renewal-withheld', passNumber: passInFlight });
       withheldStreakLogged = true;
       return;
     }

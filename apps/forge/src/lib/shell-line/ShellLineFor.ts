@@ -1,16 +1,16 @@
-/** The one selector of the `ShellLine` port; a platform with no adapter refuses a spawn and reads every exit as `cannot-run`. */
+/** The one selector of the `ShellLine` port; a platform with no adapter refuses every folder and spawn, and reads every exit as `cannot-run`. */
 import { createPosixShellLine, type PosixShellPrimitives }         from './PosixShellLine.ts';
-import type { ShellLine }                                          from './ShellLine.ts';
+import type { ShellLine, ShellSpawnRefusal }                       from './ShellLine.ts';
 import { createWindowsCommandLine, type WindowsCommandPrimitives } from './WindowsCommandLine.ts';
 
 export type ShellLinePrimitives = PosixShellPrimitives & WindowsCommandPrimitives;
 
-function createUnsupportedShellLine(platform: string): ShellLine {
+const NO_SHELL_GRAMMAR = Object.freeze<ShellSpawnRefusal>({ verdict: 'refused', refusal: 'no-shell-grammar' });
+
+function createUnsupportedShellLine(): ShellLine {
   return Object.freeze<ShellLine>({
-    spawnRequestOf: () => {
-      throw new Error(`no shell line exists for the platform ${platform}`);
-    },
-    runRefusalOf:        () => null,
+    spawnRequestOf:      () => NO_SHELL_GRAMMAR,
+    runRefusalOf:        () => NO_SHELL_GRAMMAR.refusal,
     exitMeaningOf:       () => 'cannot-run',
     lineLimitCharacters: null,
     // No grammar to split in, so no word of a line is granted.
@@ -23,5 +23,5 @@ function createUnsupportedShellLine(platform: string): ShellLine {
 
 export function shellLineFor(platform: string, primitives: ShellLinePrimitives): ShellLine {
   if (platform === 'darwin' || platform === 'linux') return createPosixShellLine(primitives);
-  return platform === 'win32' ? createWindowsCommandLine(primitives) : createUnsupportedShellLine(platform);
+  return platform === 'win32' ? createWindowsCommandLine(primitives) : createUnsupportedShellLine();
 }

@@ -247,12 +247,12 @@ tracked file.
 | Add a command | An entry in `cli/CommandTable.ts`, a block in `cli/HelpText.ts`, a folder in its set under `cli/` | A row in `docs/cli.md`, the one documentation entry a spec checks (`cli/HelpText.flags.spec.ts`); the verb's place in the lists in `cli/ControlContract.spec.ts` | `cli/CommandTable.spec.ts`, `cli/HelpText.spec.ts`, `cli/HelpText.flags.spec.ts`, `cli/ControlContract.spec.ts` |
 | Word a refusal | `src/adapters/utils/OperationRefusalWordingUtil.ts` | A new detail kind in `src/shared/OperationRefusal.ts`; [Refusals](../reference/refusals.md) | `src/adapters/utils/OperationRefusalWordingUtil.spec.ts` |
 | Add a change to the board that a job or a client can ask for | A kind in `src/shared/@types/ControlCommand.ts`, a function in `src/services/control/` that applies it | Its verb in `cli/constants/JobVerbs.ts` | `cli/ControlContract.spec.ts`, `cli/HatchUnderJob.spec.ts` |
-| Change a domain rule | A module in `src/lib/tracker-model/` that the `Board` class delegates to | Nothing outside the package | `src/lib/tracker-model/Board.*.spec.ts`, `architecture/ImportDirection.spec.ts` |
-| Change what runs next | The [Playbook](../glossary.md#playbook), `src/lib/tracker-model/Playbook.ts` | A test in its spec, and a source mutant that proves the test fails without your change: see [Architecture tests and testing](architecture-tests-and-testing.md) | `src/lib/tracker-model/Playbook.spec.ts`, `src/lib/tracker-model/Playbook.interleavings.spec.ts` |
+| Change a domain rule | A module in `src/domain/tracker-model/` that the `Board` class delegates to | Nothing outside the package | `src/domain/tracker-model/Board.*.spec.ts`, `architecture/ImportDirection.spec.ts` |
+| Change what runs next | The [Playbook](../glossary.md#playbook), `src/domain/tracker-model/Playbook.ts` | A test in its spec, and a source mutant that proves the test fails without your change: see [Architecture tests and testing](architecture-tests-and-testing.md) | `src/domain/tracker-model/Playbook.spec.ts`, `src/domain/tracker-model/Playbook.interleavings.spec.ts` |
 | Change a stored format | `src/adapters/<store>/`: its reader, writer and `utils/` mapping (`*Ingestion` and `*Writer` for most stores, `PipelineFile.ts` for the [pipeline](../glossary.md#pipeline)) | The format in `docs/cli.md` | The adapter's specs, `cli/OlderTrackerRefusal.spec.ts` |
 | Share a tunable | A named constant in `src/shared/constants/`; a constant with one consumer stays beside it | Nothing | `@typescript-eslint/no-magic-numbers` in `eslint.config.js` forces a name, not a home; `src/shared/constants/Limits.spec.ts` holds relations between constants, not their presence |
 | Change what an installed file names | `resources/templates/`, `resources/prompts/` or `skills/` | Bump the [install version](../glossary.md#install-version), `INSTALL_VERSION` in `cli/constants/InstallVersion.ts`, by hand, in the same commit | `cli/InstalledSurface.spec.ts` against `cli/FrozenInstalledSurface.json` |
-| Add a package dependency inside `src/lib/` | The "depends on" sentence in the main module's header | The import | `architecture/ImportDirection.spec.ts` |
+| Add a package dependency inside `src/lib/` or `src/domain/` | The "depends on" sentence in the main module's header | The import | `architecture/ImportDirection.spec.ts` |
 | Rename a component | Every tracked file | The old name in `RETIRED_NAMES` | `architecture/ComponentNames.spec.ts` |
 
 ## Seeing a change in a running Hephaestus
@@ -333,8 +333,8 @@ commit rule; the [rule book](../../../../.claude/rules/forge.md)'s sections "Ver
 | Edit hook | `.claude/hooks/fix-lint-on-edit.sh` | None | None |
 | Hook policy of Hephaestus's git | `src/lib/git/GitProcess.ts` | `HOOKS_OFF_OVERRIDES`, `GitHookPolicy` | `src/lib/git/GitProcess.integration.spec.ts` |
 | A session's hooks | `src/lib/claude-code/ClaudeCodeAdapter.ts` | `gitConfigurationOf` | `src/lib/claude-code/ClaudeCodeAdapter.spec.ts` |
-| Scratch path bound | `src/lib/talos/PosixSocketEndpoint.ts` | `MACOS_SOCKET_PATH_LIMIT_BYTES` | `src/lib/talos/PosixSocketEndpoint.spec.ts` |
-| Outage from crashes | `src/lib/tracker-model/Playbook.ts` | `outageIsDue` | `src/lib/tracker-model/Playbook.spec.ts` |
+| Scratch path bound | `src/lib/local-endpoint/PosixSocketEndpoint.ts` | `MACOS_SOCKET_PATH_LIMIT_BYTES` | `src/lib/local-endpoint/PosixSocketEndpoint.spec.ts` |
+| Outage from crashes | `src/domain/tracker-model/Playbook.ts` | `outageIsDue` | `src/domain/tracker-model/Playbook.spec.ts` |
 | Reading the variables | `src/shared/Environment.ts` | `ROOT_OVERRIDE_VARIABLE`, `FAKE_AGENT_VARIABLE`, `FAKE_AGENT_KEEPS_WORKING_VARIABLE` | `cli/ProductNameIsolation.integration.spec.ts` |
 | Finding a tracker | `src/services/tracker/Workspace.ts` | `findWorkspace`, `requireWorkspace` | `src/services/tracker/Workspace.integration.spec.ts` |
 | Code on disk | `src/services/hephaestus/CodeVersion.ts` | `CodeVersion.onDisk` | `src/services/hephaestus/CodeVersion.spec.ts` |

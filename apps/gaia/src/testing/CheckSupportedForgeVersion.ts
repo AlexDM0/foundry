@@ -6,7 +6,7 @@ import { FORGE_SYSTEM_VERSIONS } from 'forge-contracts/ForgeSystemVersions';
 import { SystemVersionUtil }     from 'system-versions/SystemVersionUtil';
 import type { SystemVersion }    from 'system-versions/VersionsDocument';
 
-import { SUPPORTED_FORGE_VERSION } from '../lib/forge-client/constants/SupportedForgeVersions.ts';
+import { SUPPORTED_FORGE_VERSION } from '../shared/constants/SupportedForgeVersions.ts';
 
 /** The warning to print while Gaia supports an older forge than the one beside it; `null` once it supports that one or a later one. */
 export function supportedForgeVersionWarningOf(supported: SystemVersion, forgeCurrent: SystemVersion): string | null {

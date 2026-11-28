@@ -12,18 +12,17 @@ import type { AgentConfinement, AgentLaunchRequest }                 from '../..
 import type { WorkerProfile }                                        from '../../lib/agent-launch/WorkerProfile.ts';
 import { confinedLineOf }                                            from '../../lib/gate-confinement/ConfinedLine.ts';
 import type { ConfinementPlan, ConfinementVerdict, GateConfinement } from '../../lib/gate-confinement/GateConfinement.ts';
+import type { ConfinementRefusal }                                   from '../../shared/@types/ConfinementRefusal.ts';
 
 /** In the session's job files folder, where an adapter that describes its confinement in a file keeps it. */
 const SESSION_CONFINEMENT_FILE_NAME = 'session-confinement';
 
-export const NETWORK_DOMAINS_REFUSAL = 'Hephaestus\'s confinement gives a session the network whole or not at all, and this session\'s profile'
-  + ' allows only some domains, which it never widens';
 
 export type SessionLaunch =
   | { readonly verdict: 'runs'; readonly plan: AgentLaunchPlan }
-  | { readonly verdict: 'refused'; readonly reason: string };
+  | { readonly verdict: 'refused'; readonly refusal: ConfinementRefusal };
 
-type SessionPlanRequest = Pick<AgentLaunchRequest, 'profile' | 'workingDirectory' | 'jobFilesDirectory'>;
+type SessionPlanRequest = Pick<AgentLaunchRequest, 'profile' | 'workingDirectory' | 'launchFilesDirectory'>;
 
 /** What a session of an agent with these capabilities runs under on this platform. */
 function confinementVerdictOf(capabilities: Pick<AgentCapabilities, 'ownConfinement'>, gateConfinement: GateConfinement): ConfinementVerdict {
@@ -40,12 +39,12 @@ function hasNetworkDomains(profile: Pick<WorkerProfile, 'shellNetworkDomains' | 
 }
 
 /** Why forge's confinement refuses a session of this profile; `null` when the agent confines it itself or forge's can. */
-function refusalOf(capabilities: Pick<AgentCapabilities, 'ownConfinement'>, gateConfinement: GateConfinement, profile: WorkerProfile): string | null {
+function refusalOf(capabilities: Pick<AgentCapabilities, 'ownConfinement'>, gateConfinement: GateConfinement, profile: WorkerProfile): ConfinementRefusal | null {
   if (capabilities.ownConfinement === 'applies-the-profile') return null;
   const availability = gateConfinement.availability();
-  if (availability.verdict === 'unavailable') return availability.reason;
+  if (availability.verdict === 'unavailable') return { cause: 'confinement-unavailable', unavailability: availability.unavailability };
   if (availability.verdict === 'unconfined-by-design') return null;
-  return hasNetworkDomains(profile) ? NETWORK_DOMAINS_REFUSAL : null;
+  return hasNetworkDomains(profile) ? { cause: 'network-domains-unconfinable' } : null;
 }
 
 /**
@@ -63,29 +62,24 @@ function planOf(request: SessionPlanRequest, agentWritablePaths: readonly string
     deniedWritableRoots: profile.deniedWritableRoots,
     deniedReadableRoots: profile.deniedReadableRoots,
     network:             true,
-    confinementFilePath: join(request.jobFilesDirectory, SESSION_CONFINEMENT_FILE_NAME),
+    confinementFilePath: join(request.launchFilesDirectory, SESSION_CONFINEMENT_FILE_NAME),
   };
 }
 
 /** The adapter's plan, its argv wrapped in forge's confinement when the agent brings none; refused when that confinement cannot hold it. */
 function sessionLaunchOf(adapter: AgentAdapter, gateConfinement: GateConfinement, request: AgentLaunchRequest): SessionLaunch {
   const refusal = refusalOf(adapter.capabilities, gateConfinement, request.profile);
-  if (refusal !== null) return { verdict: 'refused', reason: refusal };
+  if (refusal !== null) return { verdict: 'refused', refusal };
   const plan = adapter.planOf(request);
   if (adapter.capabilities.ownConfinement === 'applies-the-profile' || request.confinement === 'unconfined-by-design') return { verdict: 'runs', plan };
   const sessionPlanOf = (): ConfinementPlan => {
-    mkdirSync(request.jobFilesDirectory, { recursive: true });
+    mkdirSync(request.launchFilesDirectory, { recursive: true });
     return planOf(request, adapter.sessionWritablePathsOf(request.homeDirectory));
   };
   const line = confinedLineOf(gateConfinement, sessionPlanOf, plan.argv);
-  return line.verdict === 'refused' ? line : { verdict: 'runs', plan: { ...plan, argv: line.argv } };
-}
-
-/** For a launch that turns a refusal into a thrown error, as a session host's launch does. */
-function confinedPlanOf(adapter: AgentAdapter, gateConfinement: GateConfinement, request: AgentLaunchRequest): AgentLaunchPlan {
-  const launch = sessionLaunchOf(adapter, gateConfinement, request);
-  if (launch.verdict === 'refused') throw new Error(`the session cannot run confined: ${launch.reason}`);
-  return launch.plan;
+  return line.verdict === 'refused'
+    ? { verdict: 'refused', refusal: { cause: 'confinement-unavailable', unavailability: line.unavailability } }
+    : { verdict: 'runs', plan: { ...plan, argv: line.argv } };
 }
 
 export const SessionConfinement = Object.freeze({
@@ -94,5 +88,4 @@ export const SessionConfinement = Object.freeze({
   refusalOf,
   planOf,
   sessionLaunchOf,
-  confinedPlanOf,
 });

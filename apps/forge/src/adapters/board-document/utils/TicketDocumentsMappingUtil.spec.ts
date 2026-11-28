@@ -4,8 +4,8 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { DocumentProposal, LoadedTicketDocumentRecord, TicketDocument } from '../../../lib/tracker-model/@types/TicketDocument.ts';
-import { TicketDocumentVersionUtil }                                         from '../../../lib/tracker-model/utils/TicketDocumentVersionUtil.ts';
+import type { DocumentProposal, LoadedTicketDocumentRecord, TicketDocument } from '../../../domain/tracker-model/@types/TicketDocument.ts';
+import { TicketDocumentVersionUtil }                                         from '../../../domain/tracker-model/utils/TicketDocumentVersionUtil.ts';
 import type { EffectReading }                                                from '../../../shared/@types/EffectReading.ts';
 import { TicketDocumentsMappingUtil }                                        from './TicketDocumentsMappingUtil.ts';
 

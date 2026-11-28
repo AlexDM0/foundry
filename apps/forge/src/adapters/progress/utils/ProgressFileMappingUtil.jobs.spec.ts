@@ -4,11 +4,12 @@
  */
 import { expect, test } from 'bun:test';
 
-import { Board }                      from '../../../lib/tracker-model/Board.ts';
-import { createLogger }               from '../../../lib/tracker-model/Logger.ts';
+import { Board }                      from '../../../domain/tracker-model/Board.ts';
+import { createLogger }               from '../../../domain/tracker-model/Logger.ts';
 import { JsonTextUtil }               from '../../../shared/utils/JsonTextUtil.ts';
 import { emptyProgress, fileRow }     from '../../../testing/ProgressFixtures.ts';
 import type { StoredProgressFile }    from '../@types/StoredProgressFile.ts';
+import { ProgressFileProblemWording } from '../ProgressFileProblemWording.ts';
 import { ProgressFileMappingUtil }    from './ProgressFileMappingUtil.ts';
 import { ProgressFileValidationUtil } from './ProgressFileValidationUtil.ts';
 
@@ -79,7 +80,7 @@ function storedTextWithIntake(intake: Readonly<Record<string, string>>): string 
 
 function storedDocumentOf(text: string): StoredProgressFile {
   const reading = ProgressFileValidationUtil.readingOf(JSON.parse(text));
-  if (reading.verdict === 'unreadable') throw new Error(reading.reason);
+  if (reading.verdict === 'unreadable') throw new Error(ProgressFileProblemWording.sentenceOf(reading.problem));
   return reading.document;
 }
 
@@ -220,6 +221,6 @@ test('a job with a blank entity or a stage below one is refused, naming the fiel
   for (const [entityAndStage, field] of [[{ entity: ' ' }, 'jobs[0].entity'], [{ stage: 0 }, 'jobs[0].stage'], [{ stage: 1.5 }, 'jobs[0].stage']] as const) {
     const reading = ProgressFileValidationUtil.readingOf(JSON.parse(storedTextWithBuildJob(entityAndStage)));
     expect(reading.verdict).toBe('unreadable');
-    expect(reading.verdict === 'unreadable' ? reading.reason : '').toContain(field);
+    expect(reading.verdict === 'unreadable' ? ProgressFileProblemWording.sentenceOf(reading.problem) : '').toContain(field);
   }
 });

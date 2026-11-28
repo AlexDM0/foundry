@@ -1,12 +1,13 @@
 /** A merged-tree gate run's `outcome.json`, the gate it kept for the pass that settles its Airlock: read, validate, map. */
-import { StoredJsonDocumentUtil }       from '../utils/StoredJsonDocumentUtil.ts';
-import type { MergedTreeGate }          from './@types/MergedTreeGate.ts';
-import { MergedTreeGateValidationUtil } from './utils/MergedTreeGateValidationUtil.ts';
+import { StoredJsonDocumentUtil }            from '../utils/StoredJsonDocumentUtil.ts';
+import type { MergedTreeGate }               from './@types/MergedTreeGate.ts';
+import type { MergedTreeGateOutcomeProblem } from './@types/MergedTreeGateOutcomeProblem.ts';
+import { MergedTreeGateValidationUtil }      from './utils/MergedTreeGateValidationUtil.ts';
 
 export type MergedTreeGateOutcomeReading =
   | { verdict: 'readable'; gate: MergedTreeGate }
   | { verdict: 'absent' }
-  | { verdict: 'unreadable'; reason: string };
+  | { verdict: 'unreadable'; problem: MergedTreeGateOutcomeProblem };
 
 export const MERGED_TREE_GATE_OUTCOME_FORMAT_VERSION = 1;
 
@@ -21,7 +22,7 @@ export class MergedTreeGateOutcomeIngestion {
     if (stored.verdict !== 'readable') return stored;
     const { gate } = stored.document;
     const problem = MergedTreeGateValidationUtil.gateProblemOf(gate);
-    if (problem !== null) return { verdict: 'unreadable', reason: problem };
+    if (problem !== null) return { verdict: 'unreadable', problem };
     return { verdict: 'readable', gate: gate as MergedTreeGate };
   }
 }

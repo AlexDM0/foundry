@@ -1,7 +1,7 @@
 /**
  * A merged-tree gate's kept outcome both ways. What matters: what the writer stores, every optional field included, reads back as the same
- * gate, under its own `formatVersion` key; a missing file is absent; anything else is unreadable, never a throw, since an Airlock settled on
- * a malformed gate could merge a tree no gate judged.
+ * gate, under its own `formatVersion` key, a refused line's refusal worded as its output; a missing file is absent; anything else is
+ * unreadable, never a throw, since an Airlock settled on a malformed gate could merge a tree no gate judged.
  */
 import { writeFileSync } from 'node:fs';
 import { join }          from 'node:path';
@@ -12,8 +12,9 @@ import {
   test,
 } from 'bun:test';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import type { MergedTreeGate }                            from './@types/MergedTreeGate.ts';
+import type { MergedTreeGate, MergedTreeGateRunEnd }      from './@types/MergedTreeGate.ts';
 import { MergedTreeGateOutcomeIngestion }                 from './MergedTreeGateOutcomeIngestion.ts';
+import { MergedTreeGateOutcomeProblemWording }            from './MergedTreeGateOutcomeProblemWording.ts';
 import { createMergedTreeGateOutcomeWriter }              from './MergedTreeGateOutcomeWriter.ts';
 
 let scratchDirectory: string | null = null;
@@ -22,11 +23,11 @@ let outcomeFilePath = '';
 
 const reading = (): ReturnType<MergedTreeGateOutcomeIngestion['read']> => new MergedTreeGateOutcomeIngestion(outcomeFilePath).read();
 
-const PASSED_GATE: MergedTreeGate = {
+const PASSED_GATE: MergedTreeGateRunEnd = {
   outcome: 'passed', step: null, output: '', stamp: null
 };
 
-const RED_GATE: MergedTreeGate = {
+const RED_GATE: MergedTreeGateRunEnd = {
   outcome:      'failed',
   step:         'tests',
   entity:       'shop',
@@ -63,6 +64,17 @@ test.each([['a pass', PASSED_GATE], ['a red gate with every field', RED_GATE]])(
   expect(reading()).toEqual({ verdict: 'readable', gate });
 });
 
+test('a refused line is stored with its refusal worded as the output', () => {
+  createMergedTreeGateOutcomeWriter(outcomeFilePath).write({
+    outcome: 'sandbox-unavailable', step: 'tests', refusal: { code: 'shell-run-refused', refusal: 'no-shell-grammar', directory: '/example' }, stamp: null
+  });
+
+  const refusedGate: MergedTreeGate = {
+    outcome: 'sandbox-unavailable', step: 'tests', output: 'this platform has no shell to run a line in', stamp: null
+  };
+  expect(reading()).toEqual({ verdict: 'readable', gate: refusedGate });
+});
+
 test.each([
   ['not JSON', '{"formatVersion": 1, "gate": ', 'it is not valid JSON'],
   ['no format version', JSON.stringify({ gate: PASSED_GATE }), 'its formatVersion is not 1'],
@@ -83,5 +95,5 @@ test.each([
   const outcomeReading = reading();
 
   expect(outcomeReading.verdict).toBe('unreadable');
-  expect(outcomeReading.verdict === 'unreadable' ? outcomeReading.reason : '').toContain(reason);
+  expect(outcomeReading.verdict === 'unreadable' ? MergedTreeGateOutcomeProblemWording.sentenceOf(outcomeReading.problem) : '').toContain(reason);
 });

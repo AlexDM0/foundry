@@ -238,14 +238,14 @@ async function startDetached(
   files: HephaestusFiles,
   runArguments: readonly string[],
 ): Promise<string> {
-  if (context.programCommand.length === 0) throw new Error('This process has no program command to start a detached Hephaestus from.');
+  if (context.programCommand.length === 0) throw new OperationRefusal('unrepaired', 'This process has no program command to start a detached Hephaestus from.');
   const child = Bun.spawn([...context.programCommand, 'start', '--foreground', ...runArguments], {
     cwd:    rootDirectory,
     env:    outlivingProgramEnvironment(),
     stdin:  'ignore',
     stdout: 'ignore',
     stderr: 'ignore',
-    ...context.platformPorts.processSupervision.spawnOptionsFor('hephaestus'),
+    ...context.platformPorts.processSupervision.spawnOptionsFor('detached-program'),
   });
   child.unref();
   const schedule = hephaestusPollScheduleOf({ tries: HEPHAESTUS_READY_TRIES, intervalMilliseconds: HEPHAESTUS_READY_INTERVAL_MILLISECONDS }, hephaestusPollIntervalOverride());

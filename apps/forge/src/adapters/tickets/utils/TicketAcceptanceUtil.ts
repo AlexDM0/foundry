@@ -4,7 +4,7 @@
  * cannot make sense of is a verdict, never a throw.
  */
 
-import type { ReadinessGap }                      from '../../../lib/tracker-model/@types/Ticket.ts';
+import type { ReadinessGap }                      from '../../../domain/tracker-model/@types/Ticket.ts';
 import { openCodeFenceAfter, type OpenCodeFence } from '../../../shared/OpenCodeFence.ts';
 import { TICKET_SECTION_PATTERNS }                from '../../../shared/constants/TicketSectionPatterns.ts';
 

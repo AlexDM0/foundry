@@ -1,0 +1,4 @@
+[
+  {"case":"the session owner is empty text","stored":"{\"version\":1,\"sessionOwnerJobId\":\"\"}","sentence":"its \"sessionOwnerJobId\" is neither a job id nor null"},
+  {"case":"the session owner is absent","stored":"{\"version\":1}","sentence":"its \"sessionOwnerJobId\" is neither a job id nor null"}
+]

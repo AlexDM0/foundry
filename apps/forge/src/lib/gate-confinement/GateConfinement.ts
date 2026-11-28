@@ -19,9 +19,17 @@ export interface ConfinementPlan {
   confinementFilePath: string;
 }
 
+/** Why no confinement can be had here; `processMessage` is the first line bwrap itself printed. */
+export type ConfinementUnavailability =
+  | { readonly cause: 'no-adapter'; readonly platformName: string }
+  | { readonly cause: 'mechanism-unusable'; readonly mechanism: string }
+  | { readonly cause: 'bubblewrap-not-on-search-path' }
+  | { readonly cause: 'bubblewrap-version-unread'; readonly processMessage: string }
+  | { readonly cause: 'bubblewrap-namespaces-refused'; readonly processMessage: string };
+
 export type ConfinementAvailability =
   | { readonly verdict: 'confined'; readonly mechanism: string }
-  | { readonly verdict: 'unavailable'; readonly reason: string }
+  | { readonly verdict: 'unavailable'; readonly unavailability: ConfinementUnavailability }
   | { readonly verdict: 'unconfined-by-design' };
 
 export type ConfinementVerdict = ConfinementAvailability['verdict'];

@@ -2,8 +2,7 @@
  * The closed shapes of the setup payloads a session or a body sends. Each reading maps untrusted JSON to its typed value or names the
  * first field that is missing, misshapen or not in the shape; whether the value fits the record is the Board's.
  */
-import { JsonRecordUtil }   from '../../lib/json-record/JsonRecordUtil.ts';
-import { GATE_PHASES }      from '../../lib/tracker-model/@types/GatePhase.ts';
+import { GATE_PHASES }      from '../../domain/tracker-model/@types/GatePhase.ts';
 import {
   type AgentStepSettings,
   ENTITY_AGENT_ROLES,
@@ -18,7 +17,7 @@ import {
   type PipelineTool,
   TICKET_WRITING_ROUTES,
   type TicketWritingRoute
-} from '../../lib/tracker-model/@types/Pipeline.ts';
+} from '../../domain/tracker-model/@types/Pipeline.ts';
 import type {
   ConstitutionSetting,
   EntityDraftEdit,
@@ -34,15 +33,16 @@ import type {
   SetupQuestionSubject,
   SourceAnnotation,
   SummarisedDraftEdit
-} from '../../lib/tracker-model/@types/PipelineSetup.ts';
+} from '../../domain/tracker-model/@types/PipelineSetup.ts';
 import {
   GATE_CANDIDACIES,
   RESEARCH_FINDING_TOPICS,
   SETUP_QUESTION_STEPS,
   SETUP_QUESTION_SUBJECT_KINDS,
   SOURCE_ANNOTATION_KINDS
-} from '../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
-import { PipelineDraftEditUtil } from '../../lib/tracker-model/utils/PipelineDraftEditUtil.ts';
+} from '../../domain/tracker-model/constants/PipelineSetupVocabulary.ts';
+import { PipelineDraftEditUtil } from '../../domain/tracker-model/utils/PipelineDraftEditUtil.ts';
+import { JsonRecordUtil }        from '../../lib/json-record/JsonRecordUtil.ts';
 import { PathNestingUtil }       from '../../shared/utils/PathNestingUtil.ts';
 
 export type PayloadReading<Value> =

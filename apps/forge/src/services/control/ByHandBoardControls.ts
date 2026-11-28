@@ -2,8 +2,8 @@
  * The by-hand board kinds: a note in the log, and the board's branch namespace, set in the hold so no job starts between the check and the
  * write. Git lists the branches at the board's repository root.
  */
+import type { JobKind }                       from '../../domain/tracker-model/@types/Job.ts';
 import { GitProcess }                         from '../../lib/git/GitProcess.ts';
-import type { JobKind }                       from '../../lib/tracker-model/@types/Job.ts';
 import type { ControlCommandOf as CommandOf } from '../../shared/@types/ControlCommand.ts';
 import { BranchNamespaceUtil, branchNamesOf } from '../../shared/BranchNames.ts';
 import { OperationRefusal }                   from '../../shared/OperationRefusal.ts';
@@ -29,7 +29,7 @@ function setNamespace(command: CommandOf<'namespace-set'>, change: BoardTransact
   if (jobsOnBranches.length > 0) throw new OperationRefusal('refused', { kind: 'namespace-board-has-jobs', jobCount: jobsOnBranches.length });
   const branchList = GitProcess.run(change.workspace.rootDirectory, BRANCH_LIST_ARGUMENTS);
   if (!GitProcess.succeeded(branchList)) {
-    throw new OperationRefusal('refused', { kind: 'namespace-branch-list-failed', reason: GitProcess.failureReasonOf(branchList, BRANCH_LIST_ARGUMENTS) });
+    throw new OperationRefusal('refused', { kind: 'namespace-branch-list-failed', problem: GitProcess.failureOf(branchList, BRANCH_LIST_ARGUMENTS) });
   }
   const branches = branchList.standardOutput.split('\n').filter((branch) => branch !== '');
   const refusal  = BranchNamespaceUtil.refusalOf(branches, branchNamesOf(board.branchNamespace()), wantedNamespace);

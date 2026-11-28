@@ -12,6 +12,7 @@ import { userShell }                                                            
 import { nativePlatformPorts }                                                      from './NativePlatformPorts.ts';
 import { recordAnswer }                                                             from './RecordedAnswers.ts';
 import { RECORDED_GATE_PLACEHOLDERS, RECORDED_SHELL_LINES, SHELL_LINE_CALL_SHAPES } from './RecordedGateLines.ts';
+import { spawningShellRequestOf }                                                   from './SpawningShellRequest.ts';
 
 const { shellLine } = nativePlatformPorts();
 const STATUS_FILE = join(tmpdir(), 'example-line-status');
@@ -25,7 +26,7 @@ const RECORDED_CASES = [
 
 for (const { callShape, line, printed } of RECORDED_CASES) {
   test(`the native shell line hands over ${callShape.split(', ')[1] ?? callShape} whole, and the real shell runs it as written`, () => {
-    const request = shellLine.spawnRequestOf(line, STATUS_FILE);
+    const request = spawningShellRequestOf(shellLine, line, STATUS_FILE);
 
     const run = Bun.spawnSync({ cmd: [...request.argv], env: { PATH: EXAMPLE_SEARCH_PATH }, windowsVerbatimArguments: request.verbatimArguments });
 

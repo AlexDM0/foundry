@@ -1,0 +1,37 @@
+[
+  {
+    "case": "a directory in the file's place, which cannot be read",
+    "stored": null,
+    "sentence": "it could not be read ({systemError})"
+  },
+  {
+    "case": "bytes that are not UTF-8",
+    "stored": null,
+    "sentence": "it is not UTF-8 text"
+  },
+  {
+    "case": "text that is not JSON",
+    "stored": "{\"version\": ",
+    "sentence": "it is not valid JSON (JSON Parse error: Unexpected EOF)"
+  },
+  {
+    "case": "JSON that is a list, not an object",
+    "stored": "[]",
+    "sentence": "it is not a JSON object"
+  },
+  {
+    "case": "no version",
+    "stored": "{}",
+    "sentence": "its version is not 1"
+  },
+  {
+    "case": "another version",
+    "stored": "{\"version\":2}",
+    "sentence": "its version is not 1"
+  },
+  {
+    "case": "a negative deliveryBase",
+    "stored": "{\"version\":1,\"deliveryBase\":-1}",
+    "sentence": "its deliveryBase is not a whole number of at least 0"
+  }
+]

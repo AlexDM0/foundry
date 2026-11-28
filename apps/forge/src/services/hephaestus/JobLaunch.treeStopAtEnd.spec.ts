@@ -4,7 +4,7 @@
  */
 import { expect, test } from 'bun:test';
 
-import type { Job, JobKind }               from '../../lib/tracker-model/@types/Job.ts';
+import type { Job, JobKind }               from '../../domain/tracker-model/@types/Job.ts';
 import { SESSION_STOP_GRACE_MILLISECONDS } from '../../shared/constants/HephaestusLimits.ts';
 import { JobLaunch }                       from './JobLaunch.ts';
 

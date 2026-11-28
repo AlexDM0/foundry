@@ -12,13 +12,14 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 
+import type { Job, PictureReference }                             from '../../domain/tracker-model/@types/Job.ts';
+import type { LogRecord }                                         from '../../domain/tracker-model/@types/LogRecord.ts';
+import { PICTURE_ID_PATTERN }                                     from '../../domain/tracker-model/constants/PictureIdPattern.ts';
 import type { AgentPicture }                                      from '../../lib/agent-launch/AgentAdapter.ts';
 import { removeHeldFile, writeOwnerOnlyFileAtomically }           from '../../lib/atomic-file/AtomicFile.ts';
 import type { FileReplace }                                       from '../../lib/atomic-file/FileReplace.ts';
 import type { OwnerOnlyFiles }                                    from '../../lib/owner-only-files/OwnerOnlyFiles.ts';
-import type { Job, PictureReference }                             from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }                                         from '../../lib/tracker-model/@types/LogRecord.ts';
-import { PICTURE_ID_PATTERN }                                     from '../../lib/tracker-model/constants/PictureIdPattern.ts';
+import { refuseUnlessOwnerOnly }                                  from '../../shared/OwnerOnlyRestrictionRefusal.ts';
 import { ACCEPTED_PICTURE_MEDIA_TYPES, PICTURE_SIZE_LIMIT_BYTES } from '../../shared/constants/HephaestusLimits.ts';
 import { PICTURE_SIGNATURES }                                     from './constants/PictureSignatures.ts';
 
@@ -58,9 +59,9 @@ function storePicture(ownerOnlyFiles: OwnerOnlyFiles, trackerDirectory: string, 
   const folder = picturesFolderOf(trackerDirectory);
   const filePath = join(folder, `${pictureId}.${signature.extension}`);
   if (!existsSync(filePath)) {
-    ownerOnlyFiles.restrictFolder(folder);
+    refuseUnlessOwnerOnly(ownerOnlyFiles.restrictFolder(folder));
     writeOwnerOnlyFileAtomically(filePath, bytes);
-    ownerOnlyFiles.restrictFile(filePath);
+    refuseUnlessOwnerOnly(ownerOnlyFiles.restrictFile(filePath));
   }
   return {
     verdict: 'stored', pictureId, bytes: bytes.length, mediaType: signature.mediaType

@@ -1,7 +1,7 @@
 /**
  * Gaia's own system version toward its own clients, its page and its launcher, as `GET /api/versions` answers it, and the version of each
  * route at its versioned path, `/api/v<n>/<endpoint>`, whose lifetime `GaiaCompatibilityRegistry.ts` keeps. The one forge system version
- * Gaia supports is the forge client's (`src/lib/forge-client/constants/SupportedForgeVersions.ts`).
+ * Gaia supports is `SUPPORTED_FORGE_VERSION` (`src/shared/constants/SupportedForgeVersions.ts`).
  */
 import type { SystemVersion } from 'system-versions/VersionsDocument';
 

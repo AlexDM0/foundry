@@ -11,6 +11,7 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 
+import type { CrashLogProblem } from '../../adapters/crash-log/@types/CrashLogProblem.ts';
 import type {
   CrashErrorOrigin,
   CrashLogError,
@@ -20,8 +21,10 @@ import type {
 import { CrashLogIngestion }                                                                  from '../../adapters/crash-log/CrashLogIngestion.ts';
 import { createCrashLogWriter }                                                               from '../../adapters/crash-log/CrashLogWriter.ts';
 import { CRASH_LOG_FORMAT_VERSION }                                                           from '../../adapters/crash-log/constants/CrashLogFileVersions.ts';
+import { HephaestusLogIngestion }                                                             from '../../adapters/hephaestus-log/HephaestusLogIngestion.ts';
+import type { Job }                                                                           from '../../domain/tracker-model/@types/Job.ts';
 import type { ProcessIdentity }                                                               from '../../lib/process-identity/ProcessIdentity.ts';
-import type { Job }                                                                           from '../../lib/tracker-model/@types/Job.ts';
+import { OperationRefusal }                                                                   from '../../shared/OperationRefusal.ts';
 import type { CrashLogInputs, CrashLogWrite }                                                 from './@types/CrashLogRecord.ts';
 import type { PresenceFileReading }                                                           from './@types/PresenceRecord.ts';
 import type { HephaestusFiles }                                                               from './HephaestusFiles.ts';
@@ -99,14 +102,16 @@ function list(files: HephaestusFiles): number[] {
     .sort((a, b) => a - b);
 }
 
-function read(files: HephaestusFiles, crashLogNumber: number): PresenceFileReading<CrashLogRecord> {
+function read(files: HephaestusFiles, crashLogNumber: number): PresenceFileReading<CrashLogRecord, CrashLogProblem> {
   const reading = new CrashLogIngestion(pathOf(files, crashLogNumber)).read();
   return reading.verdict === 'readable' ? { verdict: 'read', record: reading.record } : reading;
 }
 
 /** A crash log is board-wide evidence that never heals, so Hephaestus warns in the board header of one it cannot read until it restarts. */
-function reportUnreadable(reading: PresenceFileReading<CrashLogRecord>, crashLogNumber: number, unreadableBoardFiles: UnreadableBoardFiles): void {
-  if (reading.verdict === 'unreadable') unreadableBoardFiles.report({ file: `hephaestus/crash-logs/crash-${crashLogNumber}.json`, reason: reading.reason });
+function reportUnreadable(reading: PresenceFileReading<CrashLogRecord, CrashLogProblem>, crashLogNumber: number, unreadableBoardFiles: UnreadableBoardFiles): void {
+  if (reading.verdict === 'unreadable') {
+    unreadableBoardFiles.report({ file: `hephaestus/crash-logs/crash-${crashLogNumber}.json`, problem: reading.problem });
+  }
 }
 
 function sameProcessIdentity(stored: ProcessIdentity | null, candidate: ProcessIdentity | null): boolean {
@@ -120,7 +125,7 @@ function sameProcessIdentity(stored: ProcessIdentity | null, candidate: ProcessI
  */
 type CrashIdentity = Pick<CrashLogRecord, 'crashedGeneration' | 'crashedProcess' | 'classification'>;
 
-function recordsTheSameCrash(stored: PresenceFileReading<CrashLogRecord>, candidate: CrashIdentity): boolean {
+function recordsTheSameCrash(stored: PresenceFileReading<CrashLogRecord, CrashLogProblem>, candidate: CrashIdentity): boolean {
   if (stored.verdict !== 'read') return false;
   const { record } = stored;
   if (record.crashedGeneration !== candidate.crashedGeneration || !sameProcessIdentity(record.crashedProcess, candidate.crashedProcess)) return false;
@@ -151,7 +156,7 @@ function writeOnce(files: HephaestusFiles, record: CrashLogRecord, unreadableBoa
     const crashLogNumber = newestNumber + 1;
     if (createCrashLogWriter(pathOf(files, crashLogNumber)).create(record) === 'created') return { verdict: 'written', crashLogNumber };
   }
-  throw new Error(`No crash log number was free after ${CRASH_LOG_CREATION_ATTEMPTS} attempts in ${files.crashLogDirectory}.`);
+  throw new OperationRefusal('unrepaired', { kind: 'crash-log-number-not-free', attempts: CRASH_LOG_CREATION_ATTEMPTS, crashLogDirectory: files.crashLogDirectory });
 }
 
 /** The last bytes of the file up to a bound, never the whole of a large log; a line the bound cut into is left out. */
@@ -176,7 +181,13 @@ function endOfFileText(filePath: string): string {
   }
 }
 
-/** The last `lineCount` lines of the log; `null` when it cannot be read, never a throw. */
+/** A stored record as the line standard error showed, its `at` before its details; a line that is no record stays as it is. */
+function tailLineOf(storedLine: string): string {
+  const read = HephaestusLogIngestion.lineOf(storedLine);
+  return read.verdict === 'record' ? `${read.line.at} ${read.line.details}` : storedLine;
+}
+
+/** The last `lineCount` lines of the log, each record as its stamped sentence; `null` when it cannot be read, never a throw. */
 function logTailOf(logFilePath: string, lineCount: number = CRASH_LOG_TAIL_LINES): string[] | null {
   let text: string;
   try {
@@ -186,7 +197,7 @@ function logTailOf(logFilePath: string, lineCount: number = CRASH_LOG_TAIL_LINES
   }
   const lines = text.split('\n');
   if (lines.at(-1) === '') lines.pop();
-  return lines.slice(-lineCount);
+  return lines.slice(-lineCount).map(tailLineOf);
 }
 
 export const CrashLog = Object.freeze({

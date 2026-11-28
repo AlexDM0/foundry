@@ -2,7 +2,8 @@
  * Why an agent's program does not run, as one clause the board, the notices and the command line all read: it names the agent and the
  * path, and never a command line, since User runs no command.
  */
-import type { JobNotLaunchedCause }      from '../../lib/tracker-model/@types/Job.ts';
+import type { JobNotLaunchedCause }      from '../../domain/tracker-model/@types/Job.ts';
+import type { AgentProgramRepair }       from '../../lib/agent-launch/AgentAdapter.ts';
 import type { AgentProgramRefusalCause } from '../@types/AgentProgramCheck.ts';
 
 /** `outputLine`: the first line a run that failed printed. */
@@ -44,4 +45,12 @@ function notLaunchedClauseOf(cause: JobNotLaunchedCause, agentName: string, prog
   return programClauseOf(cause, agentName, programPath);
 }
 
-export const AgentProgramWordingUtil = Object.freeze({ programClauseOf, notLaunchedClauseOf });
+/** The clause that tells how to repair a refused program, worded from the adapter's code. */
+function repairClauseOf(repair: AgentProgramRepair): string {
+  switch (repair.code) {
+    case 'install-native-windows-program':
+      return `install the native program in PowerShell with \`${repair.installCommand}\`, and choose that program`;
+  }
+}
+
+export const AgentProgramWordingUtil = Object.freeze({ programClauseOf, notLaunchedClauseOf, repairClauseOf });

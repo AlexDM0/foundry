@@ -8,10 +8,10 @@ import { join } from 'node:path';
 import type { ForcedStopRefusals }             from '../../adapters/refused-forced-stops/@types/ForcedStopRefusals.ts';
 import { RefusedForcedStopsIngestion }         from '../../adapters/refused-forced-stops/RefusedForcedStopsIngestion.ts';
 import { createRefusedForcedStopsWriter }      from '../../adapters/refused-forced-stops/RefusedForcedStopsWriter.ts';
-import type { InterruptionCause, Job }         from '../../lib/tracker-model/@types/Job.ts';
-import type { DecisionDraft, DecisionWording } from '../../lib/tracker-model/@types/PlaybookStep.ts';
-import type { Board }                          from '../../lib/tracker-model/Board.ts';
-import { FORCED_STOP_REFUSED_INTERRUPTION }    from '../../lib/tracker-model/constants/JobStates.ts';
+import type { InterruptionCause, Job }         from '../../domain/tracker-model/@types/Job.ts';
+import type { DecisionDraft, DecisionWording } from '../../domain/tracker-model/@types/PlaybookStep.ts';
+import type { Board }                          from '../../domain/tracker-model/Board.ts';
+import { FORCED_STOP_REFUSED_INTERRUPTION }    from '../../domain/tracker-model/constants/JobStates.ts';
 import { FORCED_STOP_TRIES_BEFORE_BLOCKING }   from '../../shared/constants/HephaestusLimits.ts';
 import { dataFolderPathOf }                    from './HephaestusFiles.ts';
 import type { UnreadableBoardFiles }           from './UnreadableBoardFiles.ts';
@@ -40,7 +40,7 @@ function storedOf(boardFolder: string, childFolderPath: string, instance: number
   const reading = new RefusedForcedStopsIngestion(filePath).read();
   if (reading.verdict === 'readable') return reading.forcedStopRefusals;
   if (reading.verdict === 'unreadable') {
-    unreadableBoardFiles.report({ file: dataFolderPathOf(boardFolder, filePath), reason: reading.reason });
+    unreadableBoardFiles.report({ file: dataFolderPathOf(boardFolder, filePath), problem: reading.problem });
   }
   return NO_REFUSALS;
 }

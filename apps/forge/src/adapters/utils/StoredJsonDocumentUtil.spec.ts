@@ -36,18 +36,18 @@ test('the version may sit under a key of the format\'s own', () => {
 });
 
 test.each([
-  ['another version', '{ "version": 2 }', 'its version is not 1'],
-  ['no version', '{ "startCommit": "abc" }', 'its version is not 1'],
-  ['a version written as text', '{ "version": "1" }', 'its version is not 1'],
-  ['a list', '[1]', 'it is not a JSON object'],
-  ['null', 'null', 'it is not a JSON object'],
-])('%s is unreadable', (_caseName, text, reason) => {
-  expect(StoredJsonDocumentUtil.documentOfText(text, 1)).toEqual({ verdict: 'unreadable', reason });
+  ['another version', '{ "version": 2 }', { code: 'version-differs', field: 'version', expectedVersion: 1 }],
+  ['no version', '{ "startCommit": "abc" }', { code: 'version-differs', field: 'version', expectedVersion: 1 }],
+  ['a version written as text', '{ "version": "1" }', { code: 'version-differs', field: 'version', expectedVersion: 1 }],
+  ['a list', '[1]', { code: 'not-a-json-object' }],
+  ['null', 'null', { code: 'not-a-json-object' }],
+] as const)('%s is unreadable', (_caseName, text, problem) => {
+  expect(StoredJsonDocumentUtil.documentOfText(text, 1)).toEqual({ verdict: 'unreadable', problem });
 });
 
-test('a text that is not JSON is unreadable, the reason naming the parser message', () => {
+test('a text that is not JSON is unreadable, the problem carrying the parser\'s message', () => {
   const reading = StoredJsonDocumentUtil.documentOfText('{ "version": 1', 1);
-  expect(reading.verdict === 'unreadable' ? reading.reason : '').toStartWith('it is not valid JSON (');
+  expect(reading.verdict === 'unreadable' ? reading.problem : null).toEqual({ code: 'not-json', parserError: expect.any(String) });
 });
 
 test('a missing file is absent', () => {

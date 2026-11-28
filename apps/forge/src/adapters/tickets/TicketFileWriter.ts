@@ -1,10 +1,13 @@
 import { mkdirSync, readFileSync } from 'node:fs';
 import { dirname }                 from 'node:path';
+import type { Ticket }             from '../../domain/tracker-model/@types/Ticket.ts';
 import { writeFileAtomically }     from '../../lib/atomic-file/AtomicFile.ts';
-import type { Ticket }             from '../../lib/tracker-model/@types/Ticket.ts';
 import { TicketDocumentUtil }      from './utils/TicketDocumentUtil.ts';
 
-/** Writes through `src/lib/atomic-file/AtomicFile.ts` and never touches `updated`; only `src/lib/tracker-model/Board.ts` knows that a ticket changed. */
+/**
+ * Writes through `src/lib/atomic-file/AtomicFile.ts` and never touches `updated`; only `src/domain/tracker-model/Board.ts` knows that a
+ * ticket changed.
+ */
 export function createTicketFileWriter(): {
   write(ticket: Readonly<Ticket>, location: string): void;
   contentsOf(ticket: Readonly<Ticket>, location: string): string;

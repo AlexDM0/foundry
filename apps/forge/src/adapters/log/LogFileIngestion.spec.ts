@@ -6,10 +6,11 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join }                                   from 'node:path';
 import { afterAll, expect, test }                 from 'bun:test';
 
-import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { LogRecord }                                 from '../../domain/tracker-model/@types/LogRecord.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import type { LogFileReading }                            from './@types/StoredLog.ts';
 import { LogFileIngestion }                               from './LogFileIngestion.ts';
+import { LogFileProblemWording }                          from './LogFileProblemWording.ts';
 
 const FILED_AT   = '2026-09-18T20:30:00+02:00';
 const STARTED_AT = '2026-09-18T20:40:00+02:00';
@@ -47,7 +48,7 @@ function readBack(prefix: string, text: string): { logFilePath: string; reading:
 }
 
 function reasonOf(reading: LogFileReading): string {
-  return reading.verdict === 'unreadable' ? reading.reason : `a ${reading.verdict} log`;
+  return reading.verdict === 'unreadable' ? LogFileProblemWording.sentenceOf(reading.problem) : `a ${reading.verdict} log`;
 }
 
 test('a missing log.jsonl is absent, not unreadable', () => {

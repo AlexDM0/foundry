@@ -1,5 +1,5 @@
 /** What the recorded review passes catch, miss and cost, read from the tracker as `status` reads it: no lock, nothing written or rendered. */
-import { readingBoardOf }                             from '../../../src/lib/tracker-model/ReadingBoard.ts';
+import { readingBoardOf }                             from '../../../src/domain/tracker-model/ReadingBoard.ts';
 import { PRODUCT_NAMES }                              from '../../../src/shared/constants/ProductNames.ts';
 import { boardReadsOf }                               from '../../BoardStoreOf.ts';
 import type { CommandHandler }                        from '../../CommandHandler.ts';

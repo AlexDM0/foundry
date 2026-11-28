@@ -1,5 +1,5 @@
 /** The review bar `ticket rereview --start-review` asks to open for the ticket's next reviewer, as its options name it. */
-import type { AgentAssignment } from '../../src/lib/tracker-model/@types/BoardChanges.ts';
+import type { AgentAssignment } from '../../src/domain/tracker-model/@types/BoardChanges.ts';
 import { OperationRefusal }     from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }        from '../../src/shared/constants/ProductNames.ts';
 import type { ArgumentParser }  from '../arguments/ArgumentParser.ts';

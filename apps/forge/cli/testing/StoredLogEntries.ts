@@ -1,13 +1,14 @@
 /** The tracker's log.jsonl as people read it, each record worded through LogUtil, for a command spec to check what a command logged. */
-import { LogFileIngestion }    from '../../src/adapters/log/LogFileIngestion.ts';
-import { LogUtil }             from '../../src/adapters/utils/LogUtil.ts';
-import { localStoreLayoutOf }  from '../../src/services/tracker/LocalStoreLayout.ts';
-import { workspacePathsFor }   from '../../src/services/tracker/Workspace.ts';
-import type { WordedLogEntry } from '../../src/shared/@types/WordedLogEntry.ts';
+import { LogFileIngestion }      from '../../src/adapters/log/LogFileIngestion.ts';
+import { LogFileProblemWording } from '../../src/adapters/log/LogFileProblemWording.ts';
+import { LogUtil }               from '../../src/adapters/utils/LogUtil.ts';
+import { localStoreLayoutOf }    from '../../src/services/tracker/LocalStoreLayout.ts';
+import { workspacePathsFor }     from '../../src/services/tracker/Workspace.ts';
+import type { WordedLogEntry }   from '../../src/shared/@types/WordedLogEntry.ts';
 
 export function storedLogEntriesOf(repositoryDirectory: string): WordedLogEntry[] {
   const reading = new LogFileIngestion(localStoreLayoutOf(workspacePathsFor(repositoryDirectory)).logRecordPath).read();
   if (reading.verdict === 'absent') return [];
-  if (reading.verdict === 'unreadable') throw new Error(`the stored log cannot be read: ${reading.reason}`);
+  if (reading.verdict === 'unreadable') throw new Error(`the stored log cannot be read: ${LogFileProblemWording.sentenceOf(reading.problem)}`);
   return reading.records.map(LogUtil.wordedEntryOf);
 }

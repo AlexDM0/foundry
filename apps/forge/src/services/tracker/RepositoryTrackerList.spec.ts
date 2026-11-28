@@ -13,7 +13,7 @@ import {
   test
 } from 'bun:test';
 
-import type { RepositoryTracker }                         from '../../lib/git/RepositoryLandings.ts';
+import type { RepositoryTracker }                         from '../../adapters/repository-landings/RepositoryLandings.ts';
 import { PRODUCT_NAMES }                                  from '../../shared/constants/ProductNames.ts';
 import { LIVE_HOLDERS_LOCK_TAKER }                        from '../../testing/LockTakers.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';

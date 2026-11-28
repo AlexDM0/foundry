@@ -5,8 +5,8 @@
  */
 import { describe, expect, test } from 'bun:test';
 
+import { QUESTIONS_FACT, REQUEST_ID_FACT } from '../../domain/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
 import type { AgentQuestion }              from '../../lib/agent-launch/AgentSessionEvent.ts';
-import { QUESTIONS_FACT, REQUEST_ID_FACT } from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
 import { boardFixture, ticketFixture }     from '../../testing/BoardFixtures.ts';
 import { QuestionRouting }                 from './QuestionRouting.ts';
 
@@ -58,7 +58,7 @@ describe('opening a question in the hold that reads it', () => {
       kind: 'agent-question', jobId: 'J1', askedBy: 'builder', requestId: 'request-1', ticketIds: ['001'], questions, context: '',
     }]);
     expect(board.incidents()).toEqual([]);
-    // The waiting job stays live, and `src/lib/tracker-model/Playbook.spec.ts` holds that a waiting job keeps its slot.
+    // The waiting job stays live, and `src/domain/tracker-model/Playbook.spec.ts` holds that a waiting job keeps its slot.
     expect(board.jobs().map((job) => [job.id, job.state])).toEqual([['J1', 'waiting-for-answer']]);
   });
 

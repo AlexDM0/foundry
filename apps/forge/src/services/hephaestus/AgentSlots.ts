@@ -6,6 +6,7 @@
 import { mkdirSync, readdirSync } from 'node:fs';
 import { join }                   from 'node:path';
 
+import type { HephaestusLog, StaleAgentSlotReason }                         from '../../adapters/@types/HephaestusLogRecord.ts';
 import { AgentSlotIngestion, type AgentSlotHolding, type AgentSlotReading } from '../../adapters/agent-slot/AgentSlotIngestion.ts';
 import { createAgentSlotWriter }                                            from '../../adapters/agent-slot/AgentSlotWriter.ts';
 import { removeHeldFile }                                                   from '../../lib/atomic-file/AtomicFile.ts';
@@ -31,7 +32,7 @@ export interface AgentSlotsOptions {
   hephaestusIsLive:           (hephaestus: ProcessIdentity | null) => boolean;
   fileReplace?:               FileReplace;
   /** Where a stale slot taken over is logged, and a slot left in place when its bytes cannot be read at all. */
-  log:                        (line: string) => void;
+  log:                        HephaestusLog;
   /** The slots already logged as left in place, kept across passes so each is logged once; none when not given. */
   unreadableSlotPathsLogged?: Set<string>;
 }
@@ -60,10 +61,10 @@ function storedTextOf(reading: AgentSlotReading): string | null {
   return reading.verdict === 'absent' ? null : reading.storedText;
 }
 
-function staleReasonOf(judged: JudgedSlot): string {
-  if (judged.verdict === 'unreadable') return `it could not be read (${judged.reason})`;
+function staleReasonOf(judged: JudgedSlot): StaleAgentSlotReason {
+  if (judged.verdict === 'unreadable') return { kind: 'unreadable', problem: judged.problem };
   const { hephaestus } = judged.holding;
-  return hephaestus === null ? 'it names no Hephaestus' : `the Hephaestus ${hephaestus.processId} it names is gone`;
+  return hephaestus === null ? { kind: 'names-no-hephaestus' } : { kind: 'hephaestus-gone', processId: hephaestus.processId };
 }
 
 function reservationIdOf(index: number): string {
@@ -123,7 +124,7 @@ function createAgentSlots(options: AgentSlotsOptions): AgentSlots {
     const holding = holdingOf(judged);
     if (holding !== null && options.hephaestusIsLive(holding.hephaestus)) return;
     if (!StaleSlotTakeOver.staleSlotFreed(slotPath, judged.storedText, slotTakerFor(ownHolding))) return;
-    options.log(`The agent slot ${slotPath} was stale and is taken over: ${staleReasonOf(judged)}.`);
+    options.log({ kind: 'agent-slot-taken-over', slotPath, reason: staleReasonOf(judged) });
   }
 
   /** A slot whose bytes could not be read at all is left for a later claim, and logged once. */
@@ -132,7 +133,9 @@ function createAgentSlots(options: AgentSlotsOptions): AgentSlots {
     if (reading.verdict === 'absent') return null;
     if (reading.verdict === 'readable') return reading;
     if (reading.storedText !== null) return { ...reading, storedText: reading.storedText };
-    if (!unreadableSlotPathsLogged.has(slotPath)) options.log(`The agent slot ${slotPath} could not be read (${reading.reason}); it is left in place.`);
+    if (!unreadableSlotPathsLogged.has(slotPath)) {
+      options.log({ kind: 'agent-slot-unreadable', slotPath, problem: reading.problem });
+    }
     unreadableSlotPathsLogged.add(slotPath);
     return null;
   }

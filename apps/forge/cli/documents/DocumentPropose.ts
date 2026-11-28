@@ -3,7 +3,7 @@
  * input. Each edit replaces lines `fromLine` to `toLine` of the version `baseVersion` and names the lines it replaces; Hephaestus checks the
  * fields.
  */
-import type { LineEdit }        from '../../src/lib/tracker-model/@types/TicketDocument.ts';
+import type { LineEdit }        from '../../src/domain/tracker-model/@types/TicketDocument.ts';
 import type { CommandContext }  from '../CommandContext.ts';
 import { refuseUsage }          from '../RecordedIncidentMove.ts';
 import { suppliedTextOf }       from '../SuppliedText.ts';

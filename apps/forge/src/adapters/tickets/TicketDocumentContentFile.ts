@@ -1,10 +1,11 @@
 /** One version of a ticket document, `<contentHash>.md`: its text as the hash names it, stored once before the record names it and never rewritten. */
-import { TicketDocumentVersionUtil } from '../../lib/tracker-model/utils/TicketDocumentVersionUtil.ts';
-import { storedFileTextOf }          from '../StoredFileText.ts';
+import { TicketDocumentVersionUtil }         from '../../domain/tracker-model/utils/TicketDocumentVersionUtil.ts';
+import { storedFileTextOf }                  from '../StoredFileText.ts';
+import type { TicketDocumentContentProblem } from './@types/TicketDocumentContentProblem.ts';
 
 export type TicketDocumentContentReading =
   | { verdict: 'readable'; text: string }
-  | { verdict: 'unreadable'; reason: string };
+  | { verdict: 'unreadable'; problem: TicketDocumentContentProblem };
 
 const VERSION_FILE_EXTENSION = '.md';
 
@@ -18,9 +19,9 @@ function fileNameOf(contentHash: string): string {
  */
 function read(filePath: string, contentHash: string): TicketDocumentContentReading {
   const stored = storedFileTextOf(filePath, true);
-  if (stored.verdict === 'absent') return { verdict: 'unreadable', reason: `no text is kept under the hash ${contentHash}` };
-  if (stored.verdict === 'unreadable') return { verdict: 'unreadable', reason: stored.reason };
-  if (TicketDocumentVersionUtil.contentHashOf(stored.text) !== contentHash) return { verdict: 'unreadable', reason: `its text does not hash to ${contentHash}` };
+  if (stored.verdict === 'absent') return { verdict: 'unreadable', problem: { code: 'no-text-under-the-hash', contentHash } };
+  if (stored.verdict === 'unreadable') return stored;
+  if (TicketDocumentVersionUtil.contentHashOf(stored.text) !== contentHash) return { verdict: 'unreadable', problem: { code: 'text-hash-differs', contentHash } };
   return { verdict: 'readable', text: stored.text };
 }
 

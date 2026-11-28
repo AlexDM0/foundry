@@ -13,6 +13,7 @@ import { platformPortsFor }                            from '../src/lib/platform
 import { createPosixShellLine }                        from '../src/lib/shell-line/PosixShellLine.ts';
 import { LineSandbox, type ProcessSandboxRequest }     from '../src/services/hephaestus/LineSandbox.ts';
 import { settingsTextBeforePowerShell }                from '../src/testing/SettingsBeforePowerShell.ts';
+import { spawningShellRequestOf }                      from '../src/testing/SpawningShellRequest.ts';
 import { agentAdapterOfThisProcess }                   from './CommandContext.ts';
 import frozenTable                                     from './FrozenPlatformPorts.json';
 
@@ -43,7 +44,7 @@ test('the Seatbelt profile of every fixed request equals the frozen text', () =>
 
 test('the gate argv of every fixed line and shell equals the frozen one', () => {
   for (const { line, userShell, argv } of frozenTable.shellLines) {
-    expect(createPosixShellLine({ userShell: () => userShell ?? undefined }).spawnRequestOf(line, '/example/line-status').argv).toEqual(argv);
+    expect(spawningShellRequestOf(createPosixShellLine({ userShell: () => userShell ?? undefined }), line, '/example/line-status').argv).toEqual(argv);
   }
 });
 
@@ -77,5 +78,5 @@ test('the written settings file of every fixed request equals the frozen bytes, 
 
 test('the launch environment of the fixed job equals the one the agent launch file was taken with', () => {
   const [settingsEntry] = frozenTable.settingsFiles;
-  expect(createPosixLaunchEnvironment(() => []).launchEnvironmentOf(launchFiles.inherited, launchFiles.jobVariables)).toEqual(settingsEntry?.request.environment ?? {});
+  expect(createPosixLaunchEnvironment(() => []).launchEnvironmentOf(launchFiles.inherited, launchFiles.ownVariables)).toEqual(settingsEntry?.request.environment ?? {});
 });

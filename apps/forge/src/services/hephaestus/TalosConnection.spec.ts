@@ -5,9 +5,10 @@
  */
 import { afterEach, beforeEach, expect } from 'bun:test';
 
-import type { DoneFrame, ReceivedClientFrame, StateFrame } from '../../lib/talos/@types/TalosFrame.ts';
-import { type TalosSocketOptions, listenOnTalosSocket }    from '../../lib/talos/TalosSocketServer.ts';
-import { TALOS_PROTOCOL_VERSION }                          from '../../lib/talos/constants/TalosProtocol.ts';
+import { type TalosSocketOptions, listenOnTalosSocket }    from '../../../talos/TalosSocketServer.ts';
+import type { DoneFrame, ReceivedClientFrame, StateFrame } from '../../domain/talos/@types/TalosFrame.ts';
+import { endpointFolderOf }                                from '../../domain/talos/TalosFiles.ts';
+import { TALOS_PROTOCOL_VERSION }                          from '../../domain/talos/constants/TalosProtocol.ts';
 import { useRecordedLocalEndpoint }                        from '../../testing/RecordedLocalEndpoint.ts';
 import { createScratchDirectory, removeScratchDirectory }  from '../../testing/ScratchWorkspace.ts';
 import { testWhenRecorded }                                from '../../testing/ToolGuard.ts';
@@ -43,7 +44,7 @@ afterEach(() => {
 function nextEndpoint(): string {
   lastInstance += 1;
   return recordedEndpoint.endpoint.endpointOf({
-    monitorFolder, trackerId: 'tracker-example', name: 'talos', instance: lastInstance
+    socketFolder: endpointFolderOf(monitorFolder), scope: 'tracker-example', name: 'talos', instance: lastInstance
   });
 }
 
@@ -69,7 +70,7 @@ async function servedTalos(onClientFrame: TalosSocketOptions['onClientFrame']): 
       return onClientFrame(frame);
     },
   });
-  if (listening.verdict !== 'listening') throw new Error(`the Talos endpoint cannot listen: ${listening.reason}`);
+  if (listening.verdict !== 'listening') throw new Error(`the Talos endpoint cannot listen: ${listening.systemError}`);
   return {
     endpoint, framesSeen, broadcast: listening.server.broadcast, close: listening.server.close
   };

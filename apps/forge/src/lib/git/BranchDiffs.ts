@@ -3,6 +3,7 @@
  * merge, as diff text for a caller to count, and how large a branch's own change is.
  * Every diff is asked for with its options spelled out, so the user's git configuration cannot change the diff text.
  */
+import type { GitRunFailure }        from './@types/GitProblem.ts';
 import { GitProcess }                from './GitProcess.ts';
 import { NOT_AN_ANCESTOR_EXIT_CODE } from './constants/GitConventions.ts';
 
@@ -31,7 +32,7 @@ export type CommitsDiffReading =
   | { verdict: 'unknown-commit' }
   | { verdict: 'not-an-ancestor'; sinceCommit: string }
   | { verdict: 'merge-found'; mergeCommits: string[] }
-  | { verdict: 'git-failed'; reason: string };
+  | { verdict: 'git-failed'; problem: GitRunFailure };
 
 function linesOf(output: string): string[] {
   return output.split('\n').map((line) => line.trim()).filter((line) => line.length > 0);
@@ -48,24 +49,24 @@ export function readCommitsDiff(directory: string, since: string, until = 'HEAD'
   const ancestryArguments = ['merge-base', '--is-ancestor', sinceCommit, until];
   const ancestry          = GitProcess.run(directory, ancestryArguments);
   if (ancestry === null || (!GitProcess.succeeded(ancestry) && ancestry.exitCode !== NOT_AN_ANCESTOR_EXIT_CODE)) {
-    return { verdict: 'git-failed', reason: GitProcess.failureReasonOf(ancestry, ancestryArguments) };
+    return { verdict: 'git-failed', problem: GitProcess.failureOf(ancestry, ancestryArguments) };
   }
   if (ancestry.exitCode === NOT_AN_ANCESTOR_EXIT_CODE) return { verdict: 'not-an-ancestor', sinceCommit };
 
   const range           = `${sinceCommit}..${until}`;
   const mergesArguments = ['rev-list', '--merges', range];
   const merges          = GitProcess.run(directory, mergesArguments);
-  if (!GitProcess.succeeded(merges)) return { verdict: 'git-failed', reason: GitProcess.failureReasonOf(merges, mergesArguments) };
+  if (!GitProcess.succeeded(merges)) return { verdict: 'git-failed', problem: GitProcess.failureOf(merges, mergesArguments) };
   const mergeCommits = linesOf(merges.standardOutput);
   if (mergeCommits.length > 0) return { verdict: 'merge-found', mergeCommits };
 
   const commitsArguments = ['rev-list', '--reverse', range];
   const commits          = GitProcess.run(directory, commitsArguments);
-  if (!GitProcess.succeeded(commits)) return { verdict: 'git-failed', reason: GitProcess.failureReasonOf(commits, commitsArguments) };
+  if (!GitProcess.succeeded(commits)) return { verdict: 'git-failed', problem: GitProcess.failureOf(commits, commitsArguments) };
 
   const logArguments = ['log', '--patch', '--format=', '--no-show-signature', ...DIFF_OPTIONS, range];
   const log          = GitProcess.run(directory, logArguments);
-  if (!GitProcess.succeeded(log)) return { verdict: 'git-failed', reason: GitProcess.failureReasonOf(log, logArguments) };
+  if (!GitProcess.succeeded(log)) return { verdict: 'git-failed', problem: GitProcess.failureOf(log, logArguments) };
 
   return {
     verdict:  'read',
@@ -75,10 +76,10 @@ export function readCommitsDiff(directory: string, since: string, until = 'HEAD'
   };
 }
 
-function diffBetween(directory: string, fromCommit: string, toCommit: string): { verdict: 'read'; diffText: string } | { verdict: 'git-failed'; reason: string } {
+function diffBetween(directory: string, fromCommit: string, toCommit: string): { verdict: 'read'; diffText: string } | { verdict: 'git-failed'; problem: GitRunFailure } {
   const diffArguments = ['diff', ...DIFF_OPTIONS, fromCommit, toCommit];
   const run           = GitProcess.run(directory, diffArguments);
-  if (!GitProcess.succeeded(run)) return { verdict: 'git-failed', reason: GitProcess.failureReasonOf(run, diffArguments) };
+  if (!GitProcess.succeeded(run)) return { verdict: 'git-failed', problem: GitProcess.failureOf(run, diffArguments) };
   return { verdict: 'read', diffText: run.standardOutput };
 }
 
@@ -86,7 +87,7 @@ export type MergeResolutionReading =
   | { verdict: 'read'; mergeCommit: string; parentCommits: [string, string]; automaticMergeConflicted: boolean; diffText: string }
   | { verdict: 'unknown-commit' }
   | { verdict: 'not-a-two-parent-merge'; mergeCommit: string; parentCount: number }
-  | { verdict: 'git-failed'; reason: string };
+  | { verdict: 'git-failed'; problem: GitRunFailure };
 
 const TWO_PARENT_MERGE_PARENT_COUNT = 2;
 
@@ -104,7 +105,7 @@ export function readMergeResolutionDiff(directory: string, merge: string): Merge
 
   const parentsArguments = ['rev-list', '--parents', '--max-count=1', mergeCommit];
   const parents          = GitProcess.run(directory, parentsArguments);
-  if (!GitProcess.succeeded(parents)) return { verdict: 'git-failed', reason: GitProcess.failureReasonOf(parents, parentsArguments) };
+  if (!GitProcess.succeeded(parents)) return { verdict: 'git-failed', problem: GitProcess.failureOf(parents, parentsArguments) };
   const [, ...parentCommits]        = parents.standardOutput.trim().split(/\s+/);
   const [firstParent, secondParent] = parentCommits;
   if (firstParent === undefined || secondParent === undefined || parentCommits.length !== TWO_PARENT_MERGE_PARENT_COUNT) {
@@ -115,10 +116,10 @@ export function readMergeResolutionDiff(directory: string, merge: string): Merge
   const mergeTree          = GitProcess.run(directory, mergeTreeArguments);
   const automaticMergeConflicted = mergeTree?.exitCode === MERGE_TREE_CONFLICTED_EXIT_CODE;
   if (!GitProcess.succeeded(mergeTree) && !automaticMergeConflicted) {
-    return { verdict: 'git-failed', reason: GitProcess.failureReasonOf(mergeTree, mergeTreeArguments) };
+    return { verdict: 'git-failed', problem: GitProcess.failureOf(mergeTree, mergeTreeArguments) };
   }
   const [automaticTree] = linesOf(mergeTree?.standardOutput ?? '');
-  if (automaticTree === undefined) return { verdict: 'git-failed', reason: GitProcess.failureReasonOf(mergeTree, mergeTreeArguments) };
+  if (automaticTree === undefined) return { verdict: 'git-failed', problem: GitProcess.failureOf(mergeTree, mergeTreeArguments) };
 
   const resolution = diffBetween(directory, automaticTree, mergeCommit);
   if (resolution.verdict === 'git-failed') return resolution;
@@ -133,7 +134,7 @@ export function readMergeResolutionDiff(directory: string, merge: string): Merge
 
 export type ChangeSizeReading =
   | { verdict: 'read'; changedFiles: number; insertions: number; deletions: number }
-  | { verdict: 'git-failed'; reason: string };
+  | { verdict: 'git-failed'; problem: GitRunFailure };
 
 function shortStatCountOf(shortStat: string, pattern: RegExp): number {
   const match = pattern.exec(shortStat);
@@ -144,7 +145,7 @@ function shortStatCountOf(shortStat: string, pattern: RegExp): number {
 export function readChangeSize(directory: string, mainLine: string, tip: string): ChangeSizeReading {
   const shortStatArguments = ['diff', '--shortstat', '--no-color', '--no-ext-diff', '--no-textconv', '--no-relative', '--find-renames', `${mainLine}...${tip}`];
   const run                = GitProcess.run(directory, shortStatArguments);
-  if (!GitProcess.succeeded(run)) return { verdict: 'git-failed', reason: GitProcess.failureReasonOf(run, shortStatArguments) };
+  if (!GitProcess.succeeded(run)) return { verdict: 'git-failed', problem: GitProcess.failureOf(run, shortStatArguments) };
   return {
     verdict:      'read',
     changedFiles: shortStatCountOf(run.standardOutput, /(\d+) files? changed/),

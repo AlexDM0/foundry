@@ -13,7 +13,7 @@ import {
   test
 } from 'bun:test';
 
-import { SUPPORTED_FORGE_VERSION }                   from '../../lib/forge-client/constants/SupportedForgeVersions.ts';
+import { SUPPORTED_FORGE_VERSION }                   from '../../shared/constants/SupportedForgeVersions.ts';
 import { recordedHephaestusFetch }                   from '../../testing/RecordedAnswers.ts';
 import { createScratchDirectory, removeScratchPath } from '../../testing/ScratchRoot.ts';
 import { forgeAccessVerdictFor }                     from './ForgeAccess.ts';

@@ -20,7 +20,20 @@ export type ProcessTreeStopOutcome =
   | { verdict: 'group-gone' }
   | { verdict: 'group-recycled' }
   | { verdict: 'identity-mismatch'; currentIdentity: ProcessIdentity }
-  | { verdict: 'refused'; reason: string };
+  | { verdict: 'refused'; refusal: ProcessStopRefusal };
+
+/** Why a stop did not go through, as a cause and the ids it names; `systemError` is the operating system's own message. */
+export type ProcessStopRefusal =
+  | { readonly cause: 'group-not-signalled'; readonly processGroupId: number; readonly systemError: string }
+  | { readonly cause: 'group-members-unreadable'; readonly processGroupId: number }
+  | { readonly cause: 'process-not-signalled'; readonly processId: number; readonly systemError: string }
+  | { readonly cause: 'no-system-root' }
+  | { readonly cause: 'processes-not-ended'; readonly processIds: readonly number[] }
+  | { readonly cause: 'tree-unreadable'; readonly leaderProcessId: number }
+  | { readonly cause: 'tree-starts-unreadable'; readonly leaderProcessId: number; readonly processIds: readonly number[] }
+  | { readonly cause: 'no-outside-ask'; readonly processId: number }
+  | { readonly cause: 'process-not-ended'; readonly processId: number }
+  | { readonly cause: 'no-adapter'; readonly platformName: string };
 
 export type ChildEnd =
   | { reason: 'exited'; exitCode: number | null; signal: null }

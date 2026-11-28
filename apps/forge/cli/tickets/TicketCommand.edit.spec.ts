@@ -11,7 +11,7 @@ import {
   expect,
   test
 }                                                  from 'bun:test';
-import { TicketBodyHashUtil }                           from '../../src/lib/tracker-model/utils/TicketBodyHashUtil.ts';
+import { TicketBodyHashUtil }                           from '../../src/domain/tracker-model/utils/TicketBodyHashUtil.ts';
 import { PRODUCT_NAMES }                                from '../../src/shared/constants/ProductNames.ts';
 import { useRecordedGit }                               from '../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                       from '../../src/testing/ScratchWorkspace.ts';

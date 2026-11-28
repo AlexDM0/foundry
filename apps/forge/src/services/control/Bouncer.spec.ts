@@ -5,10 +5,10 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { IncidentKind, IncidentMove }                from '../../lib/tracker-model/@types/Incident.ts';
-import type { JobRole }                                   from '../../lib/tracker-model/@types/Job.ts';
-import { INCIDENT_KINDS }                                 from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
-import { JOB_ROLES }                                      from '../../lib/tracker-model/constants/JobStates.ts';
+import type { IncidentKind, IncidentMove }                from '../../domain/tracker-model/@types/Incident.ts';
+import type { JobRole }                                   from '../../domain/tracker-model/@types/Job.ts';
+import { INCIDENT_KINDS }                                 from '../../domain/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
+import { JOB_ROLES }                                      from '../../domain/tracker-model/constants/JobStates.ts';
 import type { ControlCommand, ControlCommandOf }          from '../../shared/@types/ControlCommand.ts';
 import { WORKER_FILINGS_PER_JOB }                         from '../../shared/constants/HephaestusLimits.ts';
 import { Bouncer, type BouncerVerdict, type RelayingJob } from './Bouncer.ts';

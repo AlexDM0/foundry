@@ -11,17 +11,23 @@ import {
 } from 'node:fs';
 import { dirname } from 'node:path';
 
+import type { HephaestusLog }                                                        from '../../src/adapters/@types/HephaestusLogRecord.ts';
+import { ConstitutionCommitProblemWording }                                          from '../../src/adapters/ConstitutionCommitProblemWording.ts';
+import { MergeDecisionWording }                                                      from '../../src/adapters/MergeDecisionWording.ts';
 import type { CrashedComponent }                                                     from '../../src/adapters/crash-log/@types/CrashLogRecord.ts';
+import { PipelineCheckProblemWording }                                               from '../../src/adapters/pipeline/PipelineCheckProblemWording.ts';
+import { TurboConfigurationProblemWording }                                          from '../../src/adapters/turbo-configuration/TurboConfigurationProblemWording.ts';
+import { HephaestusLogWordingUtil }                                                  from '../../src/adapters/utils/HephaestusLogWordingUtil.ts';
+import { TALOS_PROTOCOL_VERSION }                                                    from '../../src/domain/talos/constants/TalosProtocol.ts';
+import type { StartOrigin }                                                          from '../../src/domain/tracker-model/@types/Job.ts';
+import type { LogRecordFieldsOf }                                                    from '../../src/domain/tracker-model/@types/LogRecord.ts';
+import { readingBoardOf }                                                            from '../../src/domain/tracker-model/ReadingBoard.ts';
 import { writeOwnerOnlyFileAtomically }                                              from '../../src/lib/atomic-file/AtomicFile.ts';
 import { GitProcess }                                                                from '../../src/lib/git/GitProcess.ts';
 import { LocalTimeUtil }                                                             from '../../src/lib/local-time/LocalTimeUtil.ts';
 import type { PlatformPorts }                                                        from '../../src/lib/platform-ports/PlatformPortsFor.ts';
 import { type ProcessIdentity, sameBoot }                                            from '../../src/lib/process-identity/ProcessIdentity.ts';
 import { QuietWatch }                                                                from '../../src/lib/quiet-watch/QuietWatch.ts';
-import { TALOS_PROTOCOL_VERSION }                                                    from '../../src/lib/talos/constants/TalosProtocol.ts';
-import type { StartOrigin }                                                          from '../../src/lib/tracker-model/@types/Job.ts';
-import type { LogRecordFieldsOf }                                                    from '../../src/lib/tracker-model/@types/LogRecord.ts';
-import { readingBoardOf }                                                            from '../../src/lib/tracker-model/ReadingBoard.ts';
 import { finishHalfAppliedSetup }                                                    from '../../src/services/control/PipelineSetupControls.ts';
 import { AgentProgramChecks }                                                        from '../../src/services/hephaestus/AgentProgramChecks.ts';
 import { AgentSlots }                                                                from '../../src/services/hephaestus/AgentSlots.ts';
@@ -77,6 +83,7 @@ import {
   outlivingProgramEnvironment
 } from '../../src/shared/Environment.ts';
 import { OperationRefusal }                from '../../src/shared/OperationRefusal.ts';
+import { refuseUnlessOwnerOnly }           from '../../src/shared/OwnerOnlyRestrictionRefusal.ts';
 import { versionsAnswerOverride }          from '../../src/shared/VersionsAnswerOverride.ts';
 import {
   HEPHAESTUS_STOP_INTERVAL_MILLISECONDS,
@@ -84,23 +91,25 @@ import {
   HEPHAESTUS_STOP_WAIT_MILLISECONDS,
   RESTART_PREFLIGHT_TIMEOUT_MILLISECONDS
 } from '../../src/shared/constants/HephaestusLimits.ts';
-import { agentCommandPreparationContextOf, preparedForgeAt }                    from '../AgentCommandContext.ts';
-import type { CommandContext }                                                  from '../CommandContext.ts';
-import { insideHephaestusControlContextOf }                                     from '../CommandControlContext.ts';
-import { hephaestusPollScheduleOf }                                             from '../HephaestusPollSchedule.ts';
-import { requireCurrentInstall }                                                from '../InstallVersionCheck.ts';
-import { PipelineAgentWording }                                                 from '../PipelineAgentWording.ts';
-import { loggingLockTakerOf, staleHephaestusLockLineOf, staleLockRecordLineOf } from '../StaleLockWording.ts';
-import type { ArgumentParser }                                                  from '../arguments/ArgumentParser.ts';
-import { INSTALL_VERSION }                                                      from '../constants/InstallVersion.ts';
-import { OutputUtil }                                                           from '../utils/OutputUtil.ts';
-import { type BoardRegistration, registerTheBoard }                             from './BoardRegistration.ts';
-import { writeAsHephaestus }                                                    from './HephaestusBoardWrites.ts';
-import { HephaestusWording }                                                    from './HephaestusWording.ts';
-import { type ServingAdmission, type StartOriginByHand, admitTheStart }         from './StartGateAdmission.ts';
-import { createMergeForecastCache, readBoardState }                             from './routes/BoardStateReader.ts';
-import type { RuntimeCommandOutcome, RuntimeHephaestusCommand }                 from './routes/CommandRoute.ts';
-import { hephaestusRoutesOf }                                                   from './routes/HephaestusRoutes.ts';
+import { agentCommandPreparationContextOf, preparedForgeAt }            from '../AgentCommandContext.ts';
+import type { CommandContext }                                          from '../CommandContext.ts';
+import { insideHephaestusControlContextOf }                             from '../CommandControlContext.ts';
+import { HephaestusNoticeWording }                                      from '../HephaestusNoticeWording.ts';
+import { hephaestusPollScheduleOf }                                     from '../HephaestusPollSchedule.ts';
+import { requireCurrentInstall }                                        from '../InstallVersionCheck.ts';
+import { PipelineAgentWording }                                         from '../PipelineAgentWording.ts';
+import { hephaestusLogLockTakerOf }                                     from '../StaleLockWording.ts';
+import type { ArgumentParser }                                          from '../arguments/ArgumentParser.ts';
+import { INSTALL_VERSION }                                              from '../constants/InstallVersion.ts';
+import { OutputUtil }                                                   from '../utils/OutputUtil.ts';
+import { type BoardRegistration, registerTheBoard }                     from './BoardRegistration.ts';
+import { crashLogErrorOf }                                              from './CrashLogErrorWording.ts';
+import { writeAsHephaestus }                                            from './HephaestusBoardWrites.ts';
+import { HephaestusWording }                                            from './HephaestusWording.ts';
+import { type ServingAdmission, type StartOriginByHand, admitTheStart } from './StartGateAdmission.ts';
+import { createMergeForecastCache, readBoardState }                     from './routes/BoardStateReader.ts';
+import type { RuntimeCommandOutcome, RuntimeHephaestusCommand }         from './routes/CommandRoute.ts';
+import { hephaestusRoutesOf }                                           from './routes/HephaestusRoutes.ts';
 
 export interface ForegroundRunRequest {
   commandArguments: ArgumentParser;
@@ -143,13 +152,19 @@ interface Serving {
 
 const TOKEN_BYTES = 32;
 
-/** Every line goes to standard error and is appended to `<data>/hephaestus.log`, which a reader tails, so it is never rewritten whole. */
-export function hephaestusLoggerOf(context: CommandContext, files: HephaestusFiles): (line: string) => void {
-  return (line: string) => {
-    const stampedLine = `${LocalTimeUtil.formatLocalIso(context.now())} ${line}`;
-    context.standardError(stampedLine);
+/** A successor and a restart preflight are spawned with standard error appended to `hephaestus.log`, so their records are not echoed there. */
+export type HephaestusLogEcho = 'standard-error' | 'none';
+
+/**
+ * Every record is appended to `<data>/hephaestus.log` as one JSON line, which a reader tails, so the file is never rewritten whole; unless
+ * standard error is that file, it also shows the stamped sentence.
+ */
+export function hephaestusLoggerOf(context: CommandContext, files: HephaestusFiles, echo: HephaestusLogEcho = 'standard-error'): HephaestusLog {
+  return (record) => {
+    const at = LocalTimeUtil.formatLocalIso(context.now());
+    if (echo === 'standard-error') context.standardError(`${at} ${HephaestusLogWordingUtil.detailsOf(record)}`);
     try {
-      appendFileSync(files.logFilePath, `${stampedLine}\n`);
+      appendFileSync(files.logFilePath, `${HephaestusLogWordingUtil.storedLineOf(record, at)}\n`);
     } catch {
       // The log is a convenience: a full disk never stops a Hephaestus that is otherwise serving.
     }
@@ -167,9 +182,10 @@ export function requireNoLiveHephaestus(ports: PlatformPorts, files: HephaestusF
 }
 
 /** Hephaestus's own store of its board, built from its workspace: the context of a start names no current directory. */
-function hephaestusBoardStoreOf(request: StoppedHephaestusRequest): BoardStore {
+function hephaestusBoardStoreOf(request: StoppedHephaestusRequest, echo: HephaestusLogEcho = 'standard-error'): BoardStore {
   const { context, workspace } = request;
-  const lockTaker = loggingLockTakerOf(context.platformPorts.processSupervision, hephaestusLoggerOf(context, hephaestusFilesIn(workspace.trackerDirectory)));
+  const log = hephaestusLoggerOf(context, hephaestusFilesIn(workspace.trackerDirectory), echo);
+  const lockTaker = hephaestusLogLockTakerOf(context.platformPorts.processSupervision, log);
   return createLocalFilesBoardStore({ workspace, now: context.now, lockTaker });
 }
 
@@ -225,7 +241,7 @@ export async function recordTheHandover(
 }
 
 /** The lease renewal's hook: each renewal Talos confirmed is one beat of this generation. */
-export function heartbeatOnRenewalOf(files: HephaestusFiles, generation: number, log: (line: string) => void): (renewedAtWallMilliseconds: number) => void {
+export function heartbeatOnRenewalOf(files: HephaestusFiles, generation: number, log: HephaestusLog): (renewedAtWallMilliseconds: number) => void {
   return (renewedAtWallMilliseconds) => {
     Presence.writeHeartbeat(files, generation, LocalTimeUtil.formatLocalIso(new Date(renewedAtWallMilliseconds)), log);
   };
@@ -240,14 +256,14 @@ export interface StopWait {
  * Runs the waits in turn, all of them under one bound, so a stop records itself and releases its Hephaestus lock before Windows ends a closed console's
  * process. The wait the bound cuts short is logged by name; the waits after it are started and not awaited.
  */
-export async function waitOutTheStopWaits(waits: readonly StopWait[], log: (line: string) => void, boundMilliseconds: number): Promise<void> {
+export async function waitOutTheStopWaits(waits: readonly StopWait[], log: HephaestusLog, boundMilliseconds: number): Promise<void> {
   let boundTimer: ReturnType<typeof setTimeout> | undefined;
   // The one clock decision of the stop, on purpose: the platform ends the process at a time, not at a count.
   const boundReached = new Promise<'bound-reached'>((resolve) => {
     boundTimer = setTimeout(() => resolve('bound-reached'), boundMilliseconds);
   });
   const reportLateFailure = (wait: StopWait) => (thrown: unknown) => {
-    log(`After the stop went on, ${wait.name} failed: ${thrown instanceof Error ? thrown.message : String(thrown)}`);
+    log({ kind: 'stop-wait-failed-late', waitName: wait.name, thrownMessage: thrown instanceof Error ? thrown.message : String(thrown) });
   };
   try {
     for (const [index, wait] of waits.entries()) {
@@ -255,7 +271,7 @@ export async function waitOutTheStopWaits(waits: readonly StopWait[], log: (line
       const outcome = await Promise.race([running.then(() => 'ended' as const), boundReached]);
       if (outcome === 'ended') continue;
       running.catch(reportLateFailure(wait));
-      log(`The stop went on without ${wait.name}, which did not end within ${boundMilliseconds} ms.`);
+      log({ kind: 'stop-wait-cut-short', waitName: wait.name, boundMilliseconds });
       for (const laterWait of waits.slice(index + 1)) laterWait.run().catch(reportLateFailure(laterWait));
       return;
     }
@@ -267,7 +283,7 @@ export async function waitOutTheStopWaits(waits: readonly StopWait[], log: (line
 function writeToken({ ownerOnlyFiles }: PlatformPorts, tokenFilePath: string): string {
   const token = randomBytes(TOKEN_BYTES).toString('hex');
   writeOwnerOnlyFileAtomically(tokenFilePath, token);
-  ownerOnlyFiles.restrictFile(tokenFilePath);
+  refuseUnlessOwnerOnly(ownerOnlyFiles.restrictFile(tokenFilePath));
   return token;
 }
 
@@ -277,7 +293,7 @@ function hephaestusLockRefusalOf(acquisition: Exclude<HephaestusLockAcquisition,
 }
 
 /** Resolves once Hephaestus should end or hand over, and is settled at most once. */
-function hephaestusLifetime(request: ForegroundRunRequest, files: HephaestusFiles, generation: number, log: (line: string) => void) {
+function hephaestusLifetime(request: ForegroundRunRequest, files: HephaestusFiles, generation: number, log: HephaestusLog) {
   let finish: (end: HephaestusEnd) => void = () => undefined;
   const ended = new Promise<HephaestusEnd>((resolve) => { finish = resolve; });
   // Each drive pass checks before its effects; this watch ends an idle Hephaestus as soon as a newer generation appears.
@@ -290,7 +306,7 @@ function hephaestusLifetime(request: ForegroundRunRequest, files: HephaestusFile
   };
   const hephaestusFolderWatch = QuietWatch.watchQuietly({ folderPath: files.hephaestusDirectory, recursive: false, onEvent: beforeEffectBatch });
   const unsubscribe = request.context.onStopSignal(() => {
-    log('Stop signal received.');
+    log({ kind: 'stop-signal-received' });
     finish({ kind: 'stopped', how: 'signal', now: false });
   });
   return {
@@ -330,7 +346,7 @@ function preflightSteps(workspace: Workspace, boardStore: BoardStore, boardChild
       run:  () => {
         for (const job of jobsOf()) {
           if (!Number.isSafeInteger(job.childInstance) || !Number.isSafeInteger(job.eventCursor.sequence)) {
-            throw new Error(`job ${job.id} has no readable child instance or cursor`);
+            throw new OperationRefusal('unrepaired', `job ${job.id} has no readable child instance or cursor`);
           }
         }
       },
@@ -342,10 +358,10 @@ function preflightSteps(workspace: Workspace, boardStore: BoardStore, boardChild
           const jobFolder = boardChildren.jobFolderOf(job.id);
           if (boardChildren.livenessOf(jobFolder, job.childInstance).verdict === 'unlaunched') continue;
           if (boardChildren.recordOf(jobFolder, job.childInstance) === null) {
-            throw new Error(`child ${job.childInstance} of job ${job.id} has no readable child record`);
+            throw new OperationRefusal('unrepaired', `child ${job.childInstance} of job ${job.id} has no readable child record`);
           }
           if (boardChildren.eventsAfter(jobFolder, job.childInstance, 0) === 'malformed') {
-            throw new Error(`the event log of child ${job.childInstance} of job ${job.id} is malformed`);
+            throw new OperationRefusal('unrepaired', `the event log of child ${job.childInstance} of job ${job.id} is malformed`);
           }
         }
       },
@@ -359,7 +375,7 @@ function preflightSteps(workspace: Workspace, boardStore: BoardStore, boardChild
 export async function runTheRestartPreflight(request: StoppedHephaestusRequest): Promise<void> {
   const { context, workspace } = request;
   const boardChildren = createTalosChildren({ boardFolder: workspace.trackerDirectory, platformPorts: context.platformPorts, connection: () => null });
-  const report = await Restart.preflightReportOf(CodeVersion.onDisk(), preflightSteps(workspace, hephaestusBoardStoreOf(request), boardChildren));
+  const report = await Restart.preflightReportOf(CodeVersion.onDisk(), preflightSteps(workspace, hephaestusBoardStoreOf(request, 'none'), boardChildren));
   context.standardOutput(Restart.reportLineOf(report));
 }
 
@@ -420,7 +436,7 @@ export function spawnSuccessor(
   port: number,
 ): ProcessIdentity | null {
   if (context.programCommand.length === 0) return null;
-  // Its own lines reach the log through its logger; what it prints before it has one, such as a refusal, is appended here.
+  // Its records reach the log through its logger, which echoes nothing here; what it prints besides, such as a refusal, is appended here.
   const logFileDescriptor = openSync(files.logFilePath, 'a');
   try {
     const child = Bun.spawn([...context.programCommand, 'start', '--successor-of', String(generation), '--port', String(port)], {
@@ -429,7 +445,7 @@ export function spawnSuccessor(
       stdin:  'ignore',
       stdout: 'ignore',
       stderr: logFileDescriptor,
-      ...context.platformPorts.processSupervision.spawnOptionsFor('successor'),
+      ...context.platformPorts.processSupervision.spawnOptionsFor('detached-program'),
     });
     child.unref();
     return context.platformPorts.processSupervision.identityOf(child.pid);
@@ -463,7 +479,7 @@ function startClassifiedFieldsOf({ classification, crashLogNumber }: ServingAdmi
 
 export async function runHephaestusInTheForeground(request: ForegroundRunRequest): Promise<void> {
   const crashPathReach: CrashPathReach = { contextNow: () => null };
-  const removeCrashListeners = CrashPath.listenForProcessCrashes(() => crashPathReach.contextNow());
+  const removeCrashListeners = CrashPath.listenForProcessCrashes(() => crashPathReach.contextNow(), crashLogErrorOf);
   try {
     await serveInTheForeground(request, crashPathReach);
   } finally {
@@ -473,7 +489,8 @@ export async function runHephaestusInTheForeground(request: ForegroundRunRequest
 
 async function serveInTheForeground(request: ForegroundRunRequest, crashPathReach: CrashPathReach): Promise<void> {
   const { context, workspace } = request;
-  const boardStore = hephaestusBoardStoreOf(request);
+  const logEcho    = request.successorOf === undefined ? 'standard-error' : 'none';
+  const boardStore = hephaestusBoardStoreOf(request, logEcho);
   const progress   = boardStore.reads.requireProgress();
   const files      = hephaestusFilesIn(workspace.trackerDirectory);
   const { platformPorts } = context;
@@ -482,7 +499,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
   const versionsAnswer = versionsAnswerOverride();
   mkdirSync(files.hephaestusDirectory, { recursive: true });
   // Before any worker starts: a folder absent when a sandbox is wrapped would go undenied.
-  platformPorts.ownerOnlyFiles.restrictFolder(dirname(tokenFilePath));
+  refuseUnlessOwnerOnly(platformPorts.ownerOnlyFiles.restrictFolder(dirname(tokenFilePath)));
   if (request.successorOf !== undefined) await waitForThePredecessorToEnd(platformPorts, files, request.successorOf);
   requireNoLiveHephaestus(platformPorts, files);
 
@@ -493,7 +510,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
   }
   const ownIdentity: ProcessIdentity = readIdentity;
   const codeVersion = CodeVersion.onDisk();
-  const log         = hephaestusLoggerOf(context, files);
+  const log         = hephaestusLoggerOf(context, files, logEcho);
   const unreadableBoardFiles = createUnreadableBoardFiles(log);
   const origin: StartOriginReading = request.successorOf === undefined
     ? { startOrigin: request.startOrigin }
@@ -568,12 +585,15 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
       if (talosConnection !== connection) return;
       talosConnection = null;
       talosIsLost = true;
-      log(`The connection to Talos ${availability.startNumber} closed; the next pass ensures a Talos.`);
+      log({ kind: 'talos-connection-closed', talosStartNumber: availability.startNumber });
       current?.drivePass.wake(true);
     });
     if (availability.verdict === 'started') {
-      log(`Started Talos ${availability.startNumber} (the one before ${availability.previousTalos}, ${availability.sweptOrphans} orphans swept).`);
-    } else log(`Attached to Talos ${availability.startNumber}.`);
+      const { startNumber, previousTalos, sweptOrphans } = availability;
+      log({
+        kind: 'talos-started', talosStartNumber: startNumber, previousTalos, sweptOrphans
+      });
+    } else log({ kind: 'talos-attached', talosStartNumber: availability.startNumber });
   };
 
   const crashPathContextOf = (generation: number): CrashPathContext => ({
@@ -593,14 +613,16 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
   async function recordTheCrash(generation: number, component: CrashedComponent, error: Parameters<typeof CrashPath.record>[1]['error']): Promise<void> {
     const outcome = await CrashPath.record(crashPathContextOf(generation), { component, error });
     recordedCrash = { component, crashLogPath: outcome.crashLogPath };
-    log(`Crashed (${component}) under Hephaestus lock ${generation}; the crash log is ${outcome.crashLogPath ?? 'not written'} (${outcome.crashLog}).`);
+    log({
+      kind: 'crashed', component, generation, crashLogPath: outcome.crashLogPath, crashLog: outcome.crashLog
+    });
     (lifetimeBeingStarted ?? current?.lifetime)?.crashed(recordedCrash);
   }
 
   /** A pass that threw after a crash was recorded, a crash of Talos included, is passed over, so the first crash keeps its component. */
   async function recordThePassCrash(generation: number, thrown: unknown): Promise<void> {
     if (recordedCrashNow() !== null) return;
-    await recordTheCrash(generation, 'hephaestus', CrashLog.errorOf('pass', thrown));
+    await recordTheCrash(generation, 'hephaestus', crashLogErrorOf('pass', thrown));
   }
 
   /** The refusal a stop or a release ends with once a crash is recorded, so no `stopped` or `handed-over` ending overwrites `crashed`. */
@@ -617,7 +639,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
 
   /** The one place a pass finds its Talos lost while serving; a crash of Talos ends the pass before it reads anything. */
   const ensureTalosIfLost = async (): Promise<void> => {
-    if (recordedCrashNow() !== null) throw new Error('Hephaestus crashed and is stopping, so no pass runs.');
+    if (recordedCrashNow() !== null) throw new OperationRefusal('unrepaired', 'Hephaestus crashed and is stopping, so no pass runs.');
     if (!talosIsLost) return;
     const lostStartNumber = followedTalosStartNumber;
     const availability = await ensureTalos(talosStartContext());
@@ -628,13 +650,13 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
       await recordTheCrash(servingGeneration, 'talos', {
         origin: 'talos-lost', name: 'TalosLost', message, stack: null
       });
-      throw new Error(`${message} This is a crash of Talos: Hephaestus stops.`);
+      throw new OperationRefusal('unrepaired', `${message} This is a crash of Talos: Hephaestus stops.`);
     }
     if (availability.verdict === 'attached' || availability.verdict === 'started') {
       followTalos(availability);
       return;
     }
-    log(`No Talos serves the board (${availability.reason}); the next pass tries again.`);
+    log({ kind: 'no-talos-serves', reason: availability.reason });
   };
 
   let token: string | null = null;
@@ -650,7 +672,12 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
   const hephaestusState = () => {
     const passState = current?.drivePass.state();
     if (passState === undefined) return null;
-    return { ...passState, runtimeState: handingOver ? 'restarting' as const : passState.runtimeState, restartWarning };
+    return {
+      ...passState,
+      notices:      passState.notices.map(HephaestusNoticeWording.servedNoticeOf),
+      runtimeState: handingOver ? 'restarting' as const : passState.runtimeState,
+      restartWarning,
+    };
   };
 
   /** Binds, takes a generation, records the start, ensures Talos and regroups every child; what it took is let go on a failure. */
@@ -727,11 +754,11 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
         effectReadings:   () => drivePass?.effectReadings ?? null,
         agentProgramChecks,
         onRuntimeCommand: async (command: RuntimeHephaestusCommand): Promise<RuntimeCommandOutcome> => {
-          log(`${command.kind} received${'now' in command && command.now ? ' (now)' : ''}.`);
+          log({ kind: 'runtime-command-received', command: command.kind, now: 'now' in command && command.now });
           if (current === null || (handingOver && !preflightRunning)) return command.kind === 'talos-restart' ? 'nothing-to-do' : 'done';
           if (command.kind === 'talos-restart') {
             const outcome = await quitTalosForRestart(talosConnection);
-            log(`Talos ${followedTalosStartNumber ?? 'none'} was asked to quit for a clean restart: ${outcome}.`);
+            log({ kind: 'talos-asked-to-quit-for-restart', talosStartNumber: followedTalosStartNumber, outcome });
             return outcome;
           }
           if (command.kind === 'hephaestus-restart') {
@@ -779,7 +806,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
     }
     const { generation, staleTakenOver } = acquisition;
     if (staleTakenOver !== undefined) {
-      log(staleHephaestusLockLineOf(generation, staleTakenOver));
+      log({ kind: 'stale-hephaestus-lock-taken-over', generation, ...staleTakenOver });
     }
     const ownBroker = EventBroker.createEventBroker(generation);
     const ownMonitorStream = MonitorStream.createMonitorStream();
@@ -804,7 +831,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
         const monitorFacts = monitorFactsNow();
         if (monitorFacts !== null) ownMonitorStream.publish(MonitorSnapshotAssembly.monitorSnapshotOf({ ...read, hephaestus: monitorFacts, now: context.now() }));
       } catch (thrown) {
-        log(`The board state could not be read for the event stream: ${thrown instanceof Error ? thrown.message : String(thrown)}`);
+        log({ kind: 'board-state-unreadable-for-event-stream', thrownMessage: thrown instanceof Error ? thrown.message : String(thrown) });
       }
     };
     broker           = ownBroker;
@@ -837,7 +864,9 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
         transaction.board.recordStartClassified(startClassifiedFieldsOf(admission, startOrigin), transaction.at);
         return hephaestusStarted;
       });
-      log(`Hephaestus serving ${server.url} under Hephaestus lock ${generation} (code ${codeVersion}, install version ${INSTALL_VERSION}, agents ${context.agentAdapter.vendor}).`);
+      log({
+        kind: 'hephaestus-serving', url: server.url, generation, codeVersion, installVersion: INSTALL_VERSION, agentVendor: context.agentAdapter.vendor
+      });
 
       const startedLifetime = lifetime;
       drivePass = createDrivePass({
@@ -864,6 +893,10 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
         agentVariableIsSet,
         newCodeOnDisk:             installWatch.newCodeOnDisk,
         decisionWordingOf:         (draft) => HephaestusWording.decisionWordingOf(draft, context.agentAdapter),
+        mergeDecisionSentenceOf:   MergeDecisionWording.sentenceOf,
+        applyRefusalSentenceOf:    ConstitutionCommitProblemWording.sentenceOf,
+        checkReasonSentenceOf:     PipelineCheckProblemWording.sentenceOf,
+        findingSentenceOf:         TurboConfigurationProblemWording.sentenceOf,
         packageNeedWordingOf:      HephaestusWording.packageNeedWordingOf,
         dependentFixWordingOf:     HephaestusWording.dependentFixWordingOf,
         launchTextOf:              (job, facts) => HephaestusWording.launchTextOf(job, facts, context.agentAdapter.promptFills),
@@ -875,7 +908,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
         setupMessageWordingOf:     (message) => PipelineAgentWording.setupMessageWordingOf(message, context.agentAdapter.promptFills),
         homeDirectory:             context.homeDirectory,
         log,
-        onStaleLockTakenOver:      (staleTakenOver) => log(staleLockRecordLineOf(staleTakenOver)),
+        onStaleLockTakenOver:      (staleTakenOver) => log({ kind: 'stale-lock-record-taken-over', ...staleTakenOver }),
         onHephaestusLockTakenOver: (refusal) => (current?.lifetime ?? startedLifetime).takenOver(refusal),
         onPassCrashed:             (thrown) => recordThePassCrash(generation, thrown),
         watchHatchFolder:          (hatchDirectory) => dataFolderWatch?.watchHatchFolder(hatchDirectory),
@@ -971,18 +1004,18 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
       crashableGeneration = null;
     }, boardStore);
     await serving.server.stop();
-    log('Released the board to the successor.');
+    log({ kind: 'released-to-successor' });
   }
 
   async function recordRestartFailure(failure: RestartFailure): Promise<void> {
     restartWarning = failure;
-    log(`The restart was refused at ${failure.step}: ${failure.error}. This Hephaestus keeps driving.`);
+    log({ kind: 'restart-refused', step: failure.step, restartError: failure.error });
     await writeAsHephaestus(boardStore, context, workspace, (transaction) => transaction.board.recordRestartFailed(failure, transaction.at));
   }
 
   /** A successor that cannot serve leaves the board with no Hephaestus after a restart, which the registry then says, so a monitor alerts. */
   async function registerTheFailedSuccessor(predecessorGeneration: number, thrown: unknown): Promise<void> {
-    const error = CrashLog.errorOf('pass', thrown);
+    const error = crashLogErrorOf('pass', thrown);
     await registerHephaestus(request, {
       presence: {
         state:      'crashed',
@@ -993,7 +1026,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
         },
       },
     });
-    log(`The successor of Hephaestus lock ${predecessorGeneration} could not serve, so no Hephaestus is on the board: ${error.message}`);
+    log({ kind: 'successor-could-not-serve', predecessorGeneration, errorMessage: error.message });
   }
 
   const serving = await startServing(request.portChoice).catch(async (thrown: unknown) => {
@@ -1008,7 +1041,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
   const crashSeen = recordedCrashNow();
   const end: HephaestusEnd = crashSeen === null ? settledEnd : { kind: 'crashed', ...crashSeen };
   if (end.kind === 'restart') {
-    log(`Handing the board over to the code on disk (Hephaestus lock ${serving.generation}).`);
+    log({ kind: 'handover-started', generation: serving.generation });
     try {
       await release(serving);
     } finally {
@@ -1020,7 +1053,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
       await registerTheFailedSuccessor(serving.generation, new Error('the successor could not be started'));
       return;
     }
-    log(`Started the successor as process ${successor.processId}; exiting.`);
+    log({ kind: 'successor-started', processId: successor.processId });
     return;
   }
   serving.lifetime.stopWatching();
@@ -1039,16 +1072,16 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
     // A pass awaited by the stop waits can record a crash of Talos after the end settled.
     const crashRefusal = crashRefusalOrNull();
     if (crashRefusal !== null) {
-      log('Crashed; staying off, keeping the Hephaestus lock and the registry entry, until a start by hand.');
+      log({ kind: 'crashed-staying-off' });
       throw crashRefusal;
     }
     if (end.kind === 'taken-over') {
-      log('A newer Hephaestus took the board over; stopping without acting.');
+      log({ kind: 'taken-over-stopping' });
       throw end.refusal;
     }
     await closeTheStoppedHephaestus(request, files, { generation: serving.generation, releaseLock: true }, boardStore);
     crashableGeneration = null;
-    log('Hephaestus stopped; its Hephaestus lock is released.');
+    log({ kind: 'hephaestus-stopped' });
   } finally {
     serving.lifetime.stopListening();
   }

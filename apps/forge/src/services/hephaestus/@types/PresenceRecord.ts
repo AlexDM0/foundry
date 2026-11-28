@@ -1,5 +1,7 @@
-import type { HeartbeatRecord } from '../../../adapters/heartbeat/@types/HeartbeatRecord.ts';
-import type { PresenceRecord }  from '../../../adapters/presence/@types/PresenceRecord.ts';
+import type { HeartbeatRecord }   from '../../../adapters/heartbeat/@types/HeartbeatRecord.ts';
+import type { PresenceProblem }   from '../../../adapters/presence/@types/PresenceProblem.ts';
+import type { PresenceRecord }    from '../../../adapters/presence/@types/PresenceRecord.ts';
+import type { StoredFileProblem } from '../../../shared/@types/StoredFileProblem.ts';
 
 /** An ending as its writer names it; the time is handed beside it. */
 export type PresenceEndingToWrite =
@@ -10,9 +12,9 @@ export type PresenceEndingToWrite =
 export type PresenceStart = Omit<PresenceRecord, 'presenceVersion' | 'abandonedPasses' | 'ending'>;
 
 /** `read` is stored as a start classification's `presence` evidence, so a service's reading keeps it. */
-export type PresenceFileReading<StoredRecord> =
+export type PresenceFileReading<StoredRecord, Problem extends StoredFileProblem = StoredFileProblem> =
   | { verdict: 'absent' }
-  | { verdict: 'unreadable'; reason: string }
+  | { verdict: 'unreadable'; problem: Problem }
   | { verdict: 'read'; record: StoredRecord };
 
 /** A change of a generation's record: a newer generation's record, or one that cannot be read, is never touched. */
@@ -20,7 +22,7 @@ export type PresenceUpdate =
   | { verdict: 'written'; record: PresenceRecord }
   | { verdict: 'unchanged' }
   | { verdict: 'not-this-generation'; storedGeneration: number }
-  | { verdict: 'no-record'; reading: Exclude<PresenceFileReading<PresenceRecord>, { verdict: 'read' }> };
+  | { verdict: 'no-record'; reading: Exclude<PresenceFileReading<PresenceRecord, PresenceProblem>, { verdict: 'read' }> };
 
 export type HeartbeatWrite =
   | { verdict: 'written'; record: HeartbeatRecord }

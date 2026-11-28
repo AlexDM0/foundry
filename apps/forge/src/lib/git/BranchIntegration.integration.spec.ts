@@ -69,7 +69,7 @@ describeWhenGitIsPresent('the branch the main checkout is on', () => {
     const reading        = readCurrentBranch(plainDirectory);
     expect(reading.verdict).toBe('git-failed');
     if (reading.verdict !== 'git-failed') return;
-    expect(reading.reason.startsWith('git symbolic-ref --quiet --short HEAD exited with 128: ')).toBe(true);
+    expect(reading.problem).toMatchObject({ code: 'git-exited', gitArguments: ['symbolic-ref', '--quiet', '--short', 'HEAD'], exitCode: 128 });
   });
 });
 
@@ -147,7 +147,7 @@ describeWhenGitIsPresent('the fast-forward', () => {
     const outcome = fastForwardTo(repositoryDirectory, branchCommit);
     expect(outcome.verdict).toBe('refused');
     if (outcome.verdict !== 'refused') return;
-    expect(outcome.reason.startsWith(`git merge --ff-only --quiet ${branchCommit} exited with`)).toBe(true);
+    expect(outcome.problem).toMatchObject({ code: 'git-exited', gitArguments: ['merge', '--ff-only', '--quiet', branchCommit] });
     expect(outcome.blockingFiles).toEqual([]);
     expect(gitOutputIn(repositoryDirectory, ['rev-parse', 'HEAD'])).toBe(mainLineCommit);
   });
@@ -293,7 +293,7 @@ describeWhenGitIsPresent('removing the worktree', () => {
     const outcome = removeWorktree(repositoryDirectory, worktreeDirectory);
     expect(outcome.verdict).toBe('left');
     if (outcome.verdict !== 'left') return;
-    expect(outcome.reason.startsWith(`git worktree remove ${worktreeDirectory} exited with`)).toBe(true);
+    expect(outcome.problem).toMatchObject({ code: 'git-exited', gitArguments: ['worktree', 'remove', worktreeDirectory] });
     expect(outcome.filesLeft).toEqual({ untrackedFiles: ['café.txt'], changedFiles: ['tracked.txt'] });
     expect(existsSync(worktreeDirectory)).toBe(true);
   });
@@ -348,7 +348,7 @@ describeWhenGitIsPresent('deleting the merged branch', () => {
     const outcome = deleteMergedBranch(repositoryDirectory, 'unmerged-work');
     expect(outcome.verdict).toBe('left');
     if (outcome.verdict !== 'left') return;
-    expect(outcome.reason.startsWith('git branch -d')).toBe(true);
+    expect(outcome.problem).toMatchObject({ code: 'git-exited', gitArguments: ['branch', '-d', 'unmerged-work'] });
     expect(gitOutputIn(repositoryDirectory, ['branch', '--list', 'unmerged-work'])).not.toBe('');
   });
 });

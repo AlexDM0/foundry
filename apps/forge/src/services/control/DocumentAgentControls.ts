@@ -2,23 +2,15 @@
  * The moves on a ticket document's agent: the agent's own proposal, ready, effect reading and question through its Hatch, each refused
  * unless its job is the live agent of that ticket document, and User's effect reading of a version and stop of the agent's running turn.
  */
-import type { DecisionOpened }         from '../../lib/tracker-model/@types/BoardChanges.ts';
-import type { DecisionQuestionOption } from '../../lib/tracker-model/@types/Decision.ts';
-import type { Job }                    from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }              from '../../lib/tracker-model/@types/LogRecord.ts';
-import type {
-  DocumentProposal,
-  LineEdit,
-  LineRange,
-  TicketDocumentKind
-} from '../../lib/tracker-model/@types/TicketDocument.ts';
-import type { Board }                                                                  from '../../lib/tracker-model/Board.ts';
-import { BoardRefusal }                                                                from '../../lib/tracker-model/BoardRefusal.ts';
-import type { ProposalSubmission }                                                     from '../../lib/tracker-model/TicketDocuments.ts';
-import { CommentAnchorUtil }                                                           from '../../lib/tracker-model/utils/CommentAnchorUtil.ts';
-import { DocumentAgentJobUtil }                                                        from '../../lib/tracker-model/utils/DocumentAgentJobUtil.ts';
-import { OptionConsequencesUtil }                                                      from '../../lib/tracker-model/utils/OptionConsequencesUtil.ts';
-import { TicketDocumentVersionUtil }                                                   from '../../lib/tracker-model/utils/TicketDocumentVersionUtil.ts';
+import type { DecisionOpened }                                                         from '../../domain/tracker-model/@types/BoardChanges.ts';
+import type { DecisionQuestionOption }                                                 from '../../domain/tracker-model/@types/Decision.ts';
+import type { LiveDocumentAgent }                                                      from '../../domain/tracker-model/@types/Job.ts';
+import type { LogRecord }                                                              from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { DocumentProposal, LineEdit, LineRange }                                  from '../../domain/tracker-model/@types/TicketDocument.ts';
+import type { ProposalSubmission }                                                     from '../../domain/tracker-model/TicketDocuments.ts';
+import { CommentAnchorUtil }                                                           from '../../domain/tracker-model/utils/CommentAnchorUtil.ts';
+import { DocumentAgentJobUtil }                                                        from '../../domain/tracker-model/utils/DocumentAgentJobUtil.ts';
+import { OptionConsequencesUtil }                                                      from '../../domain/tracker-model/utils/OptionConsequencesUtil.ts';
 import type { ControlCommandKind, ControlCommandOf, DocumentQuestionOptionSubmission } from '../../shared/@types/ControlCommand.ts';
 import type { ControlContext }                                                         from '../../shared/@types/ControlContext.ts';
 import type { EffectReadingRequest }                                                   from '../../shared/@types/EffectReading.ts';
@@ -27,41 +19,16 @@ import type { BoardTransaction }                                                
 import { ticketIdOfReference }                                                         from './ControlTicketLookup.ts';
 import { ticketDocumentMoveJudgesOf }                                                  from './TicketDocumentMoveJudges.ts';
 
-/** The live agent job and the ticket document it writes. */
-interface LiveDocumentAgent {
-  job:      Readonly<Job>;
-  ticketId: string;
-  document: TicketDocumentKind;
-}
-
 const MESSAGE_ID_PATTERN = /^M[1-9][0-9]*$/;
 
 /** The options a document agent's question offers, as many as its agent's own question tool takes. */
 const QUESTION_OPTION_COUNT = { least: 2, most: 4 } as const;
 
-/** The job the Bouncer stamped, while it is the one document agent on the board for its ticket's document. */
-function liveDocumentAgentOf(board: Board, jobId: string | undefined): LiveDocumentAgent {
-  const job      = jobId === undefined ? undefined : board.jobById(jobId);
-  const document = job === undefined ? null : DocumentAgentJobUtil.documentOf(job);
-  const ticketId = job?.ticketIds[0];
-  if (job === undefined || document === null || ticketId === undefined) {
-    throw new BoardRefusal({
-      reason: 'document-agent-not-live', ticketId: ticketId ?? '', document: document ?? 'spec', jobId: jobId ?? ''
-    });
-  }
-  if (DocumentAgentJobUtil.liveAgentOf(board.jobs(), ticketId, document)?.id !== job.id || board.ticketDocuments().documentOf(ticketId, document) === null) {
-    throw new BoardRefusal({
-      reason: 'document-agent-not-live', ticketId, document, jobId: job.id
-    });
-  }
-  return { job, ticketId, document };
-}
-
 /** A move only Hephaestus stamps the snapshot of: without the stamp the move cannot say which main line the agent read. */
 function stampedCommitOf(agent: LiveDocumentAgent, constitutionCommit: string | undefined): string {
   if (constitutionCommit === undefined || constitutionCommit === '') {
-    throw new BoardRefusal({
-      reason: 'document-agent-not-live', ticketId: agent.ticketId, document: agent.document, jobId: agent.job.id
+    throw new OperationRefusal('refused', {
+      kind: 'document-agent-not-live', ticketId: agent.ticketId, document: agent.document, jobId: agent.job.id
     });
   }
   return constitutionCommit;
@@ -112,7 +79,7 @@ function forSpecNumberOf(agent: LiveDocumentAgent): number | null {
 }
 
 function propose(command: ControlCommandOf<'ticket-document-agent-propose'>, change: BoardTransaction): { proposal: Readonly<DocumentProposal>; logged: readonly LogRecord[] } {
-  const agent      = liveDocumentAgentOf(change.board, command.jobId);
+  const agent      = change.board.liveDocumentAgentOf(command.jobId);
   const submission = submissionOf(command, forSpecNumberOf(agent));
   const commit     = stampedCommitOf(agent, command.constitutionCommit);
   const judges     = ticketDocumentMoveJudgesOf(agent.document);
@@ -121,25 +88,12 @@ function propose(command: ControlCommandOf<'ticket-document-agent-propose'>, cha
 }
 
 function markReady(command: ControlCommandOf<'ticket-document-agent-ready'>, change: BoardTransaction): { jobId: string; logged: readonly LogRecord[] } {
-  const agent  = liveDocumentAgentOf(change.board, command.jobId);
+  const agent  = change.board.liveDocumentAgentOf(command.jobId);
   const commit = stampedCommitOf(agent, command.constitutionCommit);
   const { logged } = change.board.ticketDocuments().markReady(
     agent.ticketId, agent.document, commit, ticketDocumentMoveJudgesOf(agent.document), change.at, forSpecNumberOf(agent)
   );
   return { jobId: agent.job.id, logged };
-}
-
-/** The version must be one the document holds; a reading of another is refused naming the head. */
-function requireVersion(board: Board, ticketId: string, document: TicketDocumentKind, version: number): void {
-  const held = board.ticketDocuments().documentOf(ticketId, document);
-  if (held === null) throw new BoardRefusal({ reason: 'ticket-has-no-documents', ticketId });
-  const namedVersion = isWholeNumberAtLeast(version, 1) ? version : null;
-  if (namedVersion === null || TicketDocumentVersionUtil.versionOfNumber(held, namedVersion) === null) {
-    const headNumber = TicketDocumentVersionUtil.headOf(held)?.number ?? null;
-    throw new BoardRefusal({
-      reason: 'document-version-moved', ticketId, document, version: namedVersion, headNumber
-    });
-  }
 }
 
 function isFilledText(value: unknown): value is string {
@@ -186,8 +140,8 @@ function questionLinesOf(lines: unknown, versionText: string): LineRange {
  * read. The job keeps running: the answer comes back as the document's next message.
  */
 function ask(command: ControlCommandOf<'ticket-document-agent-ask'>, change: BoardTransaction): DecisionOpened {
-  const agent = liveDocumentAgentOf(change.board, command.jobId);
-  requireVersion(change.board, agent.ticketId, agent.document, command.version);
+  const agent = change.board.liveDocumentAgentOf(command.jobId);
+  change.board.ticketDocuments().requireHeldVersion(agent.ticketId, agent.document, command.version);
   const versionText = change.board.ticketDocuments().versionTextOf(agent.ticketId, agent.document, command.version) ?? '';
   if (!isFilledText(command.question)) malformed(command.kind, 'question');
   if (command.context !== undefined && typeof command.context !== 'string') malformed(command.kind, 'context');
@@ -218,8 +172,8 @@ function requestReading(context: ControlContext, commandKind: ControlCommandKind
 function readAgentEffect(
   command: ControlCommandOf<'ticket-document-agent-effect-read'>, change: BoardTransaction, context: ControlContext
 ): { request: EffectReadingRequest; logged: readonly LogRecord[] } {
-  const agent = liveDocumentAgentOf(change.board, command.jobId);
-  requireVersion(change.board, agent.ticketId, agent.document, command.version);
+  const agent = change.board.liveDocumentAgentOf(command.jobId);
+  change.board.ticketDocuments().requireHeldVersion(agent.ticketId, agent.document, command.version);
   const request = requestReading(context, command.kind, {
     ticketId: agent.ticketId, document: agent.document, versionNumber: command.version, requestedByAgent: true
   });
@@ -228,7 +182,7 @@ function readAgentEffect(
 
 function readEffect(command: ControlCommandOf<'ticket-document-effect-read'>, change: BoardTransaction, context: ControlContext): EffectReadingRequest {
   const ticketId = ticketIdOfReference(change, command.ticketReference);
-  requireVersion(change.board, ticketId, command.document, command.version);
+  change.board.ticketDocuments().requireHeldVersion(ticketId, command.document, command.version);
   return requestReading(context, command.kind, {
     ticketId, document: command.document, versionNumber: command.version, requestedByAgent: false
   });
@@ -240,7 +194,7 @@ function readEffect(command: ControlCommandOf<'ticket-document-effect-read'>, ch
  */
 function stopTurn(command: ControlCommandOf<'ticket-document-turn-stop'>, change: BoardTransaction): { changed: boolean; jobId: string | null } {
   const ticketId = ticketIdOfReference(change, command.ticketReference);
-  if (change.board.ticketDocuments().documentOf(ticketId, command.document) === null) throw new BoardRefusal({ reason: 'ticket-has-no-documents', ticketId });
+  change.board.ticketDocuments().requireHeldDocument(ticketId, command.document);
   const agent = DocumentAgentJobUtil.liveAgentOf(change.board.jobs(), ticketId, command.document);
   if (agent?.state !== 'running') return { changed: false, jobId: agent?.id ?? null };
   change.board.moveJob(agent.id, 'stopping', change.at);

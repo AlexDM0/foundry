@@ -1,11 +1,12 @@
 /**
  * The git steps of bringing a branch into the main checkout, as verdicts: which branch the main checkout is on, whether a branch descends
  * from the main line, which commit a worktree stands at and what it holds beside it, the fast-forward itself, and the two cleanups.
- * Nothing here forces anything: a refusal git gives is handed back with its reason.
+ * Nothing here forces anything: a refusal git gives is handed back with git's own message.
  */
 import { existsSync, rmSync } from 'node:fs';
 import { join }               from 'node:path';
 
+import type { GitRunFailure, HeadDiffersProblem, WorktreeRemovalProblem }             from './@types/GitProblem.ts';
 import { GitProcess, type GitHookPolicy }                                             from './GitProcess.ts';
 import { GitWorktrees }                                                               from './GitWorktrees.ts';
 import { HeldCheckout, REAL_CHECKOUT_WRITE_PRIMITIVES, type CheckoutWritePrimitives } from './HeldCheckout.ts';
@@ -24,19 +25,19 @@ const RENAME_OR_COPY_STATUS_CODES = ['R', 'C'] as const;
 export type CurrentBranchReading =
   | { verdict: 'on-branch'; branch: string }
   | { verdict: 'detached' }
-  | { verdict: 'git-failed'; reason: string };
+  | { verdict: 'git-failed'; problem: GitRunFailure };
 
 export type BranchDescentReading =
   | { verdict: 'descendant'; branchCommit: string; mainLineCommit: string }
   | { verdict: 'not-a-descendant'; branchCommit: string; mainLineCommit: string }
   | { verdict: 'unknown-branch' }
   | { verdict: 'unknown-main-line' }
-  | { verdict: 'git-failed'; reason: string };
+  | { verdict: 'git-failed'; problem: GitRunFailure };
 
 export type FastForwardOutcome =
   | { verdict: 'fast-forwarded'; commit: string }
-  | { verdict: 'refused'; reason: string; blockingFiles: string[] }
-  | { verdict: 'target-file-held'; reason: string; heldFiles: string[] };
+  | { verdict: 'refused'; problem: GitRunFailure | HeadDiffersProblem; blockingFiles: string[] }
+  | { verdict: 'target-file-held'; problem: GitRunFailure; heldFiles: string[] };
 
 export interface FilesLeftInWorktree {
   untrackedFiles: string[];
@@ -46,21 +47,21 @@ export interface FilesLeftInWorktree {
 export type WorktreeCheckoutReading =
   | { verdict: 'read'; headCommit: string; filesBeside: FilesLeftInWorktree }
   | { verdict: 'not-a-directory' }
-  | { verdict: 'git-failed'; reason: string };
+  | { verdict: 'git-failed'; problem: GitRunFailure };
 
 export type WorktreeRemovalOutcome =
   | { verdict: 'removed' }
-  | { verdict: 'left'; reason: string; filesLeft: FilesLeftInWorktree };
+  | { verdict: 'left'; problem: WorktreeRemovalProblem; filesLeft: FilesLeftInWorktree };
 
 export type BranchDeletionOutcome =
   | { verdict: 'deleted' }
-  | { verdict: 'left'; reason: string };
+  | { verdict: 'left'; problem: GitRunFailure };
 
 export function readCurrentBranch(directory: string): CurrentBranchReading {
   const branchArguments = ['symbolic-ref', '--quiet', '--short', 'HEAD'];
   const run             = GitProcess.run(directory, branchArguments);
   if (run !== null && run.exitCode === DETACHED_HEAD_EXIT_CODE && run.standardError === '') return { verdict: 'detached' };
-  if (!GitProcess.succeeded(run)) return { verdict: 'git-failed', reason: GitProcess.failureReasonOf(run, branchArguments) };
+  if (!GitProcess.succeeded(run)) return { verdict: 'git-failed', problem: GitProcess.failureOf(run, branchArguments) };
   return { verdict: 'on-branch', branch: run.standardOutput.trim() };
 }
 
@@ -75,7 +76,7 @@ export function readBranchDescent(directory: string, branch: string, mainLine: s
   const ancestry          = GitProcess.run(directory, ancestryArguments);
   if (GitProcess.succeeded(ancestry)) return { verdict: 'descendant', branchCommit, mainLineCommit };
   if (ancestry !== null && ancestry.exitCode === NOT_AN_ANCESTOR_EXIT_CODE) return { verdict: 'not-a-descendant', branchCommit, mainLineCommit };
-  return { verdict: 'git-failed', reason: GitProcess.failureReasonOf(ancestry, ancestryArguments) };
+  return { verdict: 'git-failed', problem: GitProcess.failureOf(ancestry, ancestryArguments) };
 }
 
 function nulSeparatedFieldsOf(output: string): string[] {
@@ -176,10 +177,12 @@ export function fastForwardTo(
     hookPolicy,
     afterHeldFailure: () => restorePathsWrittenByTheMerge(directory, commit, blockingFiles),
   }, primitives);
-  if (merge.verdict === 'failed') return { verdict: 'refused', reason: merge.reason, blockingFiles };
+  if (merge.verdict === 'failed') return { verdict: 'refused', problem: merge.problem, blockingFiles };
   if (merge.verdict === 'target-file-held') return merge;
   const headCommit = GitProcess.resolvedCommitOf(directory, 'HEAD');
-  if (headCommit !== commit) return { verdict: 'refused', reason: `git merge --ff-only ${commit} exited 0, yet HEAD is ${headCommit ?? 'unreadable'}.`, blockingFiles: [] };
+  if (headCommit !== commit) {
+    return { verdict: 'refused', problem: { code: 'head-differs-after-success', commandArguments: ['merge', '--ff-only', commit], headCommit }, blockingFiles: [] };
+  }
   return { verdict: 'fast-forwarded', commit };
 }
 
@@ -207,9 +210,9 @@ export function readWorktreeCheckout(worktreePath: string): WorktreeCheckoutRead
   const ceiling       = GitWorktrees.ceilingOf(worktreePath);
   const headArguments = ['rev-parse', '--verify', 'HEAD^{commit}'];
   const headRun       = GitProcess.run(worktreePath, headArguments, 'hooks-off', undefined, ceiling);
-  if (!GitProcess.succeeded(headRun)) return { verdict: 'git-failed', reason: GitProcess.failureReasonOf(headRun, headArguments) };
+  if (!GitProcess.succeeded(headRun)) return { verdict: 'git-failed', problem: GitProcess.failureOf(headRun, headArguments) };
   const statusRun = GitProcess.run(worktreePath, STATUS_ARGUMENTS, 'hooks-off', undefined, ceiling);
-  if (!GitProcess.succeeded(statusRun)) return { verdict: 'git-failed', reason: GitProcess.failureReasonOf(statusRun, STATUS_ARGUMENTS) };
+  if (!GitProcess.succeeded(statusRun)) return { verdict: 'git-failed', problem: GitProcess.failureOf(statusRun, STATUS_ARGUMENTS) };
   return { verdict: 'read', headCommit: headRun.standardOutput.trim(), filesBeside: filesBesideTheCommitOf(statusRun.standardOutput) };
 }
 
@@ -217,7 +220,7 @@ export function readWorktreeCheckout(worktreePath: string): WorktreeCheckoutRead
 export function removeWorktree(mainCheckoutDirectory: string, worktreePath: string): WorktreeRemovalOutcome {
   const removal = GitWorktrees.removeWithRetry({ repositoryDirectory: mainCheckoutDirectory, worktreePath, force: 'never-force' });
   if (removal.verdict === 'removed') return { verdict: 'removed' };
-  return { verdict: 'left', reason: removal.reason, filesLeft: filesLeftIn(worktreePath) };
+  return { verdict: 'left', problem: removal.problem, filesLeft: filesLeftIn(worktreePath) };
 }
 
 /** `-d`, never `-D`: git deletes only a branch the main checkout's HEAD already holds. */
@@ -225,5 +228,5 @@ export function deleteMergedBranch(mainCheckoutDirectory: string, branch: string
   const deletionArguments = ['branch', '-d', branch];
   const run               = GitProcess.run(mainCheckoutDirectory, deletionArguments);
   if (GitProcess.succeeded(run)) return { verdict: 'deleted' };
-  return { verdict: 'left', reason: GitProcess.failureReasonOf(run, deletionArguments) };
+  return { verdict: 'left', problem: GitProcess.failureOf(run, deletionArguments) };
 }

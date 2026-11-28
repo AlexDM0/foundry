@@ -1,8 +1,9 @@
 /** `hold-journal.json`, the redo record of one tracker write, read into absolute file paths: read, validate, map. */
 import { isAbsolute, join } from 'node:path';
 
-import { storedFileTextOf } from '../StoredFileText.ts';
-import { StoredValueUtil }  from '../utils/StoredValueUtil.ts';
+import type { HoldJournalProblem } from '../../shared/@types/HoldJournalProblem.ts';
+import { storedFileTextOf }        from '../StoredFileText.ts';
+import { StoredValueUtil }         from '../utils/StoredValueUtil.ts';
 
 /** One file a hold writes or removes, its path absolute. */
 export type JournaledFile = { kind: 'written'; filePath: string; contents: string } | { kind: 'removed'; filePath: string };
@@ -10,7 +11,7 @@ export type JournaledFile = { kind: 'written'; filePath: string; contents: strin
 export type HoldJournalReading =
   | { verdict: 'absent' }
   | { verdict: 'readable'; files: JournaledFile[] }
-  | { verdict: 'malformed'; reason: string };
+  | { verdict: 'malformed'; problem: HoldJournalProblem };
 
 export const HOLD_JOURNAL_FORMAT_VERSION = 1;
 
@@ -26,18 +27,19 @@ function pathStaysInsideTheDataFolder(storedPath: string): boolean {
   return storedPath.split(STORED_PATH_SEPARATOR).every((segment) => !UNSAFE_PATH_SEGMENTS.has(segment));
 }
 
-type StoredEntryReading = { verdict: 'readable'; file: JournaledFile } | { verdict: 'malformed'; reason: string };
+type StoredEntryReading = { verdict: 'readable'; file: JournaledFile } | { verdict: 'malformed'; problem: HoldJournalProblem };
 
 function storedEntryReadingOf(entry: unknown, index: number, dataDirectory: string): StoredEntryReading {
-  if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) return { verdict: 'malformed', reason: `files[${index}] is not an object` };
+  const field = `files[${index}]`;
+  if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) return { verdict: 'malformed', problem: { code: 'entry-not-an-object', field } };
   const { path, contents, removed } = entry as { path?: unknown; contents?: unknown; removed?: unknown };
   if (typeof path !== 'string' || !pathStaysInsideTheDataFolder(path)) {
-    return { verdict: 'malformed', reason: `files[${index}].path is not a path inside the data folder` };
+    return { verdict: 'malformed', problem: { code: 'entry-path-outside-the-data-folder', field: `${field}.path` } };
   }
   const filePath = join(dataDirectory, path);
   if (removed === true && contents === undefined) return { verdict: 'readable', file: { kind: 'removed', filePath } };
   if (typeof contents === 'string' && removed === undefined) return { verdict: 'readable', file: { kind: 'written', filePath, contents } };
-  return { verdict: 'malformed', reason: `files[${index}] holds neither a string "contents" nor "removed": true` };
+  return { verdict: 'malformed', problem: { code: 'entry-neither-contents-nor-removed', field } };
 }
 
 export class HoldJournalIngestion {
@@ -47,14 +49,16 @@ export class HoldJournalIngestion {
   read(): HoldJournalReading {
     const storedText = storedFileTextOf(this.journalFilePath);
     if (storedText.verdict === 'absent') return storedText;
-    if (storedText.verdict === 'unreadable') return { verdict: 'malformed', reason: storedText.reason };
+    if (storedText.verdict === 'unreadable') return { verdict: 'malformed', problem: storedText.problem };
 
     const parsedJson = StoredValueUtil.parsedJsonOf(storedText.text);
-    if (parsedJson.verdict === 'unparseable') return { verdict: 'malformed', reason: parsedJson.problem };
+    if (parsedJson.verdict === 'unparseable') return { verdict: 'malformed', problem: parsedJson.problem };
     const document = parsedJson.value as { version?: unknown; files?: unknown } | null;
-    if (typeof document !== 'object' || document === null || Array.isArray(document)) return { verdict: 'malformed', reason: 'it is not a JSON object' };
-    if (document.version !== HOLD_JOURNAL_FORMAT_VERSION) return { verdict: 'malformed', reason: `its version is not ${HOLD_JOURNAL_FORMAT_VERSION}` };
-    if (!Array.isArray(document.files)) return { verdict: 'malformed', reason: 'its "files" is not a list' };
+    if (typeof document !== 'object' || document === null || Array.isArray(document)) return { verdict: 'malformed', problem: { code: 'not-a-json-object' } };
+    if (document.version !== HOLD_JOURNAL_FORMAT_VERSION) {
+      return { verdict: 'malformed', problem: { code: 'version-differs', field: 'version', expectedVersion: HOLD_JOURNAL_FORMAT_VERSION } };
+    }
+    if (!Array.isArray(document.files)) return { verdict: 'malformed', problem: { code: 'files-not-a-list', field: 'files' } };
 
     const files: JournaledFile[] = [];
     for (const [index, entry] of (document.files as unknown[]).entries()) {

@@ -122,13 +122,19 @@ describe('a tool named with its path', () => {
     const context = contextOf(monitorFolder, []);
     const refusalOfCommand = async (command: ControlCommand): Promise<unknown> => await refusalOf(() => AgentCommandPreparation.preparedCommandOf(command, context));
     const planted: ControlCommand = { kind: 'pipeline-tools-set', tools: [{ name: 'bun', path: PLANTED_TOOL }] };
-    expect(await refusalOfCommand(planted)).toEqual({ kind: 'tool-refused', name: 'bun', reason: `${PLANTED_TOOL} sits inside ${REPOSITORY}` });
+    expect(await refusalOfCommand(planted)).toEqual({
+      kind:    'tool-refused',
+      name:    'bun',
+      refusal: {
+        verdict: 'refused', cause: 'inside-forbidden-root', path: PLANTED_TOOL, forbiddenRoot: REPOSITORY
+      }
+    });
     const plantedInADraft: ControlCommand = {
       kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 0, edits: [{ target: 'tools', value: [{ name: 'bun', path: PLANTED_TOOL }] }]
     };
     expect(await refusalOfCommand(plantedInADraft)).toMatchObject({ kind: 'tool-refused' });
     const gone: ControlCommand = { kind: 'pipeline-tools-set', tools: [{ name: 'gh', path: '/opt/example/bin/gh' }] };
-    expect(await refusalOfCommand(gone)).toEqual({ kind: 'tool-refused', name: 'gh', reason: '/opt/example/bin/gh is not there' });
+    expect(await refusalOfCommand(gone)).toEqual({ kind: 'tool-refused', name: 'gh', refusal: { verdict: 'refused', cause: 'not-there', path: '/opt/example/bin/gh' } });
   }));
 });
 

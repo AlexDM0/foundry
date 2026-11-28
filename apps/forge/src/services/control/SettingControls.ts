@@ -1,6 +1,6 @@
 /** The board settings kinds of the control contract: the concurrency limit and the gate pipeline the `gate` verbs write. */
-import { CONCURRENCY_LIMIT_CEILING_AGENTS }   from '../../lib/tracker-model/constants/ConcurrencyLimits.ts';
-import { BoardSettingsUtil }                  from '../../lib/tracker-model/utils/BoardSettingsUtil.ts';
+import { CONCURRENCY_LIMIT_CEILING_AGENTS }   from '../../domain/tracker-model/constants/ConcurrencyLimits.ts';
+import { BoardSettingsUtil }                  from '../../domain/tracker-model/utils/BoardSettingsUtil.ts';
 import type { ControlCommandOf as CommandOf } from '../../shared/@types/ControlCommand.ts';
 import { OperationRefusal }                   from '../../shared/OperationRefusal.ts';
 import type { BoardTransaction }              from '../tracker/BoardTransaction.ts';
@@ -12,7 +12,7 @@ export function requireReadablePipeline(change: BoardTransaction): void {
   if (unreadablePipeline === null) return;
   if (unreadablePipeline.verdict === 'older') throw new OperationRefusal('refused', { kind: 'older-pipeline', filePath });
   if (unreadablePipeline.unsupportedEntities !== undefined) throw new OperationRefusal('refused', { ...unreadablePipeline.unsupportedEntities, filePath });
-  throw new OperationRefusal('refused', { kind: 'malformed-pipeline', filePath, reason: unreadablePipeline.reason });
+  throw new OperationRefusal('refused', { kind: 'malformed-pipeline', filePath, problem: unreadablePipeline.problem });
 }
 
 /** The `concurrency` verb checks its argument itself; a command posted to the API reaches the board only through this check. */

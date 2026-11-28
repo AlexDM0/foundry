@@ -1,0 +1,47 @@
+[
+  {
+    "case": "a directory stands at its path",
+    "stored": null,
+    "sentence": "it could not be read ({systemError})"
+  },
+  {
+    "case": "its bytes are not UTF-8",
+    "stored": null,
+    "sentence": "it is not UTF-8 text"
+  },
+  {
+    "case": "it is not JSON",
+    "stored": "not json",
+    "sentence": "it is not valid JSON (JSON Parse error: Unexpected identifier \"not\")"
+  },
+  {
+    "case": "it is not a JSON object",
+    "stored": "[]",
+    "sentence": "it is not a JSON object"
+  },
+  {
+    "case": "its vendor is not text",
+    "stored": "{\"vendor\":\"\",\"window\":\"five-hour\",\"resetsAt\":\"2026-11-19T09:00:00.000Z\",\"seenBy\":{\"trackerId\":\"example-tracker\",\"jobId\":\"J7\"}}",
+    "sentence": "its \"vendor\" or \"window\" is not text"
+  },
+  {
+    "case": "its window is not text",
+    "stored": "{\"vendor\":\"claude\",\"window\":3,\"resetsAt\":\"2026-11-19T09:00:00.000Z\",\"seenBy\":{\"trackerId\":\"example-tracker\",\"jobId\":\"J7\"}}",
+    "sentence": "its \"vendor\" or \"window\" is not text"
+  },
+  {
+    "case": "its resetsAt is not a stamp",
+    "stored": "{\"vendor\":\"claude\",\"window\":\"five-hour\",\"resetsAt\":\"tomorrow\",\"seenBy\":{\"trackerId\":\"example-tracker\",\"jobId\":\"J7\"}}",
+    "sentence": "its \"resetsAt\" is not a stamp"
+  },
+  {
+    "case": "its seenBy is not an object",
+    "stored": "{\"vendor\":\"claude\",\"window\":\"five-hour\",\"resetsAt\":\"2026-11-19T09:00:00.000Z\",\"seenBy\":[]}",
+    "sentence": "its \"seenBy\" is not an object"
+  },
+  {
+    "case": "its seenBy names no job id",
+    "stored": "{\"vendor\":\"claude\",\"window\":\"five-hour\",\"resetsAt\":\"2026-11-19T09:00:00.000Z\",\"seenBy\":{\"trackerId\":\"example-tracker\"}}",
+    "sentence": "its \"seenBy\" names no tracker id and job id"
+  }
+]

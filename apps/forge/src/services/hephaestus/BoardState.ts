@@ -20,22 +20,23 @@ import type {
 } from '../../adapters/@types/BoardStateParts.ts';
 import type { FullStatusDocument }                                                            from '../../adapters/@types/StatusDocument.ts';
 import type { PipelineReading }                                                               from '../../adapters/pipeline/PipelineFile.ts';
+import { StatusDocumentUtil }                                                                 from '../../adapters/utils/StatusDocumentUtil.ts';
+import type { Decision }                                                                      from '../../domain/tracker-model/@types/Decision.ts';
+import type { Draft }                                                                         from '../../domain/tracker-model/@types/Draft.ts';
+import type { Epic }                                                                          from '../../domain/tracker-model/@types/Epic.ts';
+import type { GateProfilesReading }                                                           from '../../domain/tracker-model/@types/GateProfile.ts';
+import type { Incident }                                                                      from '../../domain/tracker-model/@types/Incident.ts';
+import type { Job }                                                                           from '../../domain/tracker-model/@types/Job.ts';
+import type { LaunchSlots }                                                                   from '../../domain/tracker-model/@types/LaunchSlots.ts';
+import type { LogRecord }                                                                     from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { PipelineSetupReading }                                                          from '../../domain/tracker-model/@types/PipelineSetup.ts';
+import type { Ticket }                                                                        from '../../domain/tracker-model/@types/Ticket.ts';
+import type { TicketForecast }                                                                from '../../domain/tracker-model/@types/TicketForecast.ts';
+import type { TrackerProgress }                                                               from '../../domain/tracker-model/@types/TrackerProgress.ts';
+import type { BranchTreeOf, MergeTargetOf }                                                   from '../../domain/tracker-model/AirlockClaims.ts';
+import type { Board }                                                                         from '../../domain/tracker-model/Board.ts';
+import { MergeQueueUtil, type MergeForecast, type PairwiseConflict }                          from '../../domain/tracker-model/utils/MergeQueueUtil.ts';
 import { GitProcess }                                                                         from '../../lib/git/GitProcess.ts';
-import type { Decision }                                                                      from '../../lib/tracker-model/@types/Decision.ts';
-import type { Draft }                                                                         from '../../lib/tracker-model/@types/Draft.ts';
-import type { Epic }                                                                          from '../../lib/tracker-model/@types/Epic.ts';
-import type { GateProfilesReading }                                                           from '../../lib/tracker-model/@types/GateProfile.ts';
-import type { Incident }                                                                      from '../../lib/tracker-model/@types/Incident.ts';
-import type { Job }                                                                           from '../../lib/tracker-model/@types/Job.ts';
-import type { LaunchSlots }                                                                   from '../../lib/tracker-model/@types/LaunchSlots.ts';
-import type { LogRecord }                                                                     from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { PipelineSetupReading }                                                          from '../../lib/tracker-model/@types/PipelineSetup.ts';
-import type { Ticket }                                                                        from '../../lib/tracker-model/@types/Ticket.ts';
-import type { TicketForecast }                                                                from '../../lib/tracker-model/@types/TicketForecast.ts';
-import type { TrackerProgress }                                                               from '../../lib/tracker-model/@types/TrackerProgress.ts';
-import type { BranchTreeOf, MergeTargetOf }                                                   from '../../lib/tracker-model/AirlockClaims.ts';
-import type { Board }                                                                         from '../../lib/tracker-model/Board.ts';
-import { MergeQueueUtil, type MergeForecast, type PairwiseConflict }                          from '../../lib/tracker-model/utils/MergeQueueUtil.ts';
 import type { AgentFacts }                                                                    from '../../shared/@types/AgentFacts.ts';
 import { SERVED_CONTRACT_VERSIONS }                                                           from '../../shared/constants/HephaestusApiContracts.ts';
 import { ACCEPTED_PICTURE_MEDIA_TYPES, PICTURE_SIZE_LIMIT_BYTES, PICTURES_PER_MESSAGE_LIMIT } from '../../shared/constants/HephaestusLimits.ts';
@@ -296,7 +297,7 @@ function boardStateOf(reading: BoardStateReading): BoardState {
       ...job, launchedAt: launchedAtByJobId.get(job.id) ?? null, live: reading.liveFactsOf(job), lostLine: lostLineOf(board, job, reading.logRecords)
     })),
     decisions:       [...board.decisions()],
-    incidents:       [...board.incidents()],
+    incidents:       [...StatusDocumentUtil.decisionsAndIncidentsOf(board).incidents],
     notices:         [...reading.notices],
     mergeQueue:      mergeQueueOf(board, reading.mergeForecasting),
     hephaestus:      reading.hephaestus,

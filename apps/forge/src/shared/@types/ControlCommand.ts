@@ -3,12 +3,12 @@
  * Every value is plain JSON, so a command survives a Hatch file or an HTTP body unchanged; a body or request file is read before the
  * command is built, which carries its text. A ticket is named as it was written (`3`, `003`, `#3`), resolved inside the hold.
  */
-import type { AgentAssignment, TaskAnnotation, TaskCorrection } from '../../lib/tracker-model/@types/BoardChanges.ts';
-import type { DecisionAnswerForm }                              from '../../lib/tracker-model/@types/Decision.ts';
-import type { DraftNoteKind, DraftQuestionAsking }              from '../../lib/tracker-model/@types/Draft.ts';
-import type { GatePhase }                                       from '../../lib/tracker-model/@types/GatePhase.ts';
-import type { JobStopMode, PictureReference }                   from '../../lib/tracker-model/@types/Job.ts';
-import type { OptionNote }                                      from '../../lib/tracker-model/@types/OptionConsequences.ts';
+import type { AgentAssignment, TaskAnnotation, TaskCorrection } from '../../domain/tracker-model/@types/BoardChanges.ts';
+import type { DecisionAnswerForm }                              from '../../domain/tracker-model/@types/Decision.ts';
+import type { DraftNoteKind, DraftQuestionAsking }              from '../../domain/tracker-model/@types/Draft.ts';
+import type { GatePhase }                                       from '../../domain/tracker-model/@types/GatePhase.ts';
+import type { JobStopMode, PictureReference }                   from '../../domain/tracker-model/@types/Job.ts';
+import type { OptionNote }                                      from '../../domain/tracker-model/@types/OptionConsequences.ts';
 import type {
   EntityKey,
   PipelineAgent,
@@ -17,7 +17,7 @@ import type {
   PipelineGate,
   PipelineStep,
   PipelineTool
-} from '../../lib/tracker-model/@types/Pipeline.ts';
+} from '../../domain/tracker-model/@types/Pipeline.ts';
 import type {
   ConstitutionSources,
   PipelineDraftEdit,
@@ -27,8 +27,8 @@ import type {
   SetupQuestionStep,
   SetupQuestionSubject,
   SourceAnnotation
-} from '../../lib/tracker-model/@types/PipelineSetup.ts';
-import type { TaskStatus } from '../../lib/tracker-model/@types/Task.ts';
+} from '../../domain/tracker-model/@types/PipelineSetup.ts';
+import type { TaskStatus } from '../../domain/tracker-model/@types/Task.ts';
 import type {
   AgentEffort,
   AgentModel,
@@ -36,14 +36,14 @@ import type {
   TicketSize,
   TicketStatus,
   TicketType
-} from '../../lib/tracker-model/@types/Ticket.ts';
+} from '../../domain/tracker-model/@types/Ticket.ts';
 import type {
   CommentAnchor,
   LineEdit,
   LineRange,
   ProposalMode,
   TicketDocumentKind
-} from '../../lib/tracker-model/@types/TicketDocument.ts';
+} from '../../domain/tracker-model/@types/TicketDocument.ts';
 
 export type ListEdit = 'replace' | 'add' | 'remove';
 

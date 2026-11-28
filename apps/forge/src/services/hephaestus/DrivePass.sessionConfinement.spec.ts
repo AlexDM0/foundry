@@ -11,9 +11,9 @@ import {
   test
 } from 'bun:test';
 
+import type { PipelineGate }                                     from '../../domain/tracker-model/@types/Pipeline.ts';
 import type { AgentAdapter }                                     from '../../lib/agent-launch/AgentAdapter.ts';
 import type { AgentLaunchPlan }                                  from '../../lib/agent-launch/AgentLaunchPlan.ts';
-import type { PipelineGate }                                     from '../../lib/tracker-model/@types/Pipeline.ts';
 import { createScratchDrivePass }                                from '../../testing/DrivePassHarness.ts';
 import { fakeAgentAdapter, type FakeAgentStep, fakeStartedLine } from '../../testing/FakeAgentAdapter.ts';
 import {
@@ -23,6 +23,7 @@ import {
   fakeGateConfinement
 } from '../../testing/FakeGateConfinement.ts';
 import { LIVE_HOLDERS_LOCK_TAKER }                             from '../../testing/LockTakers.ts';
+import { detailsLoggerOf }                                     from '../../testing/LoggedDetails.ts';
 import { nativePlatformPorts }                                 from '../../testing/NativePlatformPorts.ts';
 import { useRecordedGit }                                      from '../../testing/RecordedGit.ts';
 import { RECORDED_FLOW_MAIN_LINE }                             from '../../testing/RecordedGitFlow.ts';
@@ -38,8 +39,10 @@ import { workspacePathsFor, type Workspace }                   from '../tracker/
 import type { BoardChildren }                                  from './BoardChildren.ts';
 import type { DrivePass }                                      from './DrivePass.ts';
 import { CONSTITUTION_DEFAULT_PATH, defaultInstructionPathOf } from './InstructionFiles.ts';
-import { NETWORK_DOMAINS_REFUSAL }                             from './SessionConfinement.ts';
-import { createTalosChildren }                                 from './TalosChildren.ts';
+
+const NETWORK_DOMAINS_REFUSAL = 'Hephaestus\'s confinement gives a session the network whole or not at all, and this session\'s profile'
+  + ' allows only some domains, which it never widens';
+import { createTalosChildren } from './TalosChildren.ts';
 
 const recordedGit = useRecordedGit();
 const world = useRecordedTalosStages(nativePlatformPorts());
@@ -109,7 +112,7 @@ function startedHephaestus(adapter: AgentAdapter, gateConfinement: FakeGateConfi
       }],
       context: ''
     }),
-    log: (line) => hephaestusLog.push(line),
+    log: detailsLoggerOf(hephaestusLog),
   });
 }
 

@@ -78,11 +78,11 @@ describe('a tracker below its repository\'s root', () => {
 
   test('makes both .claude folders before a mount-points launch, so each gets its read-only mount', () => {
     const made: string[] = [];
-    const refusal = WorkerProfiles.unmadeDeniedRootRefusalOf(
+    const unmadeRoot = WorkerProfiles.unmadeDeniedRootOf(
       { ...NESTED_FACTS, sandboxDenyShape: 'mount-points' },
       { makeFolder: (path) => { made.push(path); return true; } },
     );
-    expect(refusal).toBeNull();
+    expect(unmadeRoot).toBeNull();
     expect(made).toEqual([join(WORKTREE, '.claude'), join(WORKTREE, PROJECT_PREFIX, '.claude')]);
   });
 

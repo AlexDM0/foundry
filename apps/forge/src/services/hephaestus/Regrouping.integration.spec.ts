@@ -12,7 +12,9 @@ import {
   test
 } from 'bun:test';
 
+import type { HephaestusLog }                             from '../../adapters/@types/HephaestusLogRecord.ts';
 import { processIsGone, type ProcessIdentity }            from '../../lib/process-identity/ProcessIdentity.ts';
+import { detailsLoggerOf }                                from '../../testing/LoggedDetails.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { PlantedChild }                                   from '../../testing/PlantedChild.ts';
 import { parentOfDetachedChild }                          from '../../testing/ProcessDoubles.ts';
@@ -68,7 +70,7 @@ function lostChildRecording(childProcess: ProcessIdentity): LostChild {
   return { boardFolder, jobFolder: join(boardFolder, 'jobs', 'J1') };
 }
 
-function settled(lost: LostChild, log: (line: string) => void = () => undefined): ReturnType<typeof Regrouping.settleLostChildIn> {
+function settled(lost: LostChild, log: HephaestusLog = () => undefined): ReturnType<typeof Regrouping.settleLostChildIn> {
   return Regrouping.settleLostChildIn(lost.boardFolder, ports, createUnreadableBoardFiles(() => undefined), log, lost.jobFolder, CHILD_INSTANCE);
 }
 
@@ -115,7 +117,7 @@ describe('settling a lost child', () => {
     const lostCausePath = join(lost.jobFolder, `child-${CHILD_INSTANCE}.lost-cause`);
     writeFileSync(lostCausePath, 'garbage\n');
     const loggedLines: string[] = [];
-    expect(settled(lost, (line) => loggedLines.push(line))).toBe('agent-crashed');
+    expect(settled(lost, detailsLoggerOf(loggedLines))).toBe('agent-crashed');
     expect(loggedLines).toEqual([`The lost cause ${lostCausePath} names no interruption cause ("garbage"); it is settled again.`]);
     expect(readFileSync(lostCausePath, 'utf8')).toBe('agent-crashed\n');
     expect(settled(lost)).toBe('agent-crashed');

@@ -8,15 +8,15 @@ import { join }      from 'node:path';
 
 import { StageStatementIngestion, type StageStatement } from '../../adapters/stage-statement/StageStatementIngestion.ts';
 import { createStageStatementWriter }                   from '../../adapters/stage-statement/StageStatementWriter.ts';
-import type { Job }                                     from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }                               from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { EntityKey, Pipeline }                     from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { TicketStage, TicketStageName }            from '../../lib/tracker-model/@types/Task.ts';
-import type { Board }                                   from '../../lib/tracker-model/Board.ts';
-import { ENTITY_DECISION_ANSWERS }                      from '../../lib/tracker-model/constants/EntityDecisionAnswers.ts';
-import { EntityOwnershipUtil, type PipelineEntities }   from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
-import { TicketStageUtil }                              from '../../lib/tracker-model/utils/TicketStageUtil.ts';
-import type { CrossingStageScope, SealedChange }        from '../lifecycle/Customs.ts';
+import type { Job }                                     from '../../domain/tracker-model/@types/Job.ts';
+import type { LogRecord }                               from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { EntityKey, Pipeline }                     from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { TicketStage, TicketStageName }            from '../../domain/tracker-model/@types/Task.ts';
+import type { Board }                                   from '../../domain/tracker-model/Board.ts';
+import { ENTITY_DECISION_ANSWERS }                      from '../../domain/tracker-model/constants/EntityDecisionAnswers.ts';
+import { EntityOwnershipUtil, type PipelineEntities }   from '../../domain/tracker-model/utils/EntityOwnershipUtil.ts';
+import { TicketStageUtil }                              from '../../domain/tracker-model/utils/TicketStageUtil.ts';
+import type { CrossingStageScope, SealedChange }        from '../lifecycle/@types/CustomsSubject.ts';
 import { jobFolderIn }                                  from './HephaestusFiles.ts';
 import { StoredFileUnreadable }                         from './StoredFileUnreadable.ts';
 
@@ -192,7 +192,7 @@ function stageStatementOf(trackerDirectory: string, jobId: string): StageStateme
   const statementFilePath = stageStatementPathOf(trackerDirectory, jobId);
   const reading = new StageStatementIngestion(statementFilePath).read();
   if (reading.verdict === 'readable') return reading.statement;
-  return reading.verdict === 'absent' ? null : StoredFileUnreadable.unreadableFileOf(trackerDirectory, statementFilePath, reading.reason);
+  return reading.verdict === 'absent' ? null : StoredFileUnreadable.unreadableFileOf(trackerDirectory, statementFilePath, reading.problem);
 }
 
 /** The newest job of the ticket that ran `stage` and ended with `outcome`; `null` when none did. */

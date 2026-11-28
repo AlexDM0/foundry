@@ -51,7 +51,7 @@ names a package the code does not import. A stale allowance fails as loudly as a
 prints a sentence naming the file, the line, the target and the rule, for example:
 
 ```text
-src/adapters/log/PlantedWording.ts:1 imports src/services/render/BoardFacts.ts: adapters reaches only lib, shared, adapters, not render-service
+src/adapters/log/PlantedWording.ts:1 imports src/services/render/BoardFacts.ts: adapters reaches only lib, domain, shared, adapters, workspace-package, not render-service
 ```
 
 The sentence is the fix: move the code down, pass the value as a parameter, or hoist what two siblings share above both.
@@ -81,7 +81,8 @@ root override variable, which names the repository to use; [cli.md](../cli.md) h
 
 | spec | holds | how to fix a failure |
 | --- | --- | --- |
-| `architecture/ImportDirection.spec.ts` | Layer direction, feature, command and view isolation, the workspace packages' isolation (a package in `packages/` imports nothing of an app, and forge imports a package only by its name and only when `package.json` declares it, never by a file path), the CLI and Talos binaries (Talos imports only `src/lib/talos/` and its declared packages), `TESTING_FOLDER_IMPORTERS`, declared lib dependencies, tracker model isolation, the vendor seam (only `cli/CommandContext.ts` chooses the Claude Code adapter), cycles, barrels. | Follow the printed sentence. For a lib dependency, name the package in the main module's header. |
+| `architecture/ImportDirection.spec.ts` | Layer direction, feature, command and view isolation, the workspace packages' isolation (a package in `packages/` imports nothing of an app, and forge imports a package only by its name and only when `package.json` declares it, never by a file path), the CLI and Talos binaries (`talos.ts` imports only the Talos program in `talos/`, which reaches `src/domain/` and `src/lib/`), `TESTING_FOLDER_IMPORTERS`, `TALOS_PROGRAM_SPEC_IMPORTERS`, the declared dependencies of a `src/lib/` or `src/domain/` package, tracker model isolation, the vendor seam (only `cli/CommandContext.ts` chooses the Claude Code adapter), cycles, barrels. | Follow the printed sentence. For a lib dependency, name the package in the main module's header. |
+| `architecture/LibNamesNoCaller.spec.ts` | No shipping file of a `src/lib/` package names Hephaestus, a job, a ticket or a tracker, in code or in a comment; its allowlist is exact and empty. | Name the value by what the building block does, and take forge's value as a parameter; a model of forge's belongs in `src/domain/`. |
 | `architecture/LintRules.spec.ts` | Each mechanised `eslint.config.js` rule reports each planted form, and each exact exception passes. | A rule stopped firing or an exception widened: restore it, or change the plant with the rule. |
 | `architecture/CommentRuns.spec.ts` | No inline comment outside a docblock runs past `LONGEST_INLINE_COMMENT_LINES`. | Rename until the comment goes, or make it the docblock of a declaration or a `test`, `describe` or `it` call. |
 | `architecture/UtilShape.spec.ts` | An exported `*Util` has at least `MINIMUM_UTIL_MEMBER_COUNT` members; an initializer it cannot count fails. | Make it a plain function beside its consumer, or group a second member in. |
@@ -104,7 +105,7 @@ root override variable, which names the repository to use; [cli.md](../cli.md) h
 | `architecture/GitRunsAtAToplevel.spec.ts` | Git runs at a toplevel only: no source hands a tracker's folder to a git entry point or to `ceilingOf`, and only listed sources name the project folder in a checkout. | Run git at `repositoryRoot` or `worktreeRoot`, or list the source with its reason. |
 | `architecture/ClientNames.spec.ts` | No shipped source or doc of the program names a client. | Speak of a monitor or a host. |
 | `architecture/ForgeRunsByName.spec.ts` | No package script and no source of the program starts `forge` by name, since that name is this checkout's source. | Start the program by its path, or not at all. |
-| `architecture/TalosClosure.spec.ts` | `talos.ts`'s import closure, its synchronous-calls thread's included, stays in its package and declared packages, with no product or vendor name. | Remove the import or the name. |
+| `architecture/TalosClosure.spec.ts` | `talos.ts`'s import closure, its synchronous-calls thread's included, stays in the Talos program in `talos/` and the packages its main module declares, its contract in `src/domain/talos/` among them, with no product or vendor name. | Remove the import or the name. |
 | `architecture/TalosMainThread.spec.ts` | No module Talos's main thread loads calls a synchronous primitive, but an exact allowlist. | Use the asynchronous call, or move the work to the synchronous-calls thread. |
 | `architecture/PlatformProbes.spec.ts` | `.platform-probes/` holds a script for every unknown and numbered probe, and says how it runs. | Add the script, or the line saying how it runs. |
 | `architecture/LintRules.integration.spec.ts` | The line-ending rule, which the shared config picks by platform, resolved in a child that reads as win32. Real-system suite. | Restore the rule's condition in `eslint.config.js`. |
@@ -157,8 +158,8 @@ These specs hold a rule and sit next to the code whose behaviour they hold; they
 | `cli/hephaestus/HephaestusBuildJob.spec.ts` (the root tracker's git) | A tracker at its repository's root, with no gate and with one gate in every phase, asks git from the launch to the landing exactly the distinct calls of `cli/hephaestus/FrozenRootTrackerGitCalls.json`, taken from forge before a tracker could sit in a folder. | Make the root tracker's calls what they were. Retake the table only from the commit before a change meant to move them; see the test's docblock. |
 | `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` | A Claude `init` and the `update` after it write exactly the files and report lines of `cli/adoption/FrozenClaudeInstall.json`, per opt-out flag. | Retake only in a commit meant to change an installed text; see its header. Otherwise restore the text. |
 | `src/lib/claude-code/ClaudeStreamFixtures.spec.ts` | Each recorded stream fixture still shows what it was recorded to show. | Re-record per [the probe](hephaestus-claude-probe.md). |
-| `src/lib/tracker-model/Playbook.spec.ts` | Every [Playbook](../glossary.md#playbook) rule holds as written and fails under the mutant of its line. | Fix the rule, or update the claim's mutant text. |
-| `src/lib/tracker-model/Playbook.interleavings.spec.ts` | No seeded order of events breaks a lifecycle invariant. | The failure lists each `{ seed, violations }`. Reproduce with `new LifecycleWorld(seed + 1).run(TURNS_PER_SEED)`. |
+| `src/domain/tracker-model/Playbook.spec.ts` | Every [Playbook](../glossary.md#playbook) rule holds as written and fails under the mutant of its line. | Fix the rule, or update the claim's mutant text. |
+| `src/domain/tracker-model/Playbook.interleavings.spec.ts` | No seeded order of events breaks a lifecycle invariant. | The failure lists each `{ seed, violations }`. Reproduce with `new LifecycleWorld(seed + 1).run(TURNS_PER_SEED)`. |
 | `src/testing/TrackerIsolation.integration.spec.ts` | Every way out of the scratch root is refused. | Restore the refusal in `trackerIsolationVerdictFor`. A spec tripping that check needs a directory from `src/testing/ScratchWorkspace.ts`. |
 | `src/services/hephaestus/CrashMatrix.spec.ts`, `src/services/hephaestus/CrashMatrix.integration.spec.ts` | The crash, reboot and update matrix, one row per scenario: the rows that need no process, and the rows on real processes. | Fix the mechanism the failing row names. |
 
@@ -207,7 +208,7 @@ Some text is a build input: rewording it can fail a spec. Check this table befor
 
 | text | read by | what breaks it |
 | --- | --- | --- |
-| The `depends on` sentence in a `src/lib/` package's main module header | `declaredLibDependenciesOf` in `architecture/ImportDirection.spec.ts`, also `architecture/TalosClosure.spec.ts` | Dropping a `` `src/lib/<package>` `` the code imports, naming one it does not, or saying it in two modules of one package. |
+| The `depends on` sentence in a `src/lib/` or `src/domain/` package's main module header | `declaredPackageDependenciesOf` in `architecture/ImportDirection.spec.ts`, also `architecture/TalosClosure.spec.ts` | Dropping a `` `src/lib/<package>` `` the code imports, naming one it does not, or saying it in two modules of one package. |
 | Command rows in `docs/cli.md`, under `REFERENCE_COMMAND_TABLE_HEADER` | `cli/HelpText.flags.spec.ts` | Renaming the header, or a flag missing from a row. |
 | Signature lines in `cli/HelpText.ts`, by column | `cli/HelpText.flags.spec.ts` | Prose starting short of `HELP_DESCRIPTION_COLUMN`. |
 | Command words in `cli/HelpText.ts`, by indentation | `cli/HelpText.spec.ts` | Changing the indent. |
@@ -291,8 +292,8 @@ A default spec of the DrivePass stands on `useRecordedTalosStages` (`src/testing
 through `src/testing/DrivePassHarness.ts`. It replaces the process starts in `src/services/hephaestus/ProcessStarts.ts`,
 and the process and socket ports with the recorded process table and local endpoint. A session and a gate line are played
 in the spec's own process, and each frame of Hephaestus's connection leaves what the real Talos left in that stage of a
-child. `src/lib/talos/Talos.stages.integration.spec.ts` walks the real Talos through the stages and records them under
-`bun run record src/lib/talos/Talos.ts`; a stage with no recorded answer fails the case.
+child. `talos/Talos.stages.integration.spec.ts` walks the real Talos through the stages and records them under
+`bun run record talos/Talos.ts`; a stage with no recorded answer fails the case.
 
 Those specs answer git from recordings, never from an emulator. `useRecordedGit` (`src/testing/RecordedGit.ts`) mocks
 `GitProcess.run` and `resolvedCommitOf` for a spec file, and `createInitializedRecordedGitRepository` builds the
@@ -316,8 +317,8 @@ carries the most tests, and few claims need a real process.
 | tier | tests | how a spec works there | example |
 | --- | --- | --- | --- |
 | Architecture tests | 158 | Read the tree or the repository's own files, usually through `ImportGraph` or `RepositorySources` | `architecture/ImportDirection.spec.ts` |
-| Pure logic | 2,024 | Model, util or decider, no disk | `src/lib/tracker-model/Board.spec.ts` |
-| Mutants and seeds | 118 | `SourceMutant`, `LifecycleWorld` | `src/lib/tracker-model/Playbook.spec.ts` |
+| Pure logic | 2,024 | Model, util or decider, no disk | `src/domain/tracker-model/Board.spec.ts` |
+| Mutants and seeds | 118 | `SourceMutant`, `LifecycleWorld` | `src/domain/tracker-model/Playbook.spec.ts` |
 | Scratch disk | 768 | Real directories and real git under the scratch root | `src/lib/git/Worktrees.integration.spec.ts` |
 | In-process commands | 551 | `runCommandLine` with `createCapturedCommandContext` | `cli/tickets/TicketCommand.spec.ts` |
 | Spawned processes | 255 | `CliProcess`, the Talos binary, the fake agent | `src/services/hephaestus/CrashMatrix.integration.spec.ts` |
@@ -351,10 +352,10 @@ watched failing without the line it pins.
 
 *The build's exit is the point: a mutant whose text went stale cannot pass by changing nothing.*
 
-`src/lib/tracker-model/Playbook.spec.ts` gives every claim a `mutant` and runs each claim twice. After editing a line a
+`src/domain/tracker-model/Playbook.spec.ts` gives every claim a `mutant` and runs each claim twice. After editing a line a
 claim pins, update that claim's `find` text. `mutatedModuleOf` bundles into a scratch folder and imports the bundle.
 
-**Seeded interleavings.** `src/lib/tracker-model/Playbook.interleavings.spec.ts` runs `LifecycleWorld` for `SEEDS` (200)
+**Seeded interleavings.** `src/domain/tracker-model/Playbook.interleavings.spec.ts` runs `LifecycleWorld` for `SEEDS` (200)
 seeds of `TURNS_PER_SEED` (60) turns.
 
 ![A loop inside a loop. For each seed, and for each turn, the world follows the Playbook on one in-memory Board, checks the invariants, then a fake agent or User acts at random, and the next turn starts. Any violation is listed under its seed, which replays exactly. A second row runs the same world on a mutated policy and requires violations above zero, proving the world notices a broken policy.](../figures/architecture-tests-and-testing/seeded-interleavings.png)
@@ -366,9 +367,9 @@ Violations include two live jobs on a [ticket](../glossary.md#ticket), a launch 
 two git operations on a [worktree](../glossary.md#worktree). The generator is Mulberry32, which is why a seed replays.
 A last test proves the turns do real work.
 
-**`TupleCoversTheUnion`.** `src/lib/tracker-model/testing/TupleCoversTheUnion.ts` is a type: annotating `true` with it
+**`TupleCoversTheUnion`.** `src/domain/tracker-model/testing/TupleCoversTheUnion.ts` is a type: annotating `true` with it
 fails the type check when a constant tuple misses a union member. The `JobStates`, `HephaestusStates`, `Statuses` and
-`TicketFields` specs in `src/lib/tracker-model/constants/` use it, because a stored value the tuple lacks makes a file
+`TicketFields` specs in `src/domain/tracker-model/constants/` use it, because a stored value the tuple lacks makes a file
 unreadable.
 
 **Frozen tables.** `cli/FrozenInstalledSurface.json` holds one key per `INSTALL_VERSION` and only grows; the header of
@@ -589,7 +590,7 @@ of its own; every other testing folder keeps the layer of its parent.*
 | folder | admits specs of | what lives there |
 | --- | --- | --- |
 | `src/testing/` | `src/`, `cli/`, `architecture/`, and the file `cli/CommandContext.ts` | `ScratchWorkspace`, `TrackerIsolation`, `ToolGuard`, `TestRunReport`, the program traps, the fake agent, `ImportGraph`, `RepositorySources`, `SourceMutant`, Talos protocol clients, planted children, Board and tracker fixtures |
-| `src/lib/tracker-model/testing/` | `src/lib/tracker-model/` | `LifecycleFixtures`, `LifecycleWorld`, `TupleCoversTheUnion` |
+| `src/domain/tracker-model/testing/` | `src/domain/tracker-model/` | `LifecycleFixtures`, `LifecycleWorld`, `TupleCoversTheUnion` |
 | `src/adapters/progress/testing/` | `src/adapters/` | `ProgressFileFixtures` |
 | `src/services/tracker/testing/` | `src/services/tracker/` | `ThrownFailure` |
 | `src/services/hephaestus/testing/` | `src/services/hephaestus/` | `AirlocksHarness`, `LiveJobFixture`, the frozen monitor and summary documents |
@@ -628,5 +629,5 @@ of its own; every other testing folder keeps the layer of its parent.*
 | Program traps | `src/testing/ProgramTrapGuard.ts`, `src/testing/ProgramTraps.ts` | `failOnAnyTrappedProgramAttempt`, `releaseTrappedProgramForThisSpecFile`, `TRAPPED_EXIT_CODE` | `src/testing/ProgramTraps.spec.ts`, `cli/testing/CliProcess.integration.spec.ts` |
 | Skips | `src/testing/ToolGuard.ts`, `src/testing/TestRunReport.ts` | `SpecRequirement` | `src/testing/ToolGuard.integration.spec.ts` |
 | Fake agent | `src/testing/FakeAgentAdapter.ts`, `src/testing/fake-agent/FakeAgentChild.ts` | `fakeAgentAdapter`, `FakeAgentStep` | `src/testing/FakeAgentAdapter.integration.spec.ts` |
-| Source mutants | `src/testing/SourceMutant.ts` | `mutantPluginFor`, `mutatedModuleOf` | `src/lib/tracker-model/Playbook.spec.ts` |
-| Seeded world | `src/lib/tracker-model/testing/LifecycleWorld.ts` | `LifecycleWorld` | `src/lib/tracker-model/Playbook.interleavings.spec.ts` |
+| Source mutants | `src/testing/SourceMutant.ts` | `mutantPluginFor`, `mutatedModuleOf` | `src/domain/tracker-model/Playbook.spec.ts` |
+| Seeded world | `src/domain/tracker-model/testing/LifecycleWorld.ts` | `LifecycleWorld` | `src/domain/tracker-model/Playbook.interleavings.spec.ts` |

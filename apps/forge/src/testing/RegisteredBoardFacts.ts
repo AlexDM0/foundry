@@ -8,6 +8,13 @@ export function registeredBoardFactsOf(workspace: Workspace): Pick<MonitorRegist
   const reading = new ProgressFileIngestion(localStoreLayoutOf(workspace).progressRecordPath).read();
   const progress: MonitorRegistrationRequest['progress'] = reading.verdict === 'readable'
     ? { verdict: 'readable', trackerId: reading.progress.trackerId, project: reading.progress.project }
-    : reading.verdict === 'absent' ? { verdict: 'absent' } : { verdict: 'unreadable', reason: reading.reason };
+    : reading.verdict === 'absent'
+      ? { verdict: 'absent' }
+      : {
+        verdict: 'unreadable',
+        tracker: {
+          verdict: 'unreadable', unreadableFile: 'progress-file', filePath: localStoreLayoutOf(workspace).progressRecordPath, problem: reading.problem
+        }
+      };
   return { rootDirectory: workspace.rootDirectory, progress };
 }

@@ -42,9 +42,9 @@ import type {
 } from 'forge-contracts/BoardPipelineDocuments';
 import type { ForgeRefusalDocument } from 'forge-contracts/ForgeRefusalDocument';
 
-import type { DraftAnswer } from '../../../lib/tracker-model/@types/Draft.ts';
-import type { GatePhase }   from '../../../lib/tracker-model/@types/GatePhase.ts';
-import type { LogRecord }   from '../../../lib/tracker-model/@types/LogRecord.ts';
+import type { DraftAnswer } from '../../../domain/tracker-model/@types/Draft.ts';
+import type { GatePhase }   from '../../../domain/tracker-model/@types/GatePhase.ts';
+import type { LogRecord }   from '../../../domain/tracker-model/@types/LogRecord.ts';
 import {
   ENTITY_AGENT_ROLES,
   PIPELINE_AGENT_ROLES,
@@ -58,7 +58,7 @@ import {
   type PipelinePhaseOrders,
   type PipelineReview,
   type PipelineStep
-} from '../../../lib/tracker-model/@types/Pipeline.ts';
+} from '../../../domain/tracker-model/@types/Pipeline.ts';
 import type {
   AppliedPipelineFacts,
   ApplyRefusalFacts,
@@ -77,7 +77,7 @@ import type {
   PipelineSetupSummary,
   PipelineStepRunTimeFacts,
   ResolvedSourceAnnotation
-} from '../../../lib/tracker-model/@types/PipelineFacts.ts';
+} from '../../../domain/tracker-model/@types/PipelineFacts.ts';
 import type {
   ApplyRequest,
   ConstitutionDraft,
@@ -87,12 +87,13 @@ import type {
   ResearchFinding,
   SetupQuestion,
   SourceAnnotation
-} from '../../../lib/tracker-model/@types/PipelineSetup.ts';
-import type { AgentPair }                from '../../../lib/tracker-model/@types/Ticket.ts';
-import { EntityOwnershipUtil }           from '../../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
-import { PipelineUtil }                  from '../../../lib/tracker-model/utils/PipelineUtil.ts';
+} from '../../../domain/tracker-model/@types/PipelineSetup.ts';
+import type { AgentPair }                from '../../../domain/tracker-model/@types/Ticket.ts';
+import { EntityOwnershipUtil }           from '../../../domain/tracker-model/utils/EntityOwnershipUtil.ts';
+import { PipelineUtil }                  from '../../../domain/tracker-model/utils/PipelineUtil.ts';
 import type { ToolFacts }                from '../../../shared/@types/AgentFacts.ts';
 import { OperationRefusal }              from '../../../shared/OperationRefusal.ts';
+import { PipelineProblemWording }        from '../../pipeline/PipelineProblemWording.ts';
 import { RefusalDocumentUtil }           from '../../utils/RefusalDocumentUtil.ts';
 import { BoardAgentMappingUtil }         from './BoardAgentMappingUtil.ts';
 import { BoardEntityRefusalMappingUtil } from './BoardEntityRefusalMappingUtil.ts';
@@ -237,7 +238,7 @@ function appliedPipelineOf(applied: AppliedPipelineFacts): BoardAppliedPipelineD
     case 'older':
       return { readingVerdict: 'older', fileText: applied.fileText };
     case 'malformed':
-      return { readingVerdict: 'malformed', reason: applied.reason, fileText: applied.fileText };
+      return { readingVerdict: 'malformed', reason: PipelineProblemWording.sentenceOf(applied.problem), fileText: applied.fileText };
     case 'readable':
       return {
         readingVerdict: 'readable',

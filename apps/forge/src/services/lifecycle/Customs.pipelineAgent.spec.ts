@@ -20,12 +20,9 @@ import { PIPELINE_AGENT_SNAPSHOT_FOLDER_NAME }            from '../../testing/Re
 import { GIT_SCENARIOS }                                  from '../../testing/RecordedGitScenarios.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }                      from '../../testing/ToolGuard.ts';
-import {
-  CHECKS_OF_ROLE,
-  launchSnapshotOf,
-  clearCustoms,
-  type CustomsSubject
-} from './Customs.ts';
+import type { CustomsSubject }                            from './@types/CustomsSubject.ts';
+import { CHECKS_OF_ROLE, clearCustoms }                   from './Customs.ts';
+import { launchSnapshotOf }                               from './CustomsLaunchSnapshot.ts';
 
 const JOB_ID = 'J7';
 const START_COMMIT = '1'.repeat(40);

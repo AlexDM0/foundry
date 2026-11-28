@@ -56,7 +56,7 @@ const NOT_RELAYABLE_MUTATING_VERBS = [
 /**
  * `await` is the wait of User's own session around Hephaestus, which runs under no job; `crash-log` reads a crash log and writes nothing.
  */
-const READ_ONLY_VERBS = [...READ_ONLY_VERBS_UNDER_A_JOB, 'await', 'crash-log'];
+const READ_ONLY_VERBS = [...READ_ONLY_VERBS_UNDER_A_JOB, 'await', 'crash-log', 'hephaestus-log'];
 
 /** Verbs retired with no command in their place. */
 const RETIRING_VERBS = ['hook'];

@@ -1,23 +1,24 @@
 /**
  * `gate-profiles.json` beside the progress file: the gate profile runs User started, read, validated and mapped here, and written through
- * the hold. A file the read cannot map whole is `malformed` with the reason, never a throw. Keys this build does not know are kept at the
+ * the hold. A file the read cannot map whole is `malformed` with the problem, never a throw. Keys this build does not know are kept at the
  * top level, after its own, in their stored order, so a read and a write leave the file byte-identical.
  */
-import { JsonRecordUtil } from '../../lib/json-record/JsonRecordUtil.ts';
-import { GATE_PHASES }    from '../../lib/tracker-model/@types/GatePhase.ts';
+import { GATE_PHASES } from '../../domain/tracker-model/@types/GatePhase.ts';
 import type {
   GateProfileRun,
   GateProfiles,
   GateProfilesReading,
   ProfiledGate
-} from '../../lib/tracker-model/@types/GateProfile.ts';
-import type { PipelineStep }     from '../../lib/tracker-model/@types/Pipeline.ts';
+} from '../../domain/tracker-model/@types/GateProfile.ts';
+import type { GateProfilesProblem } from '../../domain/tracker-model/@types/GateProfilesProblem.ts';
+import type { PipelineStep }        from '../../domain/tracker-model/@types/Pipeline.ts';
 import {
   FIRST_GATE_PROFILE_RUN_NUMBER,
   GATE_CACHE_REPORTS,
   GATE_PROFILE_RUN_STATES,
   GATE_PROFILES_FORMAT_VERSION
-} from '../../lib/tracker-model/constants/GateProfileVocabulary.ts';
+} from '../../domain/tracker-model/constants/GateProfileVocabulary.ts';
+import { JsonRecordUtil }   from '../../lib/json-record/JsonRecordUtil.ts';
 import { JsonTextUtil }     from '../../shared/utils/JsonTextUtil.ts';
 import { storedFileTextOf } from '../StoredFileText.ts';
 import { StoredValueUtil }  from '../utils/StoredValueUtil.ts';
@@ -37,36 +38,42 @@ const STEP_REQUIRED  = ['name', 'run'] as const;
 const PROFILE_RUN_ID_PATTERN = /^P[1-9][0-9]*$/u;
 const SETUP_ID_PATTERN       = /^S[1-9][0-9]*$/u;
 
-type Mapped<Value> = { value: Value } | { problem: string };
+type Mapped<Value> = { value: Value } | { problem: GateProfilesProblem };
 
-function problemOf(problem: string): { problem: string } {
+function problemOf(problem: GateProfilesProblem): { problem: GateProfilesProblem } {
   return { problem };
 }
 
 /** Every key of `keys` that `required` names must be there, and no key outside `keys`. */
 function recordOf(value: unknown, path: string, keys: readonly string[], required: readonly string[] = keys): Mapped<Record<string, unknown>> {
-  if (!JsonRecordUtil.valueIsAPlainObject(value)) return problemOf(`${path} is not an object`);
+  if (!JsonRecordUtil.valueIsAPlainObject(value)) return problemOf({ code: 'not-an-object', field: path });
   const unknownKey = Object.keys(value).find((key) => !keys.includes(key));
-  if (unknownKey !== undefined) return problemOf(`${path}.${unknownKey} is not a key of ${path}; the keys are ${keys.join(', ')}`);
+  if (unknownKey !== undefined) return problemOf({
+    code: 'not-a-key-of', field: path, key: unknownKey, knownKeys: keys
+  });
   const missingKey = required.find((key) => !Object.hasOwn(value, key));
-  return missingKey === undefined ? { value } : problemOf(`${path}.${missingKey} is missing`);
+  return missingKey === undefined ? { value } : problemOf({ code: 'missing', field: `${path}.${missingKey}` });
 }
 
 function textOf(value: unknown, path: string): Mapped<string> {
-  return typeof value === 'string' && value !== '' ? { value } : problemOf(`${path} is not a text`);
+  return typeof value === 'string' && value !== '' ? { value } : problemOf({ code: 'not-a-text', field: path });
 }
 
 function idOf(value: unknown, path: string, pattern: RegExp, example: string): Mapped<string> {
-  return typeof value === 'string' && pattern.test(value) ? { value } : problemOf(`${path} is ${JSON.stringify(value)}, and it has to be an id such as ${example}`);
+  return typeof value === 'string' && pattern.test(value) ? { value } : problemOf({
+    code: 'not-an-id', field: path, storedValue: value, example
+  });
 }
 
 function wordOf<Word extends string>(value: unknown, path: string, vocabulary: readonly Word[]): Mapped<Word> {
   const words: readonly unknown[] = vocabulary;
-  return words.includes(value) ? { value: value as Word } : problemOf(`${path} is ${JSON.stringify(value)}, which is not one of ${vocabulary.join(', ')}`);
+  return words.includes(value) ? { value: value as Word } : problemOf({
+    code: 'not-a-word-of', field: path, storedValue: value, vocabulary
+  });
 }
 
 function listOf<Item>(value: unknown, path: string, itemOf: (item: unknown, itemPath: string) => Mapped<Item>): Mapped<Item[]> {
-  if (!Array.isArray(value)) return problemOf(`${path} is not a list`);
+  if (!Array.isArray(value)) return problemOf({ code: 'not-a-list', field: path });
   const items: Item[] = [];
   for (const [index, item] of value.entries()) {
     const mapped = itemOf(item, `${path}[${index}]`);
@@ -110,7 +117,7 @@ function stepOf(value: unknown, path: string): Mapped<PipelineStep> {
 }
 
 function elapsedOf(value: unknown, path: string): Mapped<number | null> {
-  return value === null || StoredValueUtil.wholeNumberIsAtLeast(value, 0) ? { value } : problemOf(`${path} is neither null nor a whole number of at least 0`);
+  return value === null || StoredValueUtil.wholeNumberIsAtLeast(value, 0) ? { value } : problemOf({ code: 'neither-null-nor-a-whole-number-of-at-least', field: path, lowest: 0 });
 }
 
 function runOf(value: unknown, path: string): Mapped<GateProfileRun> {
@@ -134,7 +141,7 @@ function runOf(value: unknown, path: string): Mapped<GateProfileRun> {
   const state = wordOf(fields['state'], `${path}.state`, GATE_PROFILE_RUN_STATES);
   if ('problem' in state) return state;
   const { stopRequested } = fields;
-  if (typeof stopRequested !== 'boolean') return problemOf(`${path}.stopRequested is not true or false`);
+  if (typeof stopRequested !== 'boolean') return problemOf({ code: 'not-true-or-false', field: `${path}.stopRequested` });
   const elapsedMilliseconds = elapsedOf(fields['elapsedMilliseconds'], `${path}.elapsedMilliseconds`);
   if ('problem' in elapsedMilliseconds) return elapsedMilliseconds;
   const cacheReport = Object.hasOwn(fields, 'cacheReport') ? wordOf(fields['cacheReport'], `${path}.cacheReport`, GATE_CACHE_REPORTS) : null;
@@ -158,10 +165,10 @@ function runOf(value: unknown, path: string): Mapped<GateProfileRun> {
 
 function profilesOf(document: Record<string, unknown>): Mapped<GateProfiles> {
   const missingKey = OWNED_KEYS.find((key) => !Object.hasOwn(document, key));
-  if (missingKey !== undefined) return problemOf(`${missingKey} is missing`);
+  if (missingKey !== undefined) return problemOf({ code: 'missing', field: missingKey });
   const { nextRunNumber } = document;
   if (!StoredValueUtil.wholeNumberIsAtLeast(nextRunNumber, FIRST_GATE_PROFILE_RUN_NUMBER)) {
-    return problemOf(`nextRunNumber is not a whole number of at least ${FIRST_GATE_PROFILE_RUN_NUMBER}`);
+    return problemOf({ code: 'not-a-whole-number-of-at-least', field: 'nextRunNumber', lowest: FIRST_GATE_PROFILE_RUN_NUMBER });
   }
   const runs = listOf(document['runs'], 'runs', runOf);
   if ('problem' in runs) return runs;
@@ -175,21 +182,26 @@ function profilesOf(document: Record<string, unknown>): Mapped<GateProfiles> {
 }
 
 function documentReadingOf(document: unknown): GateProfilesReading {
-  if (!JsonRecordUtil.valueIsAPlainObject(document)) return { verdict: 'malformed', reason: 'the document is not a JSON object' };
+  if (!JsonRecordUtil.valueIsAPlainObject(document)) return { verdict: 'malformed', problem: { code: 'not-a-json-object' } };
   const { formatVersion } = document;
   if (formatVersion !== GATE_PROFILES_FORMAT_VERSION) {
-    return { verdict: 'malformed', reason: `formatVersion is ${JSON.stringify(formatVersion) ?? 'missing'}, and this build reads ${GATE_PROFILES_FORMAT_VERSION}` };
+    return {
+      verdict: 'malformed',
+      problem: {
+        code: 'format-version-not-read', field: 'formatVersion', storedValue: formatVersion, readVersion: GATE_PROFILES_FORMAT_VERSION
+      }
+    };
   }
   const profiles = profilesOf(document);
-  return 'problem' in profiles ? { verdict: 'malformed', reason: profiles.problem } : { verdict: 'readable', profiles: profiles.value };
+  return 'problem' in profiles ? { verdict: 'malformed', problem: profiles.problem } : { verdict: 'readable', profiles: profiles.value };
 }
 
 function read(profilesFilePath: string): GateProfilesReading {
   const storedText = storedFileTextOf(profilesFilePath);
   if (storedText.verdict === 'absent') return storedText;
-  if (storedText.verdict === 'unreadable') return { verdict: 'malformed', reason: storedText.reason };
+  if (storedText.verdict === 'unreadable') return { verdict: 'malformed', problem: storedText.problem };
   const parsedJson = StoredValueUtil.parsedJsonOf(storedText.text);
-  if (parsedJson.verdict === 'unparseable') return { verdict: 'malformed', reason: parsedJson.problem };
+  if (parsedJson.verdict === 'unparseable') return { verdict: 'malformed', problem: parsedJson.problem };
   return documentReadingOf(parsedJson.value);
 }
 

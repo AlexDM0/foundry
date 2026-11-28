@@ -5,16 +5,16 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { basename, dirname }        from 'node:path';
 
-import { type ChildEnd, type ChildRecord, childRecordTextOf } from '../lib/talos/ChildRecord.ts';
-import type { EventLogEntry }                                 from '../lib/talos/EventLog.ts';
-import { childFilesOf, talosRecordPathOf }                    from '../lib/talos/TalosFiles.ts';
-import { type TalosRecord, talosRecordTextOf }                from '../lib/talos/TalosRecord.ts';
+import { type ChildEnd, type ChildRecord, childRecordTextOf } from '../domain/talos/ChildRecord.ts';
+import type { EventLogEntry }                                 from '../domain/talos/EventLog.ts';
+import { childFilesOf, talosRecordPathOf }                    from '../domain/talos/TalosFiles.ts';
+import { type TalosRecord, talosRecordTextOf }                from '../domain/talos/TalosRecord.ts';
 import {
   CHILD_RECORD_FORMAT_VERSION,
   EVENT_LOG_FORMAT_VERSION,
   TALOS_PROTOCOL_VERSION,
   TALOS_RECORD_FORMAT_VERSION
-} from '../lib/talos/constants/TalosProtocol.ts';
+} from '../domain/talos/constants/TalosProtocol.ts';
 
 export interface PlantedChildRequest {
   boardFolder: string;

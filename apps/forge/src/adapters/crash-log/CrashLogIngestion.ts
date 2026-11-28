@@ -1,10 +1,11 @@
 /** `hephaestus/crash-logs/crash-<number>.json`, the record of one crash: read, validate every field, map. */
-import { JsonRecordUtil }         from '../../lib/json-record/JsonRecordUtil.ts';
-import { storedIdentityOf }       from '../../lib/process-identity/ProcessIdentity.ts';
-import { START_ORIGINS }          from '../../lib/tracker-model/constants/JobStates.ts';
-import { startClassificationOf }  from '../presence/PresenceIngestion.ts';
-import { StoredJsonDocumentUtil } from '../utils/StoredJsonDocumentUtil.ts';
-import { StoredValueUtil }        from '../utils/StoredValueUtil.ts';
+import { START_ORIGINS }                                from '../../domain/tracker-model/constants/JobStates.ts';
+import { JsonRecordUtil }                               from '../../lib/json-record/JsonRecordUtil.ts';
+import { storedIdentityOf }                             from '../../lib/process-identity/ProcessIdentity.ts';
+import { startClassificationOf }                        from '../presence/PresenceIngestion.ts';
+import { StoredJsonDocumentUtil }                       from '../utils/StoredJsonDocumentUtil.ts';
+import { StoredValueUtil }                              from '../utils/StoredValueUtil.ts';
+import type { CrashLogMalformedField, CrashLogProblem } from './@types/CrashLogProblem.ts';
 import type {
   CrashErrorOrigin,
   CrashLogError,
@@ -16,7 +17,7 @@ import { CRASH_LOG_FORMAT_VERSION } from './constants/CrashLogFileVersions.ts';
 export type CrashLogReading =
   | { verdict: 'readable'; record: CrashLogRecord }
   | { verdict: 'absent' }
-  | { verdict: 'unreadable'; reason: string };
+  | { verdict: 'unreadable'; problem: CrashLogProblem };
 
 type Fields = Readonly<Record<string, unknown>>;
 
@@ -94,7 +95,9 @@ function crashedProcessOf(value: unknown): CrashLogRecord['crashedProcess'] | un
 
 function crashLogReadingOf(document: Fields): CrashLogReading {
   const field = (key: keyof CrashLogRecord): unknown => StoredValueUtil.ownFieldOf(document, key);
-  const unreadable = (reason: string): CrashLogReading => ({ verdict: 'unreadable', reason });
+  const unreadable = (malformedField: CrashLogMalformedField): CrashLogReading => (
+    { verdict: 'unreadable', problem: { code: 'crash-log-field-malformed', field: malformedField } }
+  );
   const crashedGeneration = field('crashedGeneration');
   const component = field('component');
   const suspected = field('suspected');
@@ -109,19 +112,20 @@ function crashLogReadingOf(document: Fields): CrashLogReading {
   const activeJobs = activeJobsOf(field('activeJobs'));
   const talosChildren = field('talosChildren');
   const logTail = logTailOf(field('logTail'));
-  if (!isGenerationOrNull(crashedGeneration)) return unreadable('crashedGeneration is not a generation or null');
-  if (!StoredValueUtil.valueIsOneOf(component, CRASH_LOG_COMPONENTS)) return unreadable('component is not a crashed component');
-  if (typeof suspected !== 'boolean') return unreadable('suspected is not a flag');
-  if (classification === undefined) return unreadable('classification is neither null nor a start classification');
-  if (typeof recordedAt !== 'string') return unreadable('recordedAt is not a string');
-  if (recordedBy === undefined) return unreadable('recordedBy is not who recorded the crash');
-  if (crashedProcess === undefined) return unreadable('crashedProcess is neither null nor a process identity');
-  if (!StoredValueUtil.valueIsTextOrNull(codeVersion) || !StoredValueUtil.valueIsTextOrNull(startedAt)) return unreadable('codeVersion and startedAt are each a string or null');
-  if (lastHeartbeat === undefined) return unreadable('lastHeartbeat is neither null nor a beat');
-  if (error === undefined) return unreadable('error is neither null nor a crash error');
-  if (activeJobs === undefined) return unreadable('activeJobs is neither null nor a list of jobs');
-  if (!(talosChildren === null || Array.isArray(talosChildren))) return unreadable('talosChildren is neither null nor a list');
-  if (logTail === undefined) return unreadable('logTail is neither null nor a list of lines');
+  if (!isGenerationOrNull(crashedGeneration)) return unreadable('crashedGeneration');
+  if (!StoredValueUtil.valueIsOneOf(component, CRASH_LOG_COMPONENTS)) return unreadable('component');
+  if (typeof suspected !== 'boolean') return unreadable('suspected');
+  if (classification === undefined) return unreadable('classification');
+  if (typeof recordedAt !== 'string') return unreadable('recordedAt');
+  if (recordedBy === undefined) return unreadable('recordedBy');
+  if (crashedProcess === undefined) return unreadable('crashedProcess');
+  if (!StoredValueUtil.valueIsTextOrNull(codeVersion)) return unreadable('codeVersion');
+  if (!StoredValueUtil.valueIsTextOrNull(startedAt)) return unreadable('startedAt');
+  if (lastHeartbeat === undefined) return unreadable('lastHeartbeat');
+  if (error === undefined) return unreadable('error');
+  if (activeJobs === undefined) return unreadable('activeJobs');
+  if (!(talosChildren === null || Array.isArray(talosChildren))) return unreadable('talosChildren');
+  if (logTail === undefined) return unreadable('logTail');
   return {
     verdict: 'readable',
     record:  {

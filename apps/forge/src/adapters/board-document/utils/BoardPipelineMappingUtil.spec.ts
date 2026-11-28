@@ -4,10 +4,10 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { LogRecord }                from '../../../lib/tracker-model/@types/LogRecord.ts';
-import type { Pipeline }                 from '../../../lib/tracker-model/@types/Pipeline.ts';
-import type { PipelineSetupFacts }       from '../../../lib/tracker-model/@types/PipelineFacts.ts';
-import { PipelineUtil }                  from '../../../lib/tracker-model/utils/PipelineUtil.ts';
+import type { LogRecord }                from '../../../domain/tracker-model/@types/LogRecord.ts';
+import type { Pipeline }                 from '../../../domain/tracker-model/@types/Pipeline.ts';
+import type { PipelineSetupFacts }       from '../../../domain/tracker-model/@types/PipelineFacts.ts';
+import { PipelineUtil }                  from '../../../domain/tracker-model/utils/PipelineUtil.ts';
 import { BoardEntityRefusalMappingUtil } from './BoardEntityRefusalMappingUtil.ts';
 import { BoardPipelineMappingUtil }      from './BoardPipelineMappingUtil.ts';
 
@@ -94,8 +94,9 @@ describe('BoardPipelineMappingUtil.pipelineDefinitionOf', () => {
 describe('BoardPipelineMappingUtil.appliedPipelineOf', () => {
   test('maps each reading verdict with the fields it carries', () => {
     expect(BoardPipelineMappingUtil.appliedPipelineOf({ readingVerdict: 'absent' })).toEqual({ readingVerdict: 'absent' });
-    expect(BoardPipelineMappingUtil.appliedPipelineOf({ readingVerdict: 'malformed', reason: 'Not JSON.', fileText: '{' }))
-      .toEqual({ readingVerdict: 'malformed', reason: 'Not JSON.', fileText: '{' });
+    const notJson = { code: 'not-json', parserError: 'Unexpected end' } as const;
+    expect(BoardPipelineMappingUtil.appliedPipelineOf({ readingVerdict: 'malformed', problem: notJson, fileText: '{' }))
+      .toEqual({ readingVerdict: 'malformed', reason: 'it is not valid JSON (Unexpected end)', fileText: '{' });
     const application = {
       appliedRevision: 2, appliedAt: AT, appliedBy: 'user', constitutionCommit: null
     } as const;
@@ -215,8 +216,10 @@ describe('BoardPipelineMappingUtil.pipelineSetupOf', () => {
     const refused = BoardPipelineMappingUtil.pipelineSetupOf({ ...setup, applyRefusal: { kind: 'board-refusal', boardRefusal } });
     expect([refused?.applyRefusal?.code, refused?.applyRefusal?.fields]).toEqual(['pipeline-moved', { setupId: 'S2', baseContentHash: 'example-hash', contentHash: 'other-hash' }]);
     expect(refused?.applyRefusal?.sentence).not.toBe('');
-    const unreadable = BoardPipelineMappingUtil.pipelineSetupOf({ ...setup, applyRefusal: { kind: 'main-constitution-unreadable', reason: 'git failed' } });
-    expect([unreadable?.applyRefusal?.code, unreadable?.applyRefusal?.fields]).toEqual(['main-constitution-unreadable', { reason: 'git failed' }]);
+    const problem = { code: 'main-line-unresolved', mainLine: 'main' } as const;
+    const unreadable = BoardPipelineMappingUtil.pipelineSetupOf({ ...setup, applyRefusal: { kind: 'main-constitution-unreadable', problem } });
+    expect([unreadable?.applyRefusal?.code, unreadable?.applyRefusal?.fields])
+      .toEqual(['main-constitution-unreadable', { reason: 'the main line main does not resolve to a commit' }]);
     expect(BoardPipelineMappingUtil.pipelineSetupOf(setup)?.applyRefusal).toBeNull();
   });
 

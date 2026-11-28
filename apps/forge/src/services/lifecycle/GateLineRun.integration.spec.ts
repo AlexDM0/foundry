@@ -60,7 +60,7 @@ testWhenGitIsRecorded('a line\'s first output reaches the listener while the lin
   writeFileSync(marker, '');
   const ended = await run;
 
-  if ('verdict' in ended) throw new Error(`the run was refused: ${ended.reason}`);
+  if ('verdict' in ended) throw new Error(`the run was refused: ${ended.refusal.code}`);
   expect(ended.gates[0]?.outcome).toBe('passed');
   expect(heard).toContain('second-piece');
 });
@@ -76,6 +76,6 @@ testWhenGitIsRecorded('the run\'s stop signal ends the line and every process it
   stopController.abort();
   const ended = await run;
 
-  if ('verdict' in ended) throw new Error(`the run was refused: ${ended.reason}`);
+  if ('verdict' in ended) throw new Error(`the run was refused: ${ended.refusal.code}`);
   expect(ended.gates[0]?.outcome).not.toBe('passed');
 });

@@ -6,7 +6,7 @@
 import { mkdirSync } from 'node:fs';
 import { userInfo }  from 'node:os';
 
-import type { OwnerOnlyFiles } from './OwnerOnlyFiles.ts';
+import type { OwnerOnlyFiles, OwnerOnlyRestriction } from './OwnerOnlyFiles.ts';
 
 export interface WindowsOwnerOnlyPrimitives {
   readonly createFolder:    (folder: string) => void;
@@ -66,15 +66,13 @@ export function createWindowsOwnerOnlyFiles({ createFolder, accessListOf, curren
       return trustee !== undefined && trusteeIsAllowed(trustee, currentUserName());
     });
   };
-  const requireOwnerOnly = (path: string): void => {
-    if (!isOwnerOnly(path)) throw new Error(`the ACL of ${path} is not proved owner-only`);
-  };
+  const restrictionOf = (path: string): OwnerOnlyRestriction => (isOwnerOnly(path) ? { verdict: 'restricted' } : { verdict: 'refused', cause: 'not-proved-owner-only', path });
   return Object.freeze<OwnerOnlyFiles>({
     restrictFolder: (folder) => {
       createFolder(folder);
-      requireOwnerOnly(folder);
+      return restrictionOf(folder);
     },
-    restrictFile: requireOwnerOnly,
+    restrictFile: restrictionOf,
     isOwnerOnly,
   });
 }

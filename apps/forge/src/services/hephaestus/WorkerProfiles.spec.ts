@@ -12,11 +12,11 @@ import {
 } from 'node:path';
 import { describe, expect, test } from 'bun:test';
 
+import { talosSecretPathOf }                              from '../../domain/talos/TalosFiles.ts';
+import type { Pipeline }                                  from '../../domain/tracker-model/@types/Pipeline.ts';
 import { dataFoldersFor }                                 from '../../lib/data-folders/DataFoldersFor.ts';
 import { createPosixShellLine }                           from '../../lib/shell-line/PosixShellLine.ts';
 import { createWindowsCommandLine }                       from '../../lib/shell-line/WindowsCommandLine.ts';
-import { talosSecretPathOf }                              from '../../lib/talos/TalosFiles.ts';
-import type { Pipeline }                                  from '../../lib/tracker-model/@types/Pipeline.ts';
 import { branchNamesOf }                                  from '../../shared/BranchNames.ts';
 import { PRODUCT_NAMES }                                  from '../../shared/constants/ProductNames.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
@@ -342,10 +342,9 @@ describe('a profile under mount-points, the Linux sandbox\'s deny shape', () => 
       const worktree = join(scratch, 'ticket-007');
       mkdirSync(worktree);
       const mountPointFacts = { worktree, sandboxDenyShape: 'mount-points', agentConfigurationFolderNames: ['.claude'] } as const;
-      expect(WorkerProfiles.unmadeDeniedRootRefusalOf(mountPointFacts)).toBeNull();
+      expect(WorkerProfiles.unmadeDeniedRootOf(mountPointFacts)).toBeNull();
       expect(existsSync(join(worktree, '.claude'))).toBe(true);
-      const refusal = WorkerProfiles.unmadeDeniedRootRefusalOf(mountPointFacts, { makeFolder: () => false });
-      expect(refusal).toBe(`the denied folder ${join(worktree, '.claude')} could not be made, so it would get no read-only mount`);
+      expect(WorkerProfiles.unmadeDeniedRootOf(mountPointFacts, { makeFolder: () => false })).toBe(join(worktree, '.claude'));
     } finally {
       removeScratchDirectory(scratch);
     }
@@ -366,7 +365,7 @@ describe('a profile under mount-points, the Linux sandbox\'s deny shape', () => 
   test('makes nothing under path-rules, where a deny names an absent path by its rule', () => {
     const neverMade = { makeFolder: () => false };
     expect(WorkerProfiles.deniedRootsMadeBeforeLaunchOf(FACTS)).toEqual([]);
-    expect(WorkerProfiles.unmadeDeniedRootRefusalOf(FACTS, neverMade)).toBeNull();
+    expect(WorkerProfiles.unmadeDeniedRootOf(FACTS, neverMade)).toBeNull();
   });
 
   test('leaves each fixed denied writable root either outside every writable bind or made before launch', () => {
@@ -494,10 +493,10 @@ describe('commit signing, as gpgconf reports it', () => {
     expect(WorkerProfiles.commitSigningOf(GpgDirectories.read(FACTS.homeDirectory, () => plantedListing), { exists: () => false })).toEqual({ kind: 'unsigned' });
   });
 
-  test('logs one line for an unsigned worker only when the repository sets commit.gpgsign', () => {
+  test('logs one record for an unsigned worker only when the repository sets commit.gpgsign', () => {
     const unsigned = profileOf('builder', [], { ...FACTS, commitSigning: WorkerProfiles.commitSigningOf(GpgDirectories.read(FACTS.homeDirectory, () => null)) });
     const notices = [true, false].map((repositorySignsCommits) => WorkerProfiles.unsignedCommitNoticeOf(unsigned, repositorySignsCommits, 'J4'));
-    expect(notices.filter((notice) => notice !== null)).toEqual(['Job J4 commits unsigned although the repository sets commit.gpgsign: no gpg-agent socket reaches its sandbox.']);
+    expect(notices.filter((notice) => notice !== null)).toEqual([{ kind: 'commits-unsigned-despite-signing', jobId: 'J4' }]);
     const signing = profileOf('builder', [], { ...FACTS, commitSigning: { kind: 'agent-sockets', sockets: ['/run/user/1000/gnupg/S.gpg-agent'] } });
     expect(WorkerProfiles.unsignedCommitNoticeOf(signing, true, 'J4')).toBeNull();
   });

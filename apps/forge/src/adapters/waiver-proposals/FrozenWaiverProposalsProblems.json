@@ -1,0 +1,5 @@
+[
+  {"case":"the proposals are not a list","stored":"{\"version\":1,\"proposals\":{}}","sentence":"its \"proposals\" is not a list of at least one proposal"},
+  {"case":"the proposals are an empty list","stored":"{\"version\":1,\"proposals\":[]}","sentence":"its \"proposals\" is not a list of at least one proposal"},
+  {"case":"a proposal holds no text reason","stored":"{\"version\":1,\"proposals\":[{\"item\":\"A1\",\"reason\":\"covered\"},{\"item\":\"A2\"}]}","sentence":"proposals[1] holds no text \"item\" and \"reason\""}
+]

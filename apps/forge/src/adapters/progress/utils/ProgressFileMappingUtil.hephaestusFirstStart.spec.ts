@@ -6,6 +6,7 @@ import { expect, test } from 'bun:test';
 
 import { JsonTextUtil }               from '../../../shared/utils/JsonTextUtil.ts';
 import { emptyProgress }              from '../../../testing/ProgressFixtures.ts';
+import { ProgressFileProblemWording } from '../ProgressFileProblemWording.ts';
 import { ProgressFileMappingUtil }    from './ProgressFileMappingUtil.ts';
 import { ProgressFileValidationUtil } from './ProgressFileValidationUtil.ts';
 
@@ -27,7 +28,7 @@ function storedTextWithFirstStart(firstStartedAt: unknown): string {
 
 function roundTripOf(text: string): string {
   const reading = ProgressFileValidationUtil.readingOf(JSON.parse(text));
-  if (reading.verdict === 'unreadable') throw new Error(reading.reason);
+  if (reading.verdict === 'unreadable') throw new Error(ProgressFileProblemWording.sentenceOf(reading.problem));
   const { document } = reading;
   return JsonTextUtil.storedFileTextOf(ProgressFileMappingUtil.storedDocumentOf(ProgressFileMappingUtil.progressOf(document)));
 }

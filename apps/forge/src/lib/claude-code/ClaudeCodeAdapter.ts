@@ -1,5 +1,5 @@
 /**
- * The launcher port's Claude Code adapter: renders a job's `claude -p` command line, settings, agents, MCP and role files from a neutral
+ * The launcher port's Claude Code adapter: renders a session's `claude -p` command line, settings, agents, MCP and role files from a neutral
  * profile, and writes the stream-json lines Talos sends the session. Pure: Talos writes the files and spawns the argv.
  */
 import { createHash } from 'node:crypto';
@@ -42,7 +42,7 @@ function claudeVersionOf(versionOutput: string): string | null {
   return CLAUDE_VERSION_ANSWER.exec(versionOutput.trim())?.[1] ?? null;
 }
 
-export const CLAUDE_JOB_FILE_NAMES = {
+export const CLAUDE_LAUNCH_FILE_NAMES = {
   settings:     'settings.json',
   agents:       'agents.json',
   mcp:          'mcp.json',
@@ -108,9 +108,9 @@ const HEXADECIMAL_RADIX = 16;
 const LOOPBACK_DOMAINS = ['localhost', '127.0.0.1'] as const;
 const WEB_FETCH_TOOL_NAME = 'WebFetch';
 
-/** The session id a job keeps across every child instance and resume: a UUID formatted from `sha256(scope + "\n" + jobId)`. */
-export function claudeSessionIdOf(scope: string, jobId: string): string {
-  const digits = createHash('sha256').update(`${scope}\n${jobId}`).digest('hex').slice(0, UUID_HEXADECIMAL_DIGITS).split('');
+/** The session id a session key keeps across every child instance and resume: a UUID formatted from `sha256(scope + "\n" + sessionKey)`. */
+export function claudeSessionIdOf(scope: string, sessionKey: string): string {
+  const digits = createHash('sha256').update(`${scope}\n${sessionKey}`).digest('hex').slice(0, UUID_HEXADECIMAL_DIGITS).split('');
   digits[UUID_VERSION_DIGIT_INDEX] = UUID_NAME_HASH_VERSION;
   const variantDigit = Number.parseInt(digits[UUID_VARIANT_DIGIT_INDEX] ?? '0', HEXADECIMAL_RADIX);
   digits[UUID_VARIANT_DIGIT_INDEX] = (UUID_VARIANT_BITS | (variantDigit & UUID_VARIANT_MASK)).toString(HEXADECIMAL_RADIX);
@@ -315,13 +315,13 @@ function argvOf(request: AgentLaunchRequest, pathOf: (fileName: string) => strin
     'project',
     '--strict-mcp-config',
     '--mcp-config',
-    pathOf(CLAUDE_JOB_FILE_NAMES.mcp),
+    pathOf(CLAUDE_LAUNCH_FILE_NAMES.mcp),
     '--settings',
-    pathOf(CLAUDE_JOB_FILE_NAMES.settings),
+    pathOf(CLAUDE_LAUNCH_FILE_NAMES.settings),
     '--agents',
-    pathOf(CLAUDE_JOB_FILE_NAMES.agents),
+    pathOf(CLAUDE_LAUNCH_FILE_NAMES.agents),
     '--append-system-prompt-file',
-    pathOf(CLAUDE_JOB_FILE_NAMES.role),
+    pathOf(CLAUDE_LAUNCH_FILE_NAMES.role),
     ...request.reportSchema === null ? [] : ['--json-schema', jsonTextOf(request.reportSchema)],
     '--permission-mode',
     'auto',
@@ -341,17 +341,17 @@ function jsonTextOf(value: unknown): string {
 
 /** Every permission request but a question is denied at once, so no session waits on a question nobody answers. */
 function planOf(facts: AgentHostFacts, configFolder: string, request: AgentLaunchRequest): AgentLaunchPlan {
-  const pathOf = (fileName: string): string => join(request.jobFilesDirectory, fileName);
-  const reportSchemaFiles = request.reportSchema === null ? [] : [{ path: pathOf(CLAUDE_JOB_FILE_NAMES.reportSchema), text: jsonTextOf(request.reportSchema) }];
+  const pathOf = (fileName: string): string => join(request.launchFilesDirectory, fileName);
+  const reportSchemaFiles = request.reportSchema === null ? [] : [{ path: pathOf(CLAUDE_LAUNCH_FILE_NAMES.reportSchema), text: jsonTextOf(request.reportSchema) }];
   return {
     argv:        argvOf(request, pathOf),
     environment: childEnvironmentOf(request),
     ...request.billing?.mode === 'api' ? { environmentFromTalos: { [CLAUDE_API_KEY_VARIABLE]: CLAUDE_API_KEY_VARIABLE } } : {},
     files:       [
-      { path: pathOf(CLAUDE_JOB_FILE_NAMES.settings), text: jsonTextOf(settingsOf(facts, configFolder, request)) },
-      { path: pathOf(CLAUDE_JOB_FILE_NAMES.agents), text: jsonTextOf(agentsOf(facts, request.profile.subagents)) },
-      { path: pathOf(CLAUDE_JOB_FILE_NAMES.mcp), text: jsonTextOf({ mcpServers: {} }) },
-      { path: pathOf(CLAUDE_JOB_FILE_NAMES.role), text: request.roleBrief },
+      { path: pathOf(CLAUDE_LAUNCH_FILE_NAMES.settings), text: jsonTextOf(settingsOf(facts, configFolder, request)) },
+      { path: pathOf(CLAUDE_LAUNCH_FILE_NAMES.agents), text: jsonTextOf(agentsOf(facts, request.profile.subagents)) },
+      { path: pathOf(CLAUDE_LAUNCH_FILE_NAMES.mcp), text: jsonTextOf({ mcpServers: {} }) },
+      { path: pathOf(CLAUDE_LAUNCH_FILE_NAMES.role), text: request.roleBrief },
       ...reportSchemaFiles,
     ],
     standingReplies: CLAUDE_CODE_STANDING_REPLIES,

@@ -18,6 +18,7 @@ import { LocalTimeUtil }                                         from '../../lib
 import type { PlatformPorts }                                    from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { ProcessIdentity }                                  from '../../lib/process-identity/ProcessIdentity.ts';
 import { LIVE_HOLDERS_LOCK_TAKER }                               from '../../testing/LockTakers.ts';
+import { detailsLoggerOf }                                       from '../../testing/LoggedDetails.ts';
 import { nativePlatformPorts }                                   from '../../testing/NativePlatformPorts.ts';
 import { PlantedChild }                                          from '../../testing/PlantedChild.ts';
 import { createScratchDirectory, removeScratchDirectory }        from '../../testing/ScratchWorkspace.ts';
@@ -124,7 +125,7 @@ function boardReads() {
 
 function admit(origin: StartOriginReading, ports = portsInBoot()) {
   return StartGate.admit({
-    ports, files, workspace, boardReads: boardReads(), origin, stampNow: () => RECORDED_AT, unreadableBoardFiles, log: (line) => loggedLines.push(line)
+    ports, files, workspace, boardReads: boardReads(), origin, stampNow: () => RECORDED_AT, unreadableBoardFiles, log: detailsLoggerOf(loggedLines)
   });
 }
 
@@ -188,7 +189,7 @@ describe('after a crash in this boot', () => {
       origin:     SUCCESSOR,
       stampNow:   () => '2026-11-19T10:00:00+01:00',
       unreadableBoardFiles,
-      log:        (line) => loggedLines.push(line),
+      log:        detailsLoggerOf(loggedLines),
     });
 
     expect(again).toMatchObject({ verdict: 'stay-off', crashLogNumber: FIRST_CRASH_LOG_NUMBER });
@@ -314,7 +315,7 @@ test('an unreadable presence record is reported as a board file Hephaestus canno
   const verdict = admit(USER);
 
   expect(verdict.classification.evidence.presence).toBe('unreadable');
-  expect(unreadableBoardFiles.files()).toEqual([{ file: 'hephaestus/presence.json', reason: expect.stringContaining('not valid JSON') }]);
+  expect(unreadableBoardFiles.files()).toEqual([{ file: 'hephaestus/presence.json', problem: { code: 'not-json', parserError: expect.any(String) as unknown as string } }]);
 });
 
 test('an unreadable heartbeat is logged, never reported, since the next beat rewrites it', () => {

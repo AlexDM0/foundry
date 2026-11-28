@@ -2,12 +2,12 @@
  * When a job ends, its session's tokens go to its tickets' rows: read from every child instance's event log, summed by `TokenCrediting`,
  * logged as one `agent-stopped` record keyed by the job id and added to the rows, a review job's to its ticket's newest review bar.
  */
+import type { TokenCredit }                  from '../../domain/tracker-model/@types/BoardChanges.ts';
+import type { Job }                          from '../../domain/tracker-model/@types/Job.ts';
+import type { AgentUsage, LogRecord }        from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { Board }                        from '../../domain/tracker-model/Board.ts';
+import { FIRST_CHILD_INSTANCE }              from '../../domain/tracker-model/constants/JobStates.ts';
 import type { AgentAdapter }                 from '../../lib/agent-launch/AgentAdapter.ts';
-import type { TokenCredit }                  from '../../lib/tracker-model/@types/BoardChanges.ts';
-import type { Job }                          from '../../lib/tracker-model/@types/Job.ts';
-import type { AgentUsage, LogRecord }        from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Board }                        from '../../lib/tracker-model/Board.ts';
-import { FIRST_CHILD_INSTANCE }              from '../../lib/tracker-model/constants/JobStates.ts';
 import { type CreditedTurn, TokenCrediting } from '../lifecycle/TokenCrediting.ts';
 import type { BoardChildren }                from './BoardChildren.ts';
 

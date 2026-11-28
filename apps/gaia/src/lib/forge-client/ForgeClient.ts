@@ -6,6 +6,7 @@
 import { FORGE_COMPATIBILITY_REGISTRY }              from 'forge-contracts/ForgeCompatibilityRegistry';
 import type { ForgeControlCommand }                  from 'forge-contracts/ForgeControlCommand';
 import { CompatibilityRegistryUtil }                 from 'system-versions/CompatibilityRegistryUtil';
+import type { SystemVersion }                        from 'system-versions/VersionsDocument';
 import { ApiPathUtil }                               from '../api-paths/ApiPathUtil.ts';
 import { eventStreamParserOf, type ServerSentEvent } from '../event-stream/EventStreamParser.ts';
 import { JsonValueUtil, type JsonObject }            from '../json-value/JsonValueUtil.ts';
@@ -33,10 +34,11 @@ import type {
   HephaestusRequest,
   HephaestusStream,
 } from './HephaestusFetch.ts';
-import { SUPPORTED_FORGE_VERSION } from './constants/SupportedForgeVersions.ts';
 
 export interface ForgeClientSettings {
   readonly hephaestusFetch:                HephaestusFetch;
+  /** The one forge version the app supports, whose endpoint versions every call uses. */
+  readonly supportedForgeVersion:          SystemVersion;
   readonly requestTimeoutMilliseconds?:    number;
   readonly streamOpenTimeoutMilliseconds?: number;
 }
@@ -96,20 +98,24 @@ const HEPHAESTUS_ENDPOINTS = {
 export type HephaestusEndpointName = keyof typeof HEPHAESTUS_ENDPOINTS;
 
 /**
- * The version of the endpoint that forge's compatibility registry serves the forge version this client supports. Every endpoint the client
+ * The version of the endpoint that forge's compatibility registry serves the given supported forge version. Every endpoint the client
  * calls has one, as its spec holds, so the throw marks a registry that dropped one, never a forge's answer.
  */
-export function forgeEndpointVersionOf(endpointName: HephaestusEndpointName): number {
+export function forgeEndpointVersionOf(endpointName: HephaestusEndpointName, supportedForgeVersion: SystemVersion): number {
   const endpoint = HEPHAESTUS_ENDPOINTS[endpointName];
-  const version = CompatibilityRegistryUtil.endpointVersionAt(FORGE_COMPATIBILITY_REGISTRY, endpoint, SUPPORTED_FORGE_VERSION);
-  if (version === null) throw new Error(`The forge version this client supports serves no ${endpoint} endpoint.`);
+  const version = CompatibilityRegistryUtil.endpointVersionAt(FORGE_COMPATIBILITY_REGISTRY, endpoint, supportedForgeVersion);
+  if (version === null) throw new Error(`The supported forge version serves no ${endpoint} endpoint.`);
   return version;
 }
 
 /** The versioned path Gaia calls an endpoint at, each template segment filled from `values`. */
-export function forgeEndpointPathOf(endpointName: HephaestusEndpointName, values: Readonly<Record<string, string>> = {}): string {
+export function forgeEndpointPathOf(
+  endpointName: HephaestusEndpointName,
+  supportedForgeVersion: SystemVersion,
+  values: Readonly<Record<string, string>> = {},
+): string {
   const endpointPath = CompatibilityRegistryUtil.endpointPathOf(HEPHAESTUS_ENDPOINTS[endpointName], values);
-  return ApiPathUtil.versionedPathOf(endpointPath, forgeEndpointVersionOf(endpointName));
+  return ApiPathUtil.versionedPathOf(endpointPath, forgeEndpointVersionOf(endpointName, supportedForgeVersion));
 }
 
 /** The path of a stream that starts after a cursor: `after=<cursor>` in its query, none when `null`. */
@@ -175,6 +181,9 @@ function streamEventOf(event: ServerSentEvent): ForgeStreamEvent {
 }
 
 export function forgeClientOf(settings: ForgeClientSettings): ForgeClient {
+  const endpointPathOf = (endpointName: HephaestusEndpointName, values: Readonly<Record<string, string>> = {}): string => forgeEndpointPathOf(
+    endpointName, settings.supportedForgeVersion, values,
+  );
   const { hephaestusFetch } = settings;
   const requestTimeoutMilliseconds    = settings.requestTimeoutMilliseconds ?? HEPHAESTUS_REQUEST_TIMEOUT_MILLISECONDS;
   const streamOpenTimeoutMilliseconds = settings.streamOpenTimeoutMilliseconds ?? MONITOR_STREAM_OPEN_TIMEOUT_MILLISECONDS;
@@ -200,54 +209,54 @@ export function forgeClientOf(settings: ForgeClientSettings): ForgeClient {
   }
 
   async function identityOf({ hephaestusUrl }: HephaestusAddress): Promise<ForgeDocumentAnswer> {
-    return documentAnswerOf(await hephaestusFetch.request(hephaestusRequestOf(hephaestusUrl, 'GET', forgeEndpointPathOf('identity'), null, null)));
+    return documentAnswerOf(await hephaestusFetch.request(hephaestusRequestOf(hephaestusUrl, 'GET', endpointPathOf('identity'), null, null)));
   }
 
   async function summaryOf({ hephaestusUrl }: HephaestusAddress): Promise<ForgeDocumentAnswer> {
-    return documentAnswerOf(await hephaestusFetch.request(hephaestusRequestOf(hephaestusUrl, 'GET', forgeEndpointPathOf('summary'), null, null)));
+    return documentAnswerOf(await hephaestusFetch.request(hephaestusRequestOf(hephaestusUrl, 'GET', endpointPathOf('summary'), null, null)));
   }
 
   async function monitorOf(access: HephaestusAccess): Promise<ForgeDocumentAnswer> {
-    return documentAnswerOf(await hephaestusFetch.request(hephaestusRequestOf(access.hephaestusUrl, 'GET', forgeEndpointPathOf('monitor'), access.bearerToken, null)));
+    return documentAnswerOf(await hephaestusFetch.request(hephaestusRequestOf(access.hephaestusUrl, 'GET', endpointPathOf('monitor'), access.bearerToken, null)));
   }
 
   async function send(access: HephaestusAccess, command: ForgeControlCommand): Promise<ForgeCommandAnswer> {
-    const commandRequest = hephaestusRequestOf(access.hephaestusUrl, 'POST', forgeEndpointPathOf('commands'), access.bearerToken, JSON.stringify(command));
+    const commandRequest = hephaestusRequestOf(access.hephaestusUrl, 'POST', endpointPathOf('commands'), access.bearerToken, JSON.stringify(command));
     return commandAnswerOf(await hephaestusFetch.request(commandRequest));
   }
 
   async function boardOf(access: HephaestusAccess): Promise<ForgeDocumentAnswer> {
-    return documentAnswerOf(await hephaestusFetch.request(hephaestusRequestOf(access.hephaestusUrl, 'GET', forgeEndpointPathOf('board'), access.bearerToken, null)));
+    return documentAnswerOf(await hephaestusFetch.request(hephaestusRequestOf(access.hephaestusUrl, 'GET', endpointPathOf('board'), access.bearerToken, null)));
   }
 
   async function presenceOf(access: HephaestusAccess): Promise<ForgeDocumentAnswer> {
-    return documentAnswerOf(await hephaestusFetch.request(hephaestusRequestOf(access.hephaestusUrl, 'GET', forgeEndpointPathOf('presence'), access.bearerToken, null)));
+    return documentAnswerOf(await hephaestusFetch.request(hephaestusRequestOf(access.hephaestusUrl, 'GET', endpointPathOf('presence'), access.bearerToken, null)));
   }
 
   async function crashLogOf(access: HephaestusAccess, crashLogNumber: number): Promise<ForgeDocumentAnswer> {
-    const crashLogPath = `${forgeEndpointPathOf('crashLog')}?${new URLSearchParams({ number: String(crashLogNumber) }).toString()}`;
+    const crashLogPath = `${endpointPathOf('crashLog')}?${new URLSearchParams({ number: String(crashLogNumber) }).toString()}`;
     return documentAnswerOf(await hephaestusFetch.request(hephaestusRequestOf(access.hephaestusUrl, 'GET', crashLogPath, access.bearerToken, null)));
   }
 
   async function sendBoardCommand(access: HephaestusAccess, body: JsonObject): Promise<ForgeBoardCommandAnswer> {
-    const commandRequest = hephaestusRequestOf(access.hephaestusUrl, 'POST', forgeEndpointPathOf('commands'), access.bearerToken, JSON.stringify(body));
+    const commandRequest = hephaestusRequestOf(access.hephaestusUrl, 'POST', endpointPathOf('commands'), access.bearerToken, JSON.stringify(body));
     return boardCommandAnswerOf(await hephaestusFetch.request(commandRequest));
   }
 
   async function ticketDocumentsOf(access: HephaestusAccess, ticketId: string): Promise<ForgeTicketDocumentsAnswer> {
-    const documentsPath = forgeEndpointPathOf('ticketDocuments', { ticketId });
+    const documentsPath = endpointPathOf('ticketDocuments', { ticketId });
     return boardCommandAnswerOf(await hephaestusFetch.request(hephaestusRequestOf(access.hephaestusUrl, 'GET', documentsPath, access.bearerToken, null)));
   }
 
   async function uploadPicture(access: HephaestusAccess, bytes: Uint8Array, mediaType: string): Promise<ForgePictureUploadAnswer> {
     const uploadBodies = { jsonBody: null, byteBody: { bytes, mediaType }, answerAs: 'text' } as const;
-    const uploadRequest = byteRequestOf(access.hephaestusUrl, 'POST', forgeEndpointPathOf('pictures'), access.bearerToken, uploadBodies);
+    const uploadRequest = byteRequestOf(access.hephaestusUrl, 'POST', endpointPathOf('pictures'), access.bearerToken, uploadBodies);
     return boardCommandAnswerOf(await hephaestusFetch.request(uploadRequest));
   }
 
   async function pictureOf(access: HephaestusAccess, pictureId: string): Promise<ForgePictureAnswer> {
     const pictureBodies = { jsonBody: null, byteBody: null, answerAs: 'bytes' } as const;
-    const pictureRequest = byteRequestOf(access.hephaestusUrl, 'GET', forgeEndpointPathOf('picture', { pictureId }), access.bearerToken, pictureBodies);
+    const pictureRequest = byteRequestOf(access.hephaestusUrl, 'GET', endpointPathOf('picture', { pictureId }), access.bearerToken, pictureBodies);
     return pictureAnswerOf(await hephaestusFetch.request(pictureRequest));
   }
 
@@ -299,7 +308,7 @@ export function forgeClientOf(settings: ForgeClientSettings): ForgeClient {
   }
 
   function followMonitor(access: HephaestusAccess, onSnapshot: (document: unknown) => void): MonitorFollow {
-    return followEventStream(access, forgeEndpointPathOf('monitorEvents'), null, (event) => {
+    return followEventStream(access, endpointPathOf('monitorEvents'), null, (event) => {
       if (event.eventName !== MONITOR_EVENT_NAME) return;
       // A snapshot that cannot be read is passed over: the next whole one replaces it.
       const parsing = JsonValueUtil.parsedValueOf(event.data);
@@ -308,19 +317,19 @@ export function forgeClientOf(settings: ForgeClientSettings): ForgeClient {
   }
 
   function followEvents(access: HephaestusAccess, lastEventId: string | null, onEvent: (event: ForgeStreamEvent) => void): ForgeStreamFollow {
-    return followEventStream(access, forgeEndpointPathOf('events'), lastEventId, onEvent);
+    return followEventStream(access, endpointPathOf('events'), lastEventId, onEvent);
   }
 
   function followJobStream(
     access: HephaestusAccess, jobId: string, after: string | null, lastEventId: string | null, onEvent: (event: ForgeStreamEvent) => void,
   ): ForgeStreamFollow {
-    return followEventStream(access, streamPathOf(forgeEndpointPathOf('jobStream', { jobId }), after), lastEventId, onEvent);
+    return followEventStream(access, streamPathOf(endpointPathOf('jobStream', { jobId }), after), lastEventId, onEvent);
   }
 
   function followProfileStream(
     access: HephaestusAccess, profileRunId: string, after: string | null, lastEventId: string | null, onEvent: (event: ForgeStreamEvent) => void,
   ): ForgeStreamFollow {
-    return followEventStream(access, streamPathOf(forgeEndpointPathOf('profileStream', { profileRunId }), after), lastEventId, onEvent);
+    return followEventStream(access, streamPathOf(endpointPathOf('profileStream', { profileRunId }), after), lastEventId, onEvent);
   }
 
   return {

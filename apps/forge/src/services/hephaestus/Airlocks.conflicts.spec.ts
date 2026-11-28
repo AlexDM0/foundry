@@ -6,7 +6,7 @@
 import { afterEach, expect, test } from 'bun:test';
 
 
-import type { PipelineAirlock }           from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { PipelineAirlock }           from '../../domain/tracker-model/@types/Pipeline.ts';
 import { RED_HANDOFF_RESUME_CALL_BUDGET } from '../../shared/constants/HephaestusLimits.ts';
 import {
   ancestryAsked,
@@ -17,7 +17,7 @@ import {
 import { useRecordedGit }            from '../../testing/RecordedGit.ts';
 import { GIT_SCENARIOS }             from '../../testing/RecordedGitScenarios.ts';
 import { describeWhenGitIsRecorded } from '../../testing/ToolGuard.ts';
-import type { ProjectScope }         from '../lifecycle/Customs.ts';
+import type { ProjectScope }         from '../lifecycle/@types/CustomsSubject.ts';
 import { AirlockAnswerSets }         from './testing/AirlockAnswerSets.ts';
 import {
   createRecordedAirlocksHarness,

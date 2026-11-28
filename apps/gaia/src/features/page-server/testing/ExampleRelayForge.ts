@@ -11,9 +11,9 @@ import { RECORDED_TRACKER_ID }        from '../../../adapters/forge-api/testing/
 import type { RegisteredForge }       from '../../../adapters/forge-registry/@types/RegisteredForge.ts';
 import type { RegistryReading }       from '../../../adapters/forge-registry/RegistryFile.ts';
 import { forgeClientOf }              from '../../../lib/forge-client/ForgeClient.ts';
-import { SUPPORTED_FORGE_VERSION }    from '../../../lib/forge-client/constants/SupportedForgeVersions.ts';
 import { WatchReadingUtil }           from '../../../services/utils/WatchReadingUtil.ts';
 import type { ForgeReading }          from '../../../shared/@types/ForgeReading.ts';
+import { SUPPORTED_FORGE_VERSION }    from '../../../shared/constants/SupportedForgeVersions.ts';
 import {
   recordedBoardAnswersOf,
   recordedHephaestusAnswersOf,
@@ -81,7 +81,7 @@ export function relaySourcesOver(
     readRegistry: () => Promise.resolve(registryReading),
     readings:     () => [forge.reading],
     presenceReadingAfterNow,
-    forgeClient:  forgeClientOf({ hephaestusFetch }),
+    forgeClient:  forgeClientOf({ supportedForgeVersion: SUPPORTED_FORGE_VERSION, hephaestusFetch }),
   };
 }
 

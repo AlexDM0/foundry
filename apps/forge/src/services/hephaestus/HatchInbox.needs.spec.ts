@@ -6,7 +6,7 @@
 import { expect, test } from 'bun:test';
 
 import { HatchFormatUtil }                                    from '../../adapters/hatch/utils/HatchFormatUtil.ts';
-import type { JobLaunch }                                     from '../../lib/tracker-model/@types/Job.ts';
+import type { JobLaunch }                                     from '../../domain/tracker-model/@types/Job.ts';
 import type { ControlCommandOf }                              from '../../shared/@types/ControlCommand.ts';
 import { boardFixture, entityPipelineFixture, ticketFixture } from '../../testing/BoardFixtures.ts';
 import type { BoardTransaction }                              from '../tracker/BoardTransaction.ts';

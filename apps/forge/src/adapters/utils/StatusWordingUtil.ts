@@ -2,8 +2,8 @@
  * The command line's words for a status that differ from the value: the verb a refusal tells the reader to run, and the phrase a move
  * ends on. Every other status, type, priority and Hephaestus state prints as its value.
  */
-import type { TaskStatus }   from '../../lib/tracker-model/@types/Task.ts';
-import type { TicketStatus } from '../../lib/tracker-model/@types/Ticket.ts';
+import type { TaskStatus }   from '../../domain/tracker-model/@types/Task.ts';
+import type { TicketStatus } from '../../domain/tracker-model/@types/Ticket.ts';
 
 const DRAFT_TICKET_TEXT = 'a draft ticket';
 

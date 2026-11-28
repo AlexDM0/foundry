@@ -2,8 +2,9 @@
  * `stage-statement.json`, what a package stage's verified report stated, kept in its job folder for the stages after it, read into the
  * statement: read, validate, map.
  */
-import { type FieldCheck, JobFileShapeUtil } from '../utils/JobFileShapeUtil.ts';
-import { StoredJsonDocumentUtil }            from '../utils/StoredJsonDocumentUtil.ts';
+import { type ExpectationCheck, JobFileShapeUtil } from '../utils/JobFileShapeUtil.ts';
+import { StoredJsonDocumentUtil }                  from '../utils/StoredJsonDocumentUtil.ts';
+import type { StageStatementProblem }              from './@types/StageStatementProblem.ts';
 
 export const STAGE_STATEMENT_FORMAT_VERSION = 1;
 
@@ -21,14 +22,14 @@ export type StageStatement =
 export type StageStatementReading =
   | { verdict: 'readable'; statement: StageStatement }
   | { verdict: 'absent' }
-  | { verdict: 'unreadable'; reason: string };
+  | { verdict: 'unreadable'; problem: StageStatementProblem };
 
-const BOOLEAN: FieldCheck = [(value) => typeof value === 'boolean', 'true or false'];
-const TEXT: FieldCheck = [JobFileShapeUtil.valueIsText, 'text'];
+const BOOLEAN: ExpectationCheck = [(value) => typeof value === 'boolean', 'true-or-false'];
+const TEXT: ExpectationCheck = [JobFileShapeUtil.valueIsText, 'text'];
 
-const STATEMENT_CHECKS: Readonly<Record<StageStatement['stage'], Readonly<Record<string, FieldCheck>>>> = {
+const STATEMENT_CHECKS: Readonly<Record<StageStatement['stage'], Readonly<Record<string, ExpectationCheck>>>> = {
   'package-build':           { exposedSurfaceChanged: BOOLEAN },
-  'package-review':          { exposedSurfaceConfirmed: BOOLEAN, reviewText: TEXT, sealedReachPaths: [JobFileShapeUtil.valueIsATextList, 'a list of paths'] },
+  'package-review':          { exposedSurfaceConfirmed: BOOLEAN, reviewText: TEXT, sealedReachPaths: [JobFileShapeUtil.valueIsATextList, 'a-list-of-paths'] },
   'package-review-findings': { reviewSection: TEXT },
   'adapt':                   { returnedPackage: TEXT, packageReturnReason: TEXT },
   'package-refused':         { refusedReason: TEXT },
@@ -66,9 +67,9 @@ export class StageStatementIngestion {
     if (stored.verdict !== 'readable') return stored;
     const { document } = stored;
     const { stage } = document;
-    if (!isStatementStage(stage)) return { verdict: 'unreadable', reason: 'its "stage" is not a stage that keeps a statement' };
-    const problem = JobFileShapeUtil.firstFieldProblemOf(document, STATEMENT_CHECKS[stage]);
-    if (problem !== null) return { verdict: 'unreadable', reason: problem };
+    if (!isStatementStage(stage)) return { verdict: 'unreadable', problem: { code: 'not-a-statement-stage', field: 'stage' } };
+    const problem = JobFileShapeUtil.firstMistypedFieldOf(document, STATEMENT_CHECKS[stage]);
+    if (problem !== null) return { verdict: 'unreadable', problem };
     return { verdict: 'readable', statement: statementOf(document, stage) };
   }
 }

@@ -9,9 +9,9 @@ import { describe, expect, test } from 'bun:test';
 
 import type { UnreadablePipelineReading }                         from '../../adapters/pipeline/PipelineFile.ts';
 import { PipelineSetupFile }                                      from '../../adapters/pipeline/PipelineSetupFile.ts';
-import type { Pipeline }                                          from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { MainConstitution, PipelineSetup }                   from '../../lib/tracker-model/@types/PipelineSetup.ts';
-import { BoardRefusal }                                           from '../../lib/tracker-model/BoardRefusal.ts';
+import type { Pipeline }                                          from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { MainConstitution, PipelineSetup }                   from '../../domain/tracker-model/@types/PipelineSetup.ts';
+import { BoardRefusal }                                           from '../../domain/tracker-model/BoardRefusal.ts';
 import type { ControlCommand }                                    from '../../shared/@types/ControlCommand.ts';
 import { OperationRefusal }                                       from '../../shared/OperationRefusal.ts';
 import { boardFixture, type BoardFixture }                        from '../../testing/BoardFixtures.ts';
@@ -316,7 +316,7 @@ describe('a draft edit', () => {
     }));
 
     expect(refusal.detail).toMatchObject({ kind: 'pipeline-draft-invalid', setupId: 'S1' });
-    expect(refusal.detail?.kind === 'pipeline-draft-invalid' ? refusal.detail.reason : '').toContain('retries');
+    expect(refusal.detail).toMatchObject({ problem: { code: 'unknown-pipeline-key', key: 'retries' } });
   });
 
   test('an Undo that would leave a gate in no phase refuses pipeline-draft-invalid, so no record is left unreadable', () => {
@@ -584,7 +584,14 @@ describe('the record\'s pipeline agent', () => {
   });
 
   test('a start over removes an unreadable record and stops every pipeline agent, since none has a record left to serve', () => {
-    const fixture = boardFixture({ pipelineSetup: { verdict: 'malformed', reason: 'formatVersion is 2' } });
+    const fixture = boardFixture({
+      pipelineSetup: {
+        verdict: 'malformed',
+        problem: {
+          code: 'format-version-not-read', field: 'formatVersion', storedValue: 2, readVersion: 4
+        }
+      }
+    });
     const { job } = fixture.board.launchJob({
       kind: 'pipeline-agent', role: 'pipeline-agent', ticketIds: [], attempt: 1, target: null, parentJobId: null
     }, CHANGED_AT);
@@ -787,13 +794,13 @@ describe('Apply', () => {
 
   test('a main whose CONSTITUTION.md git cannot read refuses main-constitution-unreadable, with the Board untouched', () => {
     const fixture = boardAtDesign();
-    const unreadable = echoedControlContextWith({ verdict: 'unreadable', reason: 'git could not be started' });
+    const unreadable = echoedControlContextWith({ verdict: 'unreadable', problem: { code: 'git-not-started', gitArguments: ['show'] } });
 
     const refusal = operationRefusalOf(() => applyIn(fixture, {
       kind: 'pipeline-apply', setupId: 'S1', draftRevision: 0, resumesBoard: false
     }, unreadable));
 
-    expect(refusal.detail).toEqual({ kind: 'main-constitution-unreadable', reason: 'git could not be started' });
+    expect(refusal.detail).toEqual({ kind: 'main-constitution-unreadable', problem: { code: 'git-not-started', gitArguments: ['show'] } });
     expect(fixture.board.pipelineSetupWrite()).toEqual({ write: 'unchanged' });
   });
 

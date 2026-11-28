@@ -353,8 +353,8 @@ Each row is one stage; stop at the first that does not match.
 | Install | `forge version` | `code <hash>, install version <number>` | Follow the check under [Install the program](#install-the-program) |
 | Adopt | `git status --short` | `?? .claude/` and `?? .gitignore`; once `.gitignore` is committed, `?? .claude/` alone. A global ignore covering the settings file drops the `.claude/` line | A skill folder listed: run `init` again. `<data>` listed: add `.forge/` to `.gitignore` by hand; `init` adds that entry only when it creates the tracker |
 | Tracker | `forge status` | `Next:` line ending `Hephaestus paused: wait for the user's go` | Rerun `init` |
-| Hephaestus | `forge status` | `hephaestus: serving at http://127.0.0.1:<port>/`, then `paused` | `start`, then read `<data>/hephaestus.log` |
-| Decision | `forge status --json` | `decisions` lists `checks-not-set`, unless you stored gates before Hephaestus started | Wait one Pass, then reread `<data>/hephaestus.log` |
+| Hephaestus | `forge status` | `hephaestus: serving at http://127.0.0.1:<port>/`, then `paused` | `start`, then run `forge hephaestus-log` |
+| Decision | `forge status --json` | `decisions` lists `checks-not-set`, unless you stored gates before Hephaestus started | Wait one Pass, then run `forge hephaestus-log` again |
 | Sessions | `forge status` | No repeating `ended failed (assistant-down)` in the log lines | Run `claude` by hand: it shows why a session cannot start, such as a missing login |
 | Setup | `forge jobs` | A `pipeline-agent` job while the setup runs | `forge pipeline resume S1`: it opens the agent again, or starts a new one from the record |
 | Apply | `git log --oneline -1` on the main line | `Add the repository constitution` | Read the reason in `applyRequest` in `<data>/pipeline-setup.json`; clean the main checkout, or commit the text yourself |
@@ -378,12 +378,12 @@ Anything else is in the [Runbook](runbook.md), which also has
 | What install writes | `cli/adoption/constants/AgentInstall.ts` | `AGENT_INSTALL` | `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` |
 | Starting detached | `cli/hephaestus/StartCommand.ts` | `startDetached` | `cli/hephaestus/StartCommand.integration.spec.ts` |
 | The port | `src/services/hephaestus/HephaestusPort.ts` | `HephaestusPort` | `src/services/hephaestus/HephaestusServer.integration.spec.ts` |
-| A new board is paused | `src/lib/tracker-model/constants/HephaestusStates.ts` | `DEFAULT_HEPHAESTUS_STATE` | `cli/hephaestus/UnpauseCommand.spec.ts` |
-| What paused holds | `src/lib/tracker-model/Playbook.ts` | `nextStepsOf` | `src/lib/tracker-model/Playbook.spec.ts` |
+| A new board is paused | `src/domain/tracker-model/constants/HephaestusStates.ts` | `DEFAULT_HEPHAESTUS_STATE` | `cli/hephaestus/UnpauseCommand.spec.ts` |
+| What paused holds | `src/domain/tracker-model/Playbook.ts` | `nextStepsOf` | `src/domain/tracker-model/Playbook.spec.ts` |
 | The pipeline setup | `cli/pipeline/PipelineCommand.ts`, `src/services/control/PipelineSetupControls.ts` | `startSetup`, `applySetup` | `cli/pipeline/PipelineCommand.spec.ts`, `src/services/control/PipelineSetupControls.spec.ts` |
-| The constitution commit | `src/services/hephaestus/Airlocks.ts` | `allocateConstitutionCommit` | `src/services/hephaestus/Airlocks.constitutionCommit.spec.ts` |
+| The constitution commit | `src/services/hephaestus/ConstitutionCommitAirlock.ts` | `allocateConstitutionCommit` | `src/services/hephaestus/Airlocks.constitutionCommit.spec.ts` |
 | The gate verbs | `cli/gates/GatePipelineVerbs.ts` | `addGate`, `setNoGates` | `cli/gates/GatePipelineVerbs.spec.ts` |
-| Readiness | `src/lib/tracker-model/@types/Ticket.ts` | `ReadinessGap` | `src/lib/tracker-model/Board.ready.spec.ts` |
+| Readiness | `src/domain/tracker-model/@types/Ticket.ts` | `ReadinessGap` | `src/domain/tracker-model/Board.ready.spec.ts` |
 | Intake | `cli/intake/IntakeCommand.ts` | `intakeCommand` | `cli/hephaestus/HephaestusWording.intake.spec.ts` |
-| What `intake close` submits | `src/lib/tracker-model/Board.ts`, `src/lib/tracker-model/TicketMoves.ts` | `closeIntake`, `submitDraftTickets` | `src/services/control/JobControls.spec.ts` |
+| What `intake close` submits | `src/domain/tracker-model/IntakeCloses.ts`, `src/domain/tracker-model/TicketMoves.ts` | `closeIntake`, `submitDraftTickets` | `src/services/control/JobControls.spec.ts` |
 | How a decision answer acts | `src/services/control/DecisionControls.ts` | `answerDecision` | `cli/decisions/DecisionCommands.spec.ts` |

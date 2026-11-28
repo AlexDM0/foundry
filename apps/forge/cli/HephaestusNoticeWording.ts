@@ -1,15 +1,48 @@
-/** The notice and restart warning lines `status` prints from the live Hephaestus's state document. */
+/**
+ * The notices as Hephaestus's state document serves them, each problem worded into its served `reason`, and the notice and restart warning
+ * lines `status` prints from that document.
+ */
+import { GitProblemWording }           from '../src/adapters/GitProblemWording.ts';
 import { OperationRefusalWordingUtil } from '../src/adapters/utils/OperationRefusalWordingUtil.ts';
-import type { HephaestusNotice }       from '../src/services/hephaestus/DrivePass.ts';
+import type { HephaestusNotice }       from '../src/services/hephaestus/@types/HephaestusStateDocument.ts';
 import type { RestartFailure }         from '../src/services/hephaestus/Restart.ts';
 import { PRODUCT_NAMES }               from '../src/shared/constants/ProductNames.ts';
+import { AgentProgramWordingUtil }     from '../src/shared/utils/AgentProgramWordingUtil.ts';
+
+type CleanupDeclinedNotice = Extract<HephaestusNotice, { kind: 'cleanup-declined' }>;
+type AgentProgramRefusedNotice = Extract<HephaestusNotice, { kind: 'agent-program-refused' }>;
+
+/** A notice as the state document serves it: a declined cleanup and a refused program carry their worded `reason`. */
+export type ServedHephaestusNotice =
+  | Exclude<HephaestusNotice, CleanupDeclinedNotice | AgentProgramRefusedNotice>
+  | { kind: 'cleanup-declined'; cleanup: CleanupDeclinedNotice['cleanup']; groupBranch: string; reason: string }
+  | { kind: 'agent-program-refused'; jobId: string; cause: AgentProgramRefusedNotice['cause']; reason: string; repair: string | null };
 
 const ABANDONED_PASS_REASON_TEXT: Readonly<Record<Extract<HephaestusNotice, { kind: 'passes-abandoned' }>['reason'], string>> = {
   'tracker-lock-held': 'another process held the board\'s lock past its wait',
   'lock-taken-over':   'another process took the board\'s lock over',
 };
 
-function noticeTextOf(notice: HephaestusNotice): string {
+function servedNoticeOf(notice: HephaestusNotice): ServedHephaestusNotice {
+  switch (notice.kind) {
+    case 'cleanup-declined':
+      return {
+        kind: notice.kind, cleanup: notice.cleanup, groupBranch: notice.groupBranch, reason: GitProblemWording.sentenceOf(notice.problem)
+      };
+    case 'agent-program-refused':
+      return {
+        kind:   notice.kind,
+        jobId:  notice.jobId,
+        cause:  notice.cause,
+        reason: AgentProgramWordingUtil.notLaunchedClauseOf(notice.cause, notice.agentName, notice.programPath),
+        repair: notice.repair === null ? null : AgentProgramWordingUtil.repairClauseOf(notice.repair),
+      };
+    default:
+      return notice;
+  }
+}
+
+function noticeTextOf(notice: ServedHephaestusNotice): string {
   switch (notice.kind) {
     case 'install-version-changed':
       return `the install version changed, so launches are held: run \`${PRODUCT_NAMES.PROGRAM} update\``;
@@ -44,6 +77,7 @@ function restartWarningTextOf(failure: RestartFailure): string {
 }
 
 export const HephaestusNoticeWording = Object.freeze({
+  servedNoticeOf,
   noticeTextOf,
   restartWarningTextOf,
 });

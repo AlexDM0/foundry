@@ -14,9 +14,25 @@ import {
 import { createDarwinProcessIdentity }                                     from './DarwinProcessIdentity.ts';
 import frozenTable                                                         from './FrozenProcessSupervision.json';
 import { createPosixProcessGroups }                                        from './PosixProcessGroups.ts';
+import type { ProcessStopRefusal }                                         from './ProcessIdentity.ts';
 import { REAL_PROCESS_IDENTITY_PRIMITIVES, REAL_PROCESS_SIGNAL_PRIMITIVE } from './ProcessSupervisionFor.ts';
 
 const STAGE_OF_SIGNAL = { SIGTERM: 'ask', SIGKILL: 'force' } as const;
+
+/**
+ * The table froze each refusal's sentence; the port now answers its cause, read here for that sentence. `TalosLogWordingUtil.spec.ts` holds
+ * that Talos words each cause as the sentence again.
+ */
+const REFUSAL_OF_FROZEN_SENTENCE: Readonly<Record<string, ProcessStopRefusal>> = {
+  'the process group 4242 could not be signalled: Error: example EPERM': { cause: 'group-not-signalled', processGroupId: 4242, systemError: 'Error: example EPERM' },
+  'the members of process group 4242 could not be read':                 { cause: 'group-members-unreadable', processGroupId: 4242 },
+};
+
+function currentFormOf(frozenStop: unknown): unknown {
+  const { answer } = frozenStop as { answer: { verdict: string; reason?: string } };
+  if (answer.verdict !== 'refused' || answer.reason === undefined) return frozenStop;
+  return { ...(frozenStop as object), answer: { verdict: 'refused', refusal: REFUSAL_OF_FROZEN_SENTENCE[answer.reason] } };
+}
 
 const supervision = createPosixProcessGroups(createDarwinProcessIdentity(REAL_PROCESS_IDENTITY_PRIMITIVES), REAL_PROCESS_SIGNAL_PRIMITIVE);
 
@@ -37,7 +53,7 @@ describe('the frozen process supervision table', () => {
   for (const scenario of FROZEN_STOP_SCENARIOS) {
     test(`a group stop: ${scenario.name}`, () => {
       const replay = replayProcessWorld(scenario.world, () => supervision.stopTree(scenario.leader, STAGE_OF_SIGNAL[scenario.signal]));
-      expect({ name: scenario.name, ...replay }).toEqual(frozenTable.stops.find(({ name }) => name === scenario.name) as never);
+      expect({ name: scenario.name, ...replay }).toEqual(currentFormOf(frozenTable.stops.find(({ name }) => name === scenario.name)) as never);
     });
   }
 
