@@ -1,5 +1,5 @@
 /**
- * V14: no ref moved during the job past the moves Hephaestus and the board's other jobs make, read from the log and, for a tracker sharing
+ * No ref moved during the job past the moves Hephaestus and the board's other jobs make, read from the log and, for a tracker sharing
  * its repository, the landing journal and the refs it watches.
  */
 import { type RepositoryLandingFiles, RepositoryLandings } from '../../adapters/repository-landings/RepositoryLandings.ts';
@@ -20,7 +20,7 @@ import { CustomsReadings, HOST_PATH_STYLE, PASSED } from './CustomsReadings.ts';
 
 const ALONE_IN_ITS_REPOSITORY: SharedRepositoryRefs = { journaledLandings: [], watchedRefs: null };
 
-/** The job endings that move a target's ref: the landings V14 lets pass. */
+/** The job endings that move a target's ref: the landings the ref-moves check lets pass. */
 const LANDING_OUTCOMES: readonly JobOutcome[] = ['landed', 'integrated', 'refreshed', 'committed'];
 
 /** Each ref's commit and each detached worktree's HEAD, read from the repository the worktree belongs to. */
@@ -108,8 +108,8 @@ function watchedRefsOf(branchNames: BranchNames, mainLine: string, worktreesRoot
 }
 
 /**
- * What a tracker sharing its repository adds to V14: the journal's landings, none for a tracker with no journal or an unreadable one, and
- * the refs it watches.
+ * What a tracker sharing its repository adds to the ref-moves check: the journal's landings, none for a tracker with no journal or an
+ * unreadable one, and the refs it watches.
  */
 function sharedRepositoryRefsOf(landingFiles: RepositoryLandingFiles | null, watchedRefs: WatchedRefs | null): SharedRepositoryRefs {
   const journal = landingFiles === null ? null : RepositoryLandings.readLandingJournal(landingFiles);
@@ -117,9 +117,9 @@ function sharedRepositoryRefsOf(landingFiles: RepositoryLandingFiles | null, wat
 }
 
 /**
- * V14's exemptions from the log: each landing on its job's target at its commit, what a main-line landing deletes, every refresh's and
- * constitution commit's worktree, and the ticket branches of the jobs ending after the verified job's launch. A tracker sharing its
- * repository adds each journaled landing, a sibling's among them, and the refs it watches.
+ * The ref-moves check's exemptions from the log: each landing on its job's target at its commit, what a main-line landing deletes, every
+ * refresh's and constitution commit's worktree, and the ticket branches of the jobs ending after the verified job's launch. A tracker
+ * sharing its repository adds each journaled landing, a sibling's among them, and the refs it watches.
  */
 function refMovesAllowedOf(
   logRecords: readonly LogRecord[],

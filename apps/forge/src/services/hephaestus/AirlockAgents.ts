@@ -105,11 +105,9 @@ export function createAirlockAgents(context: AirlocksContext, slots: AirlockSlot
   }
 
   /**
-   * At its budget or on `cannot-resolve` the merge is refused; on `resolved` the agent waits through the gate of the merged tree, so a red
-   * one resumes the same session and a pass ends it `resolved`. A resolution V10 refuses, or, for a tracker in a project folder, V5, V17 or
-   * V13 on the report of a resolution or of a red gate's fix, refuses the merge. A sound resolution that changed more lines than the merge
-   * train's re-review threshold goes to a conflict re-reviewer first, and one a package's builder took part in goes to that package's
-   * conflict re-reviewer too (E62). A crossing ticket's worker that left the merge open hands it on to the next part's worker (E64).
+   * At its budget, on `cannot-resolve`, or when the merge-resolved check or, in a project folder, the scope checks refuse the resolution,
+   * the merge is refused; on `resolved` the agent waits through the merged tree's gate, so a red one resumes it. A resolution over the
+   * re-review threshold, or one a package's builder took part in, goes to the conflict re-reviewers first; an open merge is handed on.
    */
   async function settleAirlockAgent(job: Readonly<Job>, agent: Readonly<Job>, history: AirlockAgentHistory): Promise<boolean> {
     const reading = context.mergeAgentReadingOf(agent);
@@ -174,7 +172,7 @@ export function createAirlockAgents(context: AirlocksContext, slots: AirlockSlot
   }
 
   /**
-   * A worker that left the merge open hands it on (E64): the files of its own part and of the parts before it resolved, whatever its report
+   * A worker that left the merge open hands it on: the files of its own part and of the parts before it resolved, whatever its report
    * lists, and the rest still unmerged, the next part's worker is launched in the same worktree, the home's last, which commits the one
    * merge. Anything else refuses the merge, so a worker that hands on its own part unresolved is never launched again on it.
    */
@@ -199,8 +197,9 @@ export function createAirlockAgents(context: AirlocksContext, slots: AirlockSlot
   }
 
   /**
-   * For a tracker in a project folder, V5, V17 and V13 on every commit since the branch tip, so a red gate's fix and a re-reviewer's fix are
-   * judged with the resolution; a refusal refuses the merge. A tracker at its repository's root asks nothing here, as it always did.
+   * For a tracker in a project folder, the data folder, scope and agent configuration checks on every commit since the branch tip, so a red
+   * gate's fix and a re-reviewer's fix are judged with the resolution; a refusal refuses the merge. A tracker at its repository's root asks
+   * nothing here, as it always did.
    */
   async function refusedOutsideProjectScope(job: Readonly<Job>, worktree: string, resolvedFiles: readonly string[], refusedWork: string): Promise<boolean> {
     const { projectPrefix } = context;
@@ -226,7 +225,7 @@ export function createAirlockAgents(context: AirlocksContext, slots: AirlockSlot
   /**
    * A re-review whose report holds goes on to the next re-review the resolution needs, or to the gate of the merged tree, its agent waiting
    * through it as a resolver does, so a red gate resumes it; an invalid report, a moved history, a claim that still does not hold or, for a
-   * tracker in a project folder, a fix V5, V17 or V13 refuses, refuses the merge.
+   * tracker in a project folder, a fix the scope checks refuse, refuses the merge.
    */
   async function settleConflictReReview(job: Readonly<Job>, agent: Readonly<Job>, report: unknown): Promise<boolean> {
     const worktree = slotWorktreeOf(job);
@@ -245,7 +244,7 @@ export function createAirlockAgents(context: AirlocksContext, slots: AirlockSlot
     }
     if (await refusedOutsideProjectScope(job, worktree, [], `The conflict re-review of job ${agent.id}`)) return true;
     await context.hold((hold) => {
-      // A home re-review, when needed, came first: only the packages' re-reviews can follow (E62).
+      // A home re-review, when needed, came first: only the packages' re-reviews can follow.
       const nextReReviewer = AirlockAgentHistory.nextConflictReReviewerOf(hold.board, job, false);
       if (nextReReviewer !== null) {
         hold.board.endJob(agent.id, { outcome: 'reviewed', commit: MergeRun.headOf(worktree) ?? '' }, hold.at);

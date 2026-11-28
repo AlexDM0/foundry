@@ -410,7 +410,7 @@ describe('the kinds only User\'s own surfaces send', () => {
   });
 });
 
-/** Design section 8.3's table, written out again so a drift on either side fails. */
+/** The incident moves table, written out again so a drift on either side fails. */
 const DESIGN_TABLE: Readonly<Record<IncidentKind, readonly IncidentMove[]>> = {
   'system-question':           ['incident-answer', 'incident-escalate', 'job-fresh', 'ticket-park', 'incident-note'],
   'malformed-ticket':          ['incident-answer', 'incident-escalate', 'ticket-park', 'incident-note'],

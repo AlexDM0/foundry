@@ -69,8 +69,8 @@ const REPORT_SCHEMA_OF_JOB_KIND: Partial<Record<JobKind, JsonSchema>> = {
 
 /**
  * A conflict re-reviewer reports as a reviewer while it re-reviews; resumed for a red merged tree, it reports as any Airlock agent. A package
- * stage's report also states what the package exposes (E40): the package builder states it, the package reviewer confirms it. An
- * adapt build's report may send the ticket back to a sealed package (E41).
+ * stage's report also states what the package exposes: the package builder states it, the package reviewer confirms it. An
+ * adapt build's report may send the ticket back to a sealed package.
  */
 function reportSchemaOf(board: Board, job: Readonly<Job>): JsonSchema | null {
   if (job.kind === 'merge-agent' && LaunchFacts.airlockAgentPhaseOf(board, job) === 're-reviewing') return REVIEWER_REPORT_SCHEMA;

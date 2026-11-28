@@ -53,7 +53,7 @@ function profileOf(context: JobLaunchContext, job: Readonly<Job>, place: Session
 }
 
 /**
- * A builder or reviewer runs confined by the per-job profile of design section 4.4, in the Airlock's worktree too when it is resumed there;
+ * A builder or reviewer runs confined by the per-job confinement profile, in the Airlock's worktree too when it is resumed there;
  * a product owner and a pipeline agent get their own profile, and every other role the session profile.
  */
 function launchProfileOf(jobLaunchContext: JobLaunchContext, board: Board, job: Readonly<Job>, place: SessionPlace, hatchDirectory: string): WorkerProfile {

@@ -1,6 +1,6 @@
 /**
- * A ticket's spec and plan as a build or review job meets them: the readings its role is given, the versions V18 compares and the text V8
- * and V11 read.
+ * A ticket's spec and plan as a build or review job meets them: the readings its role is given, the document versions Customs compares
+ * and the text its Acceptance and named-path checks read.
  */
 import type { Job }                                        from '../../domain/tracker-model/@types/Job.ts';
 import type { Board }                                      from '../../domain/tracker-model/Board.ts';
@@ -22,14 +22,14 @@ function ticketDocumentReadingsOf(board: Board, job: Readonly<Job>, ticketId: st
   return TicketDocumentReadingUtil.readingsForRoleOf(loadedRecord, board.pipeline(), role, entityKey);
 }
 
-/** Each document's head as `<kind>:<content hash>`, in pipeline order: what V18 compares; empty for a ticket without documents. */
+/** Each document's head as `<kind>:<content hash>`, in pipeline order, as Customs compares them; empty for a ticket without documents. */
 function ticketDocumentVersionsOf(board: Board, ticketId: string): string {
   const loadedRecord = board.ticketDocumentRecordOf(ticketId);
   if (loadedRecord === null) return '';
   return loadedRecord.record.documents.map((document) => `${document.kind}:${document.versions.at(-1)?.contentHash ?? ''}`).join(' ');
 }
 
-/** The text V8 reads the Acceptance from and V11 the named paths: the body, and for a ticket with documents its spec and plan heads. */
+/** The text Customs reads the Acceptance and the named paths from: the body, and for a ticket with documents its spec and plan heads. */
 function ticketTextOfCustoms(board: Board, ticket: Readonly<{ frontmatter: { id: string }; body: string }>): { ticketBody: string; acceptanceText?: string } {
   const loadedRecord = board.ticketDocumentRecordOf(ticket.frontmatter.id);
   if (loadedRecord === null) return { ticketBody: ticket.body };

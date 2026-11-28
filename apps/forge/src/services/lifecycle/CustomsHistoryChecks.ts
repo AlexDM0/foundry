@@ -1,6 +1,6 @@
 /**
- * The checks of the job's history and worktree (V2, V3, V4, V7, V10, V16): HEAD descends from the start, a commit was made where one is
- * owed, the worktree is clean, no commit is attributed, a merge is resolved, and a reader's HEAD stayed where it started.
+ * The checks of the job's history and worktree: HEAD descends from the start, a commit was made where one is owed, the worktree is clean,
+ * no commit is attributed, a merge is resolved, and a reader's HEAD stayed where it started.
  */
 import type { LogRecord }                   from '../../domain/tracker-model/@types/LogRecord.ts';
 import { GitProcess }                       from '../../lib/git/GitProcess.ts';
@@ -14,7 +14,7 @@ import { CustomsReadings, PASSED }          from './CustomsReadings.ts';
 /** Forge's own refusal of a generated commit, whichever agent wrote it. */
 const GENERATED_COMMIT_PATTERN = /Generated with/i;
 
-/** V7's judgement of one commit message: the agent's attribution patterns, and forge's own. */
+/** The attribution check's judgement of one commit message: the agent's attribution patterns, and forge's own. */
 function commitMessageIsAttributed(message: string, agentNaming: Pick<AgentNaming, 'attributionPatterns'>): boolean {
   return [...agentNaming.attributionPatterns, GENERATED_COMMIT_PATTERN].some((pattern) => pattern.test(message));
 }
@@ -26,7 +26,7 @@ function headDescendsFromTheStart(subject: CustomsSubject): CheckVerdict {
 
 /**
  * A builder owes a commit only when it reports `built`; a reviewer and a resolution reviewer never do, nor a package builder that accepts the
- * proposal as it is (E20).
+ * proposal as it is.
  */
 function aCommitSinceTheStart(subject: CustomsSubject): CheckVerdict {
   if (subject.role === 'builder' && CustomsReadings.reportFieldOf(subject.report, 'outcome') !== 'built') return PASSED;

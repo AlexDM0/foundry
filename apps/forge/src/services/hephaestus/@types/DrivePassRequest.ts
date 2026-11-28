@@ -70,9 +70,9 @@ export interface DrivePassRequest {
   checkReasonSentenceOf:         (problem: PipelineCheckProblem) => string;
   /** An unreadable turbo configuration as the stored value of a gate profile's research finding names it. */
   findingSentenceOf:             (problem: TurboConfigurationProblem) => string;
-  /** The ticket a crossing ticket's package change becomes once User turns it into a need (E19, E22). */
+  /** The ticket a crossing ticket's package change becomes once User turns it into a need. */
   packageNeedWordingOf:          (facts: PackageNeedFacts) => PackageNeedWording;
-  /** The ticket of a dependent that a crossing ticket's package change breaks, once User has it fixed in the group (E26). */
+  /** The ticket of a dependent that a crossing ticket's package change breaks, once User has it fixed in the group. */
   dependentFixWordingOf:         (facts: DependentFixFacts) => DependentFixWording;
   launchTextOf:                  (job: Readonly<Job>, facts: JobLaunchFacts) => JobLaunchText;
   /** One numbered chat to the Assistant listing the incidents it delivers, their facts and allowed moves. */

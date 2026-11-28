@@ -97,7 +97,7 @@ function recordWorktreeFailure(context: JobLaunchContext, job: Readonly<Job>, fa
 }
 
 /**
- * Whether the ticket's entity was set after its previous job launched (E15): the branch and worktree hold the work of its old entity, so
+ * Whether the ticket's entity was set after its previous job launched: the branch and worktree hold the work of its old entity, so
  * the build starts afresh. A ticket no job worked on before has no branch to drop.
  */
 function ticketEntityChangedSinceItsBranch(logRecords: readonly LogRecord[], job: Readonly<Job>): boolean {
@@ -122,7 +122,7 @@ function gitStepFailureOf(directory: string, gitArguments: readonly string[]): G
 }
 
 /**
- * A build of a ticket moved to another entity (E15) drops the ticket's worktree and branch before its worktree is made, once per job, so
+ * A build of a ticket moved to another entity drops the ticket's worktree and branch before its worktree is made, once per job, so
  * it builds afresh from its target. Only on a pipeline with entities; a failure is the worktree's failure, which the setup incident takes.
  */
 function startAfreshInTheNewEntity(context: JobLaunchContext, board: Board, job: Readonly<Job>, jobFolder: string): void {

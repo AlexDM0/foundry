@@ -1,5 +1,5 @@
 /**
- * The code-implemented worktree repairs of design section 8.3, run inside the hold that records them so no launch races them. `reinstall`
+ * The code-implemented worktree repairs, run inside the hold that records them so no launch races them. `reinstall`
  * changes nothing on disk: the next launch on the worktree reruns the install line. `recreate` saves the worktree's changes, tracked and
  * untracked, as `recreate-<n>.patch` in the job folder before it removes the worktree, which the next launch creates again from the branch.
  */

@@ -41,7 +41,7 @@ const PACKAGE_REFUSED_DECISION = 'package-refused';
 /** The scope check's refusal of a job of an entity whose branch changed nothing in its own folders. */
 const ONLY_OUTSIDE_THE_ENTITY = 'changed-only-outside-home-and-reach';
 
-/** The scope check's refusals of a branch that changed another entity's files; a `git-failed` V17 stays an ordinary red handoff. */
+/** The scope check's refusals of a branch that changed another entity's files; a `git-failed` scope check stays an ordinary red handoff. */
 const SCOPE_REFUSALS: readonly string[] = ['changed-outside-home-and-reach', ONLY_OUTSIDE_THE_ENTITY, 'sealed-change-altered', 'constitution-outside-ticket-entity'];
 
 /** Customs' view of a job of a crossing ticket, measured from the start of its stage's run; `null` for every other job. */
@@ -183,7 +183,7 @@ function endJobOnItsNeeds(hold: HoldContext, job: Readonly<Job>): void {
 }
 
 /**
- * A package build whose constitution forbids the package change ends `refused` (E22), its branch and commits kept, and opens
+ * A package build whose constitution forbids the package change ends `refused`, its branch and commits kept, and opens
  * `package-refused` with its reason, which holds the ticket until User answers. The reason also waits in its job folder, for the stage 1
  * that takes the change back out once User drops it or turns it into a need. Only a package build's report can say `refused`.
  */
@@ -211,10 +211,9 @@ function returnedPackageOf(sealedPackages: readonly EntityKey[], namedPackage: u
 }
 
 /**
- * An adapt build that needs the package to give more ends `package-return` (E41, E42): its own commits must stay in its homes and `reach`,
- * so it holds no change of the package, and its reason waits in its job folder for the returned package build. The Board lifts the seal,
- * counts the return and moves the ticket to the package build; a second return opens `second-return` and keeps the stage (E45). A report
- * from any other stage, or one that names no sealed package, fails as a report without one.
+ * An adapt build that needs the package to give more ends `package-return`: its own commits stay in its homes and `reach`, so it holds no
+ * package change, and its reason waits in its job folder for the returned package build. The Board lifts the seal and counts the return; a
+ * second return opens `second-return`. A report from any other stage, or one that names no sealed package, fails as a report without one.
  */
 function endJobOnItsPackageReturn(hold: HoldContext, job: Readonly<Job>, subject: CustomsSubject, report: unknown): void {
   const { board, at } = hold.change;
@@ -237,7 +236,7 @@ function endJobOnItsPackageReturn(hold: HoldContext, job: Readonly<Job>, subject
 
 /**
  * A session sent back once to take its change out of another entity still changed nothing in its own: all the work of the ticket belongs
- * to another entity (E15). User moves the ticket to an entity that owns the paths, or abandons it, and the decision holds it.
+ * to another entity. User moves the ticket to an entity that owns the paths, or abandons it, and the decision holds it.
  */
 function openWorkInOtherEntityDecision(hold: HoldContext, job: Readonly<Job>, pathsOutside: readonly string[]): void {
   const { board, at } = hold.change;
@@ -277,10 +276,10 @@ function refMovesAllowedFor(context: JobLaunchContext, board: Board, job: Readon
 /** The Customs checks a resumed session can put right in its own worktree: a dirty worktree, no commit, missing or stale gate claims. */
 const RESUMABLE_CUSTOMS_CHECKS: readonly VerificationCheck[] = ['V3', 'V4', 'V15'];
 
-/** V17, the scope check: a job of an entity is resumed to take a change outside its stage's folders back out (E11). */
+/** The scope check: a job of an entity is resumed to take a change outside its stage's folders back out. */
 const SCOPE_CHECK: VerificationCheck = 'V17';
 
-/** A job without an entity, on a folder tracker too, keeps the checks it always had: there V17 fails the job. */
+/** A job without an entity, on a folder tracker too, keeps the checks it always had: there the scope check fails the job. */
 function resumableCustomsChecksOf(job: Readonly<Pick<Job, 'entity'>>): readonly VerificationCheck[] {
   return job.entity === undefined ? RESUMABLE_CUSTOMS_CHECKS : [...RESUMABLE_CUSTOMS_CHECKS, SCOPE_CHECK];
 }

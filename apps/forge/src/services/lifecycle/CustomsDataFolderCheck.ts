@@ -1,4 +1,4 @@
-/** V5: the branch changed nothing in a data folder, at the root, in an entity home or, for a project tracker, at any depth. */
+/** The branch changed nothing in a data folder, at the root, in an entity home or, for a project tracker, at any depth. */
 import { PRODUCT_NAMES } from '../../shared/constants/ProductNames.ts';
 
 import type { CustomsSubject }                    from './@types/CustomsSubject.ts';

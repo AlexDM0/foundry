@@ -1,5 +1,5 @@
 /**
- * A clean restart of the board's Talos (design section 3.2): the quit frame with reason `restart`. Talos then asks each agent to stop at the
+ * A clean restart of the board's Talos: the quit frame with reason `restart`. Talos then asks each agent to stop at the
  * end of its turn, records it paused and quits; Hephaestus finds the connection closed, starts the right Talos at its next pass, and the
  * paused agents resume by themselves under it.
  */

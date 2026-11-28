@@ -1,4 +1,4 @@
-/** The checks that hold the report's own claims (V1, V8, V9, V12, V15): its schema and head, its Acceptance, its findings and its gates. */
+/** The checks that hold the report's own claims: its schema and head, its Acceptance, its findings and its gates. */
 import {
   ADAPT_BUILDER_REPORT_SCHEMA,
   AIRLOCK_AGENT_REPORT_SCHEMA,
@@ -24,7 +24,7 @@ const REPORT_SCHEMA_OF_ROLE: Readonly<Record<ReportingRole, JsonSchema>> = {
 
 /**
  * A package stage's report carries the statement of what the package exposes: the package builder states it, its reviewer confirms it.
- * An adapt build's report may send the ticket back to a sealed package (E41).
+ * An adapt build's report may send the ticket back to a sealed package.
  */
 function reportSchemaOf(role: ReportingRole, stageName: TicketStageName | null): JsonSchema {
   if (role === 'builder' && stageName === 'package-build') return PACKAGE_BUILDER_REPORT_SCHEMA;
@@ -97,7 +97,7 @@ function ticketIdFiledByRequest(records: readonly LogRecord[], jobId: string, re
   return null;
 }
 
-/** V12 reads the filing record, never the ticket now: the filing's own close, or User, may have moved it since. */
+/** The filed-findings check reads the filing record, never the ticket now: the filing's own close, or User, may have moved it since. */
 function filingIsThisJobsLowFinding(records: readonly LogRecord[], jobId: string, ticketId: string): boolean {
   return records.some((record) => record.kind === 'ticket-filed'
     && ticketNumberOf(record.ticketId) === ticketNumberOf(ticketId)

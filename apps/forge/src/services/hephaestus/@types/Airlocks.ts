@@ -56,11 +56,9 @@ export interface AirlocksContext {
   refDeniesHold:           boolean;
   hold:                    AirlockHoldRunner;
   /**
-   * The gate of the tree with the gates of `phase`, read afresh as the run starts: `merge` for an Airlock's merged tree, the row's own phase
-   * for a stale green. On a pipeline with entities `gatedEntities` names whose gates run: the landing's gate set, or the ticket's entity for
-   * a stale green; absent, every entity's. The run goes on beside the pass, `running` until a later ask finds its outcome, which carries the
-   * stamp of what it read. `ownerJobId` is the merge job whose slot waits on the run, `null` for a stale green's: a run whose owner left the
-   * board stops.
+   * The gate of the tree with the gates of `phase` (`merge` for an Airlock's merged tree, the row's own phase for a stale green), read afresh
+   * as the run starts, and `running` until a later ask finds its outcome. `gatedEntities` names whose gates run, absent every entity's.
+   * `ownerJobId` is the merge job whose slot waits on the run, `null` for a stale green's: a run whose owner left the board stops.
    */
   mergedTreeGateOf:        MergedTreeGateAsk;
   /** The agent's configuration names, which a resolution may not change, and its attribution. */

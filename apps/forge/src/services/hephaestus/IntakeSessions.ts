@@ -1,5 +1,5 @@
 /**
- * Hephaestus's side of a product-owner intake (design section 8.4): the session's confinement (skills on, web fetches and searches
+ * Hephaestus's side of a product-owner intake: the session's confinement (skills on, web fetches and searches
  * only, shell commands with no domain), what its first message is filled from and the pictures it carries, the entity map its brief
  * receives on a forge with entities, and the end of a closed intake.
  */

@@ -24,9 +24,9 @@ export interface MergeUnderVerification {
 }
 
 /**
- * What a job of an entity may change (E2, E11). A path belongs to the deepest home that holds it, so a path that a deeper home of another
+ * What a job of an entity may change. A path belongs to the deepest home that holds it, so a path that a deeper home of another
  * entity holds is that entity's, though one of `homes` holds it too. A `reach` path is writable wherever it lies; the pipeline's check
- * keeps it to paths the root entity owns (E9).
+ * keeps it to paths the root entity owns.
  */
 export interface WritableFolders {
   /** The stage entity's homes, repository folders leading with `/`; `/` among them for the root entity, which owns every path no home holds. */
@@ -37,25 +37,25 @@ export interface WritableFolders {
   otherHomes:     readonly string[];
   /**
    * In stage 1 of an entity with a `whitelist`: the homes of its whitelisted packages, where the builder may write a proposal. A branch
-   * that changed nothing in the entity's own homes and `reach` is still refused apart (E15).
+   * that changed nothing in the entity's own homes and `reach` is still refused apart.
    */
   proposalHomes?: readonly string[];
 }
 
-/** A crossed package's sealed change (E33): the pathspecs the seal covers and the hash its package review stored. */
+/** A crossed package's sealed change: the pathspecs the seal covers and the hash its package review stored. */
 export interface SealedChange {
   /** The package entity's key. */
   entity:    string;
   /**
-   * Git pathspecs from the repository root: the package's homes, each deeper home of another entity excluded (E2), and the `reach` paths
-   * its package stages changed (E3).
+   * Git pathspecs from the repository root: the package's homes, each deeper home of another entity excluded, and the `reach` paths
+   * its package stages changed.
    */
   pathspecs: readonly string[];
   seal:      string;
 }
 
 /**
- * A job of a ticket whose row stores a stage, so the ticket crosses into whitelisted packages (strategy 4.2). The branch holds the earlier
+ * A job of a ticket whose row stores a stage, so the ticket crosses into whitelisted packages. The branch holds the earlier
  * stages' change, so every stage but `build` is judged on its own commits; a later job may not alter a sealed change.
  */
 export interface CrossingStageScope {
@@ -76,7 +76,7 @@ export interface EntityConstitution {
 }
 
 /**
- * Who may change a constitution on a pipeline with entities (E8): only a job of a ticket of the constitution's own entity, and never a job of
+ * Who may change a constitution on a pipeline with entities: only a job of a ticket of the constitution's own entity, and never a job of
  * a package stage, even where the ticket body names the file.
  */
 export interface ConstitutionOwnership {
@@ -93,15 +93,15 @@ export interface ProjectScope {
   projectPrefix:    string;
   /** The pipeline's `reach`: the repository paths besides the project a branch may change, each leading with `/`. */
   reach:            readonly string[];
-  /** On a pipeline with entities: every entity's home, leading with `/`. V5 and V13 protect each of them as they protect the root. */
+  /** On a pipeline with entities: every entity's home, leading with `/`: `dataFolderUntouched` and `agentConfigUntouched` guard it as the root. */
   entityHomes?:     readonly string[];
-  /** A job of an entity: V17 holds its branch to these folders, in place of the project's folder and `reach`. */
+  /** A job of an entity: `changesStayInHomeAndReach` holds its branch to these folders, in place of the project's folder and `reach`. */
   writableFolders?: WritableFolders;
-  /** A job of a ticket of an entity: V17 also refuses its change of a constitution its ticket's entity does not own (E8). */
+  /** A job of a ticket of an entity: `changesStayInHomeAndReach` also refuses its change of a constitution its entity does not own. */
   constitutions?:   ConstitutionOwnership;
 }
 
-/** What the agent's adapter names for Customs: V13 protects its configuration, V7 refuses its attribution. */
+/** What the agent's adapter names: `agentConfigUntouched` protects its configuration, `noAiAttributionInRange` refuses its attribution. */
 export type AgentNaming = Pick<AgentAdapter, 'configurationNames' | 'attributionPatterns'>;
 
 export interface CustomsSubject {
@@ -109,57 +109,57 @@ export interface CustomsSubject {
   worktreePath:              string;
   /** The worktree's HEAD at launch, the branch tip with `MERGE_HEAD` at the target tip for an Airlock agent, the merged commit after it. */
   startCommit:               string;
-  /** V3 measures from it when set: the start of the failed build attempts this one retries, whose commits its branch already holds. */
+  /** `aCommitSinceTheStart` measures from it when set: the start of the failed build attempts this one retries, already on its branch. */
   workStartCommit?:          string;
   /** The report as parsed from the session's structured output, unvalidated. */
   report:                    unknown;
-  /** The ticket's body, and for a ticket with documents its spec and plan beside it: V11 lets through a path it names. */
+  /** The ticket's body, and for a ticket with documents its spec and plan beside it: `checksDefinitionUnchanged` lets through a path it names. */
   ticketBody:                string;
-  /** V8 reads the Acceptance here when set: the approved spec of a ticket with documents; else from `ticketBody`. */
+  /** `everyAcceptanceItemAccountedFor` reads the Acceptance here when set, the approved spec of a ticket with documents; else `ticketBody`. */
   acceptanceText?:           string;
   /**
-   * V18: the ticket's document heads as the job's start recorded them, and as they stand as the job ends; both absent or empty for a
-   * ticket without documents.
+   * `ticketDocumentsUnchanged` compares the ticket's document heads as the job's start recorded them and as they stand as the job ends;
+   * both absent or empty for a ticket without documents.
    */
   documentVersionsAtLaunch?: string;
   ticketDocumentVersions?:   string;
   /** The ticket's content hash as the job's start recorded it; empty for a job with no ticket or a ticket that holds none. */
   contentHashAtLaunch:       string;
-  /** The ticket's content hash as the job ends, empty likewise: V6 compares the two. */
+  /** The ticket's content hash as the job ends, empty likewise: `ticketContentUnchanged` compares the two. */
   ticketContentHash:         string;
-  /** V10's merge, for an Airlock agent. */
+  /** The merge `mergeIsResolved` judges, for an Airlock agent. */
   merge?:                    MergeUnderVerification;
   /**
-   * The gate catalogue, every gate whatever phases run it: V11 reads each one's `definedBy`, V15 the ones an agent runs; absent or empty,
-   * both pass.
+   * The gate catalogue, every gate whatever phases run it: `checksDefinitionUnchanged` reads each one's `definedBy`,
+   * `everyAgentGateClaimedOnHead` the ones an agent runs; absent or empty, both pass.
    */
   gates?:                    readonly Readonly<PipelineGate>[];
   /**
-   * V11 also: the tracked files, as repository paths, each role's resolved instruction list names, the constitution's path among them,
-   * which a branch changes only where its ticket names them (`InstructionFiles.trackedInstructionPathsOf`).
+   * For `checksDefinitionUnchanged`: the tracked files, as repository paths, each role's resolved instruction list names, the
+   * constitution's path among them, which a branch changes only where its ticket names them (`InstructionFiles.trackedInstructionPathsOf`).
    */
   instructionFiles?:         readonly string[];
   /**
-   * V11 also: the line the branch lands on. When set, an instruction file counts as changed only where the branch changed it itself; a
-   * change that reached the branch through a merge of this line, such as a constitution commit, is not the worker's edit.
+   * For `checksDefinitionUnchanged`: the line the branch lands on. When set, an instruction file counts as changed only where the branch
+   * changed it itself; a change that reached the branch through a merge of this line, such as a constitution commit, is not the worker's edit.
    */
   target?:                   string;
-  /** V12: the job being verified, and the log as stored plus this hold's records. */
+  /** For `filedFindingsWereFiledByThisJob`: the job being verified, and the log as stored plus this hold's records. */
   jobId?:                    string;
   logRecords?:               readonly LogRecord[];
-  /** V13 and V14: what was snapshotted at launch; without it V14 refuses, since nothing proves no ref moved. */
+  /** The launch snapshot `agentConfigUntouched` and `onlyOwnRefsMoved` read; without it the latter refuses, since nothing proves no ref moved. */
   launchSnapshot?:           LaunchSnapshot;
   refMovesAllowed?:          RefMovesAllowed;
   /** How a path compares with git's spelling, from the `DataFolders` port; the host's path module without case folding when absent. */
   pathStyle?:                GitPathStyle;
   /**
-   * V5, V11, V13 and V17; absent for a tracker at its repository's root whose pipeline has no entities. `worktreePath` is the worktree's
-   * root either way.
+   * For `dataFolderUntouched`, `checksDefinitionUnchanged`, `agentConfigUntouched` and `changesStayInHomeAndReach`; absent for a tracker
+   * at its repository's root whose pipeline has no entities. `worktreePath` is the worktree's root either way.
    */
   projectScope?:             ProjectScope;
   /** A job of a ticket that crosses into whitelisted packages, once its row stores a stage; absent for every other job. */
   crossingStage?:            CrossingStageScope;
-  /** The agent's configuration, which V13 protects, and its attribution, which V7 refuses beside forge's own. */
+  /** The agent's configuration, which `agentConfigUntouched` protects, and attribution, which `noAiAttributionInRange` refuses beside forge's. */
   agentNaming:               AgentNaming;
 }
 

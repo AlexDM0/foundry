@@ -1,5 +1,5 @@
 /**
- * The incident kinds of the control contract and the check every move naming an incident passes (design section 8.3): the incident must
+ * The incident kinds of the control contract and the check every move naming an incident passes: the incident must
  * be open and of a kind whose row in the Bouncer's table allows the move, and a job or park move targets its own job or ticket. The move
  * then marks it handled in the same hold. User may run each move too, so the check holds whoever names the incident.
  */

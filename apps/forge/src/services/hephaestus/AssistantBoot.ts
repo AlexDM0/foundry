@@ -1,5 +1,5 @@
 /**
- * What a fresh Assistant (Hephaestus's `assistant` job, design section 8.3) boots with: the board it starts from, since it is booted clean
+ * What a fresh Assistant (Hephaestus's `assistant` job) boots with: the board it starts from, since it is booted clean
  * and the board is its memory. Its first message carries every open incident, which is its first delivery turn.
  */
 

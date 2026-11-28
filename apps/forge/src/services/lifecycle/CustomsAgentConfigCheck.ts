@@ -1,5 +1,5 @@
 /**
- * V13: neither the branch nor the worktree touched the agent's configuration or the hooks folder; also run before a launch on a branch,
+ * Neither the branch nor the worktree touched the agent's configuration or the hooks folder; also run before a launch on a branch,
  * and the hooks folder's digest a launch snapshot keeps.
  */
 import { createHash } from 'node:crypto';
@@ -165,8 +165,8 @@ function agentConfigUntouched(subject: CustomsSubject): CheckVerdict {
 }
 
 /**
- * V13 before a launch on the branch, resumes included: the branch's own commits past its target, and the worktree as it stands. On a
- * pipeline with entities, `entityHomes` names every entity home.
+ * The agent-configuration check before a launch on the branch, resumes included: the branch's own commits past its target, and the worktree
+ * as it stands. On a pipeline with entities, `entityHomes` names every entity home.
  */
 function agentConfigTouchedBeforeLaunch(
   worktreePath: string,

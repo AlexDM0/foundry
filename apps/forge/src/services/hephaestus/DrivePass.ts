@@ -1,8 +1,6 @@
 /**
- * Hephaestus's one serial pass, design section 2.5: wake-ups coalesce into one queue, and each pass observes outside the lock (child
- * liveness under Talos, events past each job's stored cursor, then Hatch folders, target tips and ended children), applies relayed commands,
- * then the children's events with their cursors, then the Playbook in one transaction of the board's store, and runs its effects after the
- * Hephaestus lock check.
+ * Hephaestus's one serial pass: wake-ups coalesce into one queue; each pass observes outside the lock, then applies relayed commands, the
+ * children's events and the Playbook in one transaction of the board's store, and runs its effects after the Hephaestus lock check.
  */
 import { mkdirSync }               from 'node:fs';
 import { basename, dirname, join } from 'node:path';
@@ -451,7 +449,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     }
   }
 
-  /** A clock exception (design section 7.6): the vendor names its reset as a time, so the pass that resumes the limited jobs waits for it. */
+  /** A clock exception: the vendor names its reset as a time, so the pass that resumes the limited jobs waits for it. */
   function scheduleThePassAtTheReset(usageResetsAt: string | null): void {
     if (resetTimer !== null) clearTimeout(resetTimer);
     resetTimer = null;

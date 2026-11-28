@@ -51,7 +51,7 @@ function branchChangedPathsOf(hold: HoldContext, job: Readonly<Job>, start: Read
 }
 
 /**
- * The branch changed by stage 1, sorted by owner, among the packages the ticket may cross into (E19, E22); `null` when git cannot tell.
+ * The branch changed by stage 1, sorted by owner, among the packages the ticket may cross into; `null` when git cannot tell.
  */
 function crossedPackagesAfterStageOneOf(hold: HoldContext, job: Readonly<Job>, homeEntity: EntityKey, start: Readonly<JobStart> | null): EntityKey[] | null {
   const changedPaths = branchChangedPathsOf(hold, job, start);
@@ -61,10 +61,9 @@ function crossedPackagesAfterStageOneOf(hold: HoldContext, job: Readonly<Job>, h
 }
 
 /**
- * A verified, gated build of an entity settles by its stage (strategy 4.2). After stage 1, the paths the branch changed past its target are
- * sorted by owner: a whitelisted package among them starts its package build, the ticket staying in progress. A package build hands over
- * to its package review with the statement of what the package exposes; `adapt` hands over to the home review as any build hands over to
- * review. Returns whether the build was settled here; a build that stayed in its entity settles as it always has.
+ * A verified, gated build of an entity settles by its stage. After stage 1, a whitelisted package among the changed paths starts its package
+ * build, the ticket staying in progress. A package build hands over to its package review with the statement of what the package exposes;
+ * `adapt` hands over to the home review. Returns whether the build was settled here.
  */
 function settledAsAStage(hold: HoldContext, job: Readonly<Job>, report: unknown, headCommit: string, start: Readonly<JobStart> | null): boolean {
   const { board, at } = hold.change;
@@ -106,7 +105,7 @@ function settledAsAStage(hold: HoldContext, job: Readonly<Job>, report: unknown,
 }
 
 /**
- * A stage 1 that a dropped package change sent back to `build` (E22), whose branch now stays in its entity, settles as any build: its row
+ * A stage 1 that a dropped package change sent back to `build`, whose branch now stays in its entity, settles as any build: its row
  * no longer stores a stage, so its review is the home's own. Returns false, so the build settles as it always has.
  */
 function settledOutsideAnyCrossing(hold: HoldContext, ticketId: string): false {
@@ -115,7 +114,7 @@ function settledOutsideAnyCrossing(hold: HoldContext, ticketId: string): false {
 }
 
 /**
- * The stage after the last package review: the home review when `adapt` is skipped (E40), with the ticket moved to review as a build moves
+ * The stage after the last package review: the home review when `adapt` is skipped, with the ticket moved to review as a build moves
  * it; `adapt` otherwise.
  */
 function moveOnFromThePackageStages(hold: HoldContext, job: Readonly<Job>, homeEntity: EntityKey, headCommit: string): readonly LogRecord[] {
@@ -133,7 +132,7 @@ function moveOnFromThePackageStages(hold: HoldContext, job: Readonly<Job>, homeE
 
 /**
  * The `reach` paths the package stages of the reviewed package changed since the first job of their run, with those an earlier review of
- * the package sealed, so a lockfile change joins the seal (E3). `null` when git cannot tell.
+ * the package sealed, so a lockfile change joins the seal. `null` when git cannot tell.
  */
 function sealedReachPathsOf(hold: HoldContext, job: Readonly<Job>, packageKey: EntityKey, target: string, readings: Readonly<SettlementReadings>): string[] | null {
   const { packageRunStart } = readings;
@@ -145,10 +144,9 @@ function sealedReachPathsOf(hold: HoldContext, job: Readonly<Job>, packageKey: E
 }
 
 /**
- * A gated package review (stage 3) settles its rounds and record as any review (E30, E31) but moves neither the ticket's status nor its
- * merge queue: one that does not hold sends the package build back with its Review, kept in its job folder (E34). One that holds seals the
- * ticket's own change to the package and keeps the reviewer's confirmation of what the package exposes and its text; then the next crossed
- * package's build runs, or the stage after the package stages. Its bar is closed here, since no status move closes it.
+ * A gated package review settles as any review but moves neither the ticket's status nor its merge queue: one that does not hold sends the
+ * package build back with its Review, kept in its job folder; one that holds seals the change and keeps the reviewer's confirmation of what
+ * the package exposes, then the next crossed package or stage runs. Its bar is closed here, since no status move closes it.
  */
 function packageReviewSettlementOf(hold: HoldContext, job: Readonly<Job>, report: unknown, readings: Readonly<SettlementReadings>): PackageReviewSettlement {
   const { board, at } = hold.change;

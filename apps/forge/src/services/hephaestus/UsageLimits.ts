@@ -1,5 +1,5 @@
 /**
- * Usage limits, design section 7.5: a top-level refusal in a job's stream interrupts the job (cause `usage-limit`, resumed by id after the
+ * Usage limits: a top-level refusal in a job's stream interrupts the job (cause `usage-limit`, resumed by id after the
  * reset) and is written to the machine-wide marker, which every Hephaestus reads back as the `usageResetsAt` its Playbook holds by. Every
  * window a stream reports is written to the machine-wide usage windows, which every Hephaestus reads back as its `usage.windows`.
  */
@@ -20,7 +20,7 @@ export interface UsageLimitHit {
 /** The window a 429 under API billing is marked with: the API names neither a window nor a reset. */
 const API_RATE_LIMIT_WINDOW = 'api-rate-limit';
 
-/** A clock exception (design section 7.6): the backoff is a time, since the API names no reset for the pass that resumes the job. */
+/** A clock exception: the backoff is a time, since the API names no reset for the pass that resumes the job. */
 function apiRateLimitResetsAtOf(at: string): string {
   return new Date(Date.parse(at) + (API_RATE_LIMIT_BACKOFF_SECONDS * MILLISECONDS_PER_SECOND)).toISOString();
 }

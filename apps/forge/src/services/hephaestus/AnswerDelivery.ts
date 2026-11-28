@@ -1,5 +1,5 @@
 /**
- * Delivers each answered question to its session after the answering hold, design section 8.2. A marker per request, written only after
+ * Delivers each answered question to its session after the answering hold. A marker per request, written only after
  * Talos took the line, keeps a later pass from delivering it again; a death before the marker makes delivery at least once, and how an
  * agent takes a repeated answer line was never probed.
  */

@@ -105,12 +105,9 @@ function returnRedTargetGate(hold: HoldContext, job: Readonly<Job>, gate: Extrac
 }
 
 /**
- * A crossing ticket's review sent back by its catch-up goes to the entity that owns the cause (E66), not to whichever builder ran last; a
- * review's catch-up runs only the gates of the review's own entity, so a red gate has no files and is that entity's to fix. A package review
- * goes back to its package's build when only the package's files conflict. The home review goes back to `adapt` when no sealed package's
- * file conflicts, and to the package's build when only that package's files conflict, its seal lifted and the return counted; a second
- * return opens `second-return`, naming the package, and keeps the stage (E45). A conflict that no one stage may resolve, such as one in a
- * package's and in the home's files, or one in home files for a package review, parks the ticket for User. Nothing for any other review.
+ * A crossing ticket's review sent back by its catch-up goes to the entity that owns the cause, not to whichever builder ran last. A conflict
+ * goes to the one stage whose files it touches, a package's build (its seal lifted, the return counted; a second return opens
+ * `second-return`) or the home's `adapt`; a conflict no one stage may resolve parks the ticket for User.
  */
 function routeCatchUpToItsOwner(hold: HoldContext, job: Readonly<Job>, conflictedFiles: readonly string[]): void {
   const { board, at } = hold.change;

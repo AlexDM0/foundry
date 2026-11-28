@@ -1,5 +1,5 @@
 /**
- * `worktree repair` and `gate retry` (design section 8.3). A repair runs its git step in the hold, so no launch races it; a retry only
+ * `worktree repair` and `gate retry`. A repair runs its git step in the hold, so no launch races it; a retry only
  * settles the incident, after which the Airlock gates the merged tree again or the policy launches the ticket's next attempt.
  */
 import { join }                          from 'node:path';

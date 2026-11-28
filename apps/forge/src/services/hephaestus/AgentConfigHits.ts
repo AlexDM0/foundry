@@ -1,6 +1,6 @@
 /**
- * V13 before each launch: the tickets whose branch or worktree changes agent configuration, each hit opening its decision once and holding
- * the ticket until User answers.
+ * The agent-configuration check before each launch: the tickets whose branch or worktree changes agent configuration, each hit opening
+ * its decision once and holding the ticket until User answers.
  */
 import { existsSync }              from 'node:fs';
 import type { Job }                from '../../domain/tracker-model/@types/Job.ts';
@@ -44,9 +44,9 @@ function agentConfigHitIsSettled(board: Board, ticketId: string): boolean {
 }
 
 /**
- * V13 before every launch on a branch, resumes included: the tickets of live worktree jobs whose branch past its target, or whose worktree,
- * changes agent configuration, and those with the decision still open. On a pipeline with entities, every entity home is protected too.
- * Read outside the lock.
+ * The agent-configuration check before every launch on a branch, resumes included: the tickets of live worktree jobs whose branch past
+ * its target, or whose worktree, changes agent configuration, and those with the decision still open. On a pipeline with entities, every
+ * entity home is protected too. Read outside the lock.
  */
 function ticketIdsTouchingAgentConfigOf(context: JobLaunchContext, jobs: readonly Readonly<Job>[], pipeline: Readonly<Pipeline> | null = null): string[] {
   const { projectPrefix } = WorktreeJobs.projectLocationOfContext(context);

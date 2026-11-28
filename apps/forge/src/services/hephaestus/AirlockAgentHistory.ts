@@ -32,7 +32,7 @@ function entityAndStageOf(launch: EntityAndStage): EntityAndStage {
 
 /**
  * The ticket's last worker from history, whatever the pipeline says now; with none ended, its reviewer, or its builder with no review
- * step. On a pipeline with entities it runs the entity and stage its launch logged, so its own session is resumed: the home's worker (E63).
+ * step. On a pipeline with entities it runs the entity and stage its launch logged, so its own session is resumed: the home's worker.
  */
 function homeWorkerScopeOf(board: Board, ticketId: string): AirlockAgentScope {
   const logRecords = board.logRecordsSoFar();
@@ -43,7 +43,7 @@ function homeWorkerScopeOf(board: Board, ticketId: string): AirlockAgentScope {
   return launch?.kind === 'job-launched' ? { role, ...entityAndStageOf(launch.fields) } : { role };
 }
 
-/** A sealed package's part goes to that package's builder (E62); the home's part to the home's worker. */
+/** A sealed package's part goes to that package's builder; the home's part to the home's worker. */
 function conflictPartScopeOf(part: Readonly<ConflictPart>, homeScope: AirlockAgentScope): AirlockAgentScope {
   return part.packageEntity === null ? homeScope : { role: 'builder', entity: part.packageEntity, stage: PACKAGE_BUILD_STAGE_NUMBER };
 }
@@ -62,7 +62,7 @@ function airlockAgentLaunchesOf(board: Board, job: Readonly<Job>): ({ role: JobR
 
 /**
  * The conflict re-reviewer a resolution still needs, in order: the home's, when its resolution is too large to merge unread; then
- * one of each package whose builder resolved a part, whatever its size (E62). `null` once each one needed was launched.
+ * one of each package whose builder resolved a part, whatever its size. `null` once each one needed was launched.
  */
 function nextConflictReReviewerOf(board: Board, job: Readonly<Job>, homeNeedsAReReview: boolean): AirlockAgentScope | null {
   const launches = airlockAgentLaunchesOf(board, job);
@@ -78,7 +78,7 @@ function nextConflictReReviewerOf(board: Board, job: Readonly<Job>, homeNeedsARe
 }
 
 /**
- * A package's builder in the Airlock resumes the newest session of that package's build (E62), as its launch states it; with none to
+ * A package's builder in the Airlock resumes the newest session of that package's build, as its launch states it; with none to
  * resume it starts a fresh session of its own, the same test the launch's budget statement makes.
  */
 function startsAFreshSession(

@@ -1,5 +1,5 @@
 /**
- * What a verified and gated review pass leads to, computed by code (design section 5.3): its rework, its `## Review <round>`, its record,
+ * What a verified and gated review pass leads to, computed by code: its rework, its `## Review <round>`, its record,
  * the round verdict, and the move it makes: a failed pass back to a fixer, a fresh reviewer, a waiver for User, or the merge queue, which
  * with merge approval on waits for the merge of the target into the ticket's worktree first.
  */
@@ -157,7 +157,7 @@ function appendSection(body: string, section: string): string {
 
 /**
  * The ticket's earlier rounds as the round verdict reads them: every review recorded on the board for it, and for a ticket that crosses
- * into a package only those of the job's own stage, whose bar carries it (strategy 4.2).
+ * into a package only those of the job's own stage, whose bar carries it.
  */
 function recordedRoundsOf(board: Board, job: Readonly<Job>): { round: number; findings: { class: string; file: string }[] }[] {
   const ticketId = ticketIdOf(job);

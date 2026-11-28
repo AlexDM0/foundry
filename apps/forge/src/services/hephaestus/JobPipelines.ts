@@ -44,7 +44,7 @@ function writableFoldersOf(entities: PipelineEntities, entityKey: EntityKey, pro
 /**
  * Absent for a tracker at its repository's root whose pipeline has no entities, so its subject, and every git call Customs makes for it,
  * stays as it always was. On a pipeline with entities it names every entity home, for a job of an entity what the job may change, and for a
- * job of a ticket of an entity which constitutions the job may change (E8).
+ * job of a ticket of an entity which constitutions the job may change.
  */
 function projectScopeOf(
   projectPrefix: string, pipeline: Readonly<Pipeline> | null, job?: Readonly<Pick<Job, 'entity' | 'stage'>>, ticketEntity?: string, refusedPackages: readonly EntityKey[] = []

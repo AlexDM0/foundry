@@ -1,5 +1,5 @@
 /**
- * Which relayed control commands each job role may run, as a pure table over the job record and the command (design section 4.4). The
+ * Which relayed control commands each job role may run, as a pure table over the job record and the command. The
  * role and the job id come from the Hatch folder's job record, never from the request; an admitted filing comes back stamped with both.
  */
 import { TicketAcceptanceUtil }                                      from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';

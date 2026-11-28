@@ -1,4 +1,4 @@
-/** V11: the branch changed no gate's definition file and no instruction file its ticket does not name. */
+/** The branch changed no gate's definition file and no instruction file its ticket does not name. */
 import { ProjectPathsUtil } from '../../shared/utils/ProjectPathsUtil.ts';
 
 import type { CustomsSubject }                             from './@types/CustomsSubject.ts';

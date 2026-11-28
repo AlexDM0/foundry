@@ -1,6 +1,6 @@
 /**
  * Allocation of a free target's slot: a waiting constitution commit first on the main line, then a due group refresh, then the first
- * ticket in design section 6.2's order, each claimed in a hold that checks the tips did not move.
+ * ticket in the Airlock's order, each claimed in a hold that checks the tips did not move.
  */
 import type { MergeCandidate }                                             from '../../domain/tracker-model/AirlockClaims.ts';
 import { MERGE_PRIORITY_RANK }                                             from '../../domain/tracker-model/AirlockClaims.ts';
@@ -33,7 +33,7 @@ export function createAirlockAllocation(
   }
 
   /**
-   * Design section 6.2's order: priority, clean first, fewest conflicts caused among the clean, readiness, ticket id. With merge approval
+   * The Airlock's order: priority, clean first, fewest conflicts caused among the clean, readiness, ticket id. With merge approval
    * on, User's press order alone: readiness is the accept's place in the log, then ticket id.
    */
   function orderedPredictions(target: string, candidates: readonly MergeCandidate[], followsPressOrder: boolean): ReturnType<typeof predictionOf>[] {

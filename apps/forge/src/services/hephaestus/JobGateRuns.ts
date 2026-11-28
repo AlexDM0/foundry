@@ -51,7 +51,7 @@ function gateRunManifestFileOf(place: GateRunPlace): string {
 }
 
 /**
- * The entities a package build's gate run checks after the package's own (E25, E26): the package's dependents but its home entity, whose
+ * The entities a package build's gate run checks after the package's own: the package's dependents but its home entity, whose
  * app the adapt stage brings in line, and but those whose fix tickets are in the ticket's group, which the group's release gates. None for
  * every other job.
  */
@@ -124,10 +124,9 @@ function gateRunManifestOf(
 }
 
 /**
- * Each prepare step, then each gate of the manifest in its run order, each in a child folder of its own named by its position in the
- * manifest; a manifest with no gates has no step, so it passes at once. A session resumed after a red handoff gates again in fresh folders,
- * suffixed with its child instance, since a child folder runs once. A step is of the job's entity on a pipeline with entities, unless
- * the manifest names a dependent's.
+ * Each prepare step, then each gate of the manifest in its run order, each in a child folder named by its position; a manifest with no gates
+ * passes at once. A session resumed after a red handoff gates again in folders suffixed with its child instance, since a child folder runs
+ * once. A step is of the job's entity on a pipeline with entities, unless the manifest names a dependent's.
  */
 function gateStepsOf(manifest: Readonly<GateRunManifest>, place: GateRunPlace, job: Readonly<Pick<Job, 'entity'>>): GateStep[] {
   if (manifest.gates.length === 0) return [];

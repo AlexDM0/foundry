@@ -1,5 +1,5 @@
 /**
- * The per-job confinement of design section 4.4, as the launcher port's neutral `WorkerProfile`: what a builder's sandbox and permission
+ * The per-job confinement, as the launcher port's neutral `WorkerProfile`: what a builder's sandbox and permission
  * rules deny and allow, from the paths and refs as they stand at launch. The adapter renders it; the line sandbox reuses its denies.
  */
 import { existsSync, mkdirSync, readdirSync } from 'node:fs';
@@ -447,7 +447,7 @@ function profileOf(
   };
 }
 
-/** The `hook bash-domains` guard of design section 4.4, for a worker whose ticket has a `network` line; none without one. */
+/** The `hook bash-domains` guard, for a worker whose ticket has a `network` line; none without one. */
 function networkDomainGuardOf(networkDomains: readonly string[], guardCommand: readonly string[] | null): NetworkDomainGuard | null {
   if (networkDomains.length === 0) return null;
   const [runtimePath, ...leadingArguments] = guardCommand ?? [];

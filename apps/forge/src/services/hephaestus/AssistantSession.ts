@@ -1,5 +1,5 @@
 /**
- * The Assistant's turns, design section 8.3: every chat to it is numbered, the first message being chat 1, and the n-th `result` of its
+ * The Assistant's turns: every chat to it is numbered, the first message being chat 1, and the n-th `result` of its
  * session closes chat n's turn. Incidents and User's messages go out only when it is idle; one that went down is ended, never resumed.
  */
 import { existsSync } from 'node:fs';

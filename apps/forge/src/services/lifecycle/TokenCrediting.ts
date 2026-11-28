@@ -1,5 +1,5 @@
 /**
- * What a session's tokens credit, design section 4.5, as pure functions: turns are keyed by message id, so the live stream and a transcript
+ * What a session's tokens credit, as pure functions: turns are keyed by message id, so the live stream and a transcript
  * replay of the same session count each API call once, and a subagent's turns are grouped under the tool call that started it.
  */
 import type { AgentUsage, LogRecord } from '../../domain/tracker-model/@types/LogRecord.ts';

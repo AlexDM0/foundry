@@ -1,6 +1,6 @@
 /**
- * Verification by code of what a session left (design section 5.1, V1 to V17): nothing it says is taken as true, so each check reads git,
- * the ticket body and the report itself, and answers a wordless verdict. A role runs only the checks its column of the table names.
+ * Verification by code of what a session left: nothing it says is taken as true, so each check reads git, the ticket
+ * body and the report itself, and answers a wordless verdict. A role runs only the checks its column of the table names.
  */
 import type { CustomsSubject, VerifiedRole }                            from './@types/CustomsSubject.ts';
 import type { CustomsVerdict, VerificationCheck, VerificationCheckRun } from './@types/CustomsVerdict.ts';

@@ -59,7 +59,7 @@ function mergedTreeWasLastPassed(
 /** The parked hold a merged tree leaves when it is still red after the agent's resumes. */
 const MERGE_GATE_RED_PARK_CAUSE = 'merge-gate-red';
 
-/** How a crossing ticket's merge job ends when its red merged tree sends the ticket back to the package's or the home's stage (E65). */
+/** How a crossing ticket's merge job ends when its red merged tree sends the ticket back to the package's or the home's stage. */
 const RED_GATE_RETURN_CAUSES = { package: 'package-gate-red', home: 'home-gate-red' } as const satisfies Readonly<Record<RedGateOwner['owner'], string>>;
 
 /** What a merged tree's gate leaves the Airlock to do outside its hold. */
@@ -70,7 +70,7 @@ type RedMergedTreeSettlement =
 
 /**
  * The landing's gate set: the entities the fast-forward to the merged tree changes and their consumers. On a group's branch only the
- * entities it changes: their consumers run at the group's release, which lands all of it on the main line (E68). When git cannot name the
+ * entities it changes: their consumers run at the group's release, which lands all of it on the main line. When git cannot name the
  * paths, or a group's landing changes no entity's paths, every entity's gates run.
  */
 function landingGatedEntitiesOf(entities: PipelineEntities, worktree: string, targetTip: string, landsOnTheMainLine: boolean): readonly EntityKey[] {
@@ -164,7 +164,7 @@ export function createMergedTreeGating(
     return true;
   }
 
-  /** A crossing ticket's red merged tree goes to the entity that owns the red gate (E65): the merge aborts, and its ticket is returned. */
+  /** A crossing ticket's red merged tree goes to the entity that owns the red gate: the merge aborts, and its ticket is returned. */
   async function returnRedMergedTreeToItsOwner(
     job: Readonly<Job>, route: Readonly<{ owner: RedGateOwner; homeEntity: EntityKey }>, red: StaleGreenRed
   ): Promise<void> {

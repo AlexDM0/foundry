@@ -1,10 +1,7 @@
 /**
- * The Airlocks, one per target, run by Hephaestus after each pass (design section 6): allocation, the one merge-in against the recorded
- * tip, the ticket's last worker resumed for a conflict or a red merged tree, the conditional conflict re-review of a large resolution, the
- * gate on the merged tree and the compare-and-swap landing. The main line lands in the main checkout; a group's tickets and its refreshes
- * land in the group's own worktree, and its release ticket lands the bundle on the main line. Every phase is written on the merge job's
- * slot in its own hold, and every outcome ends the job or opens what User or the Assistant answers, so nothing loops. A ticket that crossed
- * into packages has its conflict and its red merged tree routed to the entity that owns them (strategy 5.7).
+ * The Airlocks, one per target, run by Hephaestus after each pass, from the merge-in against the recorded tip to the
+ * compare-and-swap landing: the main line lands in the main checkout, a group's tickets in the group's own worktree. Every phase is written
+ * on the merge job's slot in its own hold, and every outcome ends the job or opens what User or the Assistant answers, so nothing loops.
  */
 import { existsSync } from 'node:fs';
 

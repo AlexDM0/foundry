@@ -1,5 +1,5 @@
 /**
- * The tickets Hephaestus files for the needs a build job of an entity declared (strategy section 4.3), in the hold that ends the job
+ * The tickets Hephaestus files for the needs a build job of an entity declared, in the hold that ends the job
  * `needs-declared`, and what the stage that declared them is told when it runs again once they are settled.
  */
 import { TicketAcceptanceUtil }                from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';

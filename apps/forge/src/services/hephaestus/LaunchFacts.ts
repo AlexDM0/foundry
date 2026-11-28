@@ -86,8 +86,8 @@ function airlockFactsOf(
 
 /**
  * What a builder whose session is carried on is told of the review that sent it back: the ticket's newest Review, or for a package build the
- * Review its package review kept in its job folder (E34). `null` for a fresh session, and for `adapt` taking up the home builder's session
- * after the package stages, which gets the adapt message (E43); after a home review that did not hold, `adapt` gets its findings (E51).
+ * Review its package review kept in its job folder. `null` for a fresh session, and for `adapt` taking up the home builder's session
+ * after the package stages, which gets the adapt message; after a home review that did not hold, `adapt` gets its findings.
  */
 function reviewFindingsOf(
   board: Board, trackerDirectory: string, job: Readonly<Job>, crossingStage: CrossingStageFacts | null

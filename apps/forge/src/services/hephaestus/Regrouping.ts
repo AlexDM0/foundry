@@ -1,5 +1,5 @@
 /**
- * What a starting Hephaestus does before its first pass, design sections 3.6 and 7.3: a lost child of a job, its Talos gone, is settled (its
+ * What a starting Hephaestus does before its first pass: a lost child of a job, its Talos gone, is settled (its
  * surviving tree stopped, identity-checked, so no orphan outlives it), a job whose current instance was never launched is named for its
  * launch under the same instance, and a worktree folder no job or branch owns is named for User.
  */

@@ -51,8 +51,8 @@ function packageBuildStartOf(board: Board, job: Readonly<Job>): PackageBuildStar
 }
 
 /**
- * Written as the session's child is first launched: the commit verification measures from, the content hash V6 compares with, and the refs,
- * worktree HEADs and hooks folder V13 and V14 compare with.
+ * Written as the session's child is first launched: the commit verification measures from, and the content hash, refs, worktree HEADs
+ * and hooks folder Customs compares the turn's end with.
  */
 function recordJobStart(context: JobLaunchContext, board: Board, job: Readonly<Job>): void {
   const startPath = join(WorktreeJobs.jobFolderOf(context.workspace, job), JOB_FILES.start);

@@ -1,5 +1,5 @@
 /**
- * V17: the branch stays in the project's folder and `reach`, or a job of an entity in its writable folders; a constitution changes only in
+ * The branch stays in the project's folder and `reach`, or a job of an entity in its writable folders; a constitution changes only in
  * its own entity's job; and a crossed package's sealed change stays as its seal holds it.
  */
 import { createHash } from 'node:crypto';
@@ -30,8 +30,8 @@ const SEAL_DIFFERENCE_ARGUMENTS: readonly string[] = ['diff', '--no-color', '--n
 const LINES_A_TARGET_MERGE_MOVES: readonly string[] = ['@@', 'index '];
 
 /**
- * A package's seal (strategy 4.2): a hash of the ticket's own change on `pathspecs`, the difference between the newest commit of `target`
- * that the branch holds and HEAD. A merge of the main line never breaks it (E35). `null` when git cannot tell.
+ * A package's seal: a hash of the ticket's own change on `pathspecs`, the difference between the newest commit of `target`
+ * that the branch holds and HEAD. A merge of the main line never breaks it. `null` when git cannot tell.
  */
 function sealOf(worktreePath: string, target: string, pathspecs: readonly string[]): string | null {
   const base = CustomsReadings.worktreeGitRun(worktreePath, ['merge-base', target, 'HEAD']);
@@ -81,7 +81,7 @@ function pathsOfOwnCommitsPast(subject: RangeSubject, target: string): string[] 
 
 /**
  * The paths in `reach` that the commits from `startCommit` to HEAD changed past `target`: the `reach` paths a package's stages changed, which
- * join its seal (E3). `null` when git cannot tell.
+ * join its seal. `null` when git cannot tell.
  */
 function reachPathsChangedSinceOf(worktreePath: string, startCommit: string, target: string, reach: readonly string[]): string[] | null {
   const paths = pathsOfOwnCommitsPast({ worktreePath, startCommit }, target);
@@ -102,7 +102,7 @@ function pathsTheScopeJudges(subject: CustomsSubject): string[] | null {
 
 /**
  * In stage 1 a path in a whitelisted package's home is a proposal; the paths outside both, else the branch's paths outside the entity's own
- * homes and `reach` when it changed nothing there (E15), else none.
+ * homes and `reach` when it changed nothing there, else none.
  */
 function pathsOutsideTheStageOf(paths: readonly string[], writableFolders: WritableFolders): { outside: string[]; onlyOutside: boolean } {
   const outsideOwnFolders = pathsOutsideWritableFoldersOf(paths, writableFolders);
@@ -114,8 +114,8 @@ function pathsOutsideTheStageOf(paths: readonly string[], writableFolders: Writa
 }
 
 /**
- * The constitutions among `gitPaths` that the job may not change (E8): each one another entity's than the ticket's, and in a package stage
- * every one. The ticket body naming a file never lets it through; V11 only refuses a constitution the body does not name.
+ * The constitutions among `gitPaths` that the job may not change: each one another entity's than the ticket's, and in a package stage
+ * every one. The ticket body naming a file never lets it through; the definition-files check only refuses a constitution the body does not name.
  */
 function constitutionsChangedOutsideTheTicketEntityOf(
   gitPaths: readonly string[], ownership: Readonly<ConstitutionOwnership>, stageName: TicketStageName | null
@@ -141,11 +141,9 @@ function sealedChangesHeld(subject: CustomsSubject): CheckVerdict {
 }
 
 /**
- * Judged on what the branch changed itself past its target, so a merge of the main line bringing a sibling's landing in never counts. A
- * tracker at the root asks git nothing here, unless the job is a job of an entity, whose branch that changed nothing in its own folders is
- * refused apart: all its work belongs to another entity (E15, stage 1 only; a later stage's change outside its folders is an ordinary
- * refusal, E23). A constitution changes only in a job of its own entity's ticket, outside a package stage (E8). A later job of a crossing
- * ticket may not alter a sealed change (E33).
+ * Judged on what the branch changed itself past its target, so a merge of the main line bringing a sibling's landing in never counts. In
+ * stage 1 an entity's branch that changed nothing in its own folders is refused apart, as all its work belongs to another entity. A
+ * constitution changes only in its own entity's ticket outside a package stage, and a later job of a crossing ticket keeps every sealed change.
  */
 function changesStayInHomeAndReach(subject: CustomsSubject): CheckVerdict {
   const { projectScope } = subject;

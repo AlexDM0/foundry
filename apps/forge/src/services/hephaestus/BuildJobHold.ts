@@ -87,8 +87,8 @@ function redHandoffCauseOf(context: Pick<JobLaunchContext, 'workspace'>, job: Re
 }
 
 /**
- * A red handoff of the job sent it back for a scope refusal before: its one V17 resume is spent, also when a red gate or another check came
- * after. A `git-failed` V17 spends nothing.
+ * A red handoff of the job sent it back for a scope refusal before: its one scope check resume is spent, also when a red gate or another
+ * check came after. A `git-failed` scope check spends nothing.
  */
 function scopeResumeSpent(context: Pick<JobLaunchContext, 'workspace'>, job: Readonly<Job>): boolean {
   return ownRedHandoffInTheHoldOf(context, job)?.scopeResumed === true;

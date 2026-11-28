@@ -250,7 +250,7 @@ export function createConstitutionCommitAirlock(context: AirlocksContext, slots:
 
   /**
    * What stage 2 would refuse, checked before the commit lands so that a refused Apply leaves main as it was: the stored pipeline moved,
-   * or a ticket started or took an entity the draft removes while the request waited (E94, E91).
+   * or a ticket started or took an entity the draft removes while the request waited.
    */
   function stageTwoRefusalOf(hold: AirlockHold, setupId: string, mainReading: ApplyMainReading): ApplyRequestReason | null {
     if (hold.board.storedPipelineMovedSince(setupId, mainReading)) return 'pipeline-moved';

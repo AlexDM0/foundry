@@ -1,8 +1,7 @@
 /**
- * A build job end to end (design sections 4.4 and 5): Hephaestus prepares the ticket's worktree from the target tip, runs the install line
- * in a sandboxed line child, launches the builder, takes its closing report, closes its input, verifies, gates in a sandboxed process
- * line child, and writes the Handoff and finishes the ticket, each step a job state. Observing happens outside the lock, the moves in the hold,
- * and the effects (git, Talos, frames) after it; a step's progress lives on disk in the job folder, so a restart observes it again.
+ * A build job end to end, from the worktree and its install line through the builder, Customs and the gate to
+ * the Handoff, each step a job state. Observing happens outside the lock, the moves in the hold, and the effects (git, Talos, frames) after
+ * it; a step's progress lives on disk in the job folder, so a restart observes it again.
  */
 import { existsSync }                                            from 'node:fs';
 import { join }                                                  from 'node:path';

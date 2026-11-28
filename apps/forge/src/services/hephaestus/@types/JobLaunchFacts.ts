@@ -82,6 +82,6 @@ export interface AirlockFacts {
   redHandoff:          RedHandoffFacts | null;
   /** `false` for a fresh agent in place of a ticket agent whose session could not be resumed. */
   resumesSession:      boolean;
-  /** A package's builder resolving its part of a crossing ticket's conflict: it leaves the merge open for the worker after it (E64). */
+  /** A package's builder resolving its part of a crossing ticket's conflict: it leaves the merge open for the worker after it. */
   leavesTheMergeOpen?: true;
 }

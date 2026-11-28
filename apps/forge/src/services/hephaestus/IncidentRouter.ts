@@ -1,6 +1,6 @@
 /**
  * Hephaestus's side of incident routing that the Playbook cannot read off the board: a job whose event log stopped growing,
- * counted in sweeps and never in time (design section 7.5), and the incidents that took their default, which `jobs` and Hephaestus's
+ * counted in sweeps and never in time, and the incidents that took their default, which `jobs` and Hephaestus's
  * state show as a warning.
  */
 import type { IncidentDefaultCause, IncidentMove } from '../../domain/tracker-model/@types/Incident.ts';

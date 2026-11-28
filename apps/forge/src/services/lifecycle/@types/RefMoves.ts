@@ -1,6 +1,6 @@
 import type { RepositoryLanding } from '../../../adapters/repository-landings/RepositoryLandings.ts';
 
-/** V14's exemptions: refs only Hephaestus or another job moves. */
+/** The ref-moves check's exemptions: refs only Hephaestus or another job moves. */
 export interface RefMovesAllowed {
   ownBranch:            string;
   /** The branches of the other jobs on the board, each moved by its own session. */
@@ -37,7 +37,7 @@ export interface WatchedRefs {
   worktreesRoot:   string;
 }
 
-/** What a tracker sharing its repository adds to V14: every tracker's journaled landings, and the refs it watches. */
+/** What a tracker sharing its repository adds to the ref-moves check: every tracker's journaled landings, and the refs it watches. */
 export interface SharedRepositoryRefs {
   /** The landing journal's entries: the branch each landing moved, as its tracker names it, and the commit it moved it to. */
   journaledLandings: readonly Pick<RepositoryLanding, 'target' | 'commit'>[];

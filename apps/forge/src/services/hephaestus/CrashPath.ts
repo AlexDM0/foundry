@@ -166,8 +166,7 @@ function record(context: CrashPathContext, crash: Crash): Promise<CrashPathOutco
 /**
  * Listens for an uncaught exception and an unhandled rejection. Each runs the crash path, removes both listeners and rethrows in a microtask,
  * so the process still dies as an uncaught error does; the bound rethrows if the registry step has not settled. A process that serves no
- * generation yet has nothing to record and only rethrows. `crashErrorOf` is the edge's, which words a refusal for the crash log. Answers the
- * removal of both listeners.
+ * generation yet has nothing to record and only rethrows. `crashErrorOf` words a refusal for the crash log. Answers the listeners' removal.
  */
 function listenForProcessCrashes(
   contextNow: () => CrashPathContext | null, crashErrorOf: (origin: CrashErrorOrigin, thrown: unknown) => CrashLogError

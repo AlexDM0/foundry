@@ -116,7 +116,7 @@ export function createStaleGreenRegates(context: AirlocksContext, slots: Airlock
     }
     if (gate.outcome === 'failed') {
       // With a review phase the ticket waits in review, unqueued, for its next reviewer; without one its builder takes the red handoff. A
-      // crossing ticket goes back to the stage of the entity that owns the red gate (E65).
+      // crossing ticket goes back to the stage of the entity that owns the red gate.
       const branchRef = `refs/heads/${context.branchNames.ticketBranchOf(ticketId)}`;
       const red: StaleGreenRed = {
         treeId,
@@ -186,10 +186,9 @@ export function createStaleGreenRegates(context: AirlocksContext, slots: Airlock
   }
 
   /**
-   * In the hold: a crossing ticket's red gate, on its merged tree or on its stale green, goes to the entity that owns the gate (E65). The
-   * ticket returns to the package's build, its seal lifted and the return counted, or to the home's `adapt`, and that stage's builder takes
-   * the red handoff over. A second package return opens `second-return`, naming the package, and the ticket keeps its stage and status
-   * (E45); a red gate past the builder's resumes parks the ticket for User.
+   * In the hold: a crossing ticket's red gate, on its merged tree or its stale green, goes to the entity that owns the gate. The ticket
+   * returns to the package's build, its seal lifted and the return counted, or to the home's `adapt`; that stage's builder takes the red handoff.
+   * A second package return opens `second-return` and keeps the stage and status; a red gate past the builder's resumes parks it for User.
    */
   function returnRedGateToItsOwner(hold: AirlockHold, ticketId: string, route: Readonly<{ owner: RedGateOwner; homeEntity: EntityKey }>, red: StaleGreenRed): void {
     const { owner } = route;

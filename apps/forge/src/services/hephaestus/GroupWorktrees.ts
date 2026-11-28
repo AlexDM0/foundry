@@ -1,5 +1,5 @@
 /**
- * A group's own worktree, `<worktrees>/group-<name>/` on `group-<name>` (design section 6.7): created from the main line's tip at the
+ * A group's own worktree, `<worktrees>/group-<name>/` on `group-<name>`: created from the main line's tip at the
  * group's first launch, touched afterwards only by landings, and removed with its branch once the release delivered the bundle. A refresh
  * merges main in a temporary detached worktree beside it, which its refresh job owns.
  */

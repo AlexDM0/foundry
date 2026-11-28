@@ -34,7 +34,7 @@ const DEPENDENT_BROKEN_DECISION = 'dependent-broken';
 
 /**
  * A package build's gate of a dependent entity, named `<entity>: <gate>`, still red once the red handoff's resumes are spent: the package
- * builder cannot hold the package change without breaking that dependent (E26).
+ * builder cannot hold the package change without breaking that dependent.
  */
 function dependentGateIsRedPastItsResumes(hold: HoldContext, job: Readonly<Job>, gateName: string): boolean {
   const entities = hold.change.board.pipeline()?.entities;
@@ -195,7 +195,7 @@ function settleGate(hold: HoldContext, job: Readonly<Job>, observation: BuildJob
     });
     hold.logged.push(...settled.logged);
     if (packageReview !== undefined) return;
-    // A home review that does not hold sends the ticket back to `adapt`, also when `adapt` was skipped (E51, E52).
+    // A home review that does not hold sends the ticket back to `adapt`, also when `adapt` was skipped.
     if (crossingStage !== null && settled.move === 'fixer' && job.entity !== undefined) {
       board.moveTicketStage(WorktreeJobs.ticketIdOf(job), { name: 'adapt', entity: job.entity }, at);
     }

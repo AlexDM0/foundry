@@ -1,5 +1,5 @@
 /**
- * The stages of a ticket that crosses into whitelisted packages (strategy 4.2), as Hephaestus runs them: which packages the branch crossed
+ * The stages of a ticket that crosses into whitelisted packages, as Hephaestus runs them: which packages the branch crossed
  * into after stage 1, what Customs holds each stage to, the statement each package stage leaves in its job folder, whether `adapt` is
  * skipped, and what each stage's session is told.
  */
@@ -36,7 +36,7 @@ export interface SealedPackageReview {
 }
 
 /**
- * What a job of a ticket that crosses into whitelisted packages is told of its stage (strategy 4.2). The job's `entity` is the entity the
+ * What a job of a ticket that crosses into whitelisted packages is told of its stage. The job's `entity` is the entity the
  * stage runs under: the home entity in `build`, `adapt` and `review`, the package in `package-build` and `package-review`.
  */
 /** A package build that refused the ticket's change of its package, and why: stage 1 takes that change back out. */
