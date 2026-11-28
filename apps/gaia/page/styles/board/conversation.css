@@ -700,3 +700,6 @@
 .board-option-fact-lines { display: flex; flex-direction: column; gap: 1px; font-size: var(--fs-small); line-height: 1.45; color: var(--ink-muted); }
 
 .board-option-fact-path { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: var(--fs-micro); overflow-wrap: anywhere; }
+
+/* A conversation's messages stay selectable, so User can copy what was said; the controls between them do not. */
+:is(.board-transcript-text, .board-chat-prose, .board-chat-bubble, .board-chat-system-text, .board-tool-calls) { -webkit-user-select: text; user-select: text; }

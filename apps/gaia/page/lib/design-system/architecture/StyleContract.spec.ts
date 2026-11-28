@@ -21,6 +21,13 @@ const ENTRY_STYLESHEET_PATH = 'styles/design-system.css';
 const THEME_STYLESHEET_PATHS = ['styles/tokens.css', 'styles/base.css', 'styles/keyframes.css'];
 const SMALLEST_CLASS_COUNT = 100;
 const SMALLEST_IMPORT_COUNT = 40;
+const BASE_STYLESHEET_PATH = 'styles/base.css';
+/** What `styles/base.css` sets on text selection: nothing on the root, text in every field, nothing on a control inside a selectable surface. */
+const SELECTION_RULES: readonly SelectionRule[] = [
+  { selectors: [':root'], value: 'none' },
+  { selectors: ['input', 'textarea', 'select', '[contenteditable]:not([contenteditable="false"])'], value: 'text' },
+  { selectors: ['button', '[role="button"]', '[role="tab"]', '[role="menuitem"]', 'summary'], value: 'none' },
+];
 
 interface ComponentClasses {
   /** The component's path without its extension, such as `atoms/Button`. */
@@ -28,6 +35,11 @@ interface ComponentClasses {
   readonly classNames: ReadonlySet<string>;
   /** `<path>:<line>` of each `className` whose value is not a literal the scan can read. */
   readonly unreadable: readonly string[];
+}
+
+interface SelectionRule {
+  readonly selectors: readonly string[];
+  readonly value:     'none' | 'text';
 }
 
 interface StyleRule {
@@ -177,6 +189,17 @@ function contractSentencesOf(components: readonly ComponentClasses[], stylesheet
   return [...new Set(sentences)].sort();
 }
 
+/** Each selection rule is a rule of the stylesheet that sets both `user-select` and `-webkit-user-select` to its value on each of its selectors. */
+function selectionSentencesOf(stylesheet: PackageFile, expected: readonly SelectionRule[]): string[] {
+  const declared = [...stylesheet.text.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]+)\{([^{}]*)\}/g)].flatMap(([, selectorList = '', body = '']) => {
+    const declarations = new Map(body.split(';').map((declaration) => declaration.split(':').map((part) => part.trim())).map(([property = '', value = '']) => [property, value]));
+    return selectorList.split(',').map((selector) => ({ selector: selector.trim(), declarations }));
+  });
+  return expected.flatMap(({ selectors, value }) => selectors.flatMap((selector) => ['user-select', '-webkit-user-select']
+    .filter((property) => !declared.some((rule) => rule.selector === selector && rule.declarations.get(property) === value))
+    .map((property) => `${stylesheet.path} does not set ${property}: ${value} on ${selector}`)));
+}
+
 /** The entry imports the theme stylesheets in their order, then every component's stylesheet, atoms before molecules before organisms. */
 function entrySentencesOf(entry: PackageFile, stylesheets: readonly PackageFile[]): string[] {
   const componentStylesheets = stylesheets.map(({ path }) => path).filter((path) => layerOf(path) !== null)
@@ -195,6 +218,7 @@ function entrySentencesOf(entry: PackageFile, stylesheets: readonly PackageFile[
 const COMPONENTS = packageFilesMatching('**/*.tsx').filter((source) => isShippingComponent(source.path)).map(emittedClassesOf);
 const STYLESHEETS = packageFilesMatching('**/*.css').filter((stylesheet) => stylesheet.path !== ENTRY_STYLESHEET_PATH);
 const ENTRY = packageFilesMatching(ENTRY_STYLESHEET_PATH)[0] ?? { path: ENTRY_STYLESHEET_PATH, text: '' };
+const BASE = packageFilesMatching(BASE_STYLESHEET_PATH)[0] ?? { path: BASE_STYLESHEET_PATH, text: '' };
 
 describe('the scan itself', () => {
   test('it reads the components and the stylesheets, and finds a floor of classes in each', () => {
@@ -219,6 +243,10 @@ describe('the components and their stylesheets', () => {
 
   test('the entry stylesheet imports every stylesheet once, in layer order', () => {
     expect(entrySentencesOf(ENTRY, STYLESHEETS)).toEqual([]);
+  });
+
+  test('text is unselectable from the root, selectable in every field, and unselectable on every control', () => {
+    expect(selectionSentencesOf(BASE, SELECTION_RULES)).toEqual([]);
   });
 });
 
@@ -274,5 +302,24 @@ describe('the test still names each form, planted in memory', () => {
         `${ENTRY_STYLESHEET_PATH} does not import molecules/Planted.css`,
         `${ENTRY_STYLESHEET_PATH} imports ../host/styles/page.css, which is not a stylesheet it holds`,
       ]);
+  });
+
+  test('a root left selectable, a field set only unprefixed, and a control left out', () => {
+    const planted = stylesheet(BASE_STYLESHEET_PATH, [
+      ':root { user-select: text; -webkit-user-select: text; }',
+      'input { user-select: text; }',
+      'button { user-select: none; -webkit-user-select: none; }',
+    ].join('\n'));
+    expect(selectionSentencesOf(planted, [
+      { selectors: [':root'], value: 'none' },
+      { selectors: ['input'], value: 'text' },
+      { selectors: ['button', 'summary'], value: 'none' },
+    ])).toEqual([
+      `${BASE_STYLESHEET_PATH} does not set user-select: none on :root`,
+      `${BASE_STYLESHEET_PATH} does not set -webkit-user-select: none on :root`,
+      `${BASE_STYLESHEET_PATH} does not set -webkit-user-select: text on input`,
+      `${BASE_STYLESHEET_PATH} does not set user-select: none on summary`,
+      `${BASE_STYLESHEET_PATH} does not set -webkit-user-select: none on summary`,
+    ]);
   });
 });
