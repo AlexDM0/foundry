@@ -1,14 +1,7 @@
 /**
- * A Hephaestus run in this process, so its monitor registry can be one that registers the scratch tracker: a spawned binary sees the scratch
- * root as a temp folder and registers nothing. A Hephaestus whose data folder watch fails to start registers no URL with the monitor: a move of
- * the registry write before the watch start makes it fail. The page stub and the output of that start are held by
- * `cli/hephaestus/StartCommand.integration.spec.ts`. Its confinement is a planted answer and its own identity the recorded process
- * table's, so the start reads the same under a gate's sandbox, which refuses a nested sandbox and a setuid program. A Talos started from the
- * program on disk that answers another protocol version refuses the start `talos-protocol-differs`, naming both versions, and one that never
- * served refuses it `talos-unavailable`; `cli/hephaestus/StartCommand.integration.spec.ts` holds that a started Hephaestus's Talos serves
- * under a lease it renewed. The start hold logs `start-classified` right after `hephaestus-started`, and a successor's start after a crash is
- * refused by the start gate before it takes a Hephaestus lock or binds a port, telling the registry the forge crashed. A successor, whose
- * standard error is `hephaestus.log`, writes each record there once, as a JSON line.
+ * A Hephaestus run in this process, since a spawned binary sees the scratch root as a temp folder and registers nothing. Its confinement is
+ * planted and its identity the recorded process table's, so the start reads the same under a gate's sandbox, which refuses a nested sandbox
+ * and a setuid program. The page stub and the start's output are held by `cli/hephaestus/StartCommand.integration.spec.ts`.
  */
 import {
   appendFileSync,

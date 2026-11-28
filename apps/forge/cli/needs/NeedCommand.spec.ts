@@ -1,9 +1,6 @@
 /**
- * `need declare` as the command surface of a forge without entities sees it, run on a scratch tracker with a running build job written in.
- * The cases that matter: the build job runs no entity's stage, so the need is refused `need-outside-an-entity-build` at exit 1 and
- * progress.json and the log stay byte-identical, no `needs` key written; a missing job, title, entity or body, both body options and an
- * unknown subcommand are refused by the usage. What a forge with entities keeps is held in `src/domain/tracker-model/Board.needs.spec.ts` and
- * `src/services/control/JobControls.spec.ts`; the verb under the declaring job, which names no job and relays, in `cli/HatchUnderJob.spec.ts`.
+ * `need declare` on a scratch forge without entities: a build job that runs no entity's stage is refused `need-outside-an-entity-build` with
+ * nothing written, and an incomplete usage is refused. A forge with entities is held in `src/domain/tracker-model/Board.needs.spec.ts`.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 

@@ -1,10 +1,7 @@
 /**
- * `ticket group`: putting an existing ticket into a group, which owner answer A11 asks for so a ticket already in flight can join the group
- * its dependents' fix tickets are filed in (E26). The cases that matter: a committed ticket and a started one each gain the `group` line, one
- * `ticket-grouped` log line and no `updated` stamp, so their next landing goes to the group's branch; the refusals are those of a filing's
- * group (a name that is not portable; the case twin of a stored group is held in `src/domain/tracker-model/Board.ticketSettings.spec.ts`) plus
- * a ticket already in a group and a settled one, each at exit 1 with the ticket file and the log as they were; and the verb without its
- * name or its ticket is refused by its usage.
+ * `ticket group` puts an existing ticket into a group, so a ticket already in flight can join the group its dependents' fix tickets are filed
+ * in and land on its branch: it gains the `group` line and one `ticket-grouped` log line, while the refusals of a filing's group, an already
+ * grouped or a settled ticket and an incomplete usage leave the ticket file and the log as they were.
  */
 import { readFileSync, readdirSync } from 'node:fs';
 import { join }                      from 'node:path';

@@ -44,7 +44,7 @@ const VERB_OF_KIND: { readonly [Kind in Exclude<ControlCommandKind, ClientOnlyCo
 };
 
 /**
- * Mutating verbs that apply no control command, never relayed and never offered in the UI (design section 9.1): machine setup, and
+ * Mutating verbs that apply no control command, never relayed and never offered in the UI: machine setup, and
  * Hephaestus's own start and stop.
  */
 const NOT_RELAYABLE_MUTATING_VERBS = [
