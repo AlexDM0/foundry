@@ -54,16 +54,46 @@ function renderResearch(board: BoardDocument = researchingBoard()) {
   return { controls, transcripts };
 }
 
-describe('the findings', () => {
-  test('render by topic with their source paths, and the scripts with command and meaning', () => {
+function layerHeads(): string[] {
+  const layers = screen.getByRole('list', { name: 'Research layers' });
+  return [...layers.querySelectorAll('.board-pipeline-research-layer-head')].map((head) => head.textContent);
+}
+
+describe('the research layers', () => {
+  test('every layer shows in research order, collapsed to its progress, the one of the newest finding read while the agent researches', () => {
     renderResearch();
     expect(screen.getByRole('heading', { name: 'What Example Agency is made of' })).toBeDefined();
-    expect(screen.getByRole('region', { name: 'Stack' }).textContent).toContain('tsconfig.json');
-    expect(screen.getByRole('region', { name: 'Conventions' }).textContent).toContain('CONTRIBUTING.md');
-    const scripts = screen.getByRole('region', { name: 'Scripts' });
-    expect(scripts.textContent).toContain('found in package.json; none is run here');
-    const rows = within(scripts).getAllByRole('listitem');
+    expect(layerHeads()).toEqual([
+      'Stack1 found',
+      'Scripts2 found · reading',
+      'Conventions1 found',
+      'Continuous integrationNot reached yet',
+      'NotesNot reached yet',
+    ]);
+    expect(document.querySelectorAll('details[open]')).toHaveLength(0);
+  });
+
+  test('once the research is done, no layer is read and a layer without findings says none were found', () => {
+    renderResearch(pipelineBoardStateOf('A1'));
+    expect(layerHeads()).toEqual(['Stack1 found', 'Scripts2 found', 'Conventions1 found', 'Continuous integrationNone found', 'NotesNone found']);
+  });
+
+  test('a layer opens on demand to its lines, its source paths on hover, and the scripts to their table', () => {
+    renderResearch();
+    const conventions = screen.getByRole('region', { name: 'Conventions' });
+    const line = within(conventions).getByText('Specs').closest('li');
+    expect(line?.textContent).toBe('Specsbeside their module');
+    expect(line?.getAttribute('title')).toBe('CONTRIBUTING.md');
+    const fold = conventions.querySelector('details');
+    fold?.querySelector('summary')?.click();
+    expect(fold?.open).toBe(true);
+    const rows = within(screen.getByRole('region', { name: 'Scripts' })).getAllByRole('listitem');
     expect(rows[0]?.textContent).toBe('typecheckbun run typecheckChecks the example types.');
+  });
+
+  test('a layer without findings has nothing to open', () => {
+    renderResearch();
+    expect(screen.getByRole('region', { name: 'Notes' }).querySelector('details')).toBeNull();
   });
 
   test('a script that needs a network shows the amber dot and its note', () => {
@@ -73,10 +103,8 @@ describe('the findings', () => {
     expect(needs?.querySelector('.board-pipeline-script-needs-dot')).not.toBeNull();
   });
 
-  test('the stack chips pop in, and no finding offers to run anything', () => {
+  test('no finding offers to run anything', () => {
     renderResearch();
-    const chip = within(screen.getByRole('region', { name: 'Stack' })).getByText('Language · TypeScript');
-    expect(chip.hasAttribute('data-pops')).toBe(true);
     expect(screen.queryByRole('button', { name: /run/iu })).toBeNull();
   });
 
@@ -89,13 +117,12 @@ describe('the findings', () => {
     expect(within(screen.getByRole('region', { name: 'Stack' })).getByText('recheck').getAttribute('data-change')).toBe('changed');
   });
 
-  test('grey lines stand in before the first finding', () => {
+  test('before the first finding every layer already shows, none reached yet', () => {
     const board = researchingBoard();
     const { setup } = board.pipeline;
     if (setup === null || setup === undefined) throw new Error('no setup');
     renderResearch(withPipelineFacts(board, { setup: { ...setup, record: { ...setup.record, findings: [] } } }));
-    expect(screen.getByRole('status', { name: 'Waiting for the first findings' })).toBeDefined();
-    expect(screen.queryByRole('region', { name: 'Scripts' })).toBeNull();
+    expect(layerHeads().every((head) => head.endsWith('Not reached yet'))).toBe(true);
   });
 });
 

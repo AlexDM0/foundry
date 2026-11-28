@@ -500,15 +500,6 @@ button.board-pipeline-gate-time:hover { filter: brightness(0.94); }
 
 .board-pipeline-research-status:not([data-state="stopped"]):not([data-state="not-launched"]) .board-pipeline-research-status-dot { background: var(--signal); }
 
-.board-pipeline-research-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-4); }
-
-.board-pipeline-research-card {
-  display: flex; flex-direction: column; gap: 10px; padding: 14px 18px 16px;
-  background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-3);
-}
-
-.board-pipeline-research-card:hover { box-shadow: 0 0 0 2px var(--shadow-card-lift); }
-
 .board-pipeline-research-card-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin: 0; font: 600 14px/20px var(--font-ui); color: var(--ink); }
 
 .board-pipeline-research-check { display: inline-flex; flex: none; color: var(--tone-success); }
@@ -517,24 +508,18 @@ button.board-pipeline-gate-time:hover { filter: brightness(0.94); }
 
 .board-pipeline-research-count { font-size: var(--fs-tab); font-weight: 400; color: var(--ink-4); }
 
-.board-pipeline-research-source { min-width: 0; margin-left: auto; font: 400 11.5px/1.4 var(--font-mono); color: var(--ink-4); }
-
-.board-pipeline-research-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0 0 0 20px; list-style: none; }
-
-.board-pipeline-research-chip { display: inline-flex; align-items: center; gap: 4px; }
+.board-pipeline-research-source { min-width: 0; margin-left: auto; overflow-wrap: anywhere; font: 400 11.5px/1.4 var(--font-mono); color: var(--ink-4); }
 
 .board-pipeline-research-lines { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
 
 .board-pipeline-research-line {
-  display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; min-height: 28px; padding: 4px 0 4px 20px; box-sizing: border-box;
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; min-height: 28px; padding: 4px 0; box-sizing: border-box;
   border-top: 1px solid var(--line);
 }
 
-.board-pipeline-research-label { font-weight: 500; color: var(--ink); }
+.board-pipeline-research-label { min-width: 0; overflow-wrap: anywhere; font-weight: 500; color: var(--ink); }
 
-.board-pipeline-research-value { color: var(--ink-muted); }
-
-.board-pipeline-research-paths { font: var(--fs-small)/1.4 var(--font-mono); color: var(--ink-4); }
+.board-pipeline-research-value { min-width: 0; overflow-wrap: anywhere; color: var(--ink-muted); }
 
 .board-pipeline-scripts { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
 
@@ -562,7 +547,7 @@ button.board-pipeline-gate-time:hover { filter: brightness(0.94); }
 .board-pipeline-research-footer-status { font-weight: 500; color: var(--ink); }
 
 @media (max-width: 900px) {
-  .board-pipeline-research-cards { grid-template-columns: minmax(0, 1fr); }
+  .board-pipeline-research-layer-body { padding-left: 16px; }
 
   .board-pipeline-script { grid-template-columns: minmax(0, 1fr); gap: 2px; padding: 6px 0; }
 }
@@ -572,7 +557,7 @@ button.board-pipeline-gate-time:hover { filter: brightness(0.94); }
     animation: board-pulse var(--pulse-status) ease-in-out infinite;
   }
 
-  .board-pipeline-research-card { animation: board-rise var(--motion-rise) var(--ease-out) both; }
+  [data-progress="reading"] .board-pipeline-research-layer-mark { animation: board-pulse var(--pulse-status) ease-in-out infinite; }
 }
 
 /* Research per entity (MonoResearch): the layout card over the sessions list and the findings of the session shown, side by side. A
@@ -581,6 +566,50 @@ button.board-pipeline-gate-time:hover { filter: brightness(0.94); }
   display: flex; flex-direction: column; gap: var(--sp-2); padding: 14px 18px 16px;
   background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-3);
 }
+
+/* The research layers: one card, one row per layer in research order, each collapsed to its marker, name and progress until opened. A
+   dashed ring waits, the orange dot is the layer being read, the check a layer found, a solid ring a layer that found nothing. */
+.board-pipeline-research-layers {
+  display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none;
+  background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-3);
+}
+
+.board-pipeline-research-layers > li + li { border-top: 1px solid var(--line); }
+
+.board-pipeline-research-layer { min-width: 0; }
+
+.board-pipeline-research-layer-head {
+  display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 16px; box-sizing: border-box; list-style: none;
+}
+
+summary.board-pipeline-research-layer-head { cursor: pointer; }
+
+summary.board-pipeline-research-layer-head::-webkit-details-marker { display: none; }
+
+summary.board-pipeline-research-layer-head:focus-visible { outline: 2px solid var(--link); outline-offset: -2px; border-radius: var(--r-3); }
+
+.board-pipeline-research-layer-marker { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 16px; height: 16px; color: var(--tone-success); }
+
+.board-pipeline-research-layer-mark { width: 9px; height: 9px; box-sizing: border-box; border-radius: var(--r-pill); border: 1.5px solid var(--line-strong); }
+
+[data-progress="waiting"] .board-pipeline-research-layer-mark { border-style: dashed; }
+
+[data-progress="reading"] .board-pipeline-research-layer-mark { background: var(--signal); border-color: var(--signal); }
+
+.board-pipeline-research-layer-title { margin: 0; font: 600 14px/20px var(--font-ui); color: var(--ink); }
+
+[data-progress="waiting"] .board-pipeline-research-layer-title,
+[data-progress="none-found"] .board-pipeline-research-layer-title { font-weight: 500; color: var(--ink-muted); }
+
+.board-pipeline-research-layer-progress { margin-left: auto; font-size: var(--fs-tab); color: var(--ink-4); }
+
+[data-progress="reading"] .board-pipeline-research-layer-progress { color: var(--link); }
+
+.board-pipeline-research-layer-chevron { display: inline-flex; flex: none; color: var(--ink-4); }
+
+.board-pipeline-research-layer-fold[open] .board-pipeline-research-layer-chevron { transform: rotate(90deg); }
+
+.board-pipeline-research-layer-body { padding: 0 16px 12px 42px; }
 
 .board-pipeline-research-layout-items { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0; padding: 0 0 0 20px; list-style: none; }
 

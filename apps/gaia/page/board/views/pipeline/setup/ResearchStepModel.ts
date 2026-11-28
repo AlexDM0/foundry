@@ -12,18 +12,22 @@ import { ElapsedTimeUtil }                                               from '.
 import type { PanelStatus }                                              from '../PipelinePanel.tsx';
 import { NOT_LAUNCHED_PANEL_STATUS, type AgentSessionState }             from '../agent-panel/AgentSessionModel.ts';
 
-/** Scripts are rows of their own, and the layout belongs to the `entities` step. */
-export type CardTopic = Exclude<BoardFindingTopic, 'scripts' | 'layout'>;
+/** The layout belongs to the `entities` step; every other topic is a layer of the research. */
+export type LayerTopic = Exclude<BoardFindingTopic, 'layout'>;
 
-/** The topics a card shows, in the order drawn; scripts are rows of their own. */
-const CARD_TOPICS: readonly CardTopic[] = ['stack', 'conventions', 'continuous-integration', 'note'];
+/** The layers in the order the research builds them up, drawn from the start so the approach shows before anything is found. */
+const LAYER_TOPICS: readonly LayerTopic[] = ['stack', 'scripts', 'conventions', 'continuous-integration', 'note'];
 
-const TOPIC_TITLES: Readonly<Record<CardTopic, string>> = {
+const LAYER_TITLES: Readonly<Record<LayerTopic, string>> = {
   'stack':                  'Stack',
+  'scripts':                'Scripts',
   'conventions':            'Conventions',
   'continuous-integration': 'Continuous integration',
   'note':                   'Notes',
 };
+
+/** The agent marks no layer done, so the layer it reads is the one its newest finding is in, and only while it researches. */
+export type LayerProgress = 'waiting' | 'reading' | 'found' | 'none-found';
 
 const SHORT_COMMIT_LENGTH = 7;
 
@@ -39,12 +43,15 @@ export interface FindingItem {
   readonly recheck:     boolean;
 }
 
-export interface FindingSection {
-  readonly topic:       CardTopic;
-  readonly title:       string;
-  /** Every source path of the section's findings, once each, in the order found. */
-  readonly sourcePaths: readonly string[];
-  readonly items:       readonly FindingItem[];
+export interface ResearchLayer {
+  readonly topic:        LayerTopic;
+  readonly title:        string;
+  readonly progress:     LayerProgress;
+  readonly progressText: string;
+  /** Every source path of the layer's findings, once each, in the order found. */
+  readonly sourcePaths:  readonly string[];
+  /** The layer's findings as lines; empty for the scripts, which are rows of their own. */
+  readonly items:        readonly FindingItem[];
 }
 
 export interface ScriptRow {
@@ -69,18 +76,41 @@ function uniqueSourcePathsOf(findings: readonly BoardResearchFindingDocument[]):
   return [...new Set(findings.flatMap((finding) => finding.sourcePaths))];
 }
 
-function findingSectionsOf(findings: readonly BoardResearchFindingDocument[]): FindingSection[] {
-  return CARD_TOPICS.flatMap((topic) => {
-    const ofTopic = findings.filter((finding) => finding.topic === topic && finding.script === null);
-    if (ofTopic.length === 0) return [];
-    return [{
+/** A script is a row of the scripts layer whatever topic it was filed under; `null` for the layout. */
+function layerTopicOf(finding: BoardResearchFindingDocument): LayerTopic | null {
+  if (finding.script !== null) return 'scripts';
+  return finding.topic === 'layout' ? null : finding.topic;
+}
+
+function layerProgressOf(topic: LayerTopic, count: number, newestTopic: LayerTopic | null, researching: boolean): LayerProgress {
+  if (researching && topic === newestTopic) return 'reading';
+  if (count > 0) return 'found';
+  return researching ? 'waiting' : 'none-found';
+}
+
+const PROGRESS_TEXTS: Readonly<Record<LayerProgress, (count: number) => string>> = {
+  'waiting':    () => 'Not reached yet',
+  'reading':    (count) => `${count} found · reading`,
+  'found':      (count) => `${count} found`,
+  'none-found': () => 'None found',
+};
+
+/** Every layer in research order with its findings and its progress; `researching` while the session's agent still researches. */
+function layersOf(findings: readonly BoardResearchFindingDocument[], researching: boolean): ResearchLayer[] {
+  const newestTopic = findings.map(layerTopicOf).findLast((topic) => topic !== null) ?? null;
+  return LAYER_TOPICS.map((topic) => {
+    const ofLayer = findings.filter((finding) => layerTopicOf(finding) === topic);
+    const progress = layerProgressOf(topic, ofLayer.length, newestTopic, researching);
+    return {
       topic,
-      title:       TOPIC_TITLES[topic],
-      sourcePaths: uniqueSourcePathsOf(ofTopic),
-      items:       ofTopic.map((finding) => ({
+      title:        LAYER_TITLES[topic],
+      progress,
+      progressText: PROGRESS_TEXTS[progress](ofLayer.length),
+      sourcePaths:  uniqueSourcePathsOf(ofLayer),
+      items:        topic === 'scripts' ? [] : ofLayer.map((finding) => ({
         findingId: finding.findingId, label: finding.label, value: finding.value, sourcePaths: finding.sourcePaths, recheck: finding.needsRecheck,
       })),
-    }];
+    };
   });
 }
 
@@ -108,16 +138,6 @@ function scriptRowsOf(findings: readonly BoardResearchFindingDocument[]): Script
       recheck:   finding.needsRecheck,
     }];
   });
-}
-
-/** "found in package.json; none is run here". */
-function scriptsSourceTextOf(findings: readonly BoardResearchFindingDocument[]): string {
-  const paths = uniqueSourcePathsOf(scriptFindingsOf(findings));
-  return paths.length === 0 ? 'none is run here' : `found in ${paths.join(', ')}; none is run here`;
-}
-
-function scriptCountTextOf(findings: readonly BoardResearchFindingDocument[]): string {
-  return `${scriptFindingsOf(findings).length} found`;
 }
 
 function researchStateOf(setup: BoardPipelineSetupDocument, sessionState: AgentSessionState): ResearchState {
@@ -217,10 +237,8 @@ function stopCommandOf(setup: BoardPipelineSetupDocument): BoardCommandDocument 
 }
 
 export const ResearchStepModel = Object.freeze({
-  findingSectionsOf,
+  layersOf,
   scriptRowsOf,
-  scriptsSourceTextOf,
-  scriptCountTextOf,
   researchStateOf,
   statusLineOf,
   layoutItemsOf,

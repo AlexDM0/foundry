@@ -20,12 +20,40 @@ function withRecord(setup: BoardPipelineSetupDocument, changes: Partial<BoardPip
 }
 
 describe('the findings', () => {
-  test('group by topic in the drawn order, each section with its source paths', () => {
-    const sections = ResearchStepModel.findingSectionsOf(researchSetup().record.findings);
-    expect(sections.map((section) => [section.title, section.sourcePaths])).toEqual([
-      ['Stack', ['tsconfig.json']],
-      ['Conventions', ['CONTRIBUTING.md']],
+  test('the layers come in research order, each with its source paths and its progress', () => {
+    const layers = ResearchStepModel.layersOf(researchSetup().record.findings, true);
+    expect(layers.map((layer) => [layer.title, layer.progress, layer.progressText, layer.sourcePaths])).toEqual([
+      ['Stack', 'found', '1 found', ['tsconfig.json']],
+      ['Scripts', 'reading', '2 found · reading', ['package.json']],
+      ['Conventions', 'found', '1 found', ['CONTRIBUTING.md']],
+      ['Continuous integration', 'waiting', 'Not reached yet', []],
+      ['Notes', 'waiting', 'Not reached yet', []],
     ]);
+  });
+
+  test('once the agent no longer researches, no layer is read and an empty one found nothing', () => {
+    const layers = ResearchStepModel.layersOf(researchSetup().record.findings, false);
+    expect(layers.map((layer) => layer.progress)).toEqual(['found', 'found', 'found', 'none-found', 'none-found']);
+  });
+
+  test('the layout is no layer, and a script filed under another topic is a script', () => {
+    const findings: BoardResearchFindingDocument[] = [
+      {
+        findingId: 'F8', topic: 'layout', label: 'apps/web', value: 'Next.js', sourcePaths: ['apps/web/package.json'], script: null, needsRecheck: false,
+      },
+      {
+        findingId:   'F9',
+        topic:       'note',
+        label:       'lint',
+        value:       null,
+        sourcePaths: ['package.json'],
+        script:      {
+          name: 'lint', run: 'bun run lint', meaning: 'Lints.', gateCandidate: 'gate', needs: [],
+        },
+        needsRecheck: false,
+      },
+    ];
+    expect(ResearchStepModel.layersOf(findings, true).map((layer) => layer.progress)).toEqual(['waiting', 'reading', 'waiting', 'waiting', 'waiting']);
   });
 
   test('scripts are rows, and a script that needs a network or a service carries its note', () => {
@@ -52,12 +80,6 @@ describe('the findings', () => {
     expect(row?.needsNote).toBe('Needs network, a registry and Postgres');
     expect(row?.notAGate).toBe(true);
     expect(row?.recheck).toBe(true);
-  });
-
-  test('the scripts head names where they were found and counts them', () => {
-    const { findings } = researchSetup().record;
-    expect(ResearchStepModel.scriptsSourceTextOf(findings)).toBe('found in package.json; none is run here');
-    expect(ResearchStepModel.scriptCountTextOf(findings)).toBe('2 found');
   });
 });
 
@@ -123,11 +145,11 @@ describe('monorepo mode', () => {
     findingId: 'F9', topic: 'layout', label: 'apps/web', value: 'Next.js', sourcePaths: ['package.json'], script: null, needsRecheck: false,
   };
 
-  test('the layout findings are their own list, with their sources, and never a card', () => {
+  test('the layout findings are their own list, with their sources, and never a layer', () => {
     const findings = [...researchSetup().record.findings, layoutFinding];
     expect(ResearchStepModel.layoutItemsOf(findings)).toEqual([{ findingId: 'F9', folder: 'apps/web', description: 'Next.js' }]);
     expect(ResearchStepModel.layoutSourcePathsOf(findings)).toEqual(['package.json']);
-    expect(ResearchStepModel.findingSectionsOf(findings).map((section) => section.title)).toEqual(['Stack', 'Conventions']);
+    expect(ResearchStepModel.layersOf(findings, false)).toEqual(ResearchStepModel.layersOf(researchSetup().record.findings, false));
   });
 
   test('the status line says that each entity has a session once one has a part of the record', () => {

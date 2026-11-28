@@ -10,7 +10,6 @@ import {
   Button,
   MonoId,
   PageHead,
-  Skeleton,
   Tag,
   Text,
   View
@@ -34,10 +33,9 @@ import { PipelineLevelModel, type PipelineLevel }    from '../entities/PipelineL
 import { BillingStepModel }                          from './BillingStepModel.ts';
 import { EntitySessionList }                         from './EntitySessionList.tsx';
 import { EntitySessionListModel }                    from './EntitySessionListModel.ts';
-import { FindingCard }                               from './FindingCard.tsx';
 import { LayoutFinding }                             from './LayoutFinding.tsx';
+import { ResearchLayers }                            from './ResearchLayers.tsx';
 import { ResearchStepModel }                         from './ResearchStepModel.ts';
-import { ScriptRows }                                from './ScriptRows.tsx';
 
 export interface ResearchStepProps {
   readonly facts:            PipelineViewFacts;
@@ -47,8 +45,6 @@ export interface ResearchStepProps {
   /** The route the step is on; in monorepo mode it names the level shown. */
   readonly route:            BoardRoute;
 }
-
-const SKELETON_LINES = 3;
 
 const RESEARCH_ITEM = 'setup/research';
 
@@ -68,31 +64,14 @@ const SINGLE_MODE_FOOTER_NOTE = 'Saved as you go · the agent keeps working if y
 
 const MONOREPO_FOOTER_NOTE = 'Continue at any time. Stopped entities keep what they found.';
 
-/** The findings of one session as cards by topic and the scripts as rows; grey lines stand in before the first. */
-function SessionFindings({ findings, emptyText = null }: { readonly findings: readonly BoardResearchFindingDocument[]; readonly emptyText?: string | null }) {
-  if (findings.length === 0) {
-    return emptyText === null
-      ? <Skeleton lines={SKELETON_LINES} accessibleName="Waiting for the first findings" />
-      : <Text muted>{emptyText}</Text>;
-  }
-  const sections = ResearchStepModel.findingSectionsOf(findings);
-  const scriptRows = ResearchStepModel.scriptRowsOf(findings);
-  return (
-    <>
-      <div className="board-pipeline-research-cards">
-        {sections.map((section) => <FindingCard key={section.topic} section={section} />)}
-      </div>
-      {scriptRows.length === 0
-        ? null
-        : (
-          <ScriptRows
-            rows={scriptRows}
-            sourceText={ResearchStepModel.scriptsSourceTextOf(findings)}
-            countText={ResearchStepModel.scriptCountTextOf(findings)}
-          />
-        )}
-    </>
-  );
+/** The findings of one session as its research layers, every layer drawn from the start; a session with nothing to show says why instead. */
+function SessionFindings({ findings, researching, emptyText = null }: {
+  readonly findings:    readonly BoardResearchFindingDocument[];
+  readonly researching: boolean;
+  readonly emptyText?:  string | null;
+}) {
+  if (findings.length === 0 && emptyText !== null) return <Text muted>{emptyText}</Text>;
+  return <ResearchLayers layers={ResearchStepModel.layersOf(findings, researching)} scriptRows={ResearchStepModel.scriptRowsOf(findings)} />;
 }
 
 function launchStampOf(facts: PipelineViewFacts, agentJobId: string | null): string | null {
@@ -139,7 +118,7 @@ function SessionsAndFindings({ research }: { readonly research: MonorepoResearch
           {PipelineLevelModel.isForgeLevel(shown.level) ? <Text bold>{shown.name}</Text> : <MonoId text={shown.name} tone="strong" weight="bold" />}
           <Text typeRole="small" muted>{shown.scopeText}</Text>
         </span>
-        <SessionFindings findings={shown.findings} emptyText={shown.emptyText} />
+        <SessionFindings findings={shown.findings} researching={shown.state === 'researching'} emptyText={shown.emptyText} />
       </section>
     </div>
   );
@@ -172,7 +151,8 @@ function ResearchPage({
   const layoutItems = ResearchStepModel.layoutItemsOf(record.findings);
   const statusLine = ResearchStepModel.statusLineOf({ setup, sessionState, agentLaunchedAt: launchStampOf(facts, record.agentJobId) }, now);
   const continueStep = ResearchStepModel.continueStepOf(PipelineViewModel.setupStepsOf(record));
-  let findingsPart: ReactNode = <SessionFindings findings={record.findings} emptyText={state === 'not-launched' ? NOT_LAUNCHED_EMPTY_TEXT : null} />;
+  const emptyText = state === 'not-launched' ? NOT_LAUNCHED_EMPTY_TEXT : null;
+  let findingsPart: ReactNode = <SessionFindings findings={record.findings} researching={state === 'researching'} emptyText={emptyText} />;
   if (research !== null) findingsPart = <SessionsAndFindings research={research} />;
   const main = (
     <>
