@@ -18,10 +18,19 @@ function IntakeTabView({ board, route, services }: BoardTabViewProps) {
   return <IntakeView board={board} followTranscript={services.followTranscript} selectedItem={route.item} />;
 }
 
-function PipelineTabView({ board, route, services }: BoardTabViewProps) {
+function PipelineTabView({
+  board, route, services, boardStore
+}: BoardTabViewProps) {
   const clock = useBoardClock();
   return (
-    <PipelineView facts={board} route={route} followTranscript={services.followTranscript} followProfileLog={services.followProfileLog} clock={clock} />
+    <PipelineView
+      facts={board}
+      route={route}
+      followTranscript={services.followTranscript}
+      followProfileLog={services.followProfileLog}
+      clock={clock}
+      boardStore={boardStore}
+    />
   );
 }
 

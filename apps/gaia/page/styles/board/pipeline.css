@@ -186,7 +186,7 @@
 .board-pipeline-setup-column { display: flex; flex-direction: column; gap: var(--sp-5); width: 100%; max-width: 820px; margin: 0 auto; padding-top: var(--sp-5); }
 
 /* The Focus layout of every stage that draws the flow: the main column (the title row, the phase stepper, the open phase) beside the
-   stage's 388 px panel column, over the stage's full-width footer. The column holds the panel slot, a wrapper of the board's own sized
+   stage's panel column, at least 388 px and widened from its left edge, over the stage's full-width footer. The column holds the panel slot, a wrapper of the board's own sized
    to its contents; an empty slot takes no room. */
 .board-pipeline-focus { display: flex; flex: 1 1 auto; flex-direction: column; min-width: 0; min-height: 0; }
 
@@ -198,7 +198,26 @@
   margin: 0 -4px; padding: var(--sp-2) 4px 20px; overflow-y: auto;
 }
 
-.board-pipeline-focus-aside { display: flex; flex: 0 0 388px; flex-direction: column; min-width: 0; min-height: 0; margin: var(--sp-2) 0 20px; }
+.board-pipeline-focus-aside {
+  position: relative; display: flex; flex: 0 0 var(--board-pipeline-panel-width); flex-direction: column; min-width: 0; min-height: 0;
+  margin: var(--sp-2) 0 20px;
+}
+
+/* The handle fills the gap left of the panel; its line shows on hover, while dragging and on focus, and moves nothing. */
+.board-pipeline-focus-resize-handle {
+  position: absolute; top: 0; bottom: 0; left: calc(-1 * var(--sp-5)); z-index: 1; width: var(--sp-5); cursor: col-resize; touch-action: none;
+}
+
+.board-pipeline-focus-resize-handle::after {
+  content: ""; position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; transform: translateX(-50%); border-radius: var(--r-pill);
+  background: var(--see-through);
+}
+
+.board-pipeline-focus-resize-handle:is(:hover, :active)::after { background: var(--line-strong); }
+
+.board-pipeline-focus-resize-handle:focus-visible { outline: none; }
+
+.board-pipeline-focus-resize-handle:focus-visible::after { background: var(--link); }
 
 .board-pipeline-focus-aside:has(> .board-pipeline-focus-panel:empty) { display: none; }
 
@@ -381,6 +400,8 @@ body:has(:is(.board-pipeline-focus, .board-pipeline-resume)) .board-flint-home {
   .board-pipeline-focus-main { flex-basis: auto; overflow-y: visible; }
 
   .board-pipeline-focus-aside { flex-basis: auto; }
+
+  .board-pipeline-focus-resize-handle { display: none; }
 }
 
 /* An opened phase's step and add cards rise one --rise-step after another, as the Flow boards stagger them (an arrow sits between two

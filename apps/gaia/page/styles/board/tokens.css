@@ -16,6 +16,9 @@
   --col-name:      432px;
   --col-name-wide: 780px;
 
+  /* A pipeline page's panel column at its least width; User widens it by dragging its edge, which sets it on the column. */
+  --board-pipeline-panel-width: 388px;
+
   /* A figure or a state word swapping in; a list item fading out where it stood, as long as `useListPresence` keeps it. */
   --motion-tick:  260ms;
   --motion-leave: 220ms;

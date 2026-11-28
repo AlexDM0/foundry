@@ -15,12 +15,14 @@ import {
 } from '../../../lib/design-system/DesignSystemInterface.ts';
 import type { BoardRoute }                             from '../../../shared/BoardRouter.ts';
 import type { ProfileLogFollower, TranscriptFollower } from '../../@types/BoardServices.ts';
+import type { PreferenceStore }                        from '../../preferences/PreferenceStore.ts';
 import { type BoardClock, useTickingNow }              from '../../shared/BoardClock.ts';
 import { CommandButton }                               from '../../shared/commands/CommandButton.tsx';
 import { useBoardHrefOf, useBoardNavigation }          from '../../shared/routing/BoardRouteLinks.ts';
 import { TimeUtil }                                    from '../../utils/TimeUtil.ts';
 
 import { FlowWorkspace }                                                  from './FlowWorkspace.tsx';
+import { PipelinePreferencesContext }                                     from './PipelinePreferencesContext.ts';
 import { PipelineViewModel, type PipelineScreen, type PipelineViewFacts } from './PipelineViewModel.ts';
 import { ProfileLogFollowerContext }                                      from './ProfileLogFollowerContext.ts';
 import { ApplyChangesDialog }                                             from './apply/ApplyChangesDialog.tsx';
@@ -63,6 +65,8 @@ export interface PipelineViewProps {
   /** Follows a gate profile's output on its stream route for the gate dialog's log. */
   readonly followProfileLog: ProfileLogFollower;
   readonly clock:            BoardClock;
+  /** Keeps User's choices on the pipeline pages; null keeps them only while a page is mounted. */
+  readonly boardStore:       PreferenceStore | null;
 }
 
 interface FlowScreenProps {
@@ -410,7 +414,7 @@ function useAppliedToast(facts: PipelineViewFacts): { toast: LiveToastView | nul
 }
 
 export function PipelineView({
-  facts, route, followTranscript, followProfileLog, clock
+  facts, route, followTranscript, followProfileLog, clock, boardStore
 }: PipelineViewProps) {
   const screen = PipelineViewModel.screenOf(facts, route);
   const setupRouteIsLeft = PipelineViewModel.setupRouteIsLeftOf(screen, route);
@@ -422,14 +426,16 @@ export function PipelineView({
   return (
     <section className="board-pipeline" aria-label={PipelineViewModel.screenTitleOf(screen)} data-screen={screen.screen}>
       <ProfileLogFollowerContext.Provider value={followProfileLog}>
-        <ScreenContent
-          facts={facts}
-          screen={screen}
-          route={route}
-          followTranscript={followTranscript}
-          clock={clock}
-          onApplySent={appliedToast.awaitApply}
-        />
+        <PipelinePreferencesContext.Provider value={boardStore}>
+          <ScreenContent
+            facts={facts}
+            screen={screen}
+            route={route}
+            followTranscript={followTranscript}
+            clock={clock}
+            onApplySent={appliedToast.awaitApply}
+          />
+        </PipelinePreferencesContext.Provider>
       </ProfileLogFollowerContext.Provider>
       {appliedToast.toast === null
         ? null

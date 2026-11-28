@@ -132,11 +132,13 @@ export function pipelineViewServicesOf(followTranscript: TranscriptFollower = ()
   readonly followTranscript: TranscriptFollower;
   readonly followProfileLog: ProfileLogFollower;
   readonly clock:            BoardClock;
+  readonly boardStore:       null;
 } {
   return {
     followTranscript,
     followProfileLog: () => () => undefined,
     clock:            { now: () => PIPELINE_FIXTURE_NOW, everySecond: () => () => undefined, after: () => () => undefined },
+    boardStore:       null,
   };
 }
 
