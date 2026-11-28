@@ -1,9 +1,7 @@
 /**
- * Talos runs from the program on disk for as long as its board, so what it may reach is held here: the static import closure of `talos.ts`
- * and of its synchronous-calls thread's entry stays inside the program in `talos/`, the packages its main module declares (its contract in
- * `src/domain/talos/` among them) and, in turn, the packages theirs declare, which never reach the board, the tickets or git. Its shipped
- * files, and the declared packages' files it reaches, name no product and no vendor. A planted import of another lib package, one of a
- * forbidden builtin and a planted vendor name prove the tests fire.
+ * Talos runs from the program on disk for as long as its board, so its import closure stays inside `talos/`, the packages it declares and
+ * theirs, never reaching the board, the tickets or git, and its reached files name no product and no vendor. Planted imports and a planted
+ * vendor name prove the tests fire.
  */
 import { describe, expect, test } from 'bun:test';
 
