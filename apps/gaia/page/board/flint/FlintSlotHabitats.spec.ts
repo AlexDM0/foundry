@@ -64,11 +64,15 @@ describe('the habitats of the Flint slots', () => {
     expect(unreachable).toEqual([]);
   });
 
-  test('Flint waves on arriving in a slot, thinks on arriving in the Constitution step\'s and runs the gate lamps in a command wait\'s', () => {
+  test('Flint waves on arriving in a slot, greets on arriving in the Setup step\'s, thinks in the Constitution step\'s and runs the gate lamps in a command wait\'s', () => {
     const arrivals = Object.entries(FLINT_SLOT_HABITATS).map(([screen, habitat]) => [screen, habitat.suggestions[0]]);
     expect(arrivals.filter(([, suggestion]) => typeof suggestion === 'object' && suggestion.when !== ARRIVED_CUE)).toEqual([]);
     expect(arrivals.filter(([, suggestion]) => typeof suggestion === 'object' && suggestion.respond !== 'wave'))
-      .toEqual([['constitution', { when: ARRIVED_CUE, respond: 'thinking' }], ['commandWait', { when: ARRIVED_CUE, respond: 'gate-run' }]]);
+      .toEqual([
+        ['setup', { when: ARRIVED_CUE, respond: 'greet' }],
+        ['constitution', { when: ARRIVED_CUE, respond: 'thinking' }],
+        ['commandWait', { when: ARRIVED_CUE, respond: 'gate-run' }],
+      ]);
   });
 
   test('each screen\'s kind is its own', () => {
