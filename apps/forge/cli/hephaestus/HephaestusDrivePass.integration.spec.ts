@@ -106,7 +106,7 @@ let currentTeardown = { started: false };
 let wakesInProgress = 0;
 
 async function run(commandLineArguments: readonly string[]) {
-  const context  = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: SPEC_CLOCK });
+  const context  = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: SPEC_CLOCK, platformPorts: ports });
   const exitCode = await runCommandLineWithHephaestusMoves(commandLineArguments, context);
   expect(exitCode, `\`${commandLineArguments.join(' ')}\` failed: ${context.errorText()}`).toBe(0);
   return context;
@@ -361,7 +361,7 @@ describe('crediting an ended job\'s tokens', () => {
 });
 
 async function runRefused(commandLineArguments: readonly string[]): Promise<string> {
-  const context  = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: SPEC_CLOCK });
+  const context  = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: SPEC_CLOCK, platformPorts: ports });
   const exitCode = await runCommandLineWithHephaestusMoves(commandLineArguments, context);
   expect(exitCode, `\`${commandLineArguments.join(' ')}\` was not refused: ${context.outputText()}`).toBe(1);
   return `${context.outputText()}\n${context.errorText()}`;

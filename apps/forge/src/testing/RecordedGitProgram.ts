@@ -8,6 +8,7 @@ import { delimiter, join }                        from 'node:path';
 
 import type { ExecutableResolver }                               from '../lib/executable-resolver/ExecutableResolver.ts';
 import type { PlatformPorts }                                    from '../lib/platform-ports/PlatformPortsFor.ts';
+import type { ProgramFolders }                                   from '../lib/program-folders/ProgramFolders.ts';
 import type { RecordedGit }                                      from './RecordedGit.ts';
 import { createScratchDirectory, keptAsTemplateUntilTheRunEnds } from './ScratchWorkspace.ts';
 
@@ -74,5 +75,9 @@ export function portsResolvingTheRecordedGit(ports: PlatformPorts, flow: SharedR
       ? { verdict: 'found', path: join(flow.programFolder, PROGRAM_NAME) }
       : ports.executableResolver.absolutePathOf(name, forbiddenRoots)),
   };
-  return { ...ports, executableResolver };
+  const programFolders: ProgramFolders = {
+    ...ports.programFolders,
+    installFoldersOf: (homeDirectory) => [flow.programFolder, ...ports.programFolders.installFoldersOf(homeDirectory)],
+  };
+  return { ...ports, executableResolver, programFolders };
 }
