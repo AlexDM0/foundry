@@ -11,7 +11,7 @@ import {
   test
 } from 'bun:test';
 
-import { EXAMPLE_LINK_REFUSAL_MESSAGE, fileReplaceWithoutLinks }                              from '../../testing/FileReplaceWithoutLinks.ts';
+import { fileReplaceWithoutLinks }                                                            from '../../testing/FileReplaceWithoutLinks.ts';
 import { createScratchDirectory, removeScratchDirectory }                                     from '../../testing/ScratchWorkspace.ts';
 import { GENERATION_RECORD_FORMAT_VERSION, GenerationRecordIngestion, type GenerationRecord } from './GenerationRecordIngestion.ts';
 import { createGenerationRecordWriter }                                                       from './GenerationRecordWriter.ts';
@@ -69,7 +69,8 @@ test.each([
   expect(reading().verdict).toBe('unreadable');
 });
 
-test('where hard links fail the writer throws the link failure and leaves no partial file, since a taker reads a partial one as stale', () => {
-  expect(() => createGenerationRecordWriter(generationFilePath(), fileReplaceWithoutLinks()).create(RECORD)).toThrow(EXAMPLE_LINK_REFUSAL_MESSAGE);
-  expect(existsSync(generationFilePath())).toBe(false);
+test('where hard links fail the writer still creates the record exclusively, so a release lands and a claim holds there', () => {
+  expect(createGenerationRecordWriter(generationFilePath(), fileReplaceWithoutLinks()).create(RECORD)).toBe('created');
+  expect(existsSync(generationFilePath())).toBe(true);
+  expect(createGenerationRecordWriter(generationFilePath(), fileReplaceWithoutLinks()).create(RECORD)).toBe('already-exists');
 });
