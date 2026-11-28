@@ -61,6 +61,9 @@ names and the theme button shows, for the by-eye pass against the artboards.
   condition dot is the design system's `StateDot`, hidden from the accessibility tree (`page/components/ConditionDot.tsx`); the row
   beside it says the word or carries it as its title. Fill holds, a ring changes, dashed waits.
 - **No shadow at rest.**
+- **Only conversations and fields select text.** As in a native app, no label, button, tab or row selects its text; a field, a
+  conversation's messages and a document's preview (where a selection anchors a comment) do. `page/lib/design-system/styles/base.css`
+  sets it, and the two `StyleContract.spec.ts` specs hold it.
 - **"You" only for what waits on User:** "Waiting on you", "2 wait on you". Attention's lead reads "What waits on you across every forge,
   and the forges that need a look.", and the list of what waits is labelled "Waiting on you".
 - **Flint only in a forge.** Gaia draws Flint only in the forge route, one per forge, and calls no model (`.claude/rules/gaia.md` rule 12;

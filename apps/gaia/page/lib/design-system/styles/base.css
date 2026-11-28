@@ -25,6 +25,12 @@ button:not(:disabled), [role="button"]:not([aria-disabled="true"]), summary, sel
 :disabled, [aria-disabled="true"] { cursor: default; }
 button:not(:disabled):active, [role="button"]:active { filter: brightness(0.94); }
 
+/* Text is not selectable, as in a native app, but where User types; a host opts its reading surfaces back in with user-select: text. A
+   control stays unselectable inside such a surface. */
+:root { -webkit-user-select: none; user-select: none; }
+input, textarea, select, [contenteditable]:not([contenteditable="false"]) { -webkit-user-select: text; user-select: text; }
+button, [role="button"], [role="tab"], [role="menuitem"], summary { -webkit-user-select: none; user-select: none; }
+
 @media (prefers-reduced-motion: reduce) {
   :focus-visible { animation: none; }
 }
