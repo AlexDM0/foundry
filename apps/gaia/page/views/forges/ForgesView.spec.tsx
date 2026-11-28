@@ -70,7 +70,7 @@ function layoutMarkupWith(fleetDocument: FleetDocument, forgeInView: string | nu
 /** The package's switch as the Gaia panel hands it the notifications setting. */
 function notifySwitchMarkup(checked: boolean): string {
   return renderToStaticMarkup(
-    <Switch accessibleName="Notify me while Gaia is open" labelledBy="gaia-forges-gaia-notify-label" checked={checked} disabled={false} onToggle={doNothing} />,
+    <Switch accessibleName="Enable notifications" labelledBy="gaia-forges-gaia-notify-label" checked={checked} disabled={false} onToggle={doNothing} />,
   );
 }
 
@@ -102,7 +102,7 @@ describe('the Gaia panel in the view', () => {
   test('shows Gaia\'s settings and facts under this machine, from the document, with "What notifies" closed until asked', () => {
     const markup = renderToStaticMarkup(appAt(sourceHolding(FLEET_FIVE_FORGES), '#forges'));
     expect(markup).toMatch(/<section class="gaia-forges-machine".*<\/section><section class="gaia-forges-gaia" aria-labelledby="gaia-forges-gaia-head">/);
-    expect(markup).toContain('Notify me while Gaia is open');
+    expect(markup).toContain('Enable notifications');
     expect(markup).toContain('127.0.0.1:4790');
     expect(markup).not.toContain('gaia-forges-what-notifies-count');
   });

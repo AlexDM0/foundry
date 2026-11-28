@@ -132,11 +132,11 @@ describe('the setup bar\'s one menu', () => {
       .toEqual(['Forge actions', 'icon', 'end', true, 'Forge actions of Example Storefront', false]);
   });
 
-  test('offers Open in new tab, Pause, Stop, and the restarts described by what each runs', () => {
+  test('offers Open in new tab, Pause, Stop, and the restarts described by whether each runs the installed version', () => {
     const { unfolded } = menuOf();
     expect(labelsIn(unfolded)).toEqual(['Open in new tab', 'Pause', 'Stop', 'Restart Hephaestus', 'Restart Talos']);
     expect([itemNamed(unfolded, 'Restart Hephaestus').description, itemNamed(unfolded, 'Restart Talos').description])
-      .toEqual([`Hephaestus ${RUNNING_CODE}`, `Talos protocol 2 · ${RUNNING_CODE}`]);
+      .toEqual(['Runs the installed code', 'Runs the installed program']);
   });
 
   test('Open in new tab opens the route and sends nothing; a restart sends its command', () => {

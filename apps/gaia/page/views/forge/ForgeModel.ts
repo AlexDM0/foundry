@@ -74,13 +74,15 @@ export type BarUpdateStep =
 
 /**
  * One running and newest pair of the bar's versions line: the component, its line (the running version, and the newest installed one
- * where it differs), whether a newer version is installed, which marks the pair and restarts nothing, and the whole reading for its title.
+ * where it differs), whether a newer version is installed, which marks the pair and restarts nothing, the whole reading for its title, and
+ * the reading in plain words for the restart's menu item.
  */
 export interface BarVersionPair {
   readonly component:        'Hephaestus' | 'Talos';
   readonly line:             readonly BarLineSegment[];
   readonly newerIsInstalled: boolean;
   readonly title:            string;
+  readonly summary:          string;
 }
 
 /**
@@ -306,6 +308,7 @@ function hephaestusPairOf(runningVersions: FleetDocumentRunningVersions): BarVer
     title: newerIsInstalled
       ? `Hephaestus runs code ${hephaestusRunning}; code ${hephaestusNewest} is installed. Restart Hephaestus to run it.`
       : `Hephaestus runs code ${hephaestusRunning}${hephaestusNewest === null ? '' : ', the code installed'}.`,
+    summary: newerIsInstalled ? 'Newer code installed' : 'Runs the installed code',
   };
 }
 
@@ -322,7 +325,7 @@ function talosPairOf(versions: FleetDocumentRunningVersions): BarVersionPair {
   const { talosRunning, talosNewest, hephaestusNewest } = versions;
   if (talosRunning === null) {
     return {
-      component: 'Talos', line: [wordsOf('Talos not running')], newerIsInstalled: false, title: 'No Talos runs for this forge.'
+      component: 'Talos', line: [wordsOf('Talos not running')], newerIsInstalled: false, title: 'No Talos runs for this forge.', summary: 'Not running'
     };
   }
   const newerIsInstalled = talosIsBehindTheInstalledProgram(versions);
@@ -342,6 +345,7 @@ function talosPairOf(versions: FleetDocumentRunningVersions): BarVersionPair {
       ? `Talos runs ${running}, code ${talosRunning.codeVersion}; the installed program starts ${newest ?? running}, code ${hephaestusNewest ?? talosRunning.codeVersion}. `
         + 'Restart Talos to run it.'
       : `Talos runs ${running}, code ${talosRunning.codeVersion}.`,
+    summary: newerIsInstalled ? 'Newer program installed' : 'Runs the installed program',
   };
 }
 

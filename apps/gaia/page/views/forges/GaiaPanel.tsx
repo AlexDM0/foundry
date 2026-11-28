@@ -1,5 +1,5 @@
 /**
- * The Forges view's Gaia panel (`docs/design/screens.md`, "Forges and this machine"): the two settings as switches with "What notifies", the
+ * The Forges view's Gaia panel (`docs/design/screens.md`, "Forges and this machine"): the notifications switch with "What notifies" behind a ?, the
  * line of a settings file Gaia cannot use, a refusal, and Gaia's facts. It takes no hooks, so a spec unfolds it whole. `SettingsCheckboxView` and
  * `SettingsRefusalLine` are shared with the "What notifies" list.
  */
@@ -10,9 +10,9 @@ import type { CommandSubject } from '../../api/CommandSender.ts';
 import { Refusal }             from '../../components/Refusal.tsx';
 import {
   Checkbox,
+  IconButton,
   Switch,
-  Text,
-  TextButton
+  Text
 } from '../../lib/design-system/DesignSystemInterface.ts';
 import type {
   GaiaFact,
@@ -40,7 +40,9 @@ const SETTINGS_SUBJECT: CommandSubject = { fleetCommand: 'settings-set' };
 
 const PATH_SEPARATOR = '/';
 
-const THIS_GAIA_LABEL = 'This Gaia';
+const WHAT_NOTIFIES_LABEL = 'What notifies';
+
+const QUESTION_MARK = '?';
 
 /** The aside narrows to give the Forges table room, so a path may break after a slash rather than inside a name. */
 function withBreaksAfterSlashes(value: string): ReactNode {
@@ -51,8 +53,8 @@ function withBreaksAfterSlashes(value: string): ReactNode {
 }
 
 /**
- * The panel sets each fact's label over its value, which the package's fact list does not; a machine value carries its own mono face. This Gaia's
- * facts close the list, each a label and its value on one line.
+ * The panel sets a path fact's label over its value, which the package's fact list does not; a machine value carries its own mono face. This
+ * Gaia's facts close the list, each a label and its value on one line.
  */
 function GaiaFacts({ facts, thisGaiaFacts }: { readonly facts: readonly GaiaFact[]; readonly thisGaiaFacts: readonly GaiaFact[] }) {
   return (
@@ -63,19 +65,12 @@ function GaiaFacts({ facts, thisGaiaFacts }: { readonly facts: readonly GaiaFact
           <dd><Text typeRole="small" mono={fact.valueFace !== 'ui'}>{withBreaksAfterSlashes(fact.value)}</Text></dd>
         </div>
       ))}
-      <div className="gaia-forges-gaia-fact">
-        <dt>{THIS_GAIA_LABEL}</dt>
-        <dd>
-          <dl className="gaia-forges-gaia-this-gaia">
-            {thisGaiaFacts.map((fact) => (
-              <div key={fact.label} className="gaia-forges-gaia-this-gaia-fact">
-                <dt>{fact.label}</dt>
-                <dd>{fact.value}</dd>
-              </div>
-            ))}
-          </dl>
-        </dd>
-      </div>
+      {thisGaiaFacts.map((fact) => (
+        <div key={fact.label} className="gaia-forges-gaia-this-gaia-fact">
+          <dt>{fact.label}</dt>
+          <dd>{fact.value}</dd>
+        </div>
+      ))}
     </dl>
   );
 }
@@ -96,19 +91,19 @@ interface SettingsSwitchProps {
   readonly checkbox: SettingsCheckbox;
   readonly labelId:  string;
   readonly handlers: Pick<GaiaPanelHandlers, 'onSettingsCheckbox'>;
-  /** What sits under the label, such as the "What notifies" button, outside the label so it names nothing. */
-  readonly under?:   ReactNode;
+  /** What follows the label, such as the "What notifies" button, outside the label so it names nothing. */
+  readonly beside?:  ReactNode;
 }
 
 /** A setting of the panel as the package's switch, named by its visible label. */
 function SettingsSwitch({
-  checkbox, labelId, handlers, under
+  checkbox, labelId, handlers, beside
 }: SettingsSwitchProps) {
   return (
     <div className="gaia-forges-gaia-setting">
       <span className="gaia-forges-gaia-setting-text">
         <span className="gaia-forges-gaia-setting-label" id={labelId}>{checkbox.label}</span>
-        {under}
+        {beside}
       </span>
       <Switch
         accessibleName={checkbox.label}
@@ -149,7 +144,7 @@ export function GaiaPanel({ content, handlers }: GaiaPanelProps) {
           checkbox={content.notify}
           labelId={NOTIFY_LABEL_ID}
           handlers={handlers}
-          under={<TextButton label="What notifies" onPress={handlers.onOpenWhatNotifies} />}
+          beside={<IconButton drawing={QUESTION_MARK} accessibleName={WHAT_NOTIFIES_LABEL} title={WHAT_NOTIFIES_LABEL} onPress={handlers.onOpenWhatNotifies} />}
         />
       </div>
       <SettingsRefusalLine refusal={content.refusal} handlers={handlers} />

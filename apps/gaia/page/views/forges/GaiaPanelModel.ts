@@ -51,19 +51,19 @@ export interface GaiaPanelContent {
   /** Said when Gaia runs on its defaults because its settings file cannot be used. */
   readonly settingsFileLine: string | null;
   readonly facts:            readonly GaiaFact[];
-  /** This Gaia's own facts, each a label and its mono value on one line, under one label. */
+  /** This Gaia's own facts, each a label and its mono value on one line. */
   readonly thisGaiaFacts:    readonly GaiaFact[];
   readonly refusal:          SettingsRefusal | null;
 }
 
 export interface WhatNotifiesContent {
   readonly kinds:   readonly SettingsCheckbox[];
-  /** Said while "Notify me while Gaia is open" is off, since then no kind notifies. */
+  /** Said while "Enable notifications" is off, since then no kind notifies. */
   readonly offLine: string | null;
   readonly refusal: SettingsRefusal | null;
 }
 
-const NOTIFY_LABEL = 'Notify me while Gaia is open';
+const NOTIFY_LABEL = 'Enable notifications';
 
 /** The seven notification kinds, in order, each named and explained as `docs/design/screens.md` does. */
 const NOTIFICATION_KINDS: readonly { readonly kind: FleetDocumentNotificationKind; readonly label: string; readonly explanation: string }[] = [
@@ -128,9 +128,9 @@ function factsOf(fleetDocument: FleetDocument): GaiaFact[] {
 /** This Gaia's system version and the one forge version it is built for, never its package version. */
 function thisGaiaFactsOf({ gaia }: FleetDocument): GaiaFact[] {
   return [
-    { label: 'version', value: ForgeVersionsTextUtil.versionTextOf(gaia.versions.systemVersion) },
-    { label: 'built for forge', value: ForgeVersionsTextUtil.versionTextOf(gaia.versions.supportedForgeVersion) },
-    { label: 'address', value: hostOf(gaia.address) },
+    { label: 'Gaia version', value: ForgeVersionsTextUtil.versionTextOf(gaia.versions.systemVersion) },
+    { label: 'Built for forge', value: ForgeVersionsTextUtil.versionTextOf(gaia.versions.supportedForgeVersion) },
+    { label: 'Address', value: hostOf(gaia.address) },
   ];
 }
 

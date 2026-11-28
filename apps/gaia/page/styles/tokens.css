@@ -58,19 +58,18 @@
   --fs-agents-panel-kind: 14px;
   --line-height-agents-last-line: 18px;
   /* The artboard's tracks would leave the Forge column too little room for a name and the root path on their
-     lines, since Agents holds the package's number stepper after the agents in flight: Hephaestus and Code are a little narrower, and so is
+     lines, since Agents holds the package's number stepper after the agents in flight: Hephaestus is a little narrower, and so is
      the aside, which gives way, down to its least width, before the Forge column does. */
   --forges-forge-column-width:     228px;
   --forges-condition-column-width: 96px;
   --forges-agents-column-width:    145px;
   --forges-waiting-column-width:   56px;
-  --forges-code-column-width:      50px;
-  --forges-controls-column-width:  229px;
+  --forges-controls-column-width:  288px;
   --forges-table-columns:          minmax(0, 1fr) var(--forges-condition-column-width) var(--forges-agents-column-width)
-                                   var(--forges-waiting-column-width) var(--forges-code-column-width) var(--forges-controls-column-width);
+                                   var(--forges-waiting-column-width) var(--forges-controls-column-width);
   --forges-table-width:            calc(var(--forges-forge-column-width) + var(--forges-condition-column-width) + var(--forges-agents-column-width)
-                                   + var(--forges-waiting-column-width) + var(--forges-code-column-width) + var(--forges-controls-column-width)
-                                   + 5 * var(--sp-2) + 2 * var(--sp-4) + 2 * var(--hairline));
+                                   + var(--forges-waiting-column-width) + var(--forges-controls-column-width)
+                                   + 4 * var(--sp-2) + 2 * var(--sp-4) + 2 * var(--hairline));
   --forges-aside-width:            258px;
   --forges-aside-least-width:      240px;
   --hairline:            1px;

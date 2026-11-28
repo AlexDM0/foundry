@@ -42,7 +42,7 @@ afterAll(async () => {
 
 describe('the forge program of a forge checkout', () => {
   test('answers version --json at exit 0 with its code and install versions and no answerVersion, which Gaia does not understand', async () => {
-    const forgeProgram = createForgeProgram({ processRun: recordingRun, settingsProgramPath: () => EXAMPLE_FORGE_PROGRAM_PATH });
+    const forgeProgram = createForgeProgram({ processRun: recordingRun, knownProgramPath: () => EXAMPLE_FORGE_PROGRAM_PATH });
     const verdict      = await forgeProgram.version(forgeInTheScratchRepository(null));
     expect(verdict).toEqual({ verdict: 'answer-not-understood', reason: 'other-answer-version', exitCode: 0 });
     const answer = recordingRun.lastAnswer();
@@ -53,7 +53,7 @@ describe('the forge program of a forge checkout', () => {
   });
 
   test('refuses init and update with --json at exit 1, with nothing Gaia understands on standard output', async () => {
-    const forgeProgram = createForgeProgram({ processRun: recordingRun, settingsProgramPath: () => null });
+    const forgeProgram = createForgeProgram({ processRun: recordingRun, knownProgramPath: () => null });
     const forge        = forgeInTheScratchRepository(EXAMPLE_FORGE_PROGRAM_PATH);
     expect(await forgeProgram.init(forge, 'Example Project')).toEqual({ verdict: 'answer-not-understood', reason: 'no-json', exitCode: 1 });
     expect(recordingRun.lastAnswer()).toMatchObject({ verdict: 'finished', exitCode: 1, standardOutput: '' });
@@ -62,7 +62,7 @@ describe('the forge program of a forge checkout', () => {
   });
 
   test('answers program-not-found, naming the path, for a forge program that is not there', async () => {
-    const forgeProgram = createForgeProgram({ processRun: recordingRun, settingsProgramPath: () => null });
+    const forgeProgram = createForgeProgram({ processRun: recordingRun, knownProgramPath: () => null });
     const verdict      = await forgeProgram.version(forgeInTheScratchRepository(MISSING_FORGE_PROGRAM_PATH));
     expect(verdict).toEqual({ verdict: 'program-not-found', program: MISSING_FORGE_PROGRAM_PATH });
   });

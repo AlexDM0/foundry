@@ -1,6 +1,7 @@
 /**
  * Runs the forge program for what no Hephaestus API can do: one verb in the forge's root, through process-run, answered as a verdict. The
- * program is the registry's `program` for the forge, else the one in Gaia's settings (`docs/architecture.md`, "A command, from button to forge").
+ * program is the registry's `program` for the forge, else the one Gaia knows: its settings' choice, or the forge beside it (`docs/architecture.md`,
+ * "A command, from button to forge").
  */
 import type { ProcessRun } from '../../lib/process-run/ProcessRun.ts';
 import type {
@@ -21,9 +22,9 @@ export interface ForgeProgramTarget {
 }
 
 export interface ForgeProgramOptions {
-  readonly processRun:          ProcessRun;
+  readonly processRun:       ProcessRun;
   /** Read at each run, so a program chosen in the settings counts from the next verb on. */
-  readonly settingsProgramPath: () => string | null;
+  readonly knownProgramPath: () => string | null;
 }
 
 export interface ForgeProgram {
@@ -45,7 +46,7 @@ const JSON_FLAG = '--json';
 
 export function createForgeProgram(options: ForgeProgramOptions): ForgeProgram {
   function programFor(forge: ForgeProgramTarget): string | null {
-    return forge.program ?? options.settingsProgramPath();
+    return forge.program ?? options.knownProgramPath();
   }
 
   async function run<Answer>(

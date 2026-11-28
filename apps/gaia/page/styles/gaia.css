@@ -819,11 +819,11 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-forges-machine-fact dd { margin: 0; font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink); }
 .gaia-forges-machine-fact[data-attention] dd { color: var(--link); }
 
-/* Gaia: its settings as switches, "What notifies" under the second's label, and its facts */
+/* Gaia: its notifications switch with "What notifies" behind a ? after its label, and its facts */
 .gaia-forges-gaia-settings-file { margin: 0; font-size: var(--fs-small); color: var(--link); }
 .gaia-forges-gaia-notify { display: flex; flex-direction: column; }
 .gaia-forges-gaia-setting { display: flex; align-items: center; gap: var(--sp-2); }
-.gaia-forges-gaia-setting-text { display: flex; flex: 1; flex-direction: column; align-items: flex-start; min-width: 0; }
+.gaia-forges-gaia-setting-text { display: flex; flex: 1; align-items: center; gap: var(--sp-1); min-width: 0; }
 .gaia-forges-gaia-setting-label { color: var(--ink); }
 .gaia-forges-gaia-facts {
   display: flex;
@@ -837,8 +837,7 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 }
 .gaia-forges-gaia-fact dt { color: var(--ink-muted); }
 .gaia-forges-gaia-fact dd { margin: 0; overflow-wrap: anywhere; }
-/* This Gaia's facts under their label: each a label and its mono value at the far end, on one line */
-.gaia-forges-gaia-this-gaia { display: flex; flex-direction: column; gap: var(--space-2); margin: 0; }
+/* This Gaia's facts: each a label and its mono value at the far end, on one line */
 .gaia-forges-gaia-this-gaia-fact { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-2); }
 .gaia-forges-gaia-this-gaia-fact dt { color: var(--ink-muted); }
 .gaia-forges-gaia-this-gaia-fact dd { margin: 0; font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink); }

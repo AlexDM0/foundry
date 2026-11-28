@@ -62,7 +62,7 @@ beforeAll(async () => {
   trackedRepository = await scratchForge.createRepository('example-project');
   scratchForge.exampleValueFor({ drawn: trackedRepository, example: EXAMPLE_ROOT });
   recordingRun = forgeProgramRecordingRun({ recordingName: RECORDING_NAME, scratchForge, program: forgeProgramToRun(RECORDING_NAME) });
-  forgeProgram = createForgeProgram({ processRun: recordingRun, settingsProgramPath: () => null });
+  forgeProgram = createForgeProgram({ processRun: recordingRun, knownProgramPath: () => null });
   const { trackerId } = await scratchForge.runForDocument(trackedRepository, ['init', '--project', 'Example Project', '--no-hooks', '--json']);
   scratchForge.exampleValueFor({ drawn: String(trackerId), example: EXAMPLE_TRACKER_ID });
   const { installVersion, codeVersion } = await scratchForge.runForDocument(trackedRepository, ['version', '--json']);

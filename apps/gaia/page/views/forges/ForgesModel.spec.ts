@@ -137,15 +137,15 @@ describe('a row of the table (A4)', () => {
     expect(content.emptySentence).toBeNull();
   });
 
-  test('reads the root from ~, the condition word with the current version or when it stopped, the agents against the limit, what waits and the code', () => {
+  test('reads the root from ~, the condition word with the current version or when it stopped, the agents against the limit, what waits', () => {
     const content = contentOf(FLEET_FIVE_FORGES);
-    const cellsOf = (row: ForgeRow) => [row.rootText, row.conditionWord, row.conditionTone, row.detailText ?? row.versions?.subline?.text, row.waitingCount, row.codeText];
+    const cellsOf = (row: ForgeRow) => [row.rootText, row.conditionWord, row.conditionTone, row.detailText ?? row.versions?.subline?.text, row.waitingCount];
     expect(content.rows.map(cellsOf)).toEqual([
-      ['~/development/example-storefront', 'Live', null, 'forge 1.1', 2, '3f9a2c1'],
-      ['~/development/invoice-service', 'Live', null, 'forge 1.1', 2, '3f9a2c1'],
-      ['~/development/research-wiki', 'Live', null, 'forge 1.1', 1, '3f9a2c1'],
-      ['~/development/example-mobile-app', 'Launches held', 'warn', 'forge 1.1', null, 'b81e07d'],
-      ['~/development/design-system', 'Dormant', 'muted', 'stopped 12:20', null, '3f9a2c1'],
+      ['~/development/example-storefront', 'Live', null, 'forge 1.1', 2],
+      ['~/development/invoice-service', 'Live', null, 'forge 1.1', 2],
+      ['~/development/research-wiki', 'Live', null, 'forge 1.1', 1],
+      ['~/development/example-mobile-app', 'Launches held', 'warn', 'forge 1.1', null],
+      ['~/development/design-system', 'Dormant', 'muted', 'stopped 12:20', null],
     ]);
     const agentsCellOf = ({ agents }: ForgeRow) => {
       if (agents === null || agents.kind === 'not-read') return agents;

@@ -161,7 +161,6 @@ export interface ForgeRow {
   readonly waitingCount:   number | null;
   /** `false` for a forge Gaia cannot talk to: its agents and what waits in it are not read. */
   readonly workIsRead:     boolean;
-  readonly codeText:       string | null;
   readonly buttons:        readonly ForgeButton[];
   readonly isInView:       boolean;
   readonly stopDialog:     StopDialog | null;
@@ -242,7 +241,6 @@ export interface ForgesContent {
 
 const HEAD_SEPARATOR = ' · ';
 const DETAIL_SEPARATOR = ' · ';
-const SHORT_CODE_VERSION_CHARACTERS = 7;
 
 /** What the machine panel's limit shows while no forge reports one. */
 const NO_LIMIT_KNOWN = '—';
@@ -671,7 +669,6 @@ function rowOf(forge: FleetDocumentForge, rowSurroundings: RowSurroundings): For
     agents:         agentsCellOf(forge, rowSurroundings),
     waitingCount:   workIsRead ? waitingCountShownOf(forge) : null,
     workIsRead,
-    codeText:       forge.codeVersion === null ? null : forge.codeVersion.slice(0, SHORT_CODE_VERSION_CHARACTERS),
     buttons:        buttonsOf(forge, rowSurroundings),
     isInView:       surroundings.forgeInView === forge.trackerId,
     stopDialog:     stopDialogOf(forge, surroundings),

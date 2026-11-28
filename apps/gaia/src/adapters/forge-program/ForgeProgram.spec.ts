@@ -44,9 +44,9 @@ function registeredForge(program: string | null = EXAMPLE_FORGE_PROGRAM_PATH): F
   return { root: forgeRoot, program };
 }
 
-function forgeProgramAt(stage: ForgeProgramStage, settingsProgramPath: string | null = null) {
+function forgeProgramAt(stage: ForgeProgramStage, knownProgramPath: string | null = null) {
   const processRun = recordedForgeProgramRunOf(stage);
-  return { processRun, forgeProgram: createForgeProgram({ processRun, settingsProgramPath: () => settingsProgramPath }) };
+  return { processRun, forgeProgram: createForgeProgram({ processRun, knownProgramPath: () => knownProgramPath }) };
 }
 
 /** The recorded forge program, also noting the working directory of each call: the recorded call shape leaves it out. */
@@ -68,7 +68,7 @@ function forgeProgramNotingWorkingDirectories(stage: ForgeProgramStage) {
     },
   };
   return {
-    forgeProgram:       createForgeProgram({ processRun, settingsProgramPath: () => null }),
+    forgeProgram:       createForgeProgram({ processRun, knownProgramPath: () => null }),
     callShapesAnswered: recordedRun.callShapesAnswered,
     workingDirectories,
   };
@@ -204,10 +204,10 @@ describe('the program a verb runs', () => {
 
   test('is read from the settings at each verb, so a program chosen later counts from the next verb on', async () => {
     const processRun = recordedForgeProgramRunOf('every-verb-done');
-    let settingsProgramPath: string | null = null;
-    const forgeProgram = createForgeProgram({ processRun, settingsProgramPath: () => settingsProgramPath });
+    let knownProgramPath: string | null = null;
+    const forgeProgram = createForgeProgram({ processRun, knownProgramPath: () => knownProgramPath });
     expect(await forgeProgram.stop(registeredForge(null))).toEqual({ verdict: 'program-not-found', program: null });
-    settingsProgramPath = EXAMPLE_FORGE_PROGRAM_PATH;
+    knownProgramPath = EXAMPLE_FORGE_PROGRAM_PATH;
     expect(await forgeProgram.stop(registeredForge(null))).toEqual({ verdict: 'done', answer: { outcome: 'done' } });
   });
 

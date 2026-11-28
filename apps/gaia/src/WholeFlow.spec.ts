@@ -293,7 +293,7 @@ async function startGaia(): Promise<RunningGaia> {
     readRegistry,
     readings:        watch.readings,
     forgeClient,
-    forgeProgram:    createForgeProgram({ processRun: forgeProgramRun, settingsProgramPath: () => settingsStore.settings().forgeProgramPath }),
+    forgeProgram:    createForgeProgram({ processRun: forgeProgramRun, knownProgramPath: () => settingsStore.settings().forgeProgramPath }),
     settingsStore,
     pathChooser:     createPathChooser({ processRun: forgeProgramRun, workingDirectory: () => home, cancellation: new AbortController().signal }),
     lookAgain:       watch.lookAgain,
