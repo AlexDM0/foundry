@@ -1,5 +1,5 @@
 /**
- * An agent's question across its job, its decision or incident and its ticket (design section 8.2): an answer written as option letters,
+ * An agent's question across its job, its decision or incident and its ticket: an answer written as option letters,
  * the job's way back once answered, a question outliving its job held on its ticket, and an escalation carrying exactly the agent's words.
  */
 import type { DecisionAnswered } from './@types/BoardChanges.ts';

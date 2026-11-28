@@ -246,7 +246,7 @@ describe('the legality table', () => {
     expect(Object.keys(LEGAL_SOURCE_STATES_FOR_JOB_MOVE).sort()).toEqual([...JOB_STATES, 'ended'].sort());
   });
 
-  // Written from design section 3.2's job diagram, not from the table, so a wrong entry in the table fails here.
+  // Written from the job lifecycle diagram, not from the table, so a wrong entry in the table fails here.
   test('allows from each state exactly the moves the design draws', () => {
     const DESIGNED_TARGETS_FROM_STATE: Readonly<Record<JobState, readonly JobMoveTarget[]>> = {
       'launching':          ['preparing', 'running', 'merging', 'stopping', 'ended'],

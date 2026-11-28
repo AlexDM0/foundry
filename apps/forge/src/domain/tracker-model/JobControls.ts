@@ -1,5 +1,5 @@
 /**
- * User's controls over a live job, User's resumes and the product owner's intake (design sections 7.4, 8.1 and 8.4): each records in the
+ * User's controls over a live job, User's resumes and the product owner's intake: each records in the
  * hold and Hephaestus carries it out, so every one works with Hephaestus down.
  * A stop or wind-down holds the job's ticket in the same hold.
  */

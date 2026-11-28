@@ -434,10 +434,9 @@ export class PipelineSetups {
   }
 
   /**
-   * The forge's agent: the stored pipeline's, and the open setup record's with it, so its pipeline agent runs on the same one. A billing
-   * sent with it is stored with it; with none, a stored billing the new vendor does not bill by is refused `billing-not-offered`, since
-   * the billing is User's choice. A first setup's record asks its billing again instead. With no stored pipeline an open record takes the
-   * agent alone; with neither it is refused `agent-without-pipeline`. Every launch it refused is tried again.
+   * The forge's agent: the stored pipeline's, and the open setup record's with it, so its pipeline agent runs on the same one. With no
+   * billing sent, a stored billing the new vendor does not bill by is refused `billing-not-offered`, since the billing is User's choice;
+   * a first setup's record asks its billing again instead. With neither pipeline nor record it is refused `agent-without-pipeline`.
    */
   setAgent(agent: PipelineAgent, billing: PipelineBilling | undefined, offeredBillingModesOf: OfferedBillingModesOf, at: string): Logged {
     const setup = this.setupRecord.openSetupRecord();

@@ -23,9 +23,8 @@ export class IntakeCloses {
 
   /**
    * The product owner's close submits every draft its intake chain filed: readied, or ready for review when ticket review is on. Work
-   * outside an entity (E85) is refused before the job moves, so a corrected retry can still close. In the spec-then-plan `route`,
-   * `readinessGapsOf` judges a draft's Report and Wanted: each complete draft stays a draft and opens its spec and plan, which ready it. In a
-   * forge with entities a complete draft without one is refused there too, before the job moves, since its documents could never ready it.
+   * outside an entity is refused before the job moves, so a corrected retry can still close. In the spec-then-plan `route` a complete draft
+   * opens its spec and plan, which ready it; on a forge with entities one without an entity is refused there too, as nothing could ready it.
    */
   closeIntake(
     jobId: string,

@@ -1,8 +1,7 @@
 /**
- * The gate profile runs' moves: User's press queues one gate in one phase, Hephaestus marks it running and records how it ended, and
- * User's Stop ends a queued run at once or asks Hephaestus to end a running one. A second press while the gate and phase have a run
- * queued or running refuses. Only the newest run of a gate and phase is kept; on a forge over entities, of an entity's gate and phase.
- * The gate a run profiles is read from the open setup's draft, or with no setup named from the stored pipeline.
+ * The gate profile runs' moves: User's press queues one gate in one phase, Hephaestus runs it and records its end, and User's Stop ends it.
+ * A second press while that gate and phase have a run queued or running refuses, and only the newest run of a gate and phase is kept. The
+ * gate is read from the open setup's draft, or with no setup named from the stored pipeline.
  */
 import type { GateProfileChanged }     from './@types/BoardChanges.ts';
 import type {

@@ -1,5 +1,5 @@
 /**
- * The Airlock of a target on the board (design section 6.2): which queued tickets are its candidates, the claim that launches the one
+ * The Airlock of a target on the board: which queued tickets are its candidates, the claim that launches the one
  * merge job holding it, and the `merge-started` and `merge-landed` records. Git stays outside: tips and predictions arrive as values.
  */
 import type { JobChanged, Logged }     from './@types/BoardChanges.ts';

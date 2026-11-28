@@ -1,5 +1,5 @@
 /**
- * What the moves under an incident and its default do to the board (design sections 5.4 and 8.3): an answer delivered to the waiting
+ * What the moves under an incident and its default do to the board: an answer delivered to the waiting
  * job, a park that stops it and keeps the agent's questions in front of User, and each kind's fail-safe default. Which move an incident's
  * kind allows is the caller's table; this applies a move already allowed.
  */

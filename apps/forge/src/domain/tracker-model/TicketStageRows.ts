@@ -1,8 +1,7 @@
 /**
- * A crossing ticket's stage and seals on its row (strategy 4.2): the stage its next launch comes from, and the seal of each package that a
- * package review sealed. A ticket whose row stores no stage is in `build`, and a stage job never moves the ticket's status. Each stage
- * start, seal and package return is logged; a package return lifts the returned package's seal and counts on the row (E41, E65). The owner
- * agreed to one way back: a second return is not a move but the decision `second-return`, which `returnTicketToThePackage` opens (E45).
+ * A crossing ticket's stage and seals on its row: the stage its next launch comes from, and the seal of each package a package review
+ * sealed. A stage job never moves the ticket's status. A package return lifts that package's seal and counts on the row; the owner agreed
+ * to one way back, so a second return opens the decision `second-return` instead of moving the ticket.
  */
 import type { Logged }                         from './@types/BoardChanges.ts';
 import type { LogRecord }                      from './@types/LogRecord.ts';
@@ -16,7 +15,7 @@ import { TicketStageUtil }                     from './utils/TicketStageUtil.ts'
 /** The stage of a ticket whose row stores none: stage 1 of its own entity. */
 const STAGE_OF_A_ROW_WITHOUT_ONE = 'build';
 
-/** The package returns the owner agreed to (E45). */
+/** The package returns the owner agreed to. */
 const PACKAGE_RETURNS_AGREED = 1;
 
 export class TicketStageRows {
@@ -63,7 +62,7 @@ export class TicketStageRows {
   }
 
   /**
-   * The package change of a crossing ticket is dropped or becomes a need (E19, E22): the package's seal is lifted, so stage 1 may take the
+   * The package change of a crossing ticket is dropped or becomes a need: the package's seal is lifted, so stage 1 may take the
    * change out, and the ticket goes back to `build` of its home, where a ticket already back there stays. No package return is counted.
    */
   moveTicketBackToBuild(ticketId: string, homeEntity: string, packageEntity: string, at: string): Logged {
@@ -78,7 +77,7 @@ export class TicketStageRows {
   }
 
   /**
-   * The ticket starts afresh in another entity (E15): its row stores no stage, so its next build is stage 1 of its new entity, and the
+   * The ticket starts afresh in another entity: its row stores no stage, so its next build is stage 1 of its new entity, and the
    * seals of its old branch go, emptied rather than removed as a lifted seal leaves them.
    */
   clearTicketStage(ticketId: string): void {
@@ -106,8 +105,8 @@ export class TicketStageRows {
   }
 
   /**
-   * A crossing ticket goes back into the package build of `packageEntity` (E41, E65) once. A second return opens `second-return` instead,
-   * which holds the ticket at its stage until User answers (E45); one already open is not opened again.
+   * A crossing ticket goes back into the package build of `packageEntity` once. A second return opens `second-return` instead, which
+   * holds the ticket at its stage until User answers; one already open is not opened again.
    */
   returnTicketToThePackage(ticketId: string, packageEntity: string, decisionWordingOf: (draft: DecisionDraft) => DecisionWording, at: string): Logged {
     const packageBuild: TicketStage = { name: 'package-build', entity: packageEntity };

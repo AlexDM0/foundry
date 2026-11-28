@@ -1,9 +1,7 @@
 /**
- * The setup record's Apply. It has two stages: the request checks the record and, while main lacks the draft's constitution, waits for
- * its commit; the finish stores the pipeline, the constitution's sources and the board's settings, logs, and last closes the record. It is
- * idempotent by setup and draft revision, so a retried Apply never refuses the pipeline it stored itself. On a draft over entities the
- * forge has no constitution of its own: each entity's drafted text is what the commit writes, and an entity with no draft adopts the file
- * main holds.
+ * The setup record's Apply: the request checks the record and, while main lacks the draft's constitution, waits for its commit; the finish
+ * stores pipeline, sources and settings, logs and closes the record, idempotent by setup and draft revision so a retry never refuses its own
+ * pipeline. A draft over entities has no forge constitution: each entity's drafted text is committed, and one without adopts main's file.
  */
 import type { Logged, PipelineApplyChanged, PipelineSetupChanged } from './@types/BoardChanges.ts';
 import type { EntityKey, Pipeline }                                from './@types/Pipeline.ts';
@@ -105,12 +103,9 @@ export class PipelineSetupApplies {
   ) {}
 
   /**
-   * Stage 1. The request of the revision already waiting answers with it, and the revision an earlier Apply closed answers
-   * `already-applied`. Otherwise it refuses an open question, a step that needs a recheck, a touched snapshot, an entity refusal that
-   * stands, the removal of an entity a ticket names (E91), a stored pipeline without entities turning into entities while a ticket is in
-   * flight (E94), a stored pipeline that moved since the record opened, and a `CONSTITUTION.md` main changed since; when main already
-   * holds every draft's text, stage 2 runs at once, else the request waits for the constitution commit and nothing else is written. Each
-   * entity's draft takes main's blob of its file as its base, which its commit must find.
+   * Stage 1. A revision already waiting or already applied answers as it stands; otherwise `applyRequestVerdictOf` refuses what blocks it.
+   * When main holds every draft's text stage 2 runs at once, else the request waits for the constitution commit and nothing else is written.
+   * Each entity's draft takes main's blob of its file as its base, which its commit must find.
    */
   requestApply(setupId: string, requesting: ApplyRequesting, at: string): PipelineApplyChanged {
     const reading = this.records.pipelineSetupReading;
@@ -151,11 +146,9 @@ export class PipelineSetupApplies {
   }
 
   /**
-   * Stage 2, in the hold that found main holding the draft's text: the whole pipeline with `constitution.path` on main's file, the
-   * constitution's sources keyed by its blob id, the withdrawal of `checks-not-set` and the resume when asked, `pipeline-applied`, and
-   * last the record's close. A pipeline already stored from this draft is no move of anyone else's, so a retry finishes the rest. E91 and
-   * E94 refuse again, since a ticket can start or take an entity while the request waits. The first Apply that stores entities names the
-   * committed tickets without one, which the product owner then gives one.
+   * Stage 2, in the hold that found main holding the draft's text. A pipeline already stored from this draft is no move of anyone else's, so a
+   * retry finishes the rest. The entity refusals run again, since a ticket can start or take an entity while the request waits. The first
+   * Apply that stores entities names the committed tickets without one, which the product owner then gives one.
    */
   finishApply(setupId: string, finishing: ApplyFinishing, at: string): PipelineApplyChanged {
     const setup = this.setupRecord.requireOpenSetup(setupId);
@@ -304,7 +297,7 @@ export class PipelineSetupApplies {
     return contentHash !== setup.baseContentHash && contentHash !== PipelineUtil.contentHashOf(this.appliedPipelineOf(setup, reading));
   }
 
-  /** The E91 or E94 refusal stage 2 would give, as the reason its request is refused with; `null` when it gives neither. */
+  /** The entity refusal stage 2 would give, as the reason its request is refused with; `null` when it gives neither. */
   entityChangeRefusalOf(setupId: string): EntityChangeRefusalReason | null {
     try {
       this.refuseEntityChanges(this.setupRecord.requireOpenSetup(setupId));
@@ -399,8 +392,8 @@ export class PipelineSetupApplies {
   }
 
   /**
-   * E91: an entity of the stored pipeline that the draft no longer holds, removed or renamed, while a ticket that is not delivered or
-   * abandoned names it. E94: a stored pipeline without entities that the draft turns into entities while a ticket is in flight.
+   * `entity-named-by-tickets`: the draft drops or renames an entity a ticket that is not delivered or abandoned names.
+   * `entities-while-tickets-in-flight`: the draft turns a stored pipeline without entities into entities while a ticket is in flight.
    */
   private refuseEntityChanges(setup: Readonly<PipelineSetup>): void {
     const stored = this.records.pipeline;

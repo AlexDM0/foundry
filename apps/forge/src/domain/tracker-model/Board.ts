@@ -628,12 +628,12 @@ export class Board {
     return this.ticketStageRows.moveTicketStage(ticketId, stage, at);
   }
 
-  /** A crossing ticket's package change dropped or turned into a need: the package's seal is lifted, the ticket goes back to build (E19, E22). */
+  /** A crossing ticket's package change dropped or turned into a need: the package's seal is lifted, the ticket goes back to build. */
   moveTicketBackToBuild(ticketId: string, homeEntity: string, packageEntity: string, at: string): Logged {
     return this.ticketStageRows.moveTicketBackToBuild(ticketId, homeEntity, packageEntity, at);
   }
 
-  /** The ticket no longer crosses into a package: its row's stage and seals go (E15). */
+  /** The ticket no longer crosses into a package: its row's stage and seals go. */
   clearTicketStage(ticketId: string): void {
     this.ticketStageRows.clearTicketStage(ticketId);
   }
@@ -642,7 +642,7 @@ export class Board {
     return this.ticketStageRows.returnTicketToThePackage(ticketId, packageEntity, decisionWordingOf, at);
   }
 
-  /** Whether `returnTicketToThePackage` would open `second-return` rather than move the ticket into the package's build (E45). */
+  /** Whether `returnTicketToThePackage` would open `second-return` rather than move the ticket into the package's build. */
   returnToThePackageIsASecondReturn(ticketId: string, packageEntity: string): boolean {
     return this.ticketStageRows.stageMoveIsASecondPackageReturn(ticketId, { name: 'package-build', entity: packageEntity });
   }
@@ -1275,7 +1275,7 @@ export class Board {
     return this.setupApplies.storedPipelineMovedSince(setupId, reading);
   }
 
-  /** The E91 or E94 refusal stage 2 would give: a ticket started, or took an entity the draft removes, while the request waited. */
+  /** The entity refusal stage 2 of an Apply would give: a ticket started, or took an entity the draft removes, while the request waited. */
   entityChangeRefusalOf(setupId: string): EntityChangeRefusalReason | null {
     return this.setupApplies.entityChangeRefusalOf(setupId);
   }
@@ -1320,7 +1320,7 @@ export class Board {
     return this.ticketMoves.readyDraftTickets(ticketIds, readinessGapsOf, at, readiableStatuses, workFilesOf);
   }
 
-  /** The filer's close of its drafts, judged by the board's ticket review switch; `workFilesOf` refuses work outside an entity (E85). */
+  /** The filer's close of its drafts, judged by the board's ticket review switch; `workFilesOf` refuses work outside an entity. */
   submitDraftTickets(
     ticketIds: readonly string[],
     readinessGapsOf: (body: string) => readonly ReadinessGap[],
@@ -1330,7 +1330,7 @@ export class Board {
     return this.ticketMoves.submitDraftTickets(ticketIds, this.ticketReviewIsOn(), readinessGapsOf, at, workFilesOf);
   }
 
-  /** Refuses E85 for the complete tickets a submit would move, judged before anything moves; a ticket not yet filed may be judged. */
+  /** Refuses work outside an entity for the complete tickets a submit would move, before anything moves; an unfiled ticket may be judged. */
   refuseWorkOutsideTheEntity(
     tickets: readonly Readonly<Ticket>[],
     readinessGapsOf: (body: string) => readonly ReadinessGap[],
