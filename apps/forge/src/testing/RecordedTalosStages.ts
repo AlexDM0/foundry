@@ -1,9 +1,7 @@
 /**
- * The Talos of a default spec: `useRecordedTalosStages` starts no Talos, and answers each frame of Hephaestus's connection by leaving
- * what the real Talos left in that stage of a child, which `talos/Talos.stages.integration.spec.ts` records under
- * `bun run record talos/Talos.ts`: the child record, the origin of each event-log line, whether the child still runs, and Talos's
- * own record. A stage with no recorded answer fails the case. Talos's and its children's processes are in the recorded process table.
- * What the child does is not Talos's: a session plays its `FakeAgentAdapter` scenario, and a line ends as `scriptLine` said.
+ * The Talos of a default spec: it starts no Talos and answers each frame of Hephaestus's connection by leaving what the real Talos left in
+ * that stage of a child, as `talos/Talos.stages.integration.spec.ts` records it. A stage with no recorded answer fails the case; what the
+ * child does is not Talos's: a session plays its `FakeAgentAdapter` scenario, and a line ends as `scriptLine` said.
  */
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join }                       from 'node:path';

@@ -1,10 +1,7 @@
 /**
- * The Talos socket of a default spec: `useRecordedLocalEndpoint` gives a `LocalEndpoint` whose servers and connections live in memory and
- * answer with what the real socket or pipe answered, which `src/lib/local-endpoint/LocalEndpoint.answers.integration.spec.ts` records under
- * `bun run record src/lib/local-endpoint/LocalEndpointFor.ts`. A call with no recorded answer fails the case. The mock refuses what the real socket
- * refuses: the end of a connection reaches no client that did not read it, a write after `end` is an error, and a removed path refuses a
- * connect. A destroy gives its peer the recorded end and close, also when the peer does not read; a peer that holds unread data gets the
- * recorded events in the recorded order, before and after it starts to read, which differ when it listens for errors.
+ * The Talos socket of a default spec: an in-memory `LocalEndpoint` that answers as `src/lib/local-endpoint/LocalEndpoint.answers.integration.spec.ts`
+ * recorded the real one, failing the case on a call with no answer. It refuses what the real one refuses and delivers a destroy's end, close
+ * and unread data in the recorded order, which differs for a peer that listens for errors.
  */
 import { EventEmitter }             from 'node:events';
 import { existsSync, readFileSync } from 'node:fs';
