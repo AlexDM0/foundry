@@ -27,7 +27,7 @@ const REFERENCE_PATTERNS: readonly RegExp[] = [
   /\b[A-Z]\d{1,3}(?:\.\d+)*\b/,
   /\b[A-Z]\d[A-Z][a-z]/,
   /\bWP\s?\d/,
-  /\bplan\s+(?:section\s+)?\d/i,
+  /\b(?:plan|design|strategy)\s+(?:sections?\s+)?\d/i,
   /\b(?:ticket|acceptance)\s+#?\d/i,
 ];
 
@@ -309,6 +309,7 @@ describe('no comment names a ticket, acceptance, plan or artboard reference', ()
     ['an artboard', '/** The A2Proposal board. */\nfunction work(): void {}\n'],
     ['a work package', '// Removed by WP2.\nrun();\n'],
     ['a plan section', '// See PLAN 7.3.\nrun();\n'],
+    ['a design section', '// As design section 6.2 orders them.\nrun();\n'],
     ['a ticket number', '// Filed as ticket 12.\nrun();\n'],
   ])('a planted %s is named', (_form, plantedText) => {
     expect(referencesIn('Planted.ts', commentRunsOf('Planted.ts', plantedText))).toHaveLength(1);
