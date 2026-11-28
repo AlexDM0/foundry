@@ -1,8 +1,6 @@
 /**
- * The real Talos, spawned from its binary as Hephaestus starts it, walked through each stage of an agent and of a line; under
- * `bun run record talos/Talos.ts` each stage's answer is recorded for `src/testing/RecordedTalosStages.ts`. What matters is what a
- * DrivePass reads: the child record, the origin of each event-log line, Talos's own record, and whether Talos and the child still run. A
- * stage settles on what Talos wrote, never on a clock.
+ * The real Talos, spawned as Hephaestus starts it, walked through each stage of an agent and of a line; `bun run record talos/Talos.ts`
+ * records what a DrivePass reads for `src/testing/RecordedTalosStages.ts`. A stage settles on what Talos wrote, never on a clock.
  */
 import {
   afterEach,
