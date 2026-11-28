@@ -44,7 +44,8 @@ export type FleetCommandBody =
   | { kind: 'fleet-outage-resume' }
   | { kind: 'gaia-update-check' }
   | { kind: 'gaia-update' }
-  | { kind: 'gaia-restart' };
+  | { kind: 'gaia-restart' }
+  | { kind: 'gaia-reboot' };
 
 export type CommandBody = ForgeCommandBody | FleetCommandBody;
 

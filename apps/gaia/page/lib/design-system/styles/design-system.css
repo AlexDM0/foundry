@@ -52,6 +52,7 @@
 @import "../molecules/SegmentMeter.css";
 @import "../molecules/SlotMeter.css";
 @import "../molecules/StateBadge.css";
+@import "../molecules/StatusButton.css";
 @import "../molecules/Stepper.css";
 @import "../molecules/Tag.css";
 @import "../molecules/ThemeCycleButton.css";

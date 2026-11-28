@@ -7,7 +7,7 @@
 }
 .design-system-number-stepper > button:not(:disabled):hover { filter: brightness(0.94); }
 .design-system-number-stepper > button:focus-visible { outline: 2px solid var(--link); outline-offset: -2px; }
-.design-system-number-stepper > button:disabled { color: var(--ink-4); cursor: not-allowed; }
+.design-system-number-stepper > button:disabled { color: var(--ink-4); cursor: default; }
 .design-system-number-stepper-value {
   display: flex; align-items: center; justify-content: center; gap: var(--space-4); box-sizing: border-box; width: 56px; height: 30px;
   color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums;

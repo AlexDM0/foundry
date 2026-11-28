@@ -83,6 +83,19 @@ describe('the menu', () => {
     expect(menu()).not.toBeNull();
   });
 
+  test('a disabled item calls nothing and leaves the menu open', () => {
+    const chosen: string[] = [];
+    render(
+      <Menu label="Example options" trigger="icon" align="end" triggerName="Example options" triggerContent="⋯">
+        <MenuItem label="Not now" disabled closing="return-focus" onChoose={() => chosen.push('chosen')} />
+      </Menu>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Example options' }));
+    const item = screen.getByRole('button', { name: 'Not now' });
+    fireEvent.click(item);
+    expect([chosen, (item as HTMLButtonElement).disabled, screen.queryByRole('dialog', { name: 'Example options' }) === null]).toEqual([[], true, false]);
+  });
+
   test('closes on a closing item, handing the focus back or leaving it as the item says', () => {
     const { trigger, menu } = renderMenu();
     fireEvent.click(trigger);

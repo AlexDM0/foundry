@@ -1,10 +1,16 @@
 /**
- * The brand bar: the mark and the wordmark are one link named "Gaia, Attention"; the fleet's pill is the orange pulsing badge while a forge runs
- * and the neutral ringed one when dormant, followed by its sentence, and neither shows before Gaia knows the fleet; the theme button, only when
- * given, names the current and next choice and hands the next on; Gaia's update button, only when given, stands before it with its note.
+ * The brand bar: the home link is one link named "Gaia, Attention"; the fleet's pill is the orange pulsing badge while a forge runs and the
+ * neutral ringed one when dormant, then its sentence, neither before Gaia knows the fleet; the update button with its note, the theme
+ * button and Gaia's menu with Reboot Gaia show only when given, in that order, and hand their presses on.
  */
-import { describe, expect, test }               from 'bun:test';
-import { Button, StateBadge, ThemeCycleButton } from '../lib/design-system/DesignSystemInterface.ts';
+import { describe, expect, test } from 'bun:test';
+import {
+  Menu,
+  MenuItem,
+  StateBadge,
+  StatusButton,
+  ThemeCycleButton
+} from '../lib/design-system/DesignSystemInterface.ts';
 
 import { ReactElementTree }                              from '../testing/ReactElementTree.ts';
 import { BrandBar, type BrandStatus, themeButtonNameOf } from './BrandBar.tsx';
@@ -64,31 +70,59 @@ describe('the brand bar', () => {
     expect(cycled).toEqual(['auto']);
   });
 
-  test('Gaia\'s update button and its note stand before the theme button, and a press reaches the bar\'s handler', () => {
+  test('Gaia\'s update button and its note stand before the theme button, the menu after it, and a press reaches the bar\'s handler', () => {
     let presses = 0;
     const updateButton = {
-      label:    'Update Gaia',
-      emphasis: 'primary',
-      disabled: false,
-      onPress:  () => {
+      label:          'Update Gaia',
+      glyph:          'fetch',
+      emphasis:       'primary',
+      busy:           false,
+      disabled:       false,
+      count:          '3',
+      accessibleName: 'Update Gaia, 3 new commits on main',
+      onPress:        () => {
         presses += 1;
       },
-      note: '3 new commits on main'
+      note:          'Gaia could not reach its origin.',
+      noteIsFailure: true,
     } as const;
-    const unfolded = ReactElementTree.unfolded(<BrandBar status={RUNNING} themeButton={{ choice: 'auto', onCycle: () => undefined }} updateButton={updateButton} />);
-    const button = ReactElementTree.onlyOfComponent(unfolded, Button);
-    expect([button.props['label'], button.props['emphasis'], button.props['disabled']]).toEqual(['Update Gaia', 'primary', false]);
+    const menu = { rebootIsOff: false, rebootTitle: null, onReboot: () => undefined };
+    const unfolded = ReactElementTree.unfolded(
+      <BrandBar status={RUNNING} themeButton={{ choice: 'auto', onCycle: () => undefined }} updateButton={updateButton} menu={menu} />,
+    );
+    const button = ReactElementTree.onlyOfComponent(unfolded, StatusButton);
+    expect([button.props['label'], button.props['glyph'], button.props['emphasis'], button.props['count'], button.props['accessibleName']])
+      .toEqual(['Update Gaia', 'fetch', 'primary', '3', 'Update Gaia, 3 new commits on main']);
     const note = ReactElementTree.onlyWithClass(unfolded, 'gaia-brand-bar-update-note');
-    expect(ReactElementTree.textOf([note])).toBe('3 new commits on main');
+    expect([ReactElementTree.textOf([note]), note.props['data-failure']]).toEqual(['Gaia could not reach its origin.', '']);
     const theme = ReactElementTree.onlyOfComponent(unfolded, ThemeCycleButton);
-    expect(ReactElementTree.hostElementsIn(unfolded, (element) => element === note || element === button || element === theme)).toEqual([note, button, theme]);
+    const gaiaMenu = ReactElementTree.onlyOfComponent(unfolded, Menu);
+    expect(ReactElementTree.hostElementsIn(unfolded, (element) => [note, button, theme, gaiaMenu].includes(element))).toEqual([note, button, theme, gaiaMenu]);
     ReactElementTree.dispatch(button, 'onPress');
     expect(presses).toBe(1);
   });
 
-  test('without an update button the bar draws no button and no note', () => {
+  test('the menu holds Reboot Gaia, off with its reason when Gaia cannot reopen itself, and a choice reaches the bar\'s handler', () => {
+    let reboots = 0;
+    const unfolded = ReactElementTree.unfolded(<BrandBar status={RUNNING} themeButton={null} menu={{
+      rebootIsOff: true,
+      rebootTitle: 'An example reason',
+      onReboot:    () => {
+        reboots += 1;
+      },
+    }} />);
+    const gaiaMenu = ReactElementTree.onlyOfComponent(unfolded, Menu);
+    expect([gaiaMenu.props['triggerName'], gaiaMenu.props['align'], gaiaMenu.props['trigger']]).toEqual(['Gaia menu', 'end', 'icon']);
+    const reboot = ReactElementTree.onlyOfComponent(unfolded, MenuItem);
+    expect([reboot.props['label'], reboot.props['disabled'], reboot.props['title']]).toEqual(['Reboot Gaia', true, 'An example reason']);
+    ReactElementTree.dispatch(reboot, 'onChoose');
+    expect(reboots).toBe(1);
+  });
+
+  test('without an update button or a menu the bar draws neither, and no note', () => {
     const unfolded = ReactElementTree.unfolded(<BrandBar status={RUNNING} themeButton={null} />);
-    expect(ReactElementTree.hostElementsIn(unfolded, ReactElementTree.withComponent(Button))).toEqual([]);
+    expect(ReactElementTree.hostElementsIn(unfolded, ReactElementTree.withComponent(StatusButton))).toEqual([]);
+    expect(ReactElementTree.hostElementsIn(unfolded, ReactElementTree.withComponent(Menu))).toEqual([]);
     expect(ReactElementTree.hostElementsIn(unfolded, (element) => element.props['className'] === 'gaia-brand-bar-update-note')).toEqual([]);
   });
 });

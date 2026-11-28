@@ -19,7 +19,7 @@
 .design-system-segments > button[aria-pressed="true"] {
   font-weight: 600; color: var(--segment-pressed-ink); background: var(--segment-pressed-fill); border-color: var(--segment-pressed-edge);
 }
-.design-system-segments > button:disabled { cursor: not-allowed; }
+.design-system-segments > button:disabled { cursor: default; }
 .design-system-segments > button:disabled:not([aria-pressed="true"]) { color: var(--ink-disabled); }
 .design-system-segments > button:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
 /* Mono segments, for labels that are machine text such as times. */

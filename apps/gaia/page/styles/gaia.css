@@ -61,7 +61,15 @@
   letter-spacing: var(--wordmark-tracking);
 }
 .gaia-brand-bar-divider { flex: none; width: var(--hairline); height: var(--brand-bar-divider-height); background: var(--line-strong); }
-.gaia-brand-bar-update-note { flex: none; max-width: 40%; overflow: hidden; font-size: var(--fs-small); color: var(--ink-muted); text-overflow: ellipsis; white-space: nowrap; }
+.gaia-brand-bar-update-note {
+  display: inline-flex; flex: none; align-items: center; gap: var(--sp-2);
+  max-width: 40%; overflow: hidden; font-size: var(--fs-small); color: var(--ink-muted); text-overflow: ellipsis; white-space: nowrap;
+}
+/* A note that says why a step failed carries the failure dot beside its words. */
+.gaia-brand-bar-update-note[data-failure]::before {
+  content: ""; flex: none; width: var(--space-6); height: var(--space-6); background: var(--err-fill); border-radius: var(--r-pill);
+}
+.gaia-brand-bar-menu-glyph { width: var(--space-14); height: var(--space-14); fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; }
 .gaia-brand-bar-sentence { flex: 1; min-width: 0; overflow: hidden; font-size: var(--fs-small); color: var(--ink-muted); text-overflow: ellipsis; white-space: nowrap; }
 
 /* Callout: the package's callout around a title line, a sentence and a mono line, each line the body's height */

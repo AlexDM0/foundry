@@ -65,7 +65,8 @@
 .design-system-menu-popover[data-trigger="icon"] .design-system-menu-item,
 .design-system-menu-popover[data-trigger="button"] .design-system-menu-item,
 .design-system-menu-popover[data-trigger="segment"] .design-system-menu-item { font-family: var(--font-ui); }
-.design-system-menu-item:hover { background: var(--wash); }
+.design-system-menu-item:not(:disabled):hover { background: var(--wash); }
+.design-system-menu-item:disabled { color: var(--ink-disabled); }
 .design-system-menu-item[aria-pressed="true"] { background: var(--surface-selected); }
 .design-system-menu-hint { font-family: var(--font-ui); font-weight: 400; color: var(--ink-muted); }
 .design-system-menu-check { visibility: hidden; color: var(--ink); }

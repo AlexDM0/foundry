@@ -85,6 +85,16 @@ describe('the button', () => {
     expect(screen.queryByRole('button')).toBeNull();
   });
 
+  test('a busy button keeps its emphasis, says it is busy, and does not call onPress', () => {
+    const presses: string[] = [];
+    render(<Button label="Example under way" emphasis="primary" busy onPress={() => presses.push('pressed')} />);
+    const button = screen.getByRole('button', { name: 'Example under way' });
+    fireEvent.click(button);
+    expect(presses).toEqual([]);
+    expect([button.hasAttribute('data-primary'), button.hasAttribute('data-busy'), button.getAttribute('aria-busy'), button.getAttribute('aria-disabled')])
+      .toEqual([true, true, 'true', 'true']);
+  });
+
   test('a disabled button does not call onPress', () => {
     const presses: string[] = [];
     render(<Button label="Example action" disabled onPress={() => presses.push('pressed')} />);

@@ -72,7 +72,8 @@ with changed tracked files or commits of its own, fast-forwards it, and runs for
 dependencies and compiles the installed `forge` command again; setup exits 0 after a failed step, so a printed failure mark reads as
 failed. Once the clone has moved, the button reads "Restart Gaia": the launcher that Gaia.app started passes the bundle to `gaia serve`
 and is its parent, so the server starts a detached shell that stops the launcher as a quit does, waits for its end, and opens Gaia.app as
-a new instance. A Gaia started from a terminal cannot restart itself and says to quit and open it again. After the restart, a forge
+a new instance. A Gaia started from a terminal cannot restart itself and says to quit and open it again. The brand bar's menu
+offers Reboot Gaia (`gaia-reboot`), the same relaunch at any time but while an update or a restart is on its way. After the restart, a forge
 whose Hephaestus runs older code than the installed program offers Update forge (`forge update`) in its row.
 
 ## One forge in place

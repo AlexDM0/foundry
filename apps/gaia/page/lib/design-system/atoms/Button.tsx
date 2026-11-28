@@ -28,6 +28,8 @@ export type ButtonProps = ButtonSizeFlags & {
   readonly href?:               string;
   readonly onPress?:            () => void;
   readonly disabled?:           boolean;
+  /** Work it started is on its way: it keeps its look, says it is busy, and a press calls nothing. */
+  readonly busy?:               boolean;
   /** A toggle: sets `aria-pressed`. */
   readonly pressed?:            boolean;
   /** A disclosure or popover trigger: sets `aria-expanded`, with `controls` naming what it opens. */
@@ -43,7 +45,7 @@ const flagAttribute = (isSet: boolean | undefined) => (isSet === true ? '' : und
 
 export function Button(props: ButtonProps) {
   const {
-    label, leading, trailing, emphasis = 'quiet', attention = false, tint, href, onPress, disabled = false, pressed, expanded, controls,
+    label, leading, trailing, emphasis = 'quiet', attention = false, tint, href, onPress, disabled = false, busy = false, pressed, expanded, controls,
     accessibleName, 'aria-describedby': describingElementId, buttonRef
   } = props;
   const emphasisAttributes = {
@@ -54,6 +56,7 @@ export function Button(props: ButtonProps) {
     'data-tint':      tint,
     'data-compact':   flagAttribute(props.compact),
     'data-dense':     flagAttribute(props.dense),
+    'data-busy':      flagAttribute(busy),
   };
   const leadingGlyph = leading === undefined ? null : <span className="design-system-button-leading">{leading}</span>;
   const trailingGlyph = trailing === undefined ? null : <span className="design-system-button-trailing">{trailing}</span>;
@@ -77,7 +80,9 @@ export function Button(props: ButtonProps) {
       aria-expanded={expanded}
       aria-controls={controls}
       disabled={disabled}
-      onClick={onPress}
+      aria-busy={busy ? true : undefined}
+      aria-disabled={busy ? true : undefined}
+      onClick={busy ? undefined : onPress}
       {...emphasisAttributes}
     >
       {leadingGlyph}

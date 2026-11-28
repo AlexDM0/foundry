@@ -1,0 +1,85 @@
+/* A compact button whose 14px glyph carries its state. Only the glyph moves, inside its own box, and the wash and band hang over the
+   button taking no space. Before motion is ready the tokens are 0ms, so a first paint shows each end state; reduced motion stops all. */
+.design-system-status-button { position: relative; display: inline-flex; flex: none; }
+.design-system-status-button-glyph {
+  position: relative; display: inline-flex; width: 14px; height: 14px;
+  animation: design-system-pop var(--motion-pop) var(--ease-out) both;
+}
+.design-system-status-button-glyph > svg {
+  position: absolute; inset: 0; width: 14px; height: 14px; overflow: visible;
+  fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+}
+
+/* Done: a check in the success colour draws itself in; under the pointer it gives way to the again arrow, turning in. */
+.design-system-status-button-check {
+  color: var(--tone-success);
+  transition: opacity var(--motion-base) var(--ease-out), transform var(--motion-slow) var(--ease-out);
+}
+.design-system-status-button-glyph > .design-system-status-button-check { stroke-width: 2; }
+.design-system-status-button-check > polyline {
+  stroke-dasharray: 14;
+  animation: design-system-status-button-draw var(--motion-draw) var(--ease-out) both;
+}
+.design-system-status-button-again-overlay {
+  opacity: 0; transform: rotate(-120deg) scale(0.7);
+  transition: opacity var(--motion-base) var(--ease-out), transform var(--motion-rise) var(--ease-out);
+}
+.design-system-status-button:not([data-off]):hover .design-system-status-button-check { opacity: 0; transform: scale(0.6); }
+.design-system-status-button:not([data-off]):hover .design-system-status-button-again-overlay { opacity: 1; transform: none; }
+
+/* Busy: a turning three-quarter ring, in the signal colour on a quiet button and in the button's ink on a primary one. */
+.design-system-status-button-spinner {
+  position: absolute; inset: 1px; box-sizing: border-box;
+  border: 1.75px solid currentColor; border-right-color: transparent; border-radius: 50%;
+  animation: design-system-spin 0.8s linear infinite;
+}
+.design-system-status-button:not([data-primary]) .design-system-status-button-spinner { color: var(--signal); }
+
+/* Fetch dips toward its tray, and restart turns half a circle, while the pointer rests on the button; again keeps the label's ink. */
+.design-system-status-button-again { color: inherit; }
+.design-system-status-button-fetch,
+.design-system-status-button-restart { transition: transform var(--motion-rise) var(--ease-out); }
+.design-system-status-button:not([data-off]):hover .design-system-status-button-fetch { transform: translateY(2px); }
+.design-system-status-button:not([data-off]):hover .design-system-status-button-restart { transform: rotate(-180deg); }
+
+.design-system-status-button-count {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 16px; height: 16px; padding: 0 var(--space-3);
+  font: 600 var(--fs-micro)/1 var(--font-ui); font-variant-numeric: tabular-nums;
+  background: color-mix(in oklch, currentColor 22%, transparent); border-radius: var(--r-pill);
+}
+
+/* A busy primary runs a band along its bottom edge, inside its corners. */
+.design-system-status-button-band {
+  position: absolute; right: var(--space-4); bottom: 1px; left: var(--space-4); height: 2px; overflow: hidden; pointer-events: none;
+  background: color-mix(in oklch, var(--accent-ink-on) 20%, transparent); border-radius: var(--r-pill);
+}
+.design-system-status-button-band::after {
+  content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 34%;
+  background: color-mix(in oklch, var(--accent-ink-on) 75%, transparent); border-radius: var(--r-pill);
+  animation: design-system-status-button-run 1.3s var(--ease-in-out) infinite;
+}
+
+/* A done arrival washes the button in the done colours once and fades out. */
+.design-system-status-button-wash {
+  position: absolute; inset: 0; pointer-events: none; opacity: 0;
+  background: color-mix(in oklch, var(--done-fill) 45%, transparent); border: 1px solid var(--done-edge); border-radius: var(--r-2);
+  animation: design-system-status-button-wash var(--motion-wash) var(--ease-out);
+}
+
+@keyframes design-system-status-button-draw { from { stroke-dashoffset: 14; } to { stroke-dashoffset: 0; } }
+@keyframes design-system-status-button-run { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
+@keyframes design-system-status-button-wash { from { opacity: 1; } to { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .design-system-status-button-glyph,
+  .design-system-status-button-check > polyline,
+  .design-system-status-button-spinner,
+  .design-system-status-button-band::after,
+  .design-system-status-button-wash { animation: none; }
+  .design-system-status-button-check > polyline { stroke-dashoffset: 0; }
+  .design-system-status-button-check,
+  .design-system-status-button-again-overlay,
+  .design-system-status-button-fetch,
+  .design-system-status-button-restart { transition: none; }
+}

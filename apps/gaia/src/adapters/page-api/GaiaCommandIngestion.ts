@@ -217,6 +217,7 @@ function commandReadingOf(body: JsonObject, kind: string): GaiaCommandReading {
     case 'gaia-update-check':
     case 'gaia-update':
     case 'gaia-restart':
+    case 'gaia-reboot':
       return { verdict: 'readable', command: { kind } };
     case 'forge-stop':
       return forgeStopReadingOf(body);

@@ -20,6 +20,9 @@ a:hover { color: var(--ink); }
 ::placeholder { color: var(--ink-4); opacity: 1; }
 
 button, [role="button"] { transition: var(--feedback-transition); }
+/* What can be pressed shows the pointing hand, and what cannot the plain arrow, never the blocked sign; a component's own rule may refine it. */
+button:not(:disabled), [role="button"]:not([aria-disabled="true"]), summary, select:not(:disabled) { cursor: pointer; }
+:disabled, [aria-disabled="true"] { cursor: default; }
 button:not(:disabled):active, [role="button"]:active { filter: brightness(0.94); }
 
 @media (prefers-reduced-motion: reduce) {

@@ -9,6 +9,7 @@ const items = (
     <MenuItem label="Example checked" checked closing="stays-open" onChoose={fn()} />
     <MenuSeparator />
     <MenuItem label="Example with description" description="An example description." closing="keep-focus" onChoose={fn()} />
+    <MenuItem label="Example not now" disabled closing="keep-focus" onChoose={fn()} />
   </>
 );
 

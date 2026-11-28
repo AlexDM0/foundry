@@ -42,15 +42,20 @@ interface AllowedMovement {
 }
 
 /**
- * Each entry moves nothing else, for a reason its own rule states: the tooltip hangs absolutely and takes no space, and a pressed button,
- * menu trigger or segment scales inside its own box, which a transform never gives back to the layout.
+ * Each entry moves nothing else, for a reason its own rule states: the tooltip hangs absolutely and takes no space, a pressed button,
+ * menu trigger or segment scales inside its own box, and a status button's glyph turns or dips inside its own 14px box, which a transform
+ * never gives back to the layout.
  */
 const MOVEMENTS_ALLOWED: readonly AllowedMovement[] = [
   { selector: '.design-system-tooltip-trigger:is(:hover, :focus-within) > .design-system-tooltip', property: 'transform' },
-  { selector: '.design-system-button:not(:disabled):active', property: 'transform' },
+  { selector: '.design-system-button:not(:disabled, [data-busy]):active', property: 'transform' },
   { selector: '.design-system-icon-button:not(:disabled):active', property: 'transform' },
   { selector: '.design-system-menu-button:not([data-trigger="button"]):active', property: 'transform' },
   { selector: '.design-system-segments > button:not(:disabled):active', property: 'transform' },
+  { selector: '.design-system-status-button:not([data-off]):hover .design-system-status-button-check', property: 'transform' },
+  { selector: '.design-system-status-button:not([data-off]):hover .design-system-status-button-again-overlay', property: 'transform' },
+  { selector: '.design-system-status-button:not([data-off]):hover .design-system-status-button-fetch', property: 'transform' },
+  { selector: '.design-system-status-button:not([data-off]):hover .design-system-status-button-restart', property: 'transform' },
 ];
 
 function holdsPointerState(rule: StyleRule): boolean {

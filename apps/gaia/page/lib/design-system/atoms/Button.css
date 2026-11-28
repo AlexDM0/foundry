@@ -11,8 +11,10 @@
   cursor: pointer;
   transition: var(--feedback-transition), transform var(--motion-fast) var(--ease-out);
 }
-.design-system-button:not(:disabled):hover { filter: brightness(0.94); }
-.design-system-button:not(:disabled):active { transform: scale(var(--press-scale)); }
+.design-system-button:not(:disabled, [data-busy]):hover { filter: brightness(0.94); }
+.design-system-button:not(:disabled, [data-busy]):active { transform: scale(var(--press-scale)); }
+/* A busy button keeps its emphasis, since its work is under way, but takes no press: the plain arrow and no hover. */
+.design-system-button[data-busy] { cursor: default; }
 .design-system-button:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 .design-system-button[data-compact] { height: 30px; padding: 0 var(--space-11); font-size: var(--fs-tab); }
 .design-system-button[data-dense] { height: 26px; padding: 0 var(--space-9); font-size: var(--fs-tab); }
@@ -32,7 +34,7 @@
 .design-system-button[data-tint="link"] { color: var(--link); background: var(--link-tint); border-color: var(--accent-edge); }
 .design-system-button[aria-pressed="true"] { background: var(--wash); border-color: var(--line-strong); }
 
-.design-system-button:disabled { color: var(--ink-disabled); border-color: var(--line); cursor: not-allowed; }
+.design-system-button:disabled { color: var(--ink-disabled); border-color: var(--line); cursor: default; }
 .design-system-button:is([data-primary], [data-danger]):disabled { color: var(--ink-4); background: var(--wash); border-color: var(--line); }
 .design-system-button[data-ghost]:disabled { border-color: transparent; }
 
@@ -51,5 +53,5 @@ a.design-system-button:is([data-primary], [data-danger]):hover { color: var(--ac
 
 @media (prefers-reduced-motion: reduce) {
   .design-system-button[data-primary][data-attention] { animation: none; }
-  .design-system-button:not(:disabled):active { transform: none; }
+  .design-system-button:not(:disabled, [data-busy]):active { transform: none; }
 }

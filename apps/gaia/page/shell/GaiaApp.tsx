@@ -131,6 +131,9 @@ export function GaiaShell({
           updateButton={barKeepsItsButtons && onGaiaUpdateCommand !== null
             ? GaiaUpdateButtonModel.updateButtonOf(fleetDocument?.gaia.update ?? null, onGaiaUpdateCommand)
             : null}
+          menu={barKeepsItsButtons && onGaiaUpdateCommand !== null
+            ? GaiaUpdateButtonModel.menuOf(fleetDocument?.gaia.update ?? null, onGaiaUpdateCommand)
+            : null}
         />
         <div className="gaia-shell-body">
           <Rail content={RailModel.railContentOf(fleetDocument, route, openForgeSetup)} />

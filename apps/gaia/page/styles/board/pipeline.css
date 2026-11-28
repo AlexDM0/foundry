@@ -360,7 +360,7 @@ body:has(:is(.board-pipeline-focus, .board-pipeline-resume)) .board-flint-home {
 
 .board-pipeline-add-step-choice:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 
-.board-pipeline-add-step-choice:disabled { color: var(--ink-disabled); cursor: not-allowed; }
+.board-pipeline-add-step-choice:disabled { color: var(--ink-disabled); cursor: default; }
 
 .board-pipeline-add-step-choice-name { display: flex; align-items: center; gap: 6px; }
 
@@ -735,7 +735,7 @@ summary.board-pipeline-research-layer-head:focus-visible { outline: 2px solid va
 
 .board-removable-chip-remove:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
 
-.board-removable-chip-remove:disabled { color: var(--ink-disabled); cursor: not-allowed; }
+.board-removable-chip-remove:disabled { color: var(--ink-disabled); cursor: default; }
 
 .board-removable-chip-refusal { font-family: var(--font-ui); font-weight: 600; white-space: nowrap; }
 

@@ -22,6 +22,8 @@ tokens, every control named. Gaia keeps these besides, in both themes and on eve
   one that waits (a held forge, a forge that needs an update, an agent that asks User, a missing forge).
 - **Hover and press move nothing.** In `gaia.css` a `:hover` or `:active` rule changes only colour, background, border colour, box
   shadow, opacity, outline colour, text decoration or the cursor. `--press-scale` is 1, so a press changes no size (2.2).
+- **The pointing hand on what can be pressed, the plain arrow on what cannot.** A disabled control, or one whose step is on its way,
+  shows the default cursor, never the blocked sign (the library's `base.css`, its `Button` and its other controls).
 - **No shadow at rest.** A hover draws the library's lift ring; a popover and a dialog float on the library's shadow tokens.
 - **Mono for machine values:** ids, stamps, durations, counts, figures, paths, versions, model names and contract numbers, with
   tabular figures. Role words are mono capitals.

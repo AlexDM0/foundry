@@ -187,14 +187,40 @@ describe('the restart', () => {
   });
 });
 
+describe('the reboot', () => {
+  test('relaunches Gaia while it is up to date, with no update behind it', async () => {
+    const underTest = updateOver('up-to-date');
+    await startedAndChecked(underTest);
+    expect(await underTest.gaiaUpdate.carry({ kind: 'gaia-reboot' })).toEqual({ verdict: 'done' });
+    expect(underTest.gaiaUpdate.status().state).toBe('restarting');
+    underTest.gaiaUpdate.stop();
+  });
+
+  test('waits while an update is on its way, and a Gaia no Gaia.app started cannot reboot', async () => {
+    const updating = updateOver('behind');
+    await startedAndChecked(updating);
+    await updating.gaiaUpdate.carry({ kind: 'gaia-update' });
+    expect(await updating.gaiaUpdate.carry({ kind: 'gaia-reboot' })).toEqual({ verdict: 'nothing-to-do' });
+    await updating.gaiaUpdate.untilSettled();
+    updating.gaiaUpdate.stop();
+
+    const fromATerminal = updateOver('up-to-date', null);
+    await startedAndChecked(fromATerminal);
+    expect(await fromATerminal.gaiaUpdate.carry({ kind: 'gaia-reboot' })).toEqual({ verdict: 'not-supported' });
+    expect(fromATerminal.gaiaUpdate.status().state).toBe('up-to-date');
+    fromATerminal.gaiaUpdate.stop();
+  });
+});
+
 describe('the update commands', () => {
   test('are told apart from every forge and fleet command', () => {
     expect([
       isGaiaUpdateCommand({ kind: 'gaia-update-check' }),
       isGaiaUpdateCommand({ kind: 'gaia-update' }),
       isGaiaUpdateCommand({ kind: 'gaia-restart' }),
+      isGaiaUpdateCommand({ kind: 'gaia-reboot' }),
       isGaiaUpdateCommand({ kind: 'fleet-look-again' }),
       isGaiaUpdateCommand({ kind: 'forge-update', trackerId: 'example-storefront' }),
-    ]).toEqual([true, true, true, false, false]);
+    ]).toEqual([true, true, true, true, false, false]);
   });
 });

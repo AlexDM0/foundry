@@ -175,12 +175,14 @@ export interface MenuItemProps {
   readonly marked?:       boolean;
   /** An item that opens a dialog: says so, and whether it is open. */
   readonly dialogIsOpen?: boolean;
+  /** An item that cannot act now: drawn faded, it calls nothing and leaves the menu open. */
+  readonly disabled?:     boolean;
   readonly closing:       MenuItemClosing;
   readonly onChoose:      () => void;
 }
 
 export function MenuItem({
-  label, hint, description, title, pressed, checked, marked = false, dialogIsOpen, closing, onChoose
+  label, hint, description, title, pressed, checked, marked = false, dialogIsOpen, disabled = false, closing, onChoose
 }: MenuItemProps) {
   const itemElementId = useId();
   const labelElementId = `${itemElementId}-label`;
@@ -198,7 +200,8 @@ export function MenuItem({
       aria-describedby={description === undefined ? undefined : descriptionElementId}
       data-marked={marked ? '' : undefined}
       title={title}
-      data-closes-menu={closing === 'stays-open' ? undefined : closing}
+      disabled={disabled}
+      data-closes-menu={closing === 'stays-open' || disabled ? undefined : closing}
       onClick={onChoose}
     >
       <span id={labelElementId}>{label}</span>

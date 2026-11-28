@@ -105,6 +105,8 @@ export { SlotMeter } from './molecules/SlotMeter.tsx';
 export type { SlotMeterProps } from './molecules/SlotMeter.tsx';
 export { StateBadge } from './molecules/StateBadge.tsx';
 export type { StateBadgeProps } from './molecules/StateBadge.tsx';
+export { StatusButton } from './molecules/StatusButton.tsx';
+export type { StatusButtonProps, StatusGlyph } from './molecules/StatusButton.tsx';
 export { Stepper } from './molecules/Stepper.tsx';
 export type { StepperProps, StepperStatus, StepperStep } from './molecules/Stepper.tsx';
 export { Tag } from './molecules/Tag.tsx';

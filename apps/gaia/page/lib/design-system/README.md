@@ -24,7 +24,7 @@ list gains and keeps a lost one in place through its leaving animation, its list
 Besides the layout and text parts, the library holds form parts (`Checkbox`, `TextField`, `NumberStepper`, `Switch`),
 the state parts (`StateDot`, `StateBadge`, `StatePill`, `CountBadge`), figures and meters (`Figure`, `FillMeter`,
 `SlotMeter`, `SegmentMeter`), the heads of a page and a section (`PageHead`, `SectionHead`), the steps of an action
-(`PendingStep`, `FailedAction`, `ConfirmStrip`), `ThemeCycleButton` and `DataTable`.
+(`PendingStep`, `FailedAction`, `ConfirmStrip`), `ThemeCycleButton`, `StatusButton` and `DataTable`.
 `DesignSystemInterface.ts` names every one.
 
 ## Lay out a screen

@@ -23,6 +23,7 @@ export const LinkTint: Story = { args: { tint: 'link' } };
 export const Compact: Story = { args: { compact: true } };
 export const Dense: Story = { args: { dense: true } };
 export const Disabled: Story = { args: { disabled: true } };
+export const Busy: Story = { args: { emphasis: 'primary', busy: true, label: 'Example under way' } };
 export const Pressed: Story = { args: { pressed: true } };
 export const Leading: Story = { args: { leading: <Icon name="hammer" label={null} /> } };
 export const Trailing: Story = { args: { trailing: <Icon name="arrow-out-of-square" label={null} /> } };

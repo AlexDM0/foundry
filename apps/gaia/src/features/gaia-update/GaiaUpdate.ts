@@ -1,7 +1,7 @@
 /**
  * Gaia's own update (`docs/architecture.md`, "Gaia's own update"): it checks the clone Gaia runs from against origin's main at its start,
  * every hour and when asked; an update fast-forwards the clone and runs forge's setup, which compiles the forge command again; a restart
- * quits Gaia.app and opens it again on the new code. The status rides on every fleet document.
+ * quits Gaia.app and opens it again on the new code, and a reboot does so at any time but during an update. The status rides on every fleet document.
  */
 import type { FastForwardVerdict, GaiaCheckout, UpstreamReading }    from '../../adapters/gaia-checkout/GaiaCheckout.ts';
 import type { DetachedStartRequest, ProcessRun }                     from '../../lib/process-run/ProcessRun.ts';
@@ -40,7 +40,7 @@ export interface GaiaUpdate {
 
 const CHECK_INTERVAL_MILLISECONDS = 3_600_000;
 
-const GAIA_UPDATE_COMMAND_KINDS: ReadonlySet<GaiaCommand['kind']> = new Set(['gaia-update-check', 'gaia-update', 'gaia-restart']);
+const GAIA_UPDATE_COMMAND_KINDS: ReadonlySet<GaiaCommand['kind']> = new Set(['gaia-update-check', 'gaia-update', 'gaia-restart', 'gaia-reboot']);
 
 export function isGaiaUpdateCommand(command: GaiaCommand): command is GaiaUpdateCommand {
   return GAIA_UPDATE_COMMAND_KINDS.has(command.kind);
@@ -48,6 +48,9 @@ export function isGaiaUpdateCommand(command: GaiaCommand): command is GaiaUpdate
 
 /** The states a check may start from: no check, update or restart is on its way, and no update waits for its restart. */
 const STATES_A_CHECK_STARTS_FROM: ReadonlySet<GaiaUpdateState> = new Set(['up-to-date', 'available', 'not-known']);
+
+/** A reboot waits for an update to finish, so the clone and the forge command are never left halfway. */
+const STATES_A_REBOOT_STARTS_FROM: ReadonlySet<GaiaUpdateState> = new Set(['checking', 'up-to-date', 'available', 'not-known', 'restart-needed']);
 
 const SHELL_PROGRAM = '/bin/sh';
 const OPEN_PROGRAM = '/usr/bin/open';
@@ -128,11 +131,12 @@ export function createGaiaUpdate(options: GaiaUpdateOptions): GaiaUpdate {
     publish('restart-needed', 0, setupVerdict === 'set-up' ? null : 'forge-setup-failed');
   }
 
+  /** A relaunch that did not start leaves the state as it was, with the failure beside it. */
   function restart(): CommandVerdict {
     if (options.relaunchTarget === null) return { verdict: 'not-supported' };
     const startAnswer = options.processRun.startDetached(relaunchRequestOf(options.relaunchTarget, options.workingDirectory));
     if (startAnswer.verdict !== 'started') {
-      publish('restart-needed', 0, 'restart-not-started');
+      publish(status.state, status.commitsBehind, 'restart-not-started');
       return { verdict: 'done' };
     }
     publish('restarting', 0, null);
@@ -164,6 +168,9 @@ export function createGaiaUpdate(options: GaiaUpdateOptions): GaiaUpdate {
         return { verdict: 'done' };
       case 'gaia-restart':
         if (status.state !== 'restart-needed') return { verdict: 'nothing-to-do' };
+        return restart();
+      case 'gaia-reboot':
+        if (!STATES_A_REBOOT_STARTS_FROM.has(status.state)) return { verdict: 'nothing-to-do' };
         return restart();
     }
   }

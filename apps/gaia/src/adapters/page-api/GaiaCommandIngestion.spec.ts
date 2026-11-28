@@ -48,7 +48,7 @@ describe('a body this Gaia carries out', () => {
   });
 
   test('maps Gaia\'s own update commands, which name no forge', () => {
-    for (const kind of ['gaia-update-check', 'gaia-update', 'gaia-restart'] as const) {
+    for (const kind of ['gaia-update-check', 'gaia-update', 'gaia-restart', 'gaia-reboot'] as const) {
       expect(readingOf({ commandVersion: 5, kind })).toEqual({ verdict: 'readable', command: { kind } });
     }
   });
