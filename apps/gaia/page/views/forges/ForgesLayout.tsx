@@ -20,7 +20,6 @@ import {
   type DataTableRow,
   EmptyState,
   Icon,
-  MonoId,
   NumberStepper,
   PendingStep,
   SectionHead,
@@ -64,14 +63,13 @@ export interface ForgesLayoutProps {
   readonly handlers:      ForgesHandlers;
 }
 
-type ForgeColumn = 'forge' | 'condition' | 'agents' | 'waiting' | 'code' | 'controls';
+type ForgeColumn = 'forge' | 'condition' | 'agents' | 'waiting' | 'controls';
 
 const COLUMNS: readonly DataTableColumn<ForgeColumn>[] = [
   { key: 'forge', label: 'Forge' },
   { key: 'condition', label: 'Hephaestus' },
   { key: 'agents', label: 'Agents' },
   { key: 'waiting', label: 'Waiting' },
-  { key: 'code', label: 'Code' },
   {
     key: 'controls', label: 'Controls', align: 'end', labelHidden: true
   },
@@ -368,7 +366,6 @@ function tableRowOf(row: ForgeRow, handlers: ForgesHandlers): DataTableRow<Forge
       ),
       agents:   <AgentsCell project={row.project} agents={row.agents} handlers={handlers} />,
       waiting:  waitingCellOf(row),
-      code:     row.codeText === null ? null : <MonoId text={row.codeText} size="pill" />,
       controls: (
         <span className="gaia-forges-controls">
           {row.buttons.map((button) => <ForgeButtonView key={buttonKeyOf(button)} button={button} trackerId={row.trackerId} handlers={handlers} />)}

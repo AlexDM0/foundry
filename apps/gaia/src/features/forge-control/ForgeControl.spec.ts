@@ -171,8 +171,8 @@ function controlOver(controlOptions: ControlOptions): ForgeControl {
     readings:     () => forges.map((forge) => forge.reading),
     forgeClient:  forgeClientOf({ supportedForgeVersion: SUPPORTED_FORGE_VERSION, hephaestusFetch: controlOptions.hephaestusFetch ?? recordedHephaestusFetch([]) }),
     forgeProgram: createForgeProgram({
-      processRun:          controlOptions.processRun ?? recordedProcessRun([]),
-      settingsProgramPath: () => settingsStore.settings().forgeProgramPath,
+      processRun:       controlOptions.processRun ?? recordedProcessRun([]),
+      knownProgramPath: () => settingsStore.settings().forgeProgramPath,
     }),
     settingsStore,
     pathChooser: createPathChooser({

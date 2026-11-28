@@ -36,7 +36,7 @@ beforeAll(async () => {
   const repository = await scratchForge.createRepository('example-project');
   scratchForge.exampleValueFor({ drawn: repository, example: EXAMPLE_ROOT });
   recordingRun = forgeProgramRecordingRun({ recordingName: RECORDING_NAME, scratchForge, program: forgeProgramToRun(RECORDING_NAME) });
-  forgeProgram = createForgeProgram({ processRun: recordingRun, settingsProgramPath: () => null });
+  forgeProgram = createForgeProgram({ processRun: recordingRun, knownProgramPath: () => null });
   forge        = { root: repository, program: EXAMPLE_FORGE_PROGRAM_PATH };
 }, SETUP_TIMEOUT_MILLISECONDS);
 

@@ -50,9 +50,9 @@ async function refusedNotify(): Promise<{ readonly commandStates: CommandStates;
 }
 
 describe('the panel\'s checkbox', () => {
-  test('"Notify me while Gaia is open" shows whether notifications are on and sends them turned over with every kind kept', () => {
+  test('"Enable notifications" shows whether notifications are on and sends them turned over with every kind kept', () => {
     const { notify } = panelOf(FLEET_FIVE_FORGES);
-    expect([notify.label, notify.checked, notify.disabled]).toEqual(['Notify me while Gaia is open', true, false]);
+    expect([notify.label, notify.checked, notify.disabled]).toEqual(['Enable notifications', true, false]);
     expect(notify.command).toEqual({
       kind:  'settings-set',
       key:   'notifications',
@@ -98,9 +98,9 @@ describe('the facts', () => {
       { label: 'Registry', value: '~/.forge-monitor/projects.json' },
     ]);
     expect(panel.thisGaiaFacts).toEqual([
-      { label: 'version', value: '1.0' },
-      { label: 'built for forge', value: '1.1' },
-      { label: 'address', value: '127.0.0.1:4790' },
+      { label: 'Gaia version', value: '1.0' },
+      { label: 'Built for forge', value: '1.1' },
+      { label: 'Address', value: '127.0.0.1:4790' },
     ]);
   });
 
@@ -123,7 +123,7 @@ describe('a refused settings change', () => {
     const { commandStates, sentSettingsChange } = await refusedNotify();
     expect(panelOf(FLEET_FIVE_FORGES, commandStates, sentSettingsChange).refusal).toEqual({
       refusedBy:     'gaia',
-      commandLabel:  'Notify me while Gaia is open',
+      commandLabel:  'Enable notifications',
       code:          'settings-unwritable',
       sentence:      SETTINGS_REFUSAL_SENTENCE,
       retryCheckbox: sentSettingsChange.checkbox,
@@ -169,6 +169,6 @@ describe('"What notifies" (C2)', () => {
 
   test('says that no kind notifies while notifications are off', () => {
     const off = withSettings(FLEET_FIVE_FORGES, { notifications: { ...FLEET_FIVE_FORGES.settings.notifications, enabled: false } });
-    expect(whatNotifiesOf(off).offLine).toBe('"Notify me while Gaia is open" is off, so no kind notifies until it is on again.');
+    expect(whatNotifiesOf(off).offLine).toBe('"Enable notifications" is off, so no kind notifies until it is on again.');
   });
 });

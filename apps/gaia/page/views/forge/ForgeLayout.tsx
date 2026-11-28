@@ -270,7 +270,7 @@ const FORGE_ACTIONS_LABEL = 'Forge actions';
 /** The trigger's three dots, hidden since the trigger's name says what it opens. */
 const MORE_GLYPH = '⋯';
 
-/** A restart's item: its words, the running version as its description, and a mark while a newer version is installed. */
+/** A restart's item: whether it runs the installed version as its description, the versions in its title, a mark while a newer one is installed. */
 interface RestartItemProps {
   readonly restart:   BarCommand;
   readonly pair:      BarVersionPair | undefined;
@@ -281,7 +281,7 @@ function RestartItem({ restart, pair, onCommand }: RestartItemProps) {
   return (
     <MenuItem
       label={restart.label}
-      {...(pair === undefined ? {} : { description: pair.line.map((segment) => segment.text).join(''), title: pair.title })}
+      {...(pair === undefined ? {} : { description: pair.summary, title: pair.title })}
       marked={pair?.newerIsInstalled ?? false}
       closing="return-focus"
       onChoose={() => onCommand(restart.command)}

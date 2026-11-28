@@ -19,7 +19,6 @@ import {
   DataTable,
   FillMeter,
   IconButton,
-  MonoId,
   type NumberStepperProps,
   PendingStep,
   SlotMeter
@@ -136,19 +135,11 @@ function press(control: HostElement): void {
 }
 
 describe('the table (A4)', () => {
-  test('sets each row\'s code as a mono id in the pill size', () => {
-    const { unfolded } = layoutOf(FLEET_FIVE_FORGES);
-    const codes = rowsIn(unfolded).map((row) => DataTableRows.cellsOf(row)[4]).map((cell) => (cell === undefined ? null : tree.onlyOfComponent([cell], MonoId).props));
-    expect(codes.map((code) => [code?.['text'], code?.['size']])).toEqual([
-      ['3f9a2c1', 'pill'], ['3f9a2c1', 'pill'], ['3f9a2c1', 'pill'], ['b81e07d', 'pill'], ['3f9a2c1', 'pill'],
-    ]);
-  });
-
   test('heads its columns and holds one row per forge whose repository is there, each with its name and root', () => {
     const { unfolded } = layoutOf(FLEET_FIVE_FORGES);
     const columns = tree.onlyOfComponent(unfolded, DataTable).props['columns'] as readonly { readonly label: string }[];
     expect(columns.map((column) => column.label)).toEqual([
-      'Forge', 'Hephaestus', 'Agents', 'Waiting', 'Code', 'Controls',
+      'Forge', 'Hephaestus', 'Agents', 'Waiting', 'Controls',
     ]);
     const forgeCells = rowsIn(unfolded).map((row) => tree.onlyWithClass([row], 'gaia-forges-forge'));
     const textOfClass = (cell: HostElement, className: string) => tree.textOf([tree.onlyWithClass([cell], className)]);

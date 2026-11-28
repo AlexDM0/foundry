@@ -440,7 +440,7 @@ Held by: `page/views/forges/ForgesModel.spec.ts`, `ForgesLayout.spec.tsx`, `Forg
 | Not found | Section head "Not found · 1"; per forge whose repository is gone: the dot, the name, a neutral "Missing" pill, "~/development/legacy-importer · the repository folder is gone" | "Hide in Gaia" sends `forge-hide`; its refusal shows under the entry. |
 | Hidden in Gaia | A folded `details` group, "Hidden in Gaia · 1" with a chevron; per hidden forge: dot, name, its root and condition word ("~/development/old-prototype · dormant") | "Show again" sends `forge-unhide`; its refusal shows under the entry. |
 | This machine | In the aside, headed "This machine". "Agent limit" with a `NumberStepper` around the machine limit (or "—" while none is known); the sentence "At most the number of CPUs, which is 12 here. No forge starts an agent past it, whatever its own limit." (only the first sentence at the limit); "10 / 12 agents" and a `SlotMeter` ("10 of 12 agents"); the facts "Agents running", "Asked for by the forges' own limits" and "Tickets waiting for a machine slot" (when known). While a forge's agents cannot be read the figure is a floor, "8+", and a line says "Example Billing is not counted: this Gaia cannot read its agents." | The stepper sends `machine-agent-limit-set` one lower or higher ("Lower the machine's agent limit", "Raise the machine's agent limit"); minus is off at 1, plus at the CPU count; both are off while a limit is on its way. A refusal shows in the panel: "The forge refused Set the machine's agent limit: …". |
-| Gaia | In the aside under This machine, headed "Gaia". One switch: "Notify me while Gaia is open", with the text button "What notifies" under its label. Facts, each label over its value: "Forge program" (from `~`, or "not found" in words), "Registry" (from `~`); then "This Gaia": version, built for forge, address (`127.0.0.1:4790`). A path may break after a slash only. | The switch sends `settings-set` with its one setting turned over (`notifications` with `enabled` turned over and every kind kept). "What notifies" opens the dialog of C2. A refused change shows under the switch with "Try again" (the same switch's change) and its dismissal. The version facts belong to the versions document (U2). |
+| Gaia | In the aside under This machine, headed "Gaia". One switch: "Enable notifications", with a ? icon button named "What notifies" after its label. Facts, each label over its value: "Forge program" (from `~`, or "not found" in words), "Registry" (from `~`); then, each label and value on one line: "Gaia version", "Built for forge", "Address" (`127.0.0.1:4790`). The forge program is the one the settings name, else the forge beside Gaia in its own clone. A path may break after a slash only. | The switch sends `settings-set` with its one setting turned over (`notifications` with `enabled` turned over and every kind kept). "What notifies" opens the dialog of C2. A refused change shows under the switch with "Try again" (the same switch's change) and its dismissal. The version facts belong to the versions document (U2). |
 
 ### Which buttons a row shows
 
@@ -779,7 +779,7 @@ Held by: `page/shell/WindowTitle.spec.ts`, `page/views/forges/GaiaPanelModel.spe
 | --- | --- | --- |
 | The window title | `(5) Gaia · Attention`: the rail's Attention count, `4+` included, then "Gaia" and the view's title ("Attention", "Agents", "Activity", "Forges", or a forge in place by its project, its tracker id while the document does not hold it). No count when nothing waits or before the first document. | none |
 | "What notifies" | Opened by the Gaia panel's "What notifies" (A4) over the Forges view: the design-system library's wide `Dialog` titled "What notifies", "5 of 7 on" at the end of its title line, following the settings. One card of seven rows with a hairline between, each a `Checkbox` with the kind's name and its line (below). | A kind sends `settings-set` for `notifications` with only its own kind turned over. "Done" (primary) closes it, as do its close button ("Close What notifies") and Escape; a click beside it does not. A refused change shows under the card with "Try again" and its dismissal. |
-| Notifications off | While "Notify me while Gaia is open" is off: "\"Notify me while Gaia is open\" is off, so no kind notifies until it is on again." over the card | none |
+| Notifications off | While "Enable notifications" is off: "\"Enable notifications\" is off, so no kind notifies until it is on again." over the card | none |
 
 The seven kinds, in order, with their defaults from `GAIA_SETTINGS_DEFAULTS`:
 
@@ -793,7 +793,7 @@ The seven kinds, in order, with their defaults from `GAIA_SETTINGS_DEFAULTS`:
 | `machine-at-agent-limit` | The machine is at its agent limit | Ready tickets wait for a machine slot. | off |
 | `draft-tickets` | Draft tickets | A draft was filed and waits to be readied. | off |
 
-"Notify me while Gaia is open" is on by default. With a settings file newer than this Gaia, every checkbox is off, as in A4.
+"Enable notifications" is on by default. With a settings file newer than this Gaia, every checkbox is off, as in A4.
 
 **Not built: the notifications.** Gaia raises no notification of these kinds yet. It waits for the second spike of `docs/spikes.md`
 (the permission prompt answered and a notification clicked in the app window while another application is in front), which needs the
@@ -804,7 +804,7 @@ owner at the Mac; `docs/backlog.md` holds it. When built, through `page/notifica
   subject. A click brings Gaia's window forward at that item.
 - What is new is a set difference between this snapshot's keys and the keys already seen; the first snapshot after a load seeds the set
   and notifies nothing.
-- Only while "Notify me while Gaia is open" is on, and only for a kind switched on.
+- Only while "Enable notifications" is on, and only for a kind switched on.
 - Permission: while the browser has not granted it, a neutral dashed line with "Allow notifications" as its primary, which asks the
   browser once, from User's click. Denied, the line stays and Gaia never asks again by itself.
 - The notification is drawn as an operating-system card: Gaia's mark, the title with a mono time, the body and a small foot; the one

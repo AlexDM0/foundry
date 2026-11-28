@@ -126,6 +126,14 @@ function refusalOfStart(startVerdict: Exclude<PageServerStartVerdict, { readonly
   return new GaiaError('unrepaired', startVerdict.verdict, `${PRODUCT_NAMES.applicationName} cannot write its ${startVerdict.file}: ${startVerdict.failure}.`);
 }
 
+const GAIA_CHECKOUT_FOLDER = join(import.meta.dir, '..', '..', '..');
+
+/** Gaia runs from the monorepo's clone, whose forge program sits beside it; `null` where that clone holds none. */
+async function forgeProgramBesideGaia(): Promise<string | null> {
+  const programPath = join(GAIA_CHECKOUT_FOLDER, 'apps', 'forge', 'agent-progress.ts');
+  return await Bun.file(programPath).exists() ? programPath : null;
+}
+
 /**
  * Wires the forge watch and the settings into the fleet store and forge-control into the command port, serves both to the page, and
  * stops it all at a stop signal.
@@ -142,7 +150,9 @@ async function serve(remainingArguments: readonly string[], output: ProgramOutpu
   const readRegistry = () => new RegistryFile(registryPath).read();
   const forgeClient = forgeClientOf({ supportedForgeVersion: SUPPORTED_FORGE_VERSION, hephaestusFetch: realHephaestusFetch() });
   const processRun = realProcessRun(environmentCopy);
-  const forgeProgram = createForgeProgram({ processRun, settingsProgramPath: () => settingsStore.settings().forgeProgramPath });
+  const forgeProgramBeside = await forgeProgramBesideGaia();
+  const forgeProgramInUse = () => settingsStore.settings().forgeProgramPath ?? forgeProgramBeside;
+  const forgeProgram = createForgeProgram({ processRun, knownProgramPath: forgeProgramInUse });
   const forgeWatch = createForgeWatch({
     readRegistry,
     forgeClient,
@@ -157,7 +167,7 @@ async function serve(remainingArguments: readonly string[], output: ProgramOutpu
   });
   const appBundlePath = appBundlePathAmong(remainingArguments);
   const gaiaUpdate = createGaiaUpdate({
-    checkout:         createGaiaCheckout({ processRun, checkoutFolder: join(import.meta.dir, '..', '..', '..'), bunProgram: process.execPath }),
+    checkout:         createGaiaCheckout({ processRun, checkoutFolder: GAIA_CHECKOUT_FOLDER, bunProgram: process.execPath }),
     processRun,
     // The launcher that Gaia.app started passes the bundle on, and is this server's parent.
     relaunchTarget:   appBundlePath === null ? null : { appBundlePath, launcherProcessId: process.ppid },
@@ -174,7 +184,7 @@ async function serve(remainingArguments: readonly string[], output: ProgramOutpu
       address,
       homeFolder:        home,
       registryPath,
-      forgeProgramInUse: settingsStore.settings().forgeProgramPath,
+      forgeProgramInUse: forgeProgramInUse(),
       settingsFile:      settingsStore.fileState(),
       knownContracts:    {
         summary: CONTRACT_VERSIONS.forgeBoardSummary,
