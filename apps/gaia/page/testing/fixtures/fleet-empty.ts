@@ -55,6 +55,9 @@ export const FLEET_EMPTY: FleetDocument = {
       systemVersion:         { major: 1, minor: 0 },
       supportedForgeVersion: { major: 1, minor: 1 },
     },
+    update: {
+      state: 'up-to-date', commitsBehind: 0, failure: null, restartIsPossible: true
+    },
   },
   outageEndingsTotal: 0,
 };

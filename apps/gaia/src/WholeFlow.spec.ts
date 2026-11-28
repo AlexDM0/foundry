@@ -25,6 +25,7 @@ import { createSettingsWriter }                                                 
 import { createPathChooser }                                                                         from './adapters/path-chooser/PathChooser.ts';
 import { fleetSnapshotOf }                                                                           from './features/fleet/FleetAssembly.ts';
 import { createForgeControl }                                                                        from './features/forge-control/ForgeControl.ts';
+import { isGaiaUpdateCommand }                                                                       from './features/gaia-update/GaiaUpdate.ts';
 import { startPageServer, type PageServer }                                                          from './features/page-server/PageServer.ts';
 import { eventStreamParserOf, type ServerSentEvent }                                                 from './lib/event-stream/EventStreamParser.ts';
 import { forgeClientOf }                                                                             from './lib/forge-client/ForgeClient.ts';
@@ -276,6 +277,9 @@ async function startGaia(): Promise<RunningGaia> {
         systemVersion:         GAIA_SYSTEM_VERSION,
         supportedForgeVersion: SUPPORTED_FORGE_VERSION,
       },
+      update: {
+        state: 'up-to-date', commitsBehind: 0, failure: null, restartIsPossible: false
+      },
     },
   });
   const fleetStore = createFleetStore(snapshotNow());
@@ -302,7 +306,7 @@ async function startGaia(): Promise<RunningGaia> {
     forgeCounts:        () => ({ forgesRegistered: watch.watchedForgeCount(), forgesAnswered: watch.readings().length }),
     pageFiles:          () => Promise.resolve({ verdict: 'unbuildable', failure: 'the flow reads no page file' }),
     diagramFrameFiles:  () => Promise.resolve({ verdict: 'unbuildable', failure: 'the flow reads no page file' }),
-    carryCommand:       forgeControl.carry,
+    carryCommand:       (command) => (isGaiaUpdateCommand(command) ? Promise.resolve({ verdict: 'not-supported' }) : forgeControl.carry(command)),
     forgeAccessSources: {
       readRegistry, readings: watch.readings, presenceReadingAfterNow: watch.presenceReadingAfterNow, forgeClient
     },

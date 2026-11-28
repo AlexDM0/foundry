@@ -92,6 +92,7 @@ a link, as every rail row is, still navigates.
 | Divider | An 18 px hairline in the strong line colour | none |
 | Status pill | While a forge's Hephaestus runs: an orange pill with a pulsing dot, "4 forges running" ("1 forge running"). While none runs: a neutral pill with a ring dot, no pulse, "No forge running"; with no forge registered "No forge registered"; with every forge hidden "No forge shown" | none |
 | Status sentence | The other conditions by count, over the forges not hidden, joined by " · " in this order: paused, "holds its launches" / "hold their launches", "restarting", "starting", "dormant", "unreachable", "needs a forge update" / "need a forge update", "not readable by this Gaia", "repository missing" / "repositories missing". A1: "1 holds its launches · 1 dormant · 1 repository missing". No forge registered: "nothing runs on this machine yet"; every forge hidden: "every forge is hidden in Gaia". Cut with an ellipsis when long | none |
+| Update | Gaia's own update (`GaiaUpdateButtonModel.ts`), a compact `Button` just before the theme button, with a muted note before it. "Up to date" or "Check for updates" (quiet); "Update Gaia" (the bar's one primary) with "3 new commits on main"; "Updating Gaia…", "Restarting Gaia…" and "Checking for updates…" off while on their way; "Restart Gaia" (primary) once the clone is updated, off with "Quit Gaia and open it again to run the update." where Gaia cannot restart itself. The note names a failed step instead: origin not reached, no clone, local changes, commits of its own, forge's setup not finished, the restart not started. Absent on `#forge/…`, as the theme is | "Up to date" and "Check for updates" send `gaia-update-check`, "Update Gaia" `gaia-update`, "Restart Gaia" `gaia-restart` (`docs/architecture.md`, "Gaia's own update") |
 | Theme | `ThemeCycleButton` at the far end, named after the current choice and the next: "Theme: auto. Switch to light". Absent on `#forge/…`, so a forge in place has room for its own line and buttons | Cycles auto, light, dark. A choice shows at once, is stored in the browser for the next first paint, and is sent to Gaia's settings as `settings-set` with key `theme` |
 
 A forge's Hephaestus runs while the forge is live, paused, held or restarting, or when it answered its versions at a version Gaia
@@ -186,7 +187,7 @@ out: `Gaia · Attention`.
    (`page/shell/GaiaApp.spec.tsx`).
 3. The brand bar and the rail match A1 at 1440 x 1016 in both themes (the by-eye pass of `page/Screens.visual.spec.ts`).
 4. Tab reaches every control in visual order: the brand bar from its home link to the theme button, the rail top to bottom, then the
-   view's buttons; the markup order is the visual order; every control, an icon-only one included, has a name
+   view's buttons, the update button just before the theme button; the markup order is the visual order; every control, an icon-only one included, has a name
    (`page/shell/GaiaApp.spec.tsx`, "Tab and names").
 5. In the A1 fixture the rail's Agents count reads 10 and this machine "10 / 12" (`page/shell/RailModel.spec.ts`).
 6. `#forge/…` has no theme button; every other route has one, named after the current choice and the next ("Theme: auto. Switch to
@@ -429,7 +430,7 @@ Held by: `page/views/forges/ForgesModel.spec.ts`, `ForgesLayout.spec.tsx`, `Forg
 | Waiting cell | What waits on User in this forge as an orange `CountBadge`; nothing at zero or unknown; "not read" for a forge Gaia cannot talk to | none |
 | Code cell | The first seven characters of the code version, as a mono id | none |
 | Controls cell | Compact buttons by condition (table below) | "Pause" sends `forge-pause`; "Unpause" `forge-unpause`; "Start" `forge-start`; "Stop" opens the Stop dialog under the row (B2); "Open" goes to `#forge/<trackerId>`; "Look again" sends `fleet-look-again`; "Update forge" `forge-update`. A control Gaia cannot send carries why, naming both versions, as its title. |
-| Under a row | In order: an ahead forge's quiet versions line; the versions pair and its sentence when shown (U2); the forge's notice that its Assistant cannot come up, in Gaia's words, as a status ("This forge's Assistant cannot come up, so its open incidents take their defaults.", worded by the server in `src/adapters/page-api/ForgeSentenceUtil.ts`); the outage count "2 agents stopped on a network outage"; the Stop dialog (B2); then, indented: "Updating the forge…" beside a starting ring while Update forge is on its way to an older forge, the row's refusal (B2), and a pending restart drawn without an edge | The refusal's "Try again" and "Dismiss this refusal"; the pending restart's "Restart" (`forge-restart`, primary) and "Dismiss the pending restart". |
+| Under a row | In order: an ahead forge's quiet versions line; the versions pair and its sentence when shown (U2); the forge's notice that its Assistant cannot come up, in Gaia's words, as a status ("This forge's Assistant cannot come up, so its open incidents take their defaults.", worded by the server in `src/adapters/page-api/ForgeSentenceUtil.ts`); the outage count "2 agents stopped on a network outage"; the Stop dialog (B2); then, indented: "Updating the forge…" beside a starting ring while the row's Update forge is on its way, the row's refusal (B2), and a pending restart drawn without an edge | The refusal's "Try again" and "Dismiss this refusal"; the pending restart's "Restart" (`forge-restart`, primary) and "Dismiss the pending restart". |
 | Notes under the table | While a row can open its versions: the versions explanation (U2). While a control is in use: "A control stays disabled while its command is on its way. A refusal is the forge's own sentence, shown beside the control that caused it." | none |
 | Held forge's banner | Under the table, one per held forge, labelled "<project>: Launches held": orange edge, held dot, the name, "Launches held.", the forge's held notice, or "Its install version changed. Nothing launches until this forge is updated.", then "Its 2 agents keep running." when any run | "Update forge" (quiet, at full height) sends `forge-update`. Under the banner: a refusal of `forge-update` or `forge-restart`, and the restart an update left pending: `PendingStep` "Updated; restart pending." "Its Hephaestus runs the old code until it restarts." with "Restart" (`forge-restart`, the held area's one primary) and "Dismiss the pending restart". |
 | Not found | Section head "Not found · 1"; per forge whose repository is gone: the dot, the name, a neutral "Missing" pill, "~/development/legacy-importer · the repository folder is gone" | "Hide in Gaia" sends `forge-hide`; its refusal shows under the entry. |
@@ -439,7 +440,8 @@ Held by: `page/views/forges/ForgesModel.spec.ts`, `ForgesLayout.spec.tsx`, `Forg
 
 ### Which buttons a row shows
 
-From `BUTTONS_BY_CONDITION`, `BUTTONS_BY_PRESENCE_OFF` and `buttonsOfAForgeGaiaCannotTalkTo` in `page/views/forges/ForgesModel.ts`.
+From `BUTTONS_BY_CONDITION`, `BUTTONS_BY_PRESENCE_OFF`, `buttonsOfAForgeGaiaCannotTalkTo` and `offersTheInstalledCode` in
+`page/views/forges/ForgesModel.ts`.
 
 | Condition | Buttons |
 | --- | --- |
@@ -458,6 +460,7 @@ From `BUTTONS_BY_CONDITION`, `BUTTONS_BY_PRESENCE_OFF` and `buttonsOfAForgeGaiaC
 | verdict `older` (Needs update) | Update forge (primary; plain while a restart it left is pending; "Updating", off, while on its way), Stop off with its title |
 | verdict `newer` | Pause off and Stop off, each with its title |
 | verdict `ahead` | as its condition |
+| `live` or `paused`, Gaia talks to it, and the installed code differs from the code its Hephaestus runs | Update forge before the condition's buttons: primary on a live row, quiet beside a paused row's Unpause; plain while a restart it left is pending; "Updating", off, while on its way |
 | hidden in Gaia | not in the table: its entry's Show again |
 
 Open shows only where the forge opens in place: read in full, or unreachable (`ForgeContractUtil.canOpenInPlace`). Every button of a

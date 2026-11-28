@@ -41,4 +41,10 @@ export type FleetCommand =
   | { readonly kind: 'settings-set'; readonly change: SettingsChange }
   | { readonly kind: 'path-choose'; readonly what: PathChoiceTarget };
 
-export type GaiaCommand = ForgeCommand | FleetCommand;
+/** A command about Gaia's own update: check origin again, update the clone and the forge program, or restart on the update. */
+export type GaiaUpdateCommand = { readonly kind: 'gaia-update-check' } | { readonly kind: 'gaia-update' } | { readonly kind: 'gaia-restart' };
+
+/** What forge-control carries: every command but Gaia's own update. */
+export type ForgeOrFleetCommand = ForgeCommand | FleetCommand;
+
+export type GaiaCommand = ForgeOrFleetCommand | GaiaUpdateCommand;

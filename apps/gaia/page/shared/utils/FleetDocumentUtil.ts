@@ -1,13 +1,14 @@
 /**
- * What the page reads off a fleet document the same way in every view: a forge by its tracker id, what of a forge and of the fleet waits on
- * User at the fidelity it was read at, and the forges whose agents no total counts. A forge's "no pipeline" question (`checks-not-set`) waits
- * on nobody: the forge's onboarding answers it, so no list or count of what waits on User holds it.
+ * What the page reads off a fleet document the same way in every view: a forge by its tracker id, what waits on User at the fidelity it
+ * was read at, the forges whose agents no total counts, and whether newer code is installed than a Hephaestus runs. A "no pipeline"
+ * question (`checks-not-set`) waits on nobody: the forge's onboarding answers it, so no list or count of what waits on User holds it.
  */
 import type {
   FleetDocument,
   FleetDocumentAttentionItem,
   FleetDocumentFleetAttentionItem,
-  FleetDocumentForge
+  FleetDocumentForge,
+  FleetDocumentRunningVersions
 } from '../../@types/FleetDocument.ts';
 
 /** The forge's "no pipeline" question: open while the forge has none, withdrawn by the setup's Apply. */
@@ -56,6 +57,11 @@ function forgesWhoseAgentsAreNotCountedIn(fleetDocument: FleetDocument): FleetDo
   return fleetDocument.forges.filter(cannotTalkAtItsVersion);
 }
 
+/** A code version is a content hash, so newer installed code is code that differs; with the installed code not read, none is newer. */
+function newerHephaestusCodeIsInstalled({ hephaestusRunning, hephaestusNewest }: FleetDocumentRunningVersions): boolean {
+  return hephaestusNewest !== null && hephaestusNewest !== hephaestusRunning;
+}
+
 export const FleetDocumentUtil = {
   forgeOf,
   reportsNoPipeline,
@@ -65,4 +71,5 @@ export const FleetDocumentUtil = {
   waitingCountOf,
   cannotTalkAtItsVersion,
   forgesWhoseAgentsAreNotCountedIn,
+  newerHephaestusCodeIsInstalled,
 } as const;

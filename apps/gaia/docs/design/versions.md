@@ -187,8 +187,9 @@ ahead of this Gaia".
 
 ## Update forge steps
 
-Update forge is offered only for an `older` forge, as the primary action, and Gaia runs it through the forge program. Its step
-follows the forge's command state, alike in the U1 callout, the U2 row and the U3 bar. The words are `UPDATE_FORGE_TEXT` in
+Update forge is offered for an `older` forge, as the primary action, and on the Forges row of a forge Gaia talks to whose installed
+code is newer than its Hephaestus runs (`docs/design/screens.md`, "Which buttons a row shows"); Gaia runs it through the forge
+program. Its step follows the forge's command state, alike in the U1 callout, the U2 row and the U3 bar. The words are `UPDATE_FORGE_TEXT` in
 `ForgeVersionsTextUtil.ts` and `RESTART_PENDING` in `page/shared/utils/ForgeCommandTextUtil.ts`.
 
 | Step | U1 callout | U2 row | U3 bar |
@@ -229,7 +230,7 @@ row and bar take the new verdict's form without a reload.
 1. With the fleet-versions fixture, Attention shows "Forges that need a look · 2" with two callouts in the order older, newer,
    with the copy above, and the brand bar sentence "1 needs a forge update · 1 not readable by this Gaia"
    (`AttentionModel.spec.ts`, `BrandStatusModel.spec.ts`).
-2. No sentence offers to update Gaia, names a command, speaks of an oldest Gaia or a Gaia minimum, or says "talks to forge"
+2. No versions sentence offers to update Gaia (Gaia's own update is the brand bar's button, `docs/design/screens.md`), names a command, speaks of an oldest Gaia or a Gaia minimum, or says "talks to forge"
    (`ForgeVersionsTextUtil.spec.ts`); a newer forge's dot, word, callout, disclosure and verdict carry no orange
    (`AttentionModel.spec.ts`, `ForgesModel.spec.ts`, `VersionsVerdictMark.spec.tsx`).
 3. Given a Gaia built for forge `2.3`: a forge whose minimum is `2.4` or `3.0` is `newer`, even by a minor; a forge at `2.2`, `1.9`

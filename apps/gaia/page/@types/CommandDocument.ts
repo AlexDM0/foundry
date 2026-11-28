@@ -41,7 +41,10 @@ export type FleetCommandBody =
   | ({ kind: 'settings-set' } & SettingsChange)
   | { kind: 'path-choose'; what: PathChoiceTarget }
   | { kind: 'fleet-look-again' }
-  | { kind: 'fleet-outage-resume' };
+  | { kind: 'fleet-outage-resume' }
+  | { kind: 'gaia-update-check' }
+  | { kind: 'gaia-update' }
+  | { kind: 'gaia-restart' };
 
 export type CommandBody = ForgeCommandBody | FleetCommandBody;
 

@@ -324,6 +324,19 @@ export interface FleetDocumentSettings {
 
 export type FleetDocumentSettingsFileState = 'read' | 'absent' | 'newer-version' | 'unreadable';
 
+export type FleetDocumentGaiaUpdateState = 'checking' | 'up-to-date' | 'available' | 'not-known' | 'updating' | 'restart-needed' | 'restarting';
+
+export type FleetDocumentGaiaUpdateFailure = 'origin-unreachable' | 'not-a-clone' | 'local-changes' | 'diverged' | 'forge-setup-failed' | 'restart-not-started';
+
+/** Gaia's own update against origin's main: `commitsBehind` is zero but for `available`; `failure` names why the last step did not finish. */
+export interface FleetDocumentGaiaUpdate {
+  state:             FleetDocumentGaiaUpdateState;
+  commitsBehind:     number;
+  failure:           FleetDocumentGaiaUpdateFailure | null;
+  /** Only a Gaia that Gaia.app started can quit and open itself again. */
+  restartIsPossible: boolean;
+}
+
 export interface FleetDocumentGaia {
   gaiaVersion:       string;
   address:           string;
@@ -334,6 +347,7 @@ export interface FleetDocumentGaia {
   knownContracts:    { summary: number; monitor: number; control: number };
   /** This Gaia's own system version and the one forge version it supports. */
   versions:          { systemVersion: FleetDocumentSystemVersion; supportedForgeVersion: FleetDocumentSystemVersion };
+  update:            FleetDocumentGaiaUpdate;
 }
 
 /** The first event of `GET /api/events`, before any document: the system version of the Gaia that serves the stream. */

@@ -393,14 +393,20 @@ function withTitle(button: ForgeButton, title: string): ForgeButton {
   return button.kind === 'command' || button.kind === 'stop' ? { ...button, title } : button;
 }
 
-/** Update forge is the row's one primary, until a restart it left pending takes that place; it says so while it is on its way. */
-function updateButtonOf(forge: FleetDocumentForge, rowSurroundings: RowSurroundings): ForgeButton {
+/**
+ * Update forge is the row's one primary, unless the row has another or a restart it left pending takes that place; it says so while it is
+ * on its way.
+ */
+function updateButtonOf(forge: FleetDocumentForge, rowSurroundings: RowSurroundings, rowHasAnotherPrimary: boolean): ForgeButton {
   const { trackerId } = forge;
   const command: CommandBody = { kind: 'forge-update', trackerId };
   const { commandStates } = rowSurroundings.surroundings;
-  if (onItsWayFor(commandStates, trackerId) === 'forge-update') return commandButton('update', ForgeVersionsTextUtil.UPDATE_FORGE_TEXT.pendingButton, command, true, 'primary');
+  const emphasisBesideTheRowsButtons: ButtonEmphasis = rowHasAnotherPrimary ? 'quiet' : 'primary';
+  if (onItsWayFor(commandStates, trackerId) === 'forge-update') {
+    return commandButton('update', ForgeVersionsTextUtil.UPDATE_FORGE_TEXT.pendingButton, command, true, emphasisBesideTheRowsButtons);
+  }
   const restartIsPending = CommandSender.stateOf(commandStates, { trackerId }).restartPending;
-  return commandButton('update', 'Update forge', command, forgeIsBusy(forge, rowSurroundings), restartIsPending ? 'quiet' : 'primary');
+  return commandButton('update', 'Update forge', command, forgeIsBusy(forge, rowSurroundings), restartIsPending ? 'quiet' : emphasisBesideTheRowsButtons);
 }
 
 /** An older forge offers Update forge; a newer one only what it would offer, off. Neither opens in place. */
@@ -409,7 +415,7 @@ function buttonsOfAForgeGaiaCannotTalkTo(forge: FleetDocumentForge & { readonly 
   const stop = withTitle({
     kind: 'stop', button: 'stop', label: 'Stop', disabled: true
   }, title);
-  if (forge.versions.verdict === 'older') return [updateButtonOf(forge, rowSurroundings), stop];
+  if (forge.versions.verdict === 'older') return [updateButtonOf(forge, rowSurroundings, false), stop];
   return [withTitle(commandButton('pause', 'Pause', { kind: 'forge-pause', trackerId: forge.trackerId }, true), title), stop];
 }
 
@@ -426,13 +432,31 @@ function rowButtonKindsOf(forge: FleetDocumentForge): readonly RowButtonKind[] {
   return BUTTONS_BY_PRESENCE_OFF[forge.presence.state] ?? BUTTONS_BY_CONDITION[forge.condition];
 }
 
+/** The conditions of a forge Gaia talks to whose row offers Update forge while newer code is installed; a held forge's banner offers its own. */
+const CONDITIONS_OFFERING_THE_INSTALLED_CODE: ReadonlySet<FleetDocumentCondition> = new Set(['live', 'paused']);
+
+function offersTheInstalledCode(forge: FleetDocumentForge): boolean {
+  const { runningVersions } = forge;
+  return BUTTONS_BY_PRESENCE_OFF[forge.presence.state] === undefined
+    && CONDITIONS_OFFERING_THE_INSTALLED_CODE.has(forge.condition)
+    && runningVersions !== null
+    && FleetDocumentUtil.newerHephaestusCodeIsInstalled(runningVersions);
+}
+
+function rowOffersUpdate(forge: FleetDocumentForge): boolean {
+  return forge.versions?.verdict === 'older' || (!cannotTalkTo(forge) && offersTheInstalledCode(forge));
+}
+
 function buttonsOf(forge: FleetDocumentForge, rowSurroundings: RowSurroundings): ForgeButton[] {
   if (shownConditionOf(forge, rowSurroundings.surroundings.commandStates) === 'starting') return [{ kind: 'waiting', label: 'Starting' }];
   if (cannotTalkTo(forge)) return buttonsOfAForgeGaiaCannotTalkTo(forge, rowSurroundings);
-  return rowButtonKindsOf(forge).flatMap((button) => {
+  const buttons = rowButtonKindsOf(forge).flatMap((button) => {
     const shown = buttonOf(button, forge, rowSurroundings);
     return shown === null ? [] : [shown];
   });
+  if (!rowOffersUpdate(forge)) return buttons;
+  const rowHasAnotherPrimary = buttons.some((button) => button.kind === 'command' && button.emphasis === 'primary');
+  return [updateButtonOf(forge, rowSurroundings, rowHasAnotherPrimary), ...buttons];
 }
 
 function agentsInFlightOf(forge: FleetDocumentForge): number {
@@ -626,7 +650,7 @@ function rowVersionsOf(forge: FleetDocumentForge, shownCondition: ShownCondition
 
 function updateStatusOf(forge: FleetDocumentForge, commandStates: CommandStates): string | null {
   const updateIsOnItsWay = onItsWayFor(commandStates, forge.trackerId) === 'forge-update';
-  return updateIsOnItsWay && forge.versions?.verdict === 'older' ? ForgeVersionsTextUtil.UPDATE_FORGE_TEXT.pending : null;
+  return updateIsOnItsWay && rowOffersUpdate(forge) ? ForgeVersionsTextUtil.UPDATE_FORGE_TEXT.pending : null;
 }
 
 function rowOf(forge: FleetDocumentForge, rowSurroundings: RowSurroundings): ForgeRow {

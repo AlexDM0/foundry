@@ -52,7 +52,8 @@ A forge that is down is an ordinary reading, never a throw. A reading that stops
 
 1. The page sends one command per request to `POST /api/commands` (`page/api/CommandSender.ts`).
 2. `features/page-server/routes/CommandsRoute.ts` reads it in through `adapters/page-api/GaiaCommandIngestion.ts` and hands it to the
-   command port that `src/Main.ts` wires to `features/forge-control/ForgeControl.ts`.
+   command port that `src/Main.ts` wires to `features/forge-control/ForgeControl.ts`, and Gaia's own update commands to
+   `features/gaia-update/GaiaUpdate.ts`.
 3. `ForgeControl` picks the carrier: Hephaestus's control API while it answers and its control contract is known; the forge program
    (`adapters/forge-program/`, through `lib/process-run/`) for what no API can do, such as start, update and add; Gaia's own settings for
    hiding a forge or a setting. One command per forge is on its way at a time.
@@ -61,6 +62,18 @@ A forge that is down is an ordinary reading, never a throw. A reading that stops
    puts a notice, a warning or another forge sentence that names a command into Gaia's words, so no screen but a refusal tells User to run
    one (D10).
 5. The change itself reaches the page as the next fleet snapshot, not through the answer.
+
+## Gaia's own update
+
+Gaia updates the git clone it runs from (`features/gaia-update/GaiaUpdate.ts`, over `adapters/gaia-checkout/GaiaCheckout.ts`). At its
+start, every hour and at a press of "Up to date" or "Check for updates" it fetches origin's `main` and counts the commits the clone lacks;
+the status rides on every fleet document under `gaia.update`, and the brand bar's update button reads it. "Update Gaia" refuses a clone
+with changed tracked files or commits of its own, fast-forwards it, and runs forge's `setup.ts` in it, which installs the clone's
+dependencies and compiles the installed `forge` command again; setup exits 0 after a failed step, so a printed failure mark reads as
+failed. Once the clone has moved, the button reads "Restart Gaia": the launcher that Gaia.app started passes the bundle to `gaia serve`
+and is its parent, so the server starts a detached shell that stops the launcher as a quit does, waits for its end, and opens Gaia.app as
+a new instance. A Gaia started from a terminal cannot restart itself and says to quit and open it again. After the restart, a forge
+whose Hephaestus runs older code than the installed program offers Update forge (`forge update`) in its row.
 
 ## One forge in place
 

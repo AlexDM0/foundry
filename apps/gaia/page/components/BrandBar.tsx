@@ -1,9 +1,11 @@
 /**
  * The 52 px bar across Gaia's window (`docs/design/components.md` 3.4): the mark and the wordmark linking to Attention, the fleet's status pill
  * and its sentence, and at the far end the theme button, which a forge in place leaves out. The pill is orange with a pulsing dot while a forge
- * runs, neutral with a ring while none does, and absent before Gaia knows the fleet.
+ * runs, neutral with a ring while none does, and absent before Gaia knows the fleet. Gaia's update button and its note stand before the theme.
  */
 import {
+  Button,
+  type ButtonEmphasis,
   StateBadge,
   type ThemeChoice,
   ThemeCycleButton,
@@ -31,11 +33,22 @@ export interface BrandBarThemeButton {
   readonly onCycle: (next: ThemeChoice) => void;
 }
 
+/** Gaia's own update button: its words, its press, and the note beside it, such as how many commits Gaia is behind. */
+export interface BrandBarUpdateButton {
+  readonly label:    string;
+  readonly emphasis: Extract<ButtonEmphasis, 'quiet' | 'primary'>;
+  readonly disabled: boolean;
+  readonly onPress:  () => void;
+  readonly note:     string | null;
+}
+
 export interface BrandBarProps {
   /** `null` before Gaia knows the fleet. */
-  readonly status:      BrandStatus | null;
+  readonly status:        BrandStatus | null;
   /** `null` where the bar leaves the theme button out. */
-  readonly themeButton: BrandBarThemeButton | null;
+  readonly themeButton:   BrandBarThemeButton | null;
+  /** `null` before Gaia knows its update, and where the bar leaves the theme button out. */
+  readonly updateButton?: BrandBarUpdateButton | null;
 }
 
 export function themeButtonNameOf(choice: ThemeChoice): string {
@@ -47,7 +60,16 @@ function StatusPill({ status }: { readonly status: BrandStatus }) {
   return <StateBadge tone="neutral" label={status.pillText} dotShape="ring" />;
 }
 
-export function BrandBar({ status, themeButton }: BrandBarProps) {
+function UpdateButton({ updateButton }: { readonly updateButton: BrandBarUpdateButton }) {
+  return (
+    <>
+      {updateButton.note === null ? null : <span className="gaia-brand-bar-update-note">{updateButton.note}</span>}
+      <Button compact label={updateButton.label} emphasis={updateButton.emphasis} disabled={updateButton.disabled} onPress={updateButton.onPress} />
+    </>
+  );
+}
+
+export function BrandBar({ status, themeButton, updateButton = null }: BrandBarProps) {
   return (
     <header className="gaia-brand-bar">
       <a className="gaia-brand-bar-home" href={HOME_HREF} aria-label={HOME_NAME}>
@@ -57,6 +79,7 @@ export function BrandBar({ status, themeButton }: BrandBarProps) {
       <span className="gaia-brand-bar-divider" aria-hidden="true" />
       {status === null ? null : <StatusPill status={status} />}
       <span className="gaia-brand-bar-sentence">{status?.sentence}</span>
+      {updateButton === null ? null : <UpdateButton updateButton={updateButton} />}
       {themeButton === null ? null : <ThemeCycleButton {...themeButton} accessibleName={themeButtonNameOf(themeButton.choice)} />}
     </header>
   );

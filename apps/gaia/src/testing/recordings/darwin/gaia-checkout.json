@@ -1,0 +1,256 @@
+{
+  "recordingVersion": 1,
+  "recordingMinor": 0,
+  "stamp": {
+    "recordingName": "gaia-checkout",
+    "operatingSystem": "darwin",
+    "system": "macos",
+    "source": "recorded",
+    "systemVersion": "25.6.0"
+  },
+  "answers": [
+    {
+      "callShape": "behind: run [\"/Users/example/.bun/bin/bun\",\"--no-env-file\",\"--config=bunfig.toml\",\"setup.ts\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "\n\u001b[1m1/3 Bun\u001b[0m\n  \u001b[32m✔\u001b[0m bun 1.4.2 found (/Users/alexdemulder/.bun/bin/bun)\n\n\u001b[1m2/3 Dependencies and the global forge command (bun install, bun link)\u001b[0m\n  \u001b[32m✔\u001b[0m dependencies installed (bun install in /Users/alexdemulder/development/forge/apps/gaia/.scratch/run-BTTZzA/gaia-checkout-n6BTkI/behind/apps/forge)\n  \u001b[32m✔\u001b[0m forge is the launcher compiled at /Users/alexdemulder/development/forge/apps/gaia/.scratch/run-BTTZzA/gaia-checkout-n6BTkI/bun-install/bin/forge; it ignores a repository's bunfig.toml and .env\n  \u001b[32m✔\u001b[0m forge is on your PATH (/Users/alexdemulder/development/forge/node_modules/.bin/forge)\n\n\u001b[1m3/3 The pre-commit hook (git config core.hooksPath)\u001b[0m\n  \u001b[32m✔\u001b[0m core.hooksPath set to .githooks (it was unset)\n\n\u001b[1mTooling ready.\u001b[0m Next:  cd <a repository> && forge init\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "behind: run [\"git\",\"fetch\",\"--quiet\",\"origin\",\"main\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "behind: run [\"git\",\"merge\",\"--ff-only\",\"--quiet\",\"origin/main\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "behind: run [\"git\",\"remote\",\"get-url\",\"origin\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "/Users/alexdemulder/development/forge/apps/gaia/.scratch/run-BTTZzA/gaia-checkout-n6BTkI/origin.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "behind: run [\"git\",\"rev-list\",\"--count\",\"HEAD..origin/main\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "2\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "behind: run [\"git\",\"status\",\"--porcelain\",\"--untracked-files=no\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "diverged: run [\"git\",\"fetch\",\"--quiet\",\"origin\",\"main\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "diverged: run [\"git\",\"merge\",\"--ff-only\",\"--quiet\",\"origin/main\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "hint: Diverging branches can't be fast-forwarded, you need to either:\nhint:\nhint: \tgit merge --no-ff\nhint:\nhint: or:\nhint:\nhint: \tgit rebase\nhint:\nhint: Disable this message with \"git config set advice.diverging false\"\nfatal: Not possible to fast-forward, aborting.\n"
+      }
+    },
+    {
+      "callShape": "diverged: run [\"git\",\"remote\",\"get-url\",\"origin\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "/Users/alexdemulder/development/forge/apps/gaia/.scratch/run-BTTZzA/gaia-checkout-n6BTkI/origin.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "diverged: run [\"git\",\"rev-list\",\"--count\",\"HEAD..origin/main\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "1\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "diverged: run [\"git\",\"status\",\"--porcelain\",\"--untracked-files=no\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "local-changes: run [\"git\",\"fetch\",\"--quiet\",\"origin\",\"main\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "local-changes: run [\"git\",\"remote\",\"get-url\",\"origin\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "/Users/alexdemulder/development/forge/apps/gaia/.scratch/run-BTTZzA/gaia-checkout-n6BTkI/origin.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "local-changes: run [\"git\",\"rev-list\",\"--count\",\"HEAD..origin/main\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "1\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "local-changes: run [\"git\",\"status\",\"--porcelain\",\"--untracked-files=no\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": " M README.md\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "not-a-clone: run [\"git\",\"remote\",\"get-url\",\"origin\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 2,
+        "standardOutput": "",
+        "standardError": "error: No such remote 'origin'\n"
+      }
+    },
+    {
+      "callShape": "origin-unreachable: run [\"git\",\"fetch\",\"--quiet\",\"origin\",\"main\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: '/Users/alexdemulder/development/forge/apps/gaia/.scratch/run-BTTZzA/gaia-checkout-n6BTkI/no-such-origin.git' does not appear to be a git repository\nfatal: Could not read from remote repository.\n\nPlease make sure you have the correct access rights\nand the repository exists.\n"
+      }
+    },
+    {
+      "callShape": "origin-unreachable: run [\"git\",\"remote\",\"get-url\",\"origin\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "/Users/alexdemulder/development/forge/apps/gaia/.scratch/run-BTTZzA/gaia-checkout-n6BTkI/no-such-origin.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "setup-fails: run [\"/Users/example/.bun/bin/bun\",\"--no-env-file\",\"--config=bunfig.toml\",\"setup.ts\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "\n\u001b[1m1/3 Bun\u001b[0m\n  \u001b[32m✔\u001b[0m bun 1.4.2 found (/Users/alexdemulder/.bun/bin/bun)\n\n\u001b[1m2/3 Dependencies and the global forge command (bun install, bun link)\u001b[0m\n  \u001b[32m✔\u001b[0m dependencies installed (bun install in /Users/alexdemulder/development/forge/apps/gaia/.scratch/run-BTTZzA/gaia-checkout-n6BTkI/setup-fails/apps/forge)\n  \u001b[31m✘\u001b[0m the launcher did not compile; forge still loads the working directory's bunfig.toml and .env\n  \u001b[32m✔\u001b[0m forge is on your PATH (/Users/alexdemulder/development/forge/node_modules/.bin/forge)\n\n\u001b[1m3/3 The pre-commit hook (git config core.hooksPath)\u001b[0m\n  \u001b[32m✔\u001b[0m core.hooksPath set to .githooks (it was unset)\n\n\u001b[1mTooling ready.\u001b[0m Next:  cd <a repository> && forge init\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "setup-fails: run [\"git\",\"fetch\",\"--quiet\",\"origin\",\"main\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "setup-fails: run [\"git\",\"merge\",\"--ff-only\",\"--quiet\",\"origin/main\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "setup-fails: run [\"git\",\"remote\",\"get-url\",\"origin\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "/Users/alexdemulder/development/forge/apps/gaia/.scratch/run-BTTZzA/gaia-checkout-n6BTkI/origin.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "setup-fails: run [\"git\",\"rev-list\",\"--count\",\"HEAD..origin/main\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "1\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "setup-fails: run [\"git\",\"status\",\"--porcelain\",\"--untracked-files=no\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "up-to-date: run [\"git\",\"fetch\",\"--quiet\",\"origin\",\"main\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "up-to-date: run [\"git\",\"remote\",\"get-url\",\"origin\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "/Users/alexdemulder/development/forge/apps/gaia/.scratch/run-BTTZzA/gaia-checkout-n6BTkI/origin.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "up-to-date: run [\"git\",\"rev-list\",\"--count\",\"HEAD..origin/main\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "0\n",
+        "standardError": ""
+      }
+    }
+  ]
+}

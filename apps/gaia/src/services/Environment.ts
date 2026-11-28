@@ -33,6 +33,16 @@ export function unversionedForgeProgramToRecordFrom(): string | null {
   return forgeProgram === undefined || forgeProgram === '' ? null : forgeProgram;
 }
 
+const UPDATE_CHECK_OFF_VALUE = 'off';
+
+/**
+ * `GAIA_UPDATE_CHECK=off`: a spec's `gaia serve` leaves the clone Gaia runs from and its origin alone, so it neither fetches nor
+ * updates; its update stays at checking. Anything else, or unset, checks.
+ */
+export function gaiaUpdateCheckIsOff(): boolean {
+  return process.env[`${PRODUCT_NAMES.environmentPrefix}UPDATE_CHECK`] === UPDATE_CHECK_OFF_VALUE;
+}
+
 const HIGHEST_PORT = 65_535;
 
 /** The port a setting names: the default when it is unset or empty, `null` for text that is no port. */

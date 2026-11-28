@@ -525,7 +525,7 @@ describe('the versioned paths', () => {
     const response = await answerOf(pageServer, '/api/versions');
     expect([response.status, response.headers.get('cache-control')]).toEqual([200, 'no-store']);
     expect(await response.json()).toEqual({ current: GAIA_SYSTEM_VERSION, minimumSupported: MINIMUM_SUPPORTED_GAIA_VERSION });
-    expect([GAIA_SYSTEM_VERSION, MINIMUM_SUPPORTED_GAIA_VERSION]).toEqual([{ major: 4, minor: 4 }, { major: 4, minor: 0 }]);
+    expect([GAIA_SYSTEM_VERSION, MINIMUM_SUPPORTED_GAIA_VERSION]).toEqual([{ major: 4, minor: 5 }, { major: 4, minor: 0 }]);
   });
 
   test('serve /api/versions at no versioned path', async () => {

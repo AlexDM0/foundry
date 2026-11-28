@@ -1,0 +1,20 @@
+{
+  "recordingVersion": 1,
+  "recordingMinor": 0,
+  "stamp": {
+    "recordingName": "gaia-relaunch",
+    "operatingSystem": "darwin",
+    "system": "macos",
+    "source": "recorded",
+    "systemVersion": "25.6.0"
+  },
+  "answers": [
+    {
+      "callShape": "start detached [\"/bin/sh\",\"-c\",\"kill -TERM \\\"$1\\\"\\npolls=0\\nwhile kill -0 \\\"$1\\\" 2>/dev/null && [ \\\"$polls\\\" -lt 150 ]; do sleep 0.2; polls=$((polls + 1)); done\\nexec /usr/bin/open -n \\\"$2\\\"\",\"gaia-relaunch\",\"4242\",\"/Users/example/Applications/Gaia.app\"]",
+      "answer": {
+        "verdict": "started",
+        "processId": 7826
+      }
+    }
+  ]
+}

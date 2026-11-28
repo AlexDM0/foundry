@@ -75,6 +75,18 @@ export const RECORDED_BOUNDARIES: readonly RecordedBoundary[] = [
     system:         'browser',
   },
   {
+    recordingName:  'gaia-checkout',
+    boundaryModule: 'src/adapters/gaia-checkout/GaiaCheckout.ts',
+    recordingSpec:  'src/adapters/gaia-checkout/GaiaCheckout.recording.spec.ts',
+    system:         'macos',
+  },
+  {
+    recordingName:  'gaia-relaunch',
+    boundaryModule: 'src/features/gaia-update/GaiaUpdate.ts',
+    recordingSpec:  'src/features/gaia-update/GaiaUpdate.recording.spec.ts',
+    system:         'macos',
+  },
+  {
     recordingName:  'app-install-programs',
     boundaryModule: 'src/features/app-install/AppInstall.ts',
     recordingSpec:  'src/features/app-install/AppInstall.recording.spec.ts',

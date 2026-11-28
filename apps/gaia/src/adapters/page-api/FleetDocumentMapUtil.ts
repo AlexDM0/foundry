@@ -237,6 +237,12 @@ function gaiaOut(gaia: GaiaFacts): FleetDocumentGaia {
       systemVersion:         systemVersionOut(versions.systemVersion),
       supportedForgeVersion: systemVersionOut(versions.supportedForgeVersion),
     },
+    update: {
+      state:             gaia.update.state,
+      commitsBehind:     gaia.update.commitsBehind,
+      failure:           gaia.update.failure,
+      restartIsPossible: gaia.update.restartIsPossible,
+    },
   };
 }
 

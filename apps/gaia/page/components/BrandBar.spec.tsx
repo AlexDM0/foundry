@@ -1,10 +1,10 @@
 /**
  * The brand bar: the mark and the wordmark are one link named "Gaia, Attention"; the fleet's pill is the orange pulsing badge while a forge runs
  * and the neutral ringed one when dormant, followed by its sentence, and neither shows before Gaia knows the fleet; the theme button, only when
- * given, names the current and next choice and hands the next on.
+ * given, names the current and next choice and hands the next on; Gaia's update button, only when given, stands before it with its note.
  */
-import { describe, expect, test }       from 'bun:test';
-import { StateBadge, ThemeCycleButton } from '../lib/design-system/DesignSystemInterface.ts';
+import { describe, expect, test }               from 'bun:test';
+import { Button, StateBadge, ThemeCycleButton } from '../lib/design-system/DesignSystemInterface.ts';
 
 import { ReactElementTree }                              from '../testing/ReactElementTree.ts';
 import { BrandBar, type BrandStatus, themeButtonNameOf } from './BrandBar.tsx';
@@ -62,5 +62,33 @@ describe('the brand bar', () => {
     expect([button.props['choice'], button.props['accessibleName']]).toEqual(['dark', 'Theme: dark. Switch to auto']);
     ReactElementTree.dispatch(button, 'onCycle', 'auto');
     expect(cycled).toEqual(['auto']);
+  });
+
+  test('Gaia\'s update button and its note stand before the theme button, and a press reaches the bar\'s handler', () => {
+    let presses = 0;
+    const updateButton = {
+      label:    'Update Gaia',
+      emphasis: 'primary',
+      disabled: false,
+      onPress:  () => {
+        presses += 1;
+      },
+      note: '3 new commits on main'
+    } as const;
+    const unfolded = ReactElementTree.unfolded(<BrandBar status={RUNNING} themeButton={{ choice: 'auto', onCycle: () => undefined }} updateButton={updateButton} />);
+    const button = ReactElementTree.onlyOfComponent(unfolded, Button);
+    expect([button.props['label'], button.props['emphasis'], button.props['disabled']]).toEqual(['Update Gaia', 'primary', false]);
+    const note = ReactElementTree.onlyWithClass(unfolded, 'gaia-brand-bar-update-note');
+    expect(ReactElementTree.textOf([note])).toBe('3 new commits on main');
+    const theme = ReactElementTree.onlyOfComponent(unfolded, ThemeCycleButton);
+    expect(ReactElementTree.hostElementsIn(unfolded, (element) => element === note || element === button || element === theme)).toEqual([note, button, theme]);
+    ReactElementTree.dispatch(button, 'onPress');
+    expect(presses).toBe(1);
+  });
+
+  test('without an update button the bar draws no button and no note', () => {
+    const unfolded = ReactElementTree.unfolded(<BrandBar status={RUNNING} themeButton={null} />);
+    expect(ReactElementTree.hostElementsIn(unfolded, ReactElementTree.withComponent(Button))).toEqual([]);
+    expect(ReactElementTree.hostElementsIn(unfolded, (element) => element.props['className'] === 'gaia-brand-bar-update-note')).toEqual([]);
   });
 });

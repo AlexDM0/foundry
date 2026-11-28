@@ -28,7 +28,7 @@ import { createSettingsStore, type SettingsStore }                              
 import { WatchReadingUtil }                                                                             from '../../services/utils/WatchReadingUtil.ts';
 import type { CommandVerdict }                                                                          from '../../shared/@types/CommandVerdict.ts';
 import type { ForgeReading }                                                                            from '../../shared/@types/ForgeReading.ts';
-import type { GaiaCommand }                                                                             from '../../shared/@types/GaiaCommand.ts';
+import type { ForgeOrFleetCommand }                                                                     from '../../shared/@types/GaiaCommand.ts';
 import { CONTRACT_VERSIONS }                                                                            from '../../shared/constants/ContractVersions.ts';
 import { GAIA_SETTINGS_DEFAULTS }                                                                       from '../../shared/constants/GaiaSettingsDefaults.ts';
 import { SUPPORTED_FORGE_VERSION }                                                                      from '../../shared/constants/SupportedForgeVersions.ts';
@@ -258,11 +258,11 @@ function recordedProgramRefusal(programArguments: readonly string[]): { readonly
   return { refusal, text };
 }
 
-const START: GaiaCommand = { kind: 'forge-start', trackerId: STOREFRONT_TRACKER_ID };
-const PAUSE: GaiaCommand = { kind: 'forge-pause', trackerId: STOREFRONT_TRACKER_ID };
-const UPDATE: GaiaCommand = { kind: 'forge-update', trackerId: STOREFRONT_TRACKER_ID };
-const STOP_KEEPING_AGENTS: GaiaCommand = { kind: 'forge-stop', trackerId: STOREFRONT_TRACKER_ID, agents: 'keep' };
-const STOP_AGENTS_FIRST: GaiaCommand = { kind: 'forge-stop', trackerId: STOREFRONT_TRACKER_ID, agents: 'stop-first' };
+const START: ForgeOrFleetCommand = { kind: 'forge-start', trackerId: STOREFRONT_TRACKER_ID };
+const PAUSE: ForgeOrFleetCommand = { kind: 'forge-pause', trackerId: STOREFRONT_TRACKER_ID };
+const UPDATE: ForgeOrFleetCommand = { kind: 'forge-update', trackerId: STOREFRONT_TRACKER_ID };
+const STOP_KEEPING_AGENTS: ForgeOrFleetCommand = { kind: 'forge-stop', trackerId: STOREFRONT_TRACKER_ID, agents: 'keep' };
+const STOP_AGENTS_FIRST: ForgeOrFleetCommand = { kind: 'forge-stop', trackerId: STOREFRONT_TRACKER_ID, agents: 'stop-first' };
 
 describe('forge-start, carried by the forge program', () => {
   test('runs `forge start --json` in the forge root and answers done when a Hephaestus was started', async () => {
@@ -631,7 +631,7 @@ describe('one command per forge on its way', () => {
 });
 
 describe('forge-concurrency-set, carried by the API', () => {
-  const SET_CONCURRENCY: GaiaCommand = { kind: 'forge-concurrency-set', trackerId: STOREFRONT_TRACKER_ID, limit: 3 };
+  const SET_CONCURRENCY: ForgeOrFleetCommand = { kind: 'forge-concurrency-set', trackerId: STOREFRONT_TRACKER_ID, limit: 3 };
 
   test('sends `concurrency-set` with the limit to the forge\'s Hephaestus', async () => {
     const hephaestusFetch = hephaestusAnswering('serving-every-contract');
@@ -654,7 +654,7 @@ describe('forge-concurrency-set, carried by the API', () => {
 });
 
 describe('machine-agent-limit-set, carried by a live forge\'s API, else by the forge program', () => {
-  const SET_MACHINE_LIMIT: GaiaCommand = { kind: 'machine-agent-limit-set', limit: 4 };
+  const SET_MACHINE_LIMIT: ForgeOrFleetCommand = { kind: 'machine-agent-limit-set', limit: 4 };
 
   test('sends `machine-agent-limit-set` to the live forge and runs no program', async () => {
     const hephaestusFetch = hephaestusAnswering('serving-every-contract');
@@ -726,7 +726,7 @@ describe('machine-agent-limit-set, carried by a live forge\'s API, else by the f
 });
 
 describe('forge-add, carried by the forge program: init, then start', () => {
-  function addingStorefront(): GaiaCommand {
+  function addingStorefront(): ForgeOrFleetCommand {
     return { kind: 'forge-add', root: storefrontRoot, project: 'Example Project' };
   }
 
@@ -768,8 +768,8 @@ describe('forge-add, carried by the forge program: init, then start', () => {
 });
 
 describe('forge-hide and forge-unhide, carried by Gaia\'s settings', () => {
-  const HIDE: GaiaCommand = { kind: 'forge-hide', trackerId: STOREFRONT_TRACKER_ID };
-  const UNHIDE: GaiaCommand = { kind: 'forge-unhide', trackerId: STOREFRONT_TRACKER_ID };
+  const HIDE: ForgeOrFleetCommand = { kind: 'forge-hide', trackerId: STOREFRONT_TRACKER_ID };
+  const UNHIDE: ForgeOrFleetCommand = { kind: 'forge-unhide', trackerId: STOREFRONT_TRACKER_ID };
 
   test('hides a registered forge, keeps it hidden in the settings file, and answers nothing-to-do when it is hidden already', async () => {
     const settingsStore = settingsStoreInScratch();
@@ -853,7 +853,7 @@ describe('one command per repository being added, per machine limit and per choo
   test('refuses a second add of the same repository while the first runs, and carries an add of another', async () => {
     const { processRun, letThrough } = holdingFirstRun(recordedForgeProgramRunOf('every-verb-done'));
     const control = controlOver({ forges: [], processRun, settingsStore: await settingsStoreNamingTheProgram() });
-    const addStorefront: GaiaCommand = { kind: 'forge-add', root: storefrontRoot, project: 'Example Project' };
+    const addStorefront: ForgeOrFleetCommand = { kind: 'forge-add', root: storefrontRoot, project: 'Example Project' };
 
     const firstAdd = control.carry(addStorefront);
     expect(await control.carry(addStorefront)).toEqual({ verdict: 'refused', refusedBy: 'gaia', refusal: 'command-in-flight' });
@@ -866,7 +866,7 @@ describe('one command per repository being added, per machine limit and per choo
   test('refuses a second machine limit while the first runs, and frees it after', async () => {
     const { processRun, letThrough } = holdingFirstRun(recordedForgeProgramRunOf('every-verb-done'));
     const control = controlOver({ forges: [exampleForgeOf({ state: 'dormant' })], processRun });
-    const setMachineLimit: GaiaCommand = { kind: 'machine-agent-limit-set', limit: 4 };
+    const setMachineLimit: ForgeOrFleetCommand = { kind: 'machine-agent-limit-set', limit: 4 };
 
     const firstLimit = control.carry(setMachineLimit);
     expect(await control.carry(setMachineLimit)).toEqual({ verdict: 'refused', refusedBy: 'gaia', refusal: 'command-in-flight' });

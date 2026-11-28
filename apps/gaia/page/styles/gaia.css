@@ -61,6 +61,7 @@
   letter-spacing: var(--wordmark-tracking);
 }
 .gaia-brand-bar-divider { flex: none; width: var(--hairline); height: var(--brand-bar-divider-height); background: var(--line-strong); }
+.gaia-brand-bar-update-note { flex: none; max-width: 40%; overflow: hidden; font-size: var(--fs-small); color: var(--ink-muted); text-overflow: ellipsis; white-space: nowrap; }
 .gaia-brand-bar-sentence { flex: 1; min-width: 0; overflow: hidden; font-size: var(--fs-small); color: var(--ink-muted); text-overflow: ellipsis; white-space: nowrap; }
 
 /* Callout: the package's callout around a title line, a sentence and a mono line, each line the body's height */

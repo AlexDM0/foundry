@@ -266,6 +266,72 @@ describe('which buttons a row shows (A4 acceptance 1)', () => {
   });
 });
 
+const RUNNING_CODE = 'a1b2c3d4e5f6';
+
+const INSTALLED_CODE = 'f6e5d4c3b2a1';
+
+/** One forge Gaia talks to, in the given condition, whose Hephaestus runs `RUNNING_CODE` beside the installed code given. */
+function fleetRunningCodeBeside(condition: FleetDocumentCondition, installedCode: string | null): FleetDocument {
+  return fleetWithOneForgeIn(condition, {
+    runningVersions: {
+      hephaestusRunning: RUNNING_CODE, hephaestusNewest: installedCode, talosRunning: null, talosNewest: null
+    },
+  });
+}
+
+function storefrontUpdateStates(state: { readonly onItsWay: 'forge-update' | null; readonly restartPending: boolean }): CommandStates {
+  return {
+    forges:       new Map([[TRACKER_IDS.exampleStorefront, { onItsWay: state.onItsWay, failure: null, restartPending: state.restartPending }]]),
+    fleet:        new Map(),
+    fleetAnswers: new Map(),
+  };
+}
+
+function emphasisFactsOf(row: ForgeRow | undefined): (string | boolean)[][] {
+  return (row?.buttons ?? []).map((button) => [button.label, button.kind === 'command' ? button.emphasis : button.kind, button.kind === 'waiting' || button.disabled]);
+}
+
+describe('a forge Gaia talks to whose installed code is newer than its Hephaestus runs', () => {
+  test('a live row offers Update forge, sending forge-update, as its one primary', () => {
+    const [live] = contentOf(fleetRunningCodeBeside('live', INSTALLED_CODE)).rows;
+    expect(emphasisFactsOf(live)).toEqual([
+      ['Update forge', 'primary', false], ['Pause', 'quiet', false], ['Stop', 'stop', false], ['Open', 'link', false],
+    ]);
+    expect(live?.buttons[0]).toMatchObject({ kind: 'command', command: { kind: 'forge-update', trackerId: TRACKER_IDS.exampleStorefront } });
+  });
+
+  test('a paused row keeps Unpause as its one primary, and offers Update forge quiet', () => {
+    const [paused] = contentOf(fleetRunningCodeBeside('paused', INSTALLED_CODE)).rows;
+    expect(emphasisFactsOf(paused).slice(0, 2)).toEqual([['Update forge', 'quiet', false], ['Unpause', 'primary', false]]);
+  });
+
+  test('the same code installed, or installed code not read, offers no Update forge', () => {
+    const labelsBeside = (installedCode: string | null) => contentOf(fleetRunningCodeBeside('live', installedCode)).rows.flatMap((row) => row.buttons.map(labelOf));
+    expect(labelsBeside(RUNNING_CODE)).toEqual(['Pause', 'Stop', 'Open']);
+    expect(labelsBeside(null)).toEqual(['Pause', 'Stop', 'Open']);
+  });
+
+  test('a held forge keeps Update forge on its banner, not on its row', () => {
+    const content = contentOf(fleetRunningCodeBeside('held', INSTALLED_CODE));
+    expect(content.rows.flatMap((row) => row.buttons.map(labelOf))).toEqual(['Stop', 'Open']);
+    expect(content.heldBanners.map((banner) => banner.updateButton.label)).toEqual(['Update forge']);
+  });
+
+  test('Update forge on its way says so under the row, its button off as "Updating"', () => {
+    const commandStates = storefrontUpdateStates({ onItsWay: 'forge-update', restartPending: false });
+    const [live] = contentOf(fleetRunningCodeBeside('live', INSTALLED_CODE), { commandStates }).rows;
+    expect([emphasisFactsOf(live)[0], live?.updateStatus]).toEqual([['Updating', 'primary', true], 'Updating the forge…']);
+  });
+
+  test('an update that left a restart pending steps Update forge back, so Restart is the row\'s one primary', () => {
+    const commandStates = storefrontUpdateStates({ onItsWay: null, restartPending: true });
+    const [live] = contentOf(fleetRunningCodeBeside('live', INSTALLED_CODE), { commandStates }).rows;
+    expect([emphasisFactsOf(live)[0], live?.pendingRestart?.restartButton]).toEqual([
+      ['Update forge', 'quiet', false], expect.objectContaining({ label: 'Restart', emphasis: 'primary' }),
+    ]);
+  });
+});
+
 describe('a forge\'s own limit', () => {
   test('steps by one, from one agent to the forge\'s ceiling, and each side is off at its end', () => {
     const stepperOf = (limit: number) => {

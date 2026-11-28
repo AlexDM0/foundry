@@ -52,7 +52,9 @@ function scratchHome(): string {
 
 function startServe(home: string, portSetting: string): Bun.Subprocess<'ignore', 'pipe', 'pipe'> {
   const servingProgram = Bun.spawn([process.execPath, join(import.meta.dir, 'Main.ts'), 'serve'], {
-    env:    { ...environmentCopy(), HOME: home, GAIA_PORT: portSetting },
+    env: {
+      ...environmentCopy(), HOME: home, GAIA_PORT: portSetting, GAIA_UPDATE_CHECK: 'off'
+    },
     stdin:  'ignore',
     stdout: 'pipe',
     stderr: 'pipe',

@@ -12,6 +12,7 @@ import {
   useSyncExternalStore,
 } from 'react';
 
+import type { CommandBody }                                              from '../@types/CommandDocument.ts';
 import type { FleetDocument }                                            from '../@types/FleetDocument.ts';
 import { type CommandSender, CommandSenderContext }                      from '../api/CommandSender.ts';
 import { FleetStreamClient, type FleetStreamState }                      from '../api/FleetStreamClient.ts';
@@ -33,6 +34,7 @@ import { forgesViewPartsOf }                                             from '.
 import { BrandStatusModel }                                              from './BrandStatusModel.ts';
 import { ConnectionBanner }                                              from './ConnectionBanner.tsx';
 import type { FleetSource }                                              from './FleetSource.ts';
+import { GaiaUpdateButtonModel }                                         from './GaiaUpdateButtonModel.ts';
 import { MotionReadiness }                                               from './MotionReadiness.ts';
 import { PageClock }                                                     from './PageClock.ts';
 import { Rail }                                                          from './Rail.tsx';
@@ -42,14 +44,16 @@ import { type ThemeChoiceState, ThemeBootstrap, type ThemeSurroundings } from '.
 import { WindowTitle }                                                   from './WindowTitle.ts';
 
 export interface GaiaShellProps {
-  readonly fleetDocument:   FleetDocument | null;
-  readonly streamState:     FleetStreamState;
-  readonly route:           GaiaRoute;
-  readonly view:            ViewParts;
-  readonly themeChoice:     ThemeChoice;
-  readonly onThemeChoice:   (choice: ThemeChoice) => void;
+  readonly fleetDocument:        FleetDocument | null;
+  readonly streamState:          FleetStreamState;
+  readonly route:                GaiaRoute;
+  readonly view:                 ViewParts;
+  readonly themeChoice:          ThemeChoice;
+  readonly onThemeChoice:        (choice: ThemeChoice) => void;
   /** Where the setup of the forge shown in place stands, as its board told the page; `null` while no board in setup shows. */
-  readonly openForgeSetup?: OpenForgeSetup | null;
+  readonly openForgeSetup?:      OpenForgeSetup | null;
+  /** Sends a press of Gaia's own update button; without it the bar shows none. */
+  readonly onGaiaUpdateCommand?: ((command: CommandBody) => void) | null;
 }
 
 /** The browser around the page, so a spec can stand in for each part. */
@@ -115,14 +119,18 @@ export function themeChoiceHandlerOf(showChoice: (choice: ThemeChoice) => void, 
 
 /** A forge in place leaves the theme button out, so its bar has room for the forge's own line and buttons (`docs/design/screens.md`, the brand bar). */
 export function GaiaShell({
-  fleetDocument, streamState, route, view, themeChoice, onThemeChoice, openForgeSetup = null
+  fleetDocument, streamState, route, view, themeChoice, onThemeChoice, openForgeSetup = null, onGaiaUpdateCommand = null
 }: GaiaShellProps) {
+  const barKeepsItsButtons = route.view !== 'forge';
   return (
     <div className="gaia-shell">
       <fieldset className="gaia-shell-controls" disabled={!FleetStreamClient.controlsMayActIn(streamState)}>
         <BrandBar
           status={BrandStatusModel.brandStatusOf(fleetDocument)}
-          themeButton={route.view === 'forge' ? null : { choice: themeChoice, onCycle: onThemeChoice }}
+          themeButton={barKeepsItsButtons ? { choice: themeChoice, onCycle: onThemeChoice } : null}
+          updateButton={barKeepsItsButtons && onGaiaUpdateCommand !== null
+            ? GaiaUpdateButtonModel.updateButtonOf(fleetDocument?.gaia.update ?? null, onGaiaUpdateCommand)
+            : null}
         />
         <div className="gaia-shell-body">
           <Rail content={RailModel.railContentOf(fleetDocument, route, openForgeSetup)} />
@@ -189,6 +197,10 @@ export function GaiaApp({
   }, []);
   const forgeViewSurroundings = useMemo(() => ({ ...forgeView, reportSetupProgress }), [forgeView, reportSetupProgress]);
 
+  const onGaiaUpdateCommand = useCallback((command: CommandBody) => {
+    void commandSender.send(command);
+  }, [commandSender]);
+
   const motionMayStart = MotionReadiness.motionMayStartWith(fleetDocument);
   useEffect(() => {
     if (motionMayStart) markMotionReady();
@@ -209,6 +221,7 @@ export function GaiaApp({
         themeChoice={shownThemeChoice}
         onThemeChoice={onThemeChoice}
         openForgeSetup={openForgeSetup}
+        onGaiaUpdateCommand={onGaiaUpdateCommand}
       />
     </CommandSenderContext>
   );

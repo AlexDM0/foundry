@@ -9,6 +9,7 @@ import packageManifest from '../package.json' with { type: 'json' };
 import { AppBundleInfoFile, applicationsFolderIn }                       from './adapters/app-bundle/AppBundleInfoFile.ts';
 import { createForgeProgram }                                            from './adapters/forge-program/ForgeProgram.ts';
 import { RegistryFile, registryFilePathIn }                              from './adapters/forge-registry/RegistryFile.ts';
+import { createGaiaCheckout }                                            from './adapters/gaia-checkout/GaiaCheckout.ts';
 import { ServerTokenFile }                                               from './adapters/gaia-files/ServerTokenFile.ts';
 import { SettingsFile }                                                  from './adapters/gaia-files/SettingsFile.ts';
 import { createSettingsWriter }                                          from './adapters/gaia-files/SettingsWriter.ts';
@@ -18,6 +19,7 @@ import { appInstallMessageOf, createAppInstall, type AppInstallVerdict } from '.
 import { fleetSnapshotOf }                                               from './features/fleet/FleetAssembly.ts';
 import { ForgePresenceUtil }                                             from './features/fleet/utils/ForgePresenceUtil.ts';
 import { createForgeControl }                                            from './features/forge-control/ForgeControl.ts';
+import { createGaiaUpdate, isGaiaUpdateCommand }                         from './features/gaia-update/GaiaUpdate.ts';
 import { foundBrowserIn }                                                from './features/launcher/BrowserFinder.ts';
 import { browserWindowWatchOver }                                        from './features/launcher/BrowserWindowWatch.ts';
 import { createLauncher, launchMessageOf, type LaunchVerdict }           from './features/launcher/Launcher.ts';
@@ -28,22 +30,27 @@ import {
   diagramFrameFolderPath,
   pageIndexFilePath,
 } from './features/page-server/routes/PageFilesRoute.ts';
-import { BoardRelayLogUtil }                        from './features/page-server/utils/BoardRelayLogUtil.ts';
-import { forgeClientOf }                            from './lib/forge-client/ForgeClient.ts';
-import { realHephaestusFetch }                      from './lib/forge-client/HephaestusFetch.ts';
-import { realProcessRun }                           from './lib/process-run/ProcessRun.ts';
-import { realClockTimers, stampOfNow }              from './services/Clock.ts';
-import { environmentCopy, gaiaPort, homeDirectory } from './services/Environment.ts';
-import { createFleetStore }                         from './services/FleetStore.ts';
-import { createForgeWatch }                         from './services/ForgeWatch.ts';
-import { createSettingsStore }                      from './services/SettingsStore.ts';
-import type { FleetSnapshot }                       from './shared/@types/FleetSnapshot.ts';
-import { GaiaError }                                from './shared/GaiaError.ts';
-import { CONTRACT_VERSIONS }                        from './shared/constants/ContractVersions.ts';
-import { GAIA_SYSTEM_VERSION }                      from './shared/constants/GaiaSystemVersions.ts';
-import { GAIA_INSTALL_VERSION }                     from './shared/constants/InstallVersion.ts';
-import { PRODUCT_NAMES }                            from './shared/constants/ProductNames.ts';
-import { SUPPORTED_FORGE_VERSION }                  from './shared/constants/SupportedForgeVersions.ts';
+import { BoardRelayLogUtil }           from './features/page-server/utils/BoardRelayLogUtil.ts';
+import { forgeClientOf }               from './lib/forge-client/ForgeClient.ts';
+import { realHephaestusFetch }         from './lib/forge-client/HephaestusFetch.ts';
+import { realProcessRun }              from './lib/process-run/ProcessRun.ts';
+import { realClockTimers, stampOfNow } from './services/Clock.ts';
+import {
+  environmentCopy,
+  gaiaPort,
+  gaiaUpdateCheckIsOff,
+  homeDirectory
+} from './services/Environment.ts';
+import { createFleetStore }        from './services/FleetStore.ts';
+import { createForgeWatch }        from './services/ForgeWatch.ts';
+import { createSettingsStore }     from './services/SettingsStore.ts';
+import type { FleetSnapshot }      from './shared/@types/FleetSnapshot.ts';
+import { GaiaError }               from './shared/GaiaError.ts';
+import { CONTRACT_VERSIONS }       from './shared/constants/ContractVersions.ts';
+import { GAIA_SYSTEM_VERSION }     from './shared/constants/GaiaSystemVersions.ts';
+import { GAIA_INSTALL_VERSION }    from './shared/constants/InstallVersion.ts';
+import { PRODUCT_NAMES }           from './shared/constants/ProductNames.ts';
+import { SUPPORTED_FORGE_VERSION } from './shared/constants/SupportedForgeVersions.ts';
 
 export interface ProgramOutput {
   readonly writeStandardOutput: (text: string) => void;
@@ -123,7 +130,7 @@ function refusalOfStart(startVerdict: Exclude<PageServerStartVerdict, { readonly
  * Wires the forge watch and the settings into the fleet store and forge-control into the command port, serves both to the page, and
  * stops it all at a stop signal.
  */
-async function serve(_remainingArguments: readonly string[], output: ProgramOutput): Promise<ExitCode> {
+async function serve(remainingArguments: readonly string[], output: ProgramOutput): Promise<ExitCode> {
   const port = gaiaPort();
   if (port === null) throw new GaiaError('refused', 'port-invalid', `${PRODUCT_NAMES.environmentPrefix}PORT names no port Gaia can listen on.`);
   const home = homeDirectory();
@@ -148,6 +155,16 @@ async function serve(_remainingArguments: readonly string[], output: ProgramOutp
       return verdict.verdict === 'done' ? { codeVersion: verdict.answer.codeVersion, talosProtocolVersion: verdict.answer.talosProtocolVersion } : null;
     },
   });
+  const appBundlePath = appBundlePathAmong(remainingArguments);
+  const gaiaUpdate = createGaiaUpdate({
+    checkout:         createGaiaCheckout({ processRun, checkoutFolder: join(import.meta.dir, '..', '..', '..'), bunProgram: process.execPath }),
+    processRun,
+    // The launcher that Gaia.app started passes the bundle on, and is this server's parent.
+    relaunchTarget:   appBundlePath === null ? null : { appBundlePath, launcherProcessId: process.ppid },
+    workingDirectory: home,
+    timers:           realClockTimers(),
+    onStatusChanged:  () => publishSnapshot(),
+  });
   const snapshotNow = (): FleetSnapshot => fleetSnapshotOf({
     readings: forgeWatch.readings(),
     machine:  { cpuCount: availableParallelism() },
@@ -168,6 +185,7 @@ async function serve(_remainingArguments: readonly string[], output: ProgramOutp
         systemVersion:         GAIA_SYSTEM_VERSION,
         supportedForgeVersion: SUPPORTED_FORGE_VERSION,
       },
+      update: gaiaUpdate.status(),
     },
   });
   const fleetStore = createFleetStore(snapshotNow());
@@ -198,7 +216,7 @@ async function serve(_remainingArguments: readonly string[], output: ProgramOutp
     forgeCounts:        () => ({ forgesRegistered: forgeWatch.watchedForgeCount(), forgesAnswered: forgeWatch.readings().length }),
     pageFiles:          builtPageFilesOf(pageIndexFilePath()),
     diagramFrameFiles:  builtDiagramFrameFilesOf(diagramFrameFolderPath()),
-    carryCommand:       forgeControl.carry,
+    carryCommand:       (command) => (isGaiaUpdateCommand(command) ? gaiaUpdate.carry(command) : forgeControl.carry(command)),
     forgeAccessSources: {
       readRegistry, readings: forgeWatch.readings, presenceReadingAfterNow: forgeWatch.presenceReadingAfterNow, forgeClient
     },
@@ -211,6 +229,7 @@ async function serve(_remainingArguments: readonly string[], output: ProgramOutp
   const unsubscribeFromSettings = settingsStore.subscribe(publishSnapshot);
   publishSnapshot();
   forgeWatch.start();
+  if (!gaiaUpdateCheckIsOff()) gaiaUpdate.start();
   output.writeStandardOutput(`${PRODUCT_NAMES.applicationName} serves ${pageServer.url.href}\n`);
 
   await watchStopSignals().untilAStopSignal;
@@ -218,6 +237,7 @@ async function serve(_remainingArguments: readonly string[], output: ProgramOutp
   pathChoiceCancellation.abort();
   unsubscribeFromSettings();
   forgeWatch.stop();
+  gaiaUpdate.stop();
   await pageServer.stop();
   return 0;
 }
@@ -260,8 +280,12 @@ async function launch(remainingArguments: readonly string[], _output: ProgramOut
   const stopSignals = watchStopSignals();
   const verdict = await createLauncher({
     port,
-    appBundleInfo:      appBundlePath === null ? null : await new AppBundleInfoFile(appBundlePath).read(),
-    serverProgram:      { program: process.execPath, programArguments: [join(import.meta.dir, 'Main.ts'), 'serve'], workingDirectory: join(import.meta.dir, '..') },
+    appBundleInfo: appBundlePath === null ? null : await new AppBundleInfoFile(appBundlePath).read(),
+    serverProgram: {
+      program:          process.execPath,
+      programArguments: [join(import.meta.dir, 'Main.ts'), 'serve', ...(appBundlePath === null ? [] : [APP_BUNDLE_FLAG, appBundlePath])],
+      workingDirectory: join(import.meta.dir, '..'),
+    },
     browserProfileFolder,
     splashPagePath:     join(import.meta.dir, '..', 'resources', 'page', 'loading.html'),
     theme:              (await new SettingsFile(home).read()).settings.theme,

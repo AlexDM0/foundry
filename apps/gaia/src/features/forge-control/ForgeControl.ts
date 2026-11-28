@@ -18,8 +18,8 @@ import type { CommandVerdict, GaiaRefusal, RegistryRefusal }         from '../..
 import type { ForgeReading }                                         from '../../shared/@types/ForgeReading.ts';
 import type {
   ForgeCommand,
+  ForgeOrFleetCommand,
   ForgeStopAgents,
-  GaiaCommand,
   SettingsChange,
 } from '../../shared/@types/GaiaCommand.ts';
 import type { GaiaSettings }              from '../../shared/@types/GaiaSettings.ts';
@@ -45,7 +45,7 @@ export interface ForgeControlOptions {
 }
 
 export interface ForgeControl {
-  readonly carry: (command: GaiaCommand) => Promise<CommandVerdict>;
+  readonly carry: (command: ForgeOrFleetCommand) => Promise<CommandVerdict>;
 }
 
 /** The machine limit and the chooser are one each, whatever the forge; a forge and a repository being added are named. */
@@ -153,7 +153,7 @@ function forgeSubjectOf(trackerId: string): string {
   return `forge ${trackerId}`;
 }
 
-function subjectOf(command: GaiaCommand): string | null {
+function subjectOf(command: ForgeOrFleetCommand): string | null {
   switch (command.kind) {
     case 'fleet-look-again':
       return null;
@@ -300,7 +300,7 @@ export function createForgeControl(options: ForgeControlOptions): ForgeControl {
     return { verdict: 'outage-resume-answered', forges: answers };
   }
 
-  async function carryNow(command: GaiaCommand): Promise<CommandVerdict> {
+  async function carryNow(command: ForgeOrFleetCommand): Promise<CommandVerdict> {
     switch (command.kind) {
       case 'fleet-look-again':
         await options.lookAgain();
@@ -330,7 +330,7 @@ export function createForgeControl(options: ForgeControlOptions): ForgeControl {
     }
   }
 
-  async function carry(command: GaiaCommand): Promise<CommandVerdict> {
+  async function carry(command: ForgeOrFleetCommand): Promise<CommandVerdict> {
     const subject = subjectOf(command);
     if (subject === null) return carryNow(command);
     return withSubjectHeld(subject, () => carryNow(command));

@@ -157,8 +157,8 @@ docs/              the architecture, the contracts reference (held to CONTRACT_V
                    the spikes' findings, the design reference (docs/design/)
 resources/         the app bundle templates and the splash page
 src/Main.ts        the one entry point: reads the verb, runs it, maps the app-level error to an exit code
-src/features/      fleet, forge-control, page-server, launcher, app-install
-src/adapters/      every boundary: the registry, the forge's API and program, Gaia's own files, Gaia's own server as the launcher asks it, the page contract,
+src/features/      fleet, forge-control, page-server, launcher, app-install, gaia-update (Gaia's own update and restart)
+src/adapters/      every boundary: the registry, the forge's API and program, Gaia's own files and the git clone it runs from, Gaia's own server as the launcher asks it, the page contract,
                    the installed app bundle's Info.plist
 src/services/      ForgeWatch, FleetStore, SettingsStore, Environment, the one reader of the environment, and Clock, the one reader of the clock
 src/lib/           building blocks: forge-client, event-stream, process-run, atomic-file, local-http-guards, json-value, api-paths,
@@ -187,7 +187,7 @@ page/board/shared/ what the board's views and its shell read alike, hoisted once
 
 | Outside system | Boundary util |
 | --- | --- |
-| Other programs: `forge`, `osascript`, `clang`, `lipo`, `codesign`, the browser | `apps/gaia/src/lib/process-run/ProcessRun.ts` |
+| Other programs: `forge`, `osascript`, `clang`, `lipo`, `codesign`, `git` and forge's setup in Gaia's own clone, the relaunch shell, the browser | `apps/gaia/src/lib/process-run/ProcessRun.ts` |
 | HTTP to a Hephaestus | `apps/gaia/src/lib/forge-client/HephaestusFetch.ts` |
 | The browser's debugging pipe | `apps/gaia/src/features/launcher/BrowserWindowWatch.ts` |
 | The file system's odd corners | `apps/gaia/src/lib/atomic-file/AtomicFile.ts` |

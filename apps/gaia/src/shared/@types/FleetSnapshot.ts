@@ -11,8 +11,9 @@ import type {
   ForgeRunningTalos,
   ForgeWaitingJob,
 } from './ForgePresence.ts';
-import type { ForgeReading } from './ForgeReading.ts';
-import type { GaiaSettings } from './GaiaSettings.ts';
+import type { ForgeReading }     from './ForgeReading.ts';
+import type { GaiaSettings }     from './GaiaSettings.ts';
+import type { GaiaUpdateStatus } from './GaiaUpdateStatus.ts';
 
 /**
  * The running and the newest Hephaestus and Talos: Hephaestus's code version from its identity, the running Talos from presence, and the
@@ -117,6 +118,7 @@ export interface GaiaFacts {
   settingsFile:      SettingsFileState;
   knownContracts:    KnownContracts;
   versions:          GaiaVersions;
+  update:            GaiaUpdateStatus;
 }
 
 export interface FleetSnapshot {

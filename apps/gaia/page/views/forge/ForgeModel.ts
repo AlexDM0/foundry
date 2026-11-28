@@ -292,14 +292,18 @@ const NEWER_INSTALLED_WORDS = ' · newer installed ';
 
 const LIVE_CONDITION = 'live';
 
-/** A code version is a content hash, so a newer one is one that differs; a protocol version that differs is newer or older alike. */
-function hephaestusPairOf({ hephaestusRunning, hephaestusNewest }: FleetDocumentRunningVersions): BarVersionPair {
-  const newerIsInstalled = hephaestusNewest !== null && hephaestusNewest !== hephaestusRunning;
+function hephaestusPairOf(runningVersions: FleetDocumentRunningVersions): BarVersionPair {
+  const { hephaestusRunning, hephaestusNewest } = runningVersions;
+  const newerIsInstalled = FleetDocumentUtil.newerHephaestusCodeIsInstalled(runningVersions);
   return {
     component: 'Hephaestus',
-    line:      [wordsOf('Hephaestus '), figureOf(hephaestusRunning), ...(newerIsInstalled ? [wordsOf(NEWER_INSTALLED_WORDS), figureOf(hephaestusNewest)] : [])],
+    line:      [
+      wordsOf('Hephaestus '),
+      figureOf(hephaestusRunning),
+      ...(newerIsInstalled && hephaestusNewest !== null ? [wordsOf(NEWER_INSTALLED_WORDS), figureOf(hephaestusNewest)] : []),
+    ],
     newerIsInstalled,
-    title:     newerIsInstalled
+    title: newerIsInstalled
       ? `Hephaestus runs code ${hephaestusRunning}; code ${hephaestusNewest} is installed. Restart Hephaestus to run it.`
       : `Hephaestus runs code ${hephaestusRunning}${hephaestusNewest === null ? '' : ', the code installed'}.`,
   };

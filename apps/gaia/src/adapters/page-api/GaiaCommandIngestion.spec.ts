@@ -47,6 +47,12 @@ describe('a body this Gaia carries out', () => {
     expect(readingOf(document)).toEqual({ verdict: 'readable', command: { kind: 'fleet-look-again' } });
   });
 
+  test('maps Gaia\'s own update commands, which name no forge', () => {
+    for (const kind of ['gaia-update-check', 'gaia-update', 'gaia-restart'] as const) {
+      expect(readingOf({ commandVersion: 5, kind })).toEqual({ verdict: 'readable', command: { kind } });
+    }
+  });
+
   test('maps fleet-outage-resume, which names no forge, and takes no tracker id a body carries as one', () => {
     const document: CommandDocument = { commandVersion: 5, kind: 'fleet-outage-resume' };
     expect(readingOf(document)).toEqual({ verdict: 'readable', command: { kind: 'fleet-outage-resume' } });

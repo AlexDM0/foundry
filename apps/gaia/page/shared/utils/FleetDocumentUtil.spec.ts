@@ -30,3 +30,15 @@ describe('what of a forge waits on User', () => {
     expect(FleetDocumentUtil.waitingCountOf({ ...countsOnly, attentionCount: null })).toBeNull();
   });
 });
+
+describe('whether newer forge code is installed than a Hephaestus runs', () => {
+  const runningVersionsBeside = (installedCode: string | null) => ({
+    hephaestusRunning: 'a1b2c3d4e5f6', hephaestusNewest: installedCode, talosRunning: null, talosNewest: null
+  });
+
+  test('is so for installed code that differs, and not for the same code or installed code not read', () => {
+    expect(FleetDocumentUtil.newerHephaestusCodeIsInstalled(runningVersionsBeside('f6e5d4c3b2a1'))).toBe(true);
+    expect(FleetDocumentUtil.newerHephaestusCodeIsInstalled(runningVersionsBeside('a1b2c3d4e5f6'))).toBe(false);
+    expect(FleetDocumentUtil.newerHephaestusCodeIsInstalled(runningVersionsBeside(null))).toBe(false);
+  });
+});
