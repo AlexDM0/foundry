@@ -1,18 +1,20 @@
 /**
- * Wave, with its "Hi!" mark, and the wave of a peek around a corner: in the
- * sideways pose the hand keeps its distance ahead of the body on the screen, and the eye shift of the pop-in stays.
+ * Wave, and greet: the same wave with the "Hi!" mark, for when Flint is introduced. In the wave of a peek around a corner the
+ * sideways pose keeps the hand its distance ahead of the body on the screen, and the eye shift of the pop-in stays.
  */
-import type { PosePart }                    from '../../SpritePose.ts';
-import { emoteMarkAtRest }                  from '../../SpritePose.ts';
-import { BODY_SHAPE, EYE_SHAPE }            from '../../constants/BodyShape.ts';
-import { HAND_SHAPE }                       from '../../constants/HandShape.ts';
-import { SPRING }                           from '../../constants/Motion.ts';
-import { AnimationCurveUtil }               from '../../utils/AnimationCurveUtil.ts';
-import type { GestureInput }                from '../GestureDefinition.ts';
-import { gestureDefinition, singleFormOf }  from '../GestureDefinition.ts';
-import { WAVE_EXTENT, WAVE_GESTURE_VALUES } from './constants/WaveValues.ts';
+import type { PosePart }                     from '../../SpritePose.ts';
+import { emoteMarkAtRest }                   from '../../SpritePose.ts';
+import { BODY_SHAPE, EYE_SHAPE }             from '../../constants/BodyShape.ts';
+import { HAND_SHAPE }                        from '../../constants/HandShape.ts';
+import { SPRING }                            from '../../constants/Motion.ts';
+import { AnimationCurveUtil }                from '../../utils/AnimationCurveUtil.ts';
+import type { GestureInput }                 from '../GestureDefinition.ts';
+import { gestureDefinition, singleFormOf }   from '../GestureDefinition.ts';
+import { WAVE_EXTENTS, WAVE_GESTURE_VALUES } from './constants/WaveValues.ts';
 
-function wavePartOf(input: GestureInput): PosePart {
+type WaveVariant = 'normal' | 'greeting';
+
+function wavePartOf(input: GestureInput<WaveVariant>): PosePart {
   const rock = Math.sin(input.elapsedMilliseconds / WAVE_GESTURE_VALUES.ROCK_DIVISOR_MILLISECONDS);
   const isPeeking = input.sidewaysWidth < 1;
   const handRestX = isPeeking ? WAVE_GESTURE_VALUES.PEEK_HAND_DISTANCE_UNITS / input.sidewaysWidth : WAVE_GESTURE_VALUES.HAND_CENTRE_X_UNITS;
@@ -29,14 +31,21 @@ function wavePartOf(input: GestureInput): PosePart {
       placement:   'eased',
     },
     farHand:   null,
-    emoteMark: { ...emoteMarkAtRest('greeting'), innerScaleX: greetingScale, innerScaleY: greetingScale },
+    emoteMark: input.variant === 'greeting' ? { ...emoteMarkAtRest('greeting'), innerScaleX: greetingScale, innerScaleY: greetingScale } : null,
   };
 }
 
+const STILL_MOMENT_MILLISECONDS = Math.PI * WAVE_GESTURE_VALUES.ROCK_DIVISOR_MILLISECONDS;
+
 export const WAVE_GESTURE = gestureDefinition({
-  name:                  'wave',
+  name:    'wave',
   // Under reduced motion the hand stands upright, at a rock of 0, and the mark is fully grown.
-  intents:               { wave: singleFormOf(WAVE_GESTURE_VALUES.DURATION_MILLISECONDS, Math.PI * WAVE_GESTURE_VALUES.ROCK_DIVISOR_MILLISECONDS, WAVE_EXTENT) },
+  intents: {
+    wave:  singleFormOf(WAVE_GESTURE_VALUES.DURATION_MILLISECONDS, STILL_MOMENT_MILLISECONDS, WAVE_EXTENTS.WAVE),
+    greet: {
+      variant: 'greeting', durationMilliseconds: WAVE_GESTURE_VALUES.DURATION_MILLISECONDS, stillMomentMilliseconds: STILL_MOMENT_MILLISECONDS, extent: WAVE_EXTENTS.GREET,
+    },
+  },
   continuesWhileWalking: false,
   continuesWhileJumping: false,
   aimsAtElement:         false,
